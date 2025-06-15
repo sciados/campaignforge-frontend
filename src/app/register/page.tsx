@@ -1,14 +1,16 @@
 'use client'
 
-// Force dynamic rendering
-export const dynamic = 'force-dynamic'
-
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Eye, EyeOff, Mail, Lock, User, Building, Sparkles } from 'lucide-react'
 
+// Force this page to never be statically rendered
+export const dynamic = 'force-dynamic'
+export const runtime = 'edge'
+
 export default function RegisterPage() {
+  const [mounted, setMounted] = useState(false)
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
@@ -24,6 +26,22 @@ export default function RegisterPage() {
   const [isLoading, setIsLoading] = useState(false)
   
   const router = useRouter()
+
+  // Ensure component is mounted before accessing browser APIs
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  if (!mounted) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-purple-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Loading registration...</p>
+        </div>
+      </div>
+    )
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()

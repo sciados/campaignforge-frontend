@@ -7,11 +7,13 @@ const nextConfig = {
     NEXTAUTH_URL: process.env.NEXTAUTH_URL,
     NEXTAUTH_SECRET: process.env.NEXTAUTH_SECRET,
   },
-  // Disable static optimization for auth pages
+  // Force all pages to be dynamic
   experimental: {
     missingSuspenseWithCSRBailout: false,
   },
-  // Ensure dynamic rendering for auth pages
+  // Disable static optimization completely
+  output: 'standalone',
+  // Force dynamic rendering for all routes
   trailingSlash: false,
 }
 
