@@ -1,15 +1,17 @@
-import { useState, useEffect, createContext, useContext, useCallback } from 'react';
-import { useAuth } from './useAuth';
+'use client'
 
-const UserTierContext = createContext();
+import { useState, useEffect, createContext, useContext, useCallback } from 'react'
+import { useAuth } from './useAuth'
+
+const UserTierContext = createContext()
 
 export const useUserTier = () => {
-  const context = useContext(UserTierContext);
+  const context = useContext(UserTierContext)
   if (!context) {
-    throw new Error('useUserTier must be used within a UserTierProvider');
+    throw new Error('useUserTier must be used within a UserTierProvider')
   }
-  return context;
-};
+  return context
+}
 
 // Tier configurations matching your pricing strategy
 export const TIER_CONFIG = {
