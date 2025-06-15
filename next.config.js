@@ -7,8 +7,12 @@ const nextConfig = {
     NEXTAUTH_URL: process.env.NEXTAUTH_URL,
     NEXTAUTH_SECRET: process.env.NEXTAUTH_SECRET,
   },
-  // Remove the deprecated appDir experimental flag
-  // App Router is stable in Next.js 14+
+  // Disable static optimization for auth pages
+  experimental: {
+    missingSuspenseWithCSRBailout: false,
+  },
+  // Ensure dynamic rendering for auth pages
+  trailingSlash: false,
 }
 
 module.exports = nextConfig

@@ -16,10 +16,18 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null)
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
+  const [isClient, setIsClient] = useState(false)
 
   const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
 
+  // Check if we're on the client side
+  useEffect(() => {
+    setIsClient(true)
+  }, [])
+
   const validateToken = useCallback(async (token) => {
+    if (!isClient) return
+    
     try {
       const response = await fetch(`${API_BASE_URL}/api/auth/validate`, {
         method: 'GET',
@@ -34,28 +42,34 @@ export const AuthProvider = ({ children }) => {
         setUser(userData)
         setIsAuthenticated(true)
       } else {
-        localStorage.removeItem('authToken')
+        if (typeof window !== 'undefined') {
+          localStorage.removeItem('authToken')
+        }
         setUser(null)
         setIsAuthenticated(false)
       }
     } catch (error) {
       console.error('Token validation failed:', error)
-      localStorage.removeItem('authToken')
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('authToken')
+      }
       setUser(null)
       setIsAuthenticated(false)
     } finally {
       setIsLoading(false)
     }
-  }, [API_BASE_URL])
+  }, [API_BASE_URL, isClient])
 
   useEffect(() => {
-    const token = localStorage.getItem('authToken')
+    if (!isClient) return
+    
+    const token = typeof window !== 'undefined' ? localStorage.getItem('authToken') : null
     if (token) {
       validateToken(token)
     } else {
       setIsLoading(false)
     }
-  }, [validateToken])
+  }, [validateToken, isClient])
 
   const login = async (email, password) => {
     try {
@@ -70,7 +84,9 @@ export const AuthProvider = ({ children }) => {
         const data = await response.json()
         const { user: userData, access_token } = data
         
-        localStorage.setItem('authToken', access_token)
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('authToken', access_token)
+        }
         setUser(userData)
         setIsAuthenticated(true)
         
@@ -106,7 +122,9 @@ export const AuthProvider = ({ children }) => {
         const data = await response.json()
         const { user: newUser, access_token } = data
         
-        localStorage.setItem('authToken', access_token)
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('authToken', access_token)
+        }
         setUser(newUser)
         setIsAuthenticated(true)
         
@@ -130,7 +148,9 @@ export const AuthProvider = ({ children }) => {
   }
 
   const logout = () => {
-    localStorage.removeItem('authToken')
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('authToken')
+    }
     setUser(null)
     setIsAuthenticated(false)
   }
@@ -140,7 +160,9 @@ export const AuthProvider = ({ children }) => {
   }
 
   const refreshToken = async () => {
-    const token = localStorage.getItem('authToken')
+    if (!isClient) return
+    
+    const token = typeof window !== 'undefined' ? localStorage.getItem('authToken') : null
     if (token) {
       await validateToken(token)
     }
@@ -149,7 +171,7 @@ export const AuthProvider = ({ children }) => {
   const value = {
     user,
     isAuthenticated,
-    isLoading,
+    isLoading: isLoading || !isClient,
     login,
     register,
     logout,
