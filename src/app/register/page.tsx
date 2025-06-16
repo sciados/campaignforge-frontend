@@ -68,12 +68,13 @@ export default function RegisterPage() {
     try {
       const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
       const userData = {
-        email: formData.email,
-        password: formData.password,
-        first_name: formData.firstName,
-        last_name: formData.lastName,
-        company: formData.company || null
-      }
+  email: formData.email,
+  password: formData.password,
+  full_name: `${formData.firstName} ${formData.lastName}`, // ✅ Add this line
+  first_name: formData.firstName,  // Keep for compatibility
+  last_name: formData.lastName,    // Keep for compatibility  
+  company: formData.company || null
+}
 
       const response = await fetch(`${API_BASE_URL}/api/auth/register`, {
         method: 'POST',
