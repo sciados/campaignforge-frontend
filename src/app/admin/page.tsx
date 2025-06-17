@@ -3,6 +3,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation'
 import { Users, Building2, Target, DollarSign, TrendingUp, Search, Filter, Edit, Trash2, Eye, BarChart3, Settings, Database, Activity, Shield, Sparkles } from 'lucide-react';
+import UserEditModal from '@/components/admin/UserEditModal';
+import CompanyEditModal from '@/components/admin/CompanyEditModal';
 
 // Force this page to never be statically rendered
 export const dynamic = 'force-dynamic'
@@ -27,6 +29,7 @@ interface User {
   monthly_credits_used: number;
   monthly_credits_limit: number;
   is_active: boolean;
+  is_verified: boolean;
 }
 
 interface Company {
@@ -52,6 +55,17 @@ export default function AdminPage() {
   const [filterTier, setFilterTier] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [loading, setLoading] = useState(true);
+  
+  // Modal states
+  const [userEditModal, setUserEditModal] = useState<{isOpen: boolean, user: User | null}>({
+    isOpen: false,
+    user: null
+  });
+  const [companyEditModal, setCompanyEditModal] = useState<{isOpen: boolean, company: Company | null}>({
+    isOpen: false,
+    company: null
+  });
+  
   const router = useRouter()
 
   // Ensure component is mounted before accessing browser APIs
@@ -219,6 +233,23 @@ export default function AdminPage() {
     } catch (error) {
       console.error('Failed to update subscription:', error);
     }
+  };
+
+  // Modal handlers
+  const openUserEditModal = (user: User) => {
+    setUserEditModal({ isOpen: true, user });
+  };
+
+  const closeUserEditModal = () => {
+    setUserEditModal({ isOpen: false, user: null });
+  };
+
+  const openCompanyEditModal = (company: Company) => {
+    setCompanyEditModal({ isOpen: true, company });
+  };
+
+  const closeCompanyEditModal = () => {
+    setCompanyEditModal({ isOpen: false, company: null });
   };
 
   const formatCurrency = (amount: number) => {
@@ -619,7 +650,11 @@ export default function AdminPage() {
                                 {user.is_active ? 'Deactivate' : 'Activate'}
                               </button>
                               
-                              <button className="text-red-600 hover:text-red-900" title="Edit user">
+                              <button 
+                                onClick={() => openUserEditModal(user)}
+                                className="text-red-600 hover:text-red-900" 
+                                title="Edit user"
+                              >
                                 <Edit className="h-4 w-4" />
                               </button>
                               
@@ -736,7 +771,10 @@ export default function AdminPage() {
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                             <div className="flex space-x-2">
-                              <button className="text-red-600 hover:text-red-900">
+                              <button 
+                                onClick={() => openCompanyEditModal(company)}
+                                className="text-red-600 hover:text-red-900"
+                              >
                                 <Edit className="h-4 w-4" />
                               </button>
                               <button className="text-gray-400 hover:text-gray-600">
@@ -760,6 +798,25 @@ export default function AdminPage() {
           )}
         </main>
       </div>
+
+      {/* Edit Modals */}
+      {userEditModal.user && (
+        <UserEditModal
+          user={userEditModal.user}
+          isOpen={userEditModal.isOpen}
+          onClose={closeUserEditModal}
+          onSave={fetchUsers}
+        />
+      )}
+
+      {companyEditModal.company && (
+        <CompanyEditModal
+          company={companyEditModal.company}
+          isOpen={companyEditModal.isOpen}
+          onClose={closeCompanyEditModal}
+          onSave={fetchCompanies}
+        />
+      )}
     </div>
   );
 }
