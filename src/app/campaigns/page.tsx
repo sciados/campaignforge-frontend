@@ -1,4 +1,4 @@
-// frontend/src/pages/campaigns/page.tsx or your campaign component
+// src/app/campaigns/page.tsx
 'use client'
 
 import React, { useState, useEffect } from 'react'
@@ -26,14 +26,13 @@ interface IntelligenceSource {
   confidence_score: number
 }
 
-interface CampaignPageProps {
-  campaignId?: string
-}
-
-export default function CampaignsPage({ campaignId = "default-campaign-id" }: CampaignPageProps) {
-  // ✅ Fix: Properly type the state with the correct interface
+// ✅ ONLY ONE DEFAULT EXPORT - This fixes the Next.js error
+export default function CampaignsPage() {
+  // Get campaignId from URL params or use default
+  const [campaignId] = useState("default-campaign-id") // You can get this from useParams() if needed
+  
+  // ✅ Properly typed state
   const [intelligenceSources, setIntelligenceSources] = useState<IntelligenceSource[]>([])
-  const [selectedCampaign, setSelectedCampaign] = useState<any>(null)
   const [showIntelligence, setShowIntelligence] = useState(false)
 
   // Convert AnalysisResult to IntelligenceSource when analysis completes
@@ -42,7 +41,7 @@ export default function CampaignsPage({ campaignId = "default-campaign-id" }: Ca
     const newIntelligenceSource: IntelligenceSource = {
       id: result.intelligence_id,
       source_title: result.source_title || result.source_url || 'Analysis Result',
-      source_type: 'analysis', // or determine from result
+      source_type: result.analysis_status || 'analysis',
       confidence_score: result.confidence_score
     }
 
@@ -225,47 +224,6 @@ export default function CampaignsPage({ campaignId = "default-campaign-id" }: Ca
             </div>
           </div>
         </div>
-      </div>
-    </div>
-  )
-}
-
-// Alternative: If you want to create a separate dedicated intelligence page
-export function CampaignIntelligencePage({ campaignId }: { campaignId: string }) {
-  const [intelligenceSources, setIntelligenceSources] = useState<IntelligenceSource[]>([])
-
-  const handleAnalysisComplete = (result: AnalysisResult) => {
-    const newIntelligenceSource: IntelligenceSource = {
-      id: result.intelligence_id,
-      source_title: result.source_title || result.source_url || 'Analysis Result',
-      source_type: result.analysis_status || 'analysis',
-      confidence_score: result.confidence_score
-    }
-
-    setIntelligenceSources(prev => [...prev, newIntelligenceSource])
-  }
-
-  return (
-    <div className="min-h-screen bg-gray-50 p-6">
-      <div className="max-w-7xl mx-auto space-y-8">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">Campaign Intelligence</h1>
-          <p className="text-gray-600 mt-2">
-            Analyze competitors and generate winning content automatically
-          </p>
-        </div>
-
-        <IntelligenceAnalyzer 
-          campaignId={campaignId}
-          onAnalysisComplete={handleAnalysisComplete}
-        />
-
-        {intelligenceSources.length > 0 && (
-          <ContentGenerator 
-            campaignId={campaignId}
-            intelligenceSources={intelligenceSources}
-          />
-        )}
       </div>
     </div>
   )
