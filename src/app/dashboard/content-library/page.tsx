@@ -1,4 +1,6 @@
-import React, { useState, useEffect } from 'react'
+"use client";
+
+import React, { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { 
   Plus, Search, Filter, Grid, List, Calendar, Target, TrendingUp, 
@@ -83,6 +85,7 @@ export default function CampaignDashboard() {
 
   useEffect(() => {
     loadDashboardData()
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const loadDashboardData = async () => {
