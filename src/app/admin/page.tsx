@@ -73,10 +73,6 @@ export default function AdminPage() {
     setMounted(true);
   }, []);
 
-  const handleNavigateToCampaigns = () => {
-    router.push('../dashboard/campaigns')
-  }
-
   const fetchAdminStats = useCallback(async () => {
     try {
       const token = localStorage.getItem('authToken');
@@ -360,26 +356,41 @@ export default function AdminPage() {
       <div className="flex">
         {/* Sidebar */}
         <aside className="w-64 bg-white border-r border-gray-200 min-h-screen">
+          {/* Switch to User Dashboard Button */}
+          <div className="p-4 border-b border-gray-200">
+            <button
+              onClick={() => router.push('/dashboard')}
+              className="w-full flex items-center space-x-2 px-3 py-2 bg-purple-50 hover:bg-purple-100 text-purple-700 rounded-lg transition-colors text-sm border border-purple-200"
+            >
+              <Sparkles className="w-4 h-4" />
+              <span>Switch to User Dashboard</span>
+            </button>
+          </div>
+
           <nav className="p-4 space-y-2">
             {[
               { id: 'overview', label: 'Platform Overview', icon: 'BarChart3', active: activeTab === 'overview' },
               { id: 'users', label: 'User Management', icon: 'Users', active: activeTab === 'users' },
               { id: 'companies', label: 'Company Management', icon: 'Building2', active: activeTab === 'companies' },
-              { id: 'campaigns', label: 'My Campaigns', icon: 'Target', onClick: handleNavigateToCampaigns },
-              { id: 'create', label: 'Create Campaign', icon: 'Plus', highlight: true, onClick: handleNavigateToCampaigns },
-              { id: 'library', label: 'Content Library', icon: 'FileText', onClick: () => {} },
-              { id: 'analytics', label: 'Analytics', icon: 'TrendingUp', onClick: () => {} },
-              { id: 'settings', label: 'Account Settings', icon: 'Settings', onClick: () => {} },
+              { id: 'campaigns', label: 'Campaign Manager', icon: 'Target', onClick: () => router.push('/campaigns') },
               { id: 'revenue', label: 'Revenue Analytics', icon: 'DollarSign' },
               { id: 'system', label: 'System Health', icon: 'Database' },
               { id: 'settings', label: 'Platform Settings', icon: 'Settings' },
             ].map((item) => (
               <button
                 key={item.id}
-                onClick={() => setActiveTab(item.id)}
+                onClick={() => {
+                  if (item.onClick) {
+                    item.onClick();
+                  } else {
+                    setActiveTab(item.id);
+                  }
+                }}
                 className={`w-full flex items-center space-x-3 px-3 py-2 text-left rounded-lg transition-colors ${
                   item.active
                     ? 'bg-red-50 text-red-700 border border-red-200'
+                    : item.id === 'campaigns'
+                    ? 'text-purple-600 hover:bg-purple-50 border border-purple-200'
                     : 'text-gray-600 hover:bg-gray-50'
                 }`}
               >
@@ -387,11 +398,17 @@ export default function AdminPage() {
                   {item.icon === 'BarChart3' && <BarChart3 className="w-5 h-5" />}
                   {item.icon === 'Users' && <Users className="w-5 h-5" />}
                   {item.icon === 'Building2' && <Building2 className="w-5 h-5" />}
+                  {item.icon === 'Target' && <Target className="w-5 h-5" />}
                   {item.icon === 'DollarSign' && <DollarSign className="w-5 h-5" />}
                   {item.icon === 'Database' && <Database className="w-5 h-5" />}
                   {item.icon === 'Settings' && <Settings className="w-5 h-5" />}
                 </div>
                 <span className="font-medium">{item.label}</span>
+                {item.id === 'campaigns' && (
+                  <svg className="w-4 h-4 ml-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                  </svg>
+                )}
               </button>
             ))}
           </nav>
