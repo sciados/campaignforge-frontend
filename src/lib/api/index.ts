@@ -203,7 +203,7 @@ export const api = {
   // Authentication
   auth: {
     login: (credentials: { email: string; password: string }) =>
-      apiClient.post('/api/auth/login', credentials),
+      apiClient.post('/auth/login', credentials),
     register: (data: { email: string; password: string; full_name: string; company_name: string }) =>
       apiClient.post('/api/auth/register', data),
     logout: () => apiClient.post('/api/auth/logout'),
