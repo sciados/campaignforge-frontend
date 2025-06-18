@@ -5,7 +5,7 @@ export const dynamic = 'force-dynamic'
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Sparkles, Video, FileText, BarChart3, Users, Target, TrendingUp } from 'lucide-react'
+import { Sparkles, Video, FileText, BarChart3, Users, Target, TrendingUp, User } from 'lucide-react'
 
 interface User {
   id: string
