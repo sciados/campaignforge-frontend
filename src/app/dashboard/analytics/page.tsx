@@ -51,7 +51,7 @@ export default function DashboardPage() {
         const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
         
         // Validate user authentication
-        const authResponse = await fetch(`${API_BASE_URL}/api/auth/validate`, {
+        const authResponse = await fetch(`${API_BASE_URL}/auth/validate`, {
           headers: { 'Authorization': `Bearer ${token}` }
         })
 
@@ -67,7 +67,7 @@ export default function DashboardPage() {
           setUser(userData)
           
           // Fetch company dashboard stats
-          const statsResponse = await fetch(`${API_BASE_URL}/api/dashboard/stats`, {
+          const statsResponse = await fetch(`${API_BASE_URL}/dashboard/stats`, {
             headers: { 'Authorization': `Bearer ${token}` }
           })
           

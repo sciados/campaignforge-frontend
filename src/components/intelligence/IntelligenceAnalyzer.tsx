@@ -54,7 +54,7 @@ export default function IntelligenceAnalyzer({ campaignId, onAnalysisComplete }:
     setError(null)
     
     try {
-      const response = await fetch('/api/intelligence/analyze-url', {
+      const response = await fetch('/intelligence/analyze-url', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -94,7 +94,7 @@ export default function IntelligenceAnalyzer({ campaignId, onAnalysisComplete }:
       formData.append('file', file)
       formData.append('campaign_id', campaignId)
       
-      const response = await fetch('/api/intelligence/upload-document', {
+      const response = await fetch('/intelligence/upload-document', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('auth_token')}`

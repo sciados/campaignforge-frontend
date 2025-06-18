@@ -56,7 +56,7 @@ export default function CampaignsPage() {
   useEffect(() => {
     const loadExistingIntelligence = async () => {
       try {
-        const response = await fetch(`/api/intelligence/campaign/${campaignId}/intelligence`, {
+        const response = await fetch(`/intelligence/campaign/${campaignId}/intelligence`, {
           headers: {
             'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
           }

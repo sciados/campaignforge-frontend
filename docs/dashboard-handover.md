@@ -351,7 +351,7 @@ export const AuthProvider = ({ children }) => {
 
   const validateToken = async (token) => {
     try {
-      const response = await fetch('/api/auth/validate', {
+      const response = await fetch('/auth/validate', {
         headers: { Authorization: `Bearer ${token}` }
       });
       

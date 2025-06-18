@@ -120,7 +120,7 @@ export default function ContentGenerator({ campaignId, intelligenceSources }: Co
     setError(null)
     
     try {
-      const response = await fetch('/api/intelligence/generate-content', {
+      const response = await fetch('/intelligence/generate-content', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

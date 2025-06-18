@@ -100,7 +100,7 @@ export default function CampaignDashboard() {
       const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
 
       // Load user data
-      const userResponse = await fetch(`${API_BASE_URL}/api/auth/me`, {
+      const userResponse = await fetch(`${API_BASE_URL}/auth/me`, {
         headers: { 'Authorization': `Bearer ${token}` }
       })
       
@@ -110,7 +110,7 @@ export default function CampaignDashboard() {
       }
 
       // Load dashboard stats
-      const statsResponse = await fetch(`${API_BASE_URL}/api/dashboard/stats`, {
+      const statsResponse = await fetch(`${API_BASE_URL}/dashboard/stats`, {
         headers: { 'Authorization': `Bearer ${token}` }
       })
       

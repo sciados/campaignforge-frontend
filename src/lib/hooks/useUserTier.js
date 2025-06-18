@@ -151,7 +151,7 @@ export const UserTierProvider = ({ children }) => {
     try {
       setIsLoading(true);
       const token = localStorage.getItem('authToken');
-      const response = await fetch(`${API_BASE_URL}/api/users/usage`, {
+      const response = await fetch(`${API_BASE_URL}/users/usage`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
 
@@ -184,7 +184,7 @@ export const UserTierProvider = ({ children }) => {
   const incrementUsage = async (feature, amount = 1) => {
     try {
       const token = localStorage.getItem('authToken');
-      const response = await fetch(`${API_BASE_URL}/api/users/usage/increment`, {
+      const response = await fetch(`${API_BASE_URL}/users/usage/increment`, {
         method: 'POST',
         headers: { 
           'Authorization': `Bearer ${token}`,

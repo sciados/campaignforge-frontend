@@ -205,15 +205,15 @@ export const api = {
     login: (credentials: { email: string; password: string }) =>
       apiClient.post('/auth/login', credentials),
     register: (data: { email: string; password: string; full_name: string; company_name: string }) =>
-      apiClient.post('/api/auth/register', data),
-    logout: () => apiClient.post('/api/auth/logout'),
-    me: () => apiClient.get('/api/auth/me'),
+      apiClient.post('/auth/register', data),
+    logout: () => apiClient.post('/auth/logout'),
+    me: () => apiClient.get('/auth/me'),
   },
 
   // Dashboard
   dashboard: {
-    getStats: () => apiClient.get('/api/dashboard/stats'),
-    getCompany: () => apiClient.get('/api/dashboard/company'),
+    getStats: () => apiClient.get('/dashboard/stats'),
+    getCompany: () => apiClient.get('/dashboard/company'),
   },
 
   // Campaigns
@@ -222,12 +222,12 @@ export const api = {
       const query = new URLSearchParams();
       if (params?.page) query.append('page', params.page.toString());
       if (params?.limit) query.append('limit', params.limit.toString());
-      return apiClient.get(`/api/campaigns${query.toString() ? `?${query}` : ''}`);
+      return apiClient.get(`/campaigns${query.toString() ? `?${query}` : ''}`);
     },
-    get: (id: string) => apiClient.get(`/api/campaigns/${id}`),
-    create: (data: any) => apiClient.post('/api/campaigns', data),
-    update: (id: string, data: any) => apiClient.put(`/api/campaigns/${id}`, data),
-    delete: (id: string) => apiClient.delete(`/api/campaigns/${id}`),
+    get: (id: string) => apiClient.get(`/campaigns/${id}`),
+    create: (data: any) => apiClient.post('/campaigns', data),
+    update: (id: string, data: any) => apiClient.put(`/campaigns/${id}`, data),
+    delete: (id: string) => apiClient.delete(`/campaigns/${id}`),
   },
 
   // Intelligence Analysis
@@ -236,13 +236,13 @@ export const api = {
       url: string;
       campaign_id: string;
       analysis_type?: string;
-    }) => apiClient.post('/api/intelligence/analyze-url', data),
+    }) => apiClient.post('/intelligence/analyze-url', data),
     
     uploadDocument: (campaignId: string, file: File) => {
       const formData = new FormData();
       formData.append('file', file);
       formData.append('campaign_id', campaignId);
-      return apiClient.upload('/api/intelligence/upload-document', formData);
+      return apiClient.upload('/intelligence/upload-document', formData);
     },
     
     generateContent: (data: {
@@ -250,29 +250,29 @@ export const api = {
       content_type: string;
       preferences: Record<string, any>;
       campaign_id: string;
-    }) => apiClient.post('/api/intelligence/generate-content', data),
+    }) => apiClient.post('/intelligence/generate-content', data),
     
     getCampaignIntelligence: (campaignId: string) =>
-      apiClient.get(`/api/intelligence/campaign/${campaignId}/intelligence`),
+      apiClient.get(`/intelligence/campaign/${campaignId}/intelligence`),
     
-    getUsageStats: () => apiClient.get('/api/intelligence/usage-stats'),
+    getUsageStats: () => apiClient.get('/intelligence/usage-stats'),
   },
 
   // Content Management
   content: {
-    list: (campaignId: string) => apiClient.get(`/api/content/campaign/${campaignId}`),
-    get: (id: string) => apiClient.get(`/api/content/${id}`),
-    update: (id: string, data: any) => apiClient.put(`/api/content/${id}`, data),
-    delete: (id: string) => apiClient.delete(`/api/content/${id}`),
+    list: (campaignId: string) => apiClient.get(`/content/campaign/${campaignId}`),
+    get: (id: string) => apiClient.get(`/content/${id}`),
+    update: (id: string, data: any) => apiClient.put(`/content/${id}`, data),
+    delete: (id: string) => apiClient.delete(`/content/${id}`),
     publish: (id: string, platform: string) => 
-      apiClient.post(`/api/content/${id}/publish`, { platform }),
+      apiClient.post(`/content/${id}/publish`, { platform }),
   },
 
   // Smart URLs
   urls: {
-    list: (campaignId: string) => apiClient.get(`/api/urls/campaign/${campaignId}`),
-    get: (id: string) => apiClient.get(`/api/urls/${id}`),
-    analytics: (id: string) => apiClient.get(`/api/urls/${id}/analytics`),
+    list: (campaignId: string) => apiClient.get(`/urls/campaign/${campaignId}`),
+    get: (id: string) => apiClient.get(`/urls/${id}`),
+    analytics: (id: string) => apiClient.get(`/urls/${id}/analytics`),
   },
 };
 
