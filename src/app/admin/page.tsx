@@ -73,6 +73,10 @@ export default function AdminPage() {
     setMounted(true);
   }, []);
 
+  const handleNavigateToCampaigns = () => {
+    router.push('../dashboard/campaigns')
+  }
+
   const fetchAdminStats = useCallback(async () => {
     try {
       const token = localStorage.getItem('authToken');
@@ -361,6 +365,11 @@ export default function AdminPage() {
               { id: 'overview', label: 'Platform Overview', icon: 'BarChart3', active: activeTab === 'overview' },
               { id: 'users', label: 'User Management', icon: 'Users', active: activeTab === 'users' },
               { id: 'companies', label: 'Company Management', icon: 'Building2', active: activeTab === 'companies' },
+              { id: 'campaigns', label: 'My Campaigns', icon: 'Target', onClick: handleNavigateToCampaigns },
+              { id: 'create', label: 'Create Campaign', icon: 'Plus', highlight: true, onClick: handleNavigateToCampaigns },
+              { id: 'library', label: 'Content Library', icon: 'FileText', onClick: () => {} },
+              { id: 'analytics', label: 'Analytics', icon: 'TrendingUp', onClick: () => {} },
+              { id: 'settings', label: 'Account Settings', icon: 'Settings', onClick: () => {} },
               { id: 'revenue', label: 'Revenue Analytics', icon: 'DollarSign' },
               { id: 'system', label: 'System Health', icon: 'Database' },
               { id: 'settings', label: 'Platform Settings', icon: 'Settings' },
