@@ -3,8 +3,8 @@
 
 import React, { useState, useEffect } from 'react'
 import { Plus, Video, FileText, Globe, Calendar } from 'lucide-react'
-import IntelligenceAnalyzer from '@/components/IntelligenceAnalyzer'
-import ContentGenerator from '@/components/ContentGenerator'
+import IntelligenceAnalyzer from '@/components/intelligence/IntelligenceAnalyzer'
+import ContentGenerator from '@/components/intelligence/ContentGenerator'
 
 // Define the interfaces to match what your components expect
 interface AnalysisResult {
