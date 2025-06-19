@@ -178,42 +178,38 @@ export default function CampaignsPage() {
     try {
       console.log('🎯 INPUT PARAMS:', { type, method })
       
-      // 🔧 FIX: Map to your actual database enum values (UPPERCASE)
+      // 🔧 FIX: Map to backend enum values (lowercase with underscores)
       const typeMapping: { [key: string]: string } = {
-        'video_content': 'VIDEO_CONTENT',
-        'social_media': 'SOCIAL_MEDIA', 
-        'email_marketing': 'EMAIL_MARKETING',
-        'multimedia': 'VIDEO_CONTENT',
-        'content_marketing': 'BLOG_POST',
-        'advertising': 'ADVERTISEMENT',
-        'blog': 'BLOG_POST',
-        'newsletter': 'EMAIL_MARKETING',
-        'video': 'VIDEO_CONTENT',
-        'social': 'SOCIAL_MEDIA',
-        'email': 'EMAIL_MARKETING',
-        'ads': 'ADVERTISEMENT',
-        'content': 'BLOG_POST',
-        'website': 'BRAND_AWARENESS',
-        'document': 'EMAIL_MARKETING',
-        'brand_awareness': 'BRAND_AWARENESS'
+        'video_content': 'video_content',
+        'social_media': 'social_media', 
+        'email_marketing': 'email_marketing',
+        'multimedia': 'video_content',
+        'content_marketing': 'blog_post',
+        'advertising': 'advertisement',
+        'blog': 'blog_post',
+        'newsletter': 'email_marketing',
+        'video': 'video_content',
+        'social': 'social_media',
+        'email': 'email_marketing',
+        'ads': 'advertisement',
+        'content': 'blog_post',
+        'website': 'brand_awareness',
+        'document': 'email_marketing',
+        'brand_awareness': 'brand_awareness'
       }
       
       // 🔧 FIX: Handle empty/undefined type
       const inputType = type || 'video_content'
-      const campaignType = typeMapping[inputType] || 'VIDEO_CONTENT'
+      const campaignType = typeMapping[inputType] || 'social_media'  // Use backend default
       
       const campaignData = {
         title: `New ${inputType.replace('_', ' ')} Campaign`,
         description: `Campaign created from ${method}`,
         target_audience: 'general',  // 🔧 ADD: Missing field
-        campaign_type: campaignType,
-        status: 'DRAFT',  // 🔧 ADD: Missing field
+        campaign_type: campaignType,  // 🔧 FIX: Use lowercase enum values
         tone: 'conversational',
         style: 'modern',
-        brand_voice: 'professional',  // 🔧 ADD: Missing field
-        content: {},  // 🔧 ADD: Missing field
-        settings: { method, created_from: 'campaigns_page' },
-        campaign_metadata: {}  // 🔧 ADD: Missing field
+        settings: { method, created_from: 'campaigns_page' }
       }
 
       console.log('🚀 Creating campaign with data:', campaignData)
@@ -549,66 +545,91 @@ export default function CampaignsPage() {
             </button>
             <button
               onClick={async () => {
-                console.log('🔍 DEBUG: Testing multiple API endpoints')
+                console.log('🔍 DEBUG: Testing multiple scenarios')
                 const token = localStorage.getItem('authToken') || localStorage.getItem('access_token')
+                const endpoint = 'https://campaign-backend-production-e2db.up.railway.app/api/campaigns'
                 
-                const testData = {
-                  title: 'Direct API Test',
-                  description: 'Testing direct API call',
-                  target_audience: 'general',  // 🔧 ADD: Missing field
-                  campaign_type: 'EMAIL_MARKETING',
-                  status: 'DRAFT',  // 🔧 ADD: Missing field  
-                  tone: 'conversational',
-                  style: 'modern',
-                  brand_voice: 'professional',  // 🔧 ADD: Missing field
-                  content: {},  // 🔧 ADD: Missing field
-                  settings: { test: true },
-                  campaign_metadata: {}  // 🔧 ADD: Missing field
-                }
-                
-                // Try different possible endpoints
-                const endpoints = [
-                  '/api/campaigns',
-                  '/api/v1/campaigns', 
-                  '/campaigns',
-                  '/v1/campaigns',
-                  `${process.env.NEXT_PUBLIC_API_URL || 'https://campaignforge-backend.onrender.com'}/campaigns`,
-                  `${process.env.NEXT_PUBLIC_API_URL || 'https://campaignforge-backend.onrender.com'}/api/campaigns`,
-                  `${process.env.NEXT_PUBLIC_API_URL || 'https://campaignforge-backend.onrender.com'}/api/v1/campaigns`
+                // Test different scenarios
+                const scenarios = [
+                  {
+                    name: 'Test social_media (default)',
+                    data: {
+                      title: 'Test 1',
+                      description: 'Test Description 1',
+                      campaign_type: 'social_media'
+                    }
+                  },
+                  {
+                    name: 'Test email_marketing lowercase',
+                    data: {
+                      title: 'Test 2',
+                      description: 'Test Description 2', 
+                      campaign_type: 'email_marketing'
+                    }
+                  },
+                  {
+                    name: 'Test video_content lowercase',
+                    data: {
+                      title: 'Test 3',
+                      description: 'Test Description 3',
+                      campaign_type: 'video_content'
+                    }
+                  },
+                  {
+                    name: 'Test blog_post lowercase',
+                    data: {
+                      title: 'Test 4',
+                      description: 'Test Description 4',
+                      campaign_type: 'blog_post'
+                    }
+                  },
+                  {
+                    name: 'Test Just Required Fields',
+                    data: {
+                      title: 'Test 5',
+                      description: 'Test Description 5'
+                      // Let it use the default campaign_type
+                    }
+                  }
                 ]
                 
-                for (const endpoint of endpoints) {
+                for (const scenario of scenarios) {
                   try {
-                    console.log(`🔍 Testing endpoint: ${endpoint}`)
+                    console.log(`🧪 Testing: ${scenario.name}`)
+                    console.log('📤 Request data:', scenario.data)
+                    
                     const response = await fetch(endpoint, {
                       method: 'POST',
                       headers: {
                         'Content-Type': 'application/json',
                         'Authorization': `Bearer ${token}`
                       },
-                      body: JSON.stringify(testData)
+                      body: JSON.stringify(scenario.data)
                     })
-                    console.log(`🔍 ${endpoint} - Status: ${response.status}`)
                     
-                    if (response.status !== 405) {
-                      const data = await response.text()
-                      console.log(`🔍 ${endpoint} - Response: ${data}`)
-                      if (!response.ok) {
-                        console.error(`🔍 ${endpoint} - Error Response: ${data}`)
-                      } else {
-                        console.log(`✅ WORKING ENDPOINT FOUND: ${endpoint}`)
-                        break
-                      }
+                    const responseText = await response.text()
+                    console.log(`📥 ${scenario.name} - Status: ${response.status}`)
+                    console.log(`📥 ${scenario.name} - Response: ${responseText}`)
+                    
+                    if (response.ok) {
+                      console.log(`✅ SUCCESS: ${scenario.name} worked!`)
+                      break // Stop on first success
+                    } else {
+                      console.log(`❌ FAILED: ${scenario.name}`)
                     }
+                    
+                    // Wait a bit between requests
+                    await new Promise(resolve => setTimeout(resolve, 1000))
+                    
                   } catch (err) {
                     const error = err as any
-                    console.log(`🔍 ${endpoint} - Error: ${error.message || error}`)
+                    console.log(`🚨 ${scenario.name} - Error: ${error.message || error}`)
                   }
                 }
               }}
-              className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+              className="px-4 py-2 bg-orange-600 text-white rounded hover:bg-orange-700"
             >
-              Test All Endpoints
+              Test Multiple Scenarios
             </button>
           </div>
         </div>
