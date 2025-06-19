@@ -174,7 +174,7 @@ export default function CampaignsPage() {
     filterCampaigns()
   }, [filterCampaigns])
 
-  const handleCreateCampaign = async (type: string, method: string) => {
+  const handleCreateCampaign = useCallback(async (type: string, method: string) => {
     try {
       console.log('🎯 INPUT PARAMS:', { type, method })
       
@@ -274,7 +274,11 @@ export default function CampaignsPage() {
       // 🔧 FIX: More comprehensive error message extraction
       let errorMessage = 'Failed to create campaign'
       
-      if (error?.response?.data) {
+      // 🔧 FIX: Handle the specific case where data.detail exists but is truncated  
+      if (error?.data?.detail) {
+        errorMessage = `Backend Error: ${error.data.detail}`
+        console.error('🎯 Found error.data.detail:', error.data.detail)
+      } else if (error?.response?.data) {
         const responseData = error.response.data
         if (typeof responseData === 'string') {
           errorMessage = `Backend Error: ${responseData}`
@@ -297,6 +301,11 @@ export default function CampaignsPage() {
         errorMessage = `HTTP ${error.status}: ${error.statusText || 'Unknown error'}`
       }
       
+      // 🔧 FIX: If the message is still truncated, add helpful info
+      if (errorMessage.endsWith(': ') || errorMessage.endsWith(':')) {
+        errorMessage += ' [Error message appears to be truncated. Check backend logs for full details.]'
+      }
+      
       console.error('🔴 Final error message:', errorMessage)
       setError(errorMessage)
       
@@ -315,7 +324,23 @@ export default function CampaignsPage() {
         }
       }, 1000) // Wait 1 second then check
     }
-  }
+  }, [api, campaigns.length, setCampaigns, setSelectedCampaignId, setShowIntelligence, setError])
+
+  // 🔧 FIX: Create explicit button handlers after handleCreateCampaign is defined
+  const handleVideoClick = useCallback(() => {
+    console.log('🖱️ Video button clicked - explicit handler')
+    handleCreateCampaign('video_content', 'video')
+  }, [handleCreateCampaign])
+
+  const handleDocumentClick = useCallback(() => {
+    console.log('🖱️ Document button clicked - explicit handler')
+    handleCreateCampaign('email_marketing', 'document')
+  }, [handleCreateCampaign])
+
+  const handleWebsiteClick = useCallback(() => {
+    console.log('🖱️ Website button clicked - explicit handler')
+    handleCreateCampaign('brand_awareness', 'website')
+  }, [handleCreateCampaign])
 
   const handleAnalysisComplete = async (result: AnalysisResult) => {
     try {
@@ -516,10 +541,7 @@ export default function CampaignsPage() {
         {campaigns.length === 0 && !showIntelligence && (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <button 
-              onClick={() => {
-                console.log('🖱️ Video button clicked - calling handleCreateCampaign')
-                handleCreateCampaign('video_content', 'video')
-              }}
+              onClick={handleVideoClick}
               className="bg-white rounded-xl shadow-sm p-6 border border-gray-200 hover:border-purple-300 transition-colors cursor-pointer text-left"
             >
               <div className="flex items-center mb-4">
@@ -532,10 +554,7 @@ export default function CampaignsPage() {
             </button>
 
             <button 
-              onClick={() => {
-                console.log('🖱️ Document button clicked - calling handleCreateCampaign')
-                handleCreateCampaign('email_marketing', 'document')
-              }}
+              onClick={handleDocumentClick}
               className="bg-white rounded-xl shadow-sm p-6 border border-gray-200 hover:border-blue-300 transition-colors cursor-pointer text-left"
             >
               <div className="flex items-center mb-4">
@@ -548,10 +567,7 @@ export default function CampaignsPage() {
             </button>
 
             <button 
-              onClick={() => {
-                console.log('🖱️ Website button clicked - calling handleCreateCampaign')
-                handleCreateCampaign('brand_awareness', 'website')
-              }}
+              onClick={handleWebsiteClick}
               className="bg-white rounded-xl shadow-sm p-6 border border-gray-200 hover:border-emerald-300 transition-colors cursor-pointer text-left"
             >
               <div className="flex items-center mb-4">
