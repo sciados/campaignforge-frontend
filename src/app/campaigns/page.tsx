@@ -544,37 +544,61 @@ export default function CampaignsPage() {
             </button>
             <button
               onClick={async () => {
-                console.log('🔍 DEBUG: Direct API call test')
-                try {
-                  const response = await fetch('/api/campaigns', {
-                    method: 'POST',
-                    headers: {
-                      'Content-Type': 'application/json',
-                      'Authorization': `Bearer ${localStorage.getItem('authToken')}`
-                    },
-                    body: JSON.stringify({
-                      title: 'Direct API Test',
-                      description: 'Testing direct API call',
-                      campaign_type: 'EMAIL_MARKETING',
-                      tone: 'conversational',
-                      style: 'modern',
-                      settings: { test: true }
+                console.log('🔍 DEBUG: Testing multiple API endpoints')
+                const token = localStorage.getItem('authToken') || localStorage.getItem('access_token')
+                
+                const testData = {
+                  title: 'Direct API Test',
+                  description: 'Testing direct API call',
+                  campaign_type: 'EMAIL_MARKETING',
+                  tone: 'conversational',
+                  style: 'modern',
+                  settings: { test: true }
+                }
+                
+                // Try different possible endpoints
+                const endpoints = [
+                  '/api/campaigns',
+                  '/api/v1/campaigns', 
+                  '/campaigns',
+                  '/v1/campaigns',
+                  `${process.env.NEXT_PUBLIC_API_URL || 'https://campaignforge-backend.onrender.com'}/campaigns`,
+                  `${process.env.NEXT_PUBLIC_API_URL || 'https://campaignforge-backend.onrender.com'}/api/campaigns`,
+                  `${process.env.NEXT_PUBLIC_API_URL || 'https://campaignforge-backend.onrender.com'}/api/v1/campaigns`
+                ]
+                
+                for (const endpoint of endpoints) {
+                  try {
+                    console.log(`🔍 Testing endpoint: ${endpoint}`)
+                    const response = await fetch(endpoint, {
+                      method: 'POST',
+                      headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                      },
+                      body: JSON.stringify(testData)
                     })
-                  })
-                  console.log('🔍 Direct API Response status:', response.status)
-                  console.log('🔍 Direct API Response headers:', response.headers)
-                  const data = await response.text()
-                  console.log('🔍 Direct API Response text:', data)
-                  if (!response.ok) {
-                    console.error('🔍 Direct API Error Response:', data)
+                    console.log(`🔍 ${endpoint} - Status: ${response.status}`)
+                    
+                    if (response.status !== 405) {
+                      const data = await response.text()
+                      console.log(`🔍 ${endpoint} - Response: ${data}`)
+                      if (!response.ok) {
+                        console.error(`🔍 ${endpoint} - Error Response: ${data}`)
+                      } else {
+                        console.log(`✅ WORKING ENDPOINT FOUND: ${endpoint}`)
+                        break
+                      }
+                    }
+                  } catch (err) {
+                    const error = err as any
+                    console.log(`🔍 ${endpoint} - Error: ${error.message || error}`)
                   }
-                } catch (err) {
-                  console.error('🔍 Direct API Error:', err)
                 }
               }}
               className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
             >
-              Direct API Test
+              Test All Endpoints
             </button>
           </div>
         </div>
