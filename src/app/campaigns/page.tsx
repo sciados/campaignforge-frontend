@@ -176,15 +176,37 @@ export default function CampaignsPage() {
 
   const handleCreateCampaign = async (type: string, method: string) => {
     try {
+      // 🔧 FIX: Map to common lowercase enum values
+      // These are the most common campaign type enums in marketing platforms
+      const typeMapping: { [key: string]: string } = {
+        'video_content': 'video',
+        'social_media': 'social', 
+        'email_marketing': 'email',
+        'multimedia': 'video',  // fallback to video
+        'content_marketing': 'content',
+        'advertising': 'ads',
+        'blog': 'blog',
+        'newsletter': 'newsletter'
+      }
+      
+      // Try the mapped value first, then fallback to common values
+      let campaignType = typeMapping[type] || type.toLowerCase()
+      
+      // Common fallbacks for campaign types
+      if (!['video', 'social', 'email', 'content', 'ads', 'blog', 'newsletter'].includes(campaignType)) {
+        campaignType = 'video' // Safe fallback
+      }
+      
       const campaignData = {
         title: `New ${type || 'Campaign'}`,
         description: `Campaign created from ${method}`,
-        campaign_type: type || 'multimedia',
+        campaign_type: campaignType, // Use properly mapped lowercase value
         tone: 'conversational',
         style: 'modern',
         settings: { method, created_from: 'campaigns_page' }
       }
 
+      console.log('🚀 Creating campaign with data:', campaignData)
       const newCampaign = await api.createCampaign(campaignData)
       setCampaigns(prev => [newCampaign, ...prev])
       setSelectedCampaignId(newCampaign.id)
@@ -192,7 +214,17 @@ export default function CampaignsPage() {
       
     } catch (err) {
       console.error('Failed to create campaign:', err)
-      setError(err instanceof Error ? err.message : 'Failed to create campaign')
+      
+      // 🔧 FIX: Show more helpful error message for enum issues
+      let errorMessage = err instanceof Error ? err.message : 'Failed to create campaign'
+      
+      if (errorMessage.includes('invalid input value for enum campaigntype')) {
+        const match = errorMessage.match(/invalid input value for enum campaigntype: "([^"]+)"/)
+        const invalidValue = match ? match[1] : 'unknown'
+        errorMessage = `Campaign type "${invalidValue}" is not supported. Please try a different campaign type. Contact support if this issue persists.`
+      }
+      
+      setError(errorMessage)
     }
   }
 
