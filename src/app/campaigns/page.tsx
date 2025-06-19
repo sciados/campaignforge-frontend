@@ -1,7 +1,7 @@
 // src/app/campaigns/page.tsx
 'use client'
 
-import React, { useState, useEffect, useCallback } from 'react'
+import React, { useState, useEffect, useCallback, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { Plus, Video, FileText, Globe, Calendar, Filter, Grid, List } from 'lucide-react'
 import { useApi, type Campaign } from '@/lib/api'
@@ -53,6 +53,9 @@ export default function CampaignsPage() {
   const [searchQuery, setSearchQuery] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
   const [typeFilter, setTypeFilter] = useState('all')
+
+  // Ref to track if we've attempted to load data
+  const hasAttemptedLoad = useRef(false)
 
   // Memoize filter function to prevent unnecessary re-renders
   const filterCampaigns = useCallback(() => {
@@ -140,7 +143,13 @@ export default function CampaignsPage() {
 
   // Load initial data - with retry prevention
   useEffect(() => {
-    console.log('🔥 useEffect triggered, isLoading:', isLoading)
+    console.log('🔥 useEffect triggered, isLoading:', isLoading, 'hasAttemptedLoad:', hasAttemptedLoad.current)
+    
+    // Only run once on mount
+    if (hasAttemptedLoad.current) {
+      console.log('⏸️ Skipping - already attempted load')
+      return
+    }
     
     // Check authentication first and sync tokens
     const authToken = localStorage.getItem('authToken')
@@ -165,6 +174,9 @@ export default function CampaignsPage() {
     
     console.log('🔑 Auth token found:', token.substring(0, 20) + '...')
     
+    // Mark that we've attempted to load
+    hasAttemptedLoad.current = true
+    
     // AGGRESSIVE TIMEOUT - Force stop loading after 10 seconds
     const aggressiveTimeout = setTimeout(() => {
       console.log('🚨 AGGRESSIVE TIMEOUT - Forcing loading to stop!')
@@ -172,28 +184,22 @@ export default function CampaignsPage() {
       setError('Connection timeout. The API calls succeeded but the page failed to update. Please refresh.')
     }, 10000) // 10 seconds
     
-    // Try to load data
-    if (!isLoading && !error?.toLowerCase().includes('cors') && !error?.toLowerCase().includes('fetch')) {
-      console.log('🚀 Attempting to load data...')
-      loadInitialData().catch((err) => {
-        console.error('💥 loadInitialData failed:', err)
-        setIsLoading(false)
-        setError('Failed to load campaigns: ' + err.message)
-      }).finally(() => {
-        console.log('🏁 loadInitialData completed')
-        clearTimeout(aggressiveTimeout)
-      })
-    } else {
-      console.log('⏸️ Skipping load due to conditions:', { isLoading, error })
+    console.log('🚀 Attempting to load data...')
+    loadInitialData().catch((err) => {
+      console.error('💥 loadInitialData failed:', err)
+      setIsLoading(false)
+      setError('Failed to load campaigns: ' + err.message)
+    }).finally(() => {
+      console.log('🏁 loadInitialData completed')
       clearTimeout(aggressiveTimeout)
-    }
+    })
     
     // Cleanup
     return () => {
       console.log('🧹 Cleaning up timeout')
       clearTimeout(aggressiveTimeout)
     }
-  }, [error, isLoading, loadInitialData, router]) // Removed isLoading and error from deps to prevent loops
+  }, [loadInitialData, router, error, isLoading]) // Include all required dependencies
 
   // Filter campaigns when search/filter changes
   useEffect(() => {
