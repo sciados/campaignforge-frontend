@@ -421,7 +421,7 @@ class ApiClient {
     total_campaigns: number
     active_campaigns: number
   }> {
-    const response = await fetch(`${this.baseURL}/api/campaigns/dashboard/stats`, {
+    const response = await fetch(`${this.baseURL}/api/dashboard/stats`, {
       headers: this.getHeaders()
     })
     
