@@ -121,9 +121,15 @@ export default function CampaignsPage() {
       if (campaignsData && Array.isArray(campaignsData.campaigns)) {
         setCampaigns(campaignsData.campaigns)
         console.log(`📊 Set ${campaignsData.campaigns.length} campaigns`)
+        console.log('🔄 About to call setIsLoading(false)...')
+        setIsLoading(false)
+        console.log('✅ setIsLoading(false) called!')
       } else {
         console.log('⚠️ Invalid campaigns data format:', campaignsData)
         setCampaigns([]) // Set empty array as fallback
+        console.log('🔄 About to call setIsLoading(false) - fallback...')
+        setIsLoading(false)
+        console.log('✅ setIsLoading(false) called - fallback!')
       }
 
     } catch (err) {
@@ -137,7 +143,9 @@ export default function CampaignsPage() {
       
     } finally {
       console.log('🏁 loadInitialData finished')
+      console.log('🔄 Finally block - calling setIsLoading(false)...')
       setIsLoading(false)
+      console.log('✅ Finally block - setIsLoading(false) called!')
     }
   }, [api, isLoading]) // Remove router dependency to prevent redirects
 
