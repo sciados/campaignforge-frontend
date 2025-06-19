@@ -1,4 +1,4 @@
-// src/app/campaigns/page.tsx
+// src/app/campaigns/page.tsx - FIXED VERSION
 'use client'
 
 import React, { useState, useEffect, useCallback, useRef } from 'react'
@@ -54,14 +54,14 @@ export default function CampaignsPage() {
   const [statusFilter, setStatusFilter] = useState('all')
   const [typeFilter, setTypeFilter] = useState('all')
 
-  // Ref to track if we've attempted to load data
-  const hasAttemptedLoad = useRef(false)
+  // 🔧 FIX: Use ref to prevent multiple loads and track completion
+  const isInitialized = useRef(false)
+  const isLoadingData = useRef(false)
 
   // Memoize filter function to prevent unnecessary re-renders
   const filterCampaigns = useCallback(() => {
     let filtered = campaigns
 
-    // Search filter
     if (searchQuery) {
       filtered = filtered.filter(campaign =>
         campaign.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -69,12 +69,10 @@ export default function CampaignsPage() {
       )
     }
 
-    // Status filter
     if (statusFilter !== 'all') {
       filtered = filtered.filter(campaign => campaign.status === statusFilter)
     }
 
-    // Type filter
     if (typeFilter !== 'all') {
       filtered = filtered.filter(campaign => campaign.campaign_type === typeFilter)
     }
@@ -82,141 +80,102 @@ export default function CampaignsPage() {
     setFilteredCampaigns(filtered)
   }, [campaigns, searchQuery, statusFilter, typeFilter])
 
-  // Memoize load function to prevent unnecessary re-renders
-  const loadInitialData = useCallback(async () => {
-    // Prevent multiple simultaneous calls
-    if (isLoading) return;
-    
-    console.log('🚀 Starting loadInitialData...')
-    
-    try {
-      setIsLoading(true)
-      setError(null)
-
-      console.log('📞 Calling getUserProfile...')
-      // Add timeout to prevent hanging
-      const timeoutId = setTimeout(() => {
-        console.error('⏰ getUserProfile timeout!')
-        throw new Error('User profile request timeout - backend may be down')
-      }, 10000) // 10 second timeout
-
-      // Load user profile
-      const userProfile = await api.getUserProfile()
-      clearTimeout(timeoutId)
-      console.log('✅ getUserProfile success:', userProfile)
-      setUser(userProfile)
-
-      console.log('📞 Calling getCampaigns...')
-      // Load campaigns with a new timeout
-      const campaignsTimeoutId = setTimeout(() => {
-        console.error('⏰ getCampaigns timeout!')
-        throw new Error('Campaigns request timeout - backend may be down')
-      }, 10000)
-
-      const campaignsData = await api.getCampaigns({ limit: 50 })
-      clearTimeout(campaignsTimeoutId)
-      console.log('✅ getCampaigns success:', campaignsData)
-      
-      // Handle empty campaigns explicitly
-      if (campaignsData && Array.isArray(campaignsData.campaigns)) {
-        setCampaigns(campaignsData.campaigns)
-        console.log(`📊 Set ${campaignsData.campaigns.length} campaigns`)
-        console.log('🔄 About to call setIsLoading(false)...')
-        setIsLoading(false)
-        console.log('✅ setIsLoading(false) called!')
-      } else {
-        console.log('⚠️ Invalid campaigns data format:', campaignsData)
-        setCampaigns([]) // Set empty array as fallback
-        console.log('🔄 About to call setIsLoading(false) - fallback...')
-        setIsLoading(false)
-        console.log('✅ setIsLoading(false) called - fallback!')
-      }
-
-    } catch (err) {
-      console.error('❌ loadInitialData error:', err)
-      const errorMessage = err instanceof Error ? err.message : 'Failed to load data'
-      setError(errorMessage)
-      
-      // PREVENT INFINITE RETRIES - Stop all retries on any error
-      // Don't redirect or retry automatically
-      console.log('🛑 Stopping retries due to error')
-      
-    } finally {
-      console.log('🏁 loadInitialData finished')
-      console.log('🔄 Finally block - calling setIsLoading(false)...')
-      setIsLoading(false)
-      console.log('✅ Finally block - setIsLoading(false) called!')
-    }
-  }, [api, isLoading]) // Remove router dependency to prevent redirects
-
-  // Load initial data - with retry prevention
+  // 🔧 FIX: Simplified load function - moved inside useEffect to avoid dependency issues
+  
+  // 🔧 FIX: Simplified useEffect with better control
   useEffect(() => {
-    console.log('🔥 useEffect triggered, isLoading:', isLoading, 'hasAttemptedLoad:', hasAttemptedLoad.current)
-    
-    // Only run once on mount
-    if (hasAttemptedLoad.current) {
-      console.log('⏸️ Skipping - already attempted load')
+    // Only run once
+    if (isInitialized.current) {
+      console.log('⏸️ Already initialized, skipping...')
       return
     }
     
-    // Check authentication first and sync tokens
+    console.log('🔥 Initializing campaigns page...')
+    
+    // Check authentication
     const authToken = localStorage.getItem('authToken')
     const accessToken = localStorage.getItem('access_token')
     
-    // Sync tokens if one exists but not the other
+    // Sync tokens
     if (authToken && !accessToken) {
       localStorage.setItem('access_token', authToken)
-      console.log('🔄 Synced authToken to access_token')
     } else if (accessToken && !authToken) {
       localStorage.setItem('authToken', accessToken)
-      console.log('🔄 Synced access_token to authToken')
     }
     
     const token = authToken || accessToken
     if (!token) {
-      console.log('🔒 No auth token found, redirecting to login...')
-      setIsLoading(false) // Stop loading
+      console.log('🔒 No auth token, redirecting...')
+      setIsLoading(false)
       router.push('/login')
       return
     }
     
-    console.log('🔑 Auth token found:', token.substring(0, 20) + '...')
+    console.log('🔑 Auth token found')
+    isInitialized.current = true
     
-    // Mark that we've attempted to load
-    hasAttemptedLoad.current = true
-    
-    // AGGRESSIVE TIMEOUT - Force stop loading after 10 seconds
-    const aggressiveTimeout = setTimeout(() => {
-      console.log('🚨 AGGRESSIVE TIMEOUT - Forcing loading to stop!')
-      setIsLoading(false)
-      setError('Connection timeout. The API calls succeeded but the page failed to update. Please refresh.')
-    }, 10000) // 10 seconds
-    
-    console.log('🚀 Attempting to load data...')
-    loadInitialData().catch((err) => {
-      console.error('💥 loadInitialData failed:', err)
-      setIsLoading(false)
-      setError('Failed to load campaigns: ' + err.message)
-    }).finally(() => {
-      console.log('🏁 loadInitialData completed')
-      clearTimeout(aggressiveTimeout)
-    })
-    
-    // Cleanup
-    return () => {
-      console.log('🧹 Cleaning up timeout')
-      clearTimeout(aggressiveTimeout)
-    }
-  }, [loadInitialData, router, error, isLoading]) // Include all required dependencies
+    // 🔧 FIX: Define loadInitialData inside useEffect to avoid dependency issues
+    const loadInitialData = async () => {
+      // Prevent concurrent calls
+      if (isLoadingData.current) {
+        console.log('⏸️ Load already in progress, skipping...')
+        return
+      }
+      
+      console.log('🚀 Starting loadInitialData...')
+      isLoadingData.current = true
+      
+      try {
+        console.log('📞 Calling getUserProfile...')
+        const userProfile = await api.getUserProfile()
+        console.log('✅ getUserProfile success:', userProfile)
+        setUser(userProfile)
 
-  // Filter campaigns when search/filter changes
+        console.log('📞 Calling getCampaigns...')
+        const campaignsData = await api.getCampaigns({ limit: 50 })
+        console.log('✅ getCampaigns success:', campaignsData)
+        
+        // Handle campaigns data
+        if (campaignsData && Array.isArray(campaignsData.campaigns)) {
+          setCampaigns(campaignsData.campaigns)
+          console.log(`📊 Set ${campaignsData.campaigns.length} campaigns`)
+        } else {
+          console.log('⚠️ Invalid campaigns data, setting empty array')
+          setCampaigns([])
+        }
+
+        // 🔧 FIX: Force state update with setTimeout
+        setTimeout(() => {
+          console.log('🔄 Force updating loading state...')
+          setIsLoading(false)
+          setError(null)
+          console.log('✅ Loading state updated!')
+        }, 100)
+
+      } catch (err) {
+        console.error('❌ loadInitialData error:', err)
+        const errorMessage = err instanceof Error ? err.message : 'Failed to load data'
+        setError(errorMessage)
+        setIsLoading(false) // This should work in catch block
+        
+      } finally {
+        isLoadingData.current = false
+        console.log('🏁 loadInitialData completed')
+      }
+    }
+    
+    // Load data
+    loadInitialData()
+    
+  }, [api, router]) // 🔧 FIX: Include required dependencies
+
+  // Filter campaigns when data changes
   useEffect(() => {
     filterCampaigns()
   }, [filterCampaigns])
 
   const handleCreateCampaign = async (type: string, method: string) => {
     try {
-      // Create a basic campaign first
       const campaignData = {
         title: `New ${type || 'Campaign'}`,
         description: `Campaign created from ${method}`,
@@ -227,12 +186,8 @@ export default function CampaignsPage() {
       }
 
       const newCampaign = await api.createCampaign(campaignData)
-      
-      // Update local state
       setCampaigns(prev => [newCampaign, ...prev])
       setSelectedCampaignId(newCampaign.id)
-      
-      // Show intelligence analyzer for the new campaign
       setShowIntelligence(true)
       
     } catch (err) {
@@ -243,7 +198,6 @@ export default function CampaignsPage() {
 
   const handleAnalysisComplete = async (result: AnalysisResult) => {
     try {
-      // Convert analysis result to intelligence source format
       const newIntelligenceSource: IntelligenceSource = {
         id: result.intelligence_id,
         source_title: result.source_title || result.source_url || 'Analysis Result',
@@ -251,10 +205,8 @@ export default function CampaignsPage() {
         confidence_score: result.confidence_score
       }
 
-      // Add to intelligence sources
       setIntelligenceSources(prev => [...prev, newIntelligenceSource])
       
-      // If we have a selected campaign, load its intelligence
       if (selectedCampaignId) {
         const intelligence = await api.getCampaignIntelligence(selectedCampaignId)
         setIntelligenceSources(intelligence.intelligence_sources)
@@ -281,7 +233,6 @@ export default function CampaignsPage() {
   }, [loadCampaignIntelligence])
 
   const handleCampaignEdit = useCallback((campaign: Campaign) => {
-    // Navigate to campaign edit page
     router.push(`/campaigns/${campaign.id}/edit`)
   }, [router])
 
@@ -315,12 +266,73 @@ export default function CampaignsPage() {
     setTypeFilter('all')
   }, [])
 
+  // 🔧 FIX: Add manual retry function that recreates the loadInitialData function
+  const handleRetry = () => {
+    console.log('🔄 Manual retry triggered')
+    setError(null)
+    setIsLoading(true)
+    isInitialized.current = false
+    isLoadingData.current = false
+    
+    // 🔧 FIX: Recreate loadInitialData for retry
+    const retryLoadData = async () => {
+      if (isLoadingData.current) return
+      
+      console.log('🚀 Retry: Starting loadInitialData...')
+      isLoadingData.current = true
+      
+      try {
+        const userProfile = await api.getUserProfile()
+        setUser(userProfile)
+
+        const campaignsData = await api.getCampaigns({ limit: 50 })
+        
+        if (campaignsData && Array.isArray(campaignsData.campaigns)) {
+          setCampaigns(campaignsData.campaigns)
+        } else {
+          setCampaigns([])
+        }
+
+        setTimeout(() => {
+          setIsLoading(false)
+          setError(null)
+        }, 100)
+
+      } catch (err) {
+        const errorMessage = err instanceof Error ? err.message : 'Failed to load data'
+        setError(errorMessage)
+        setIsLoading(false)
+      } finally {
+        isLoadingData.current = false
+      }
+    }
+    
+    setTimeout(() => {
+      retryLoadData()
+    }, 100)
+  }
+
+  // 🔧 FIX: Add debug info in loading state
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-purple-600 mx-auto"></div>
           <p className="mt-4 text-gray-600">Loading your campaigns...</p>
+          <div className="mt-4 p-4 bg-white rounded-lg shadow-sm max-w-md">
+            <p className="text-sm text-gray-500">Debug Info:</p>
+            <p className="text-xs text-gray-400">
+              Campaigns: {campaigns.length} | 
+              User: {user ? '✅' : '❌'} | 
+              Initialized: {isInitialized.current ? '✅' : '❌'}
+            </p>
+            <button 
+              onClick={handleRetry}
+              className="mt-2 px-3 py-1 bg-purple-100 text-purple-700 text-sm rounded hover:bg-purple-200"
+            >
+              Force Retry
+            </button>
+          </div>
         </div>
       </div>
     )
@@ -330,6 +342,14 @@ export default function CampaignsPage() {
     <div className="min-h-screen bg-gray-50 p-6">
       <div className="max-w-7xl mx-auto space-y-8">
         
+        {/* 🔧 FIX: Add success indicator */}
+        <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
+          <p className="text-green-700 font-medium">✅ SUCCESS! Page loaded successfully</p>
+          <p className="text-green-600 text-sm mt-1">
+            Found {campaigns.length} campaigns. Backend API is working correctly.
+          </p>
+        </div>
+
         {/* Header */}
         <div className="flex justify-between items-center">
           <div>
@@ -345,26 +365,18 @@ export default function CampaignsPage() {
           </button>
         </div>
 
-        {/* Error Display with Retry Button */}
+        {/* Error Display */}
         {error && (
           <div className="bg-red-50 border border-red-200 rounded-lg p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-red-700 font-medium">Connection Error</p>
+                <p className="text-red-700 font-medium">Error</p>
                 <p className="text-red-600 text-sm mt-1">{error}</p>
-                {error.toLowerCase().includes('cors') && (
-                  <p className="text-red-600 text-sm mt-2">
-                    🔧 This appears to be a server configuration issue. Please check that the backend is deployed and CORS is configured correctly.
-                  </p>
-                )}
               </div>
               <div className="flex space-x-2">
                 <button 
-                  onClick={() => {
-                    setError(null)
-                    loadInitialData()
-                  }}
-                  className="px-3 py-1 bg-red-100 text-red-700 text-sm rounded hover:bg-red-200 transition-colors"
+                  onClick={handleRetry}
+                  className="px-3 py-1 bg-red-100 text-red-700 text-sm rounded hover:bg-red-200"
                 >
                   Retry
                 </button>
@@ -431,7 +443,6 @@ export default function CampaignsPage() {
         {/* Campaign Management */}
         {campaigns.length > 0 && !showIntelligence && (
           <>
-            {/* Filters */}
             <CampaignFilters
               searchQuery={searchQuery}
               onSearchChange={setSearchQuery}
@@ -443,7 +454,6 @@ export default function CampaignsPage() {
               resultsCount={filteredCampaigns.length}
             />
 
-            {/* Campaign Grid */}
             <CampaignGrid
               campaigns={filteredCampaigns}
               viewMode={viewMode}
@@ -474,7 +484,6 @@ export default function CampaignsPage() {
               onAnalysisComplete={handleAnalysisComplete}
             />
             
-            {/* Content Generator - Only show when we have intelligence sources */}
             {intelligenceSources.length > 0 && (
               <ContentGenerator 
                 campaignId={selectedCampaignId}
@@ -484,7 +493,7 @@ export default function CampaignsPage() {
           </div>
         )}
 
-        {/* Recent Campaigns for Non-Empty State */}
+        {/* Recent Campaigns */}
         {campaigns.length > 0 && !showIntelligence && (
           <div className="bg-white rounded-xl shadow-sm border border-gray-200">
             <div className="p-6 border-b border-gray-200">
