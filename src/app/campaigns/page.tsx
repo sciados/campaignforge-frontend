@@ -84,31 +84,39 @@ export default function CampaignsPage() {
     // Prevent multiple simultaneous calls
     if (isLoading) return;
     
+    console.log('🚀 Starting loadInitialData...')
+    
     try {
       setIsLoading(true)
       setError(null)
 
+      console.log('📞 Calling getUserProfile...')
       // Add timeout to prevent hanging
       const timeoutId = setTimeout(() => {
-        throw new Error('Request timeout - please check your connection')
+        console.error('⏰ getUserProfile timeout!')
+        throw new Error('User profile request timeout - backend may be down')
       }, 10000) // 10 second timeout
 
       // Load user profile
       const userProfile = await api.getUserProfile()
       clearTimeout(timeoutId)
+      console.log('✅ getUserProfile success:', userProfile)
       setUser(userProfile)
 
+      console.log('📞 Calling getCampaigns...')
       // Load campaigns with a new timeout
       const campaignsTimeoutId = setTimeout(() => {
-        throw new Error('Campaigns request timeout - please check your connection')
+        console.error('⏰ getCampaigns timeout!')
+        throw new Error('Campaigns request timeout - backend may be down')
       }, 10000)
 
       const campaignsData = await api.getCampaigns({ limit: 50 })
       clearTimeout(campaignsTimeoutId)
+      console.log('✅ getCampaigns success:', campaignsData)
       setCampaigns(campaignsData.campaigns)
 
     } catch (err) {
-      console.error('Failed to load data:', err)
+      console.error('❌ loadInitialData error:', err)
       const errorMessage = err instanceof Error ? err.message : 'Failed to load data'
       setError(errorMessage)
       
@@ -117,20 +125,43 @@ export default function CampaignsPage() {
           err.message.includes('401') && 
           !err.message.toLowerCase().includes('cors') &&
           !err.message.toLowerCase().includes('fetch')) {
+        console.log('🔄 Redirecting to login...')
         router.push('/login')
       }
     } finally {
+      console.log('🏁 loadInitialData finished')
       setIsLoading(false)
     }
   }, [api, router, isLoading]) // Add isLoading to dependencies
 
   // Load initial data - with retry prevention
   useEffect(() => {
+    // Check authentication first and sync tokens
+    const authToken = localStorage.getItem('authToken')
+    const accessToken = localStorage.getItem('access_token')
+    
+    // Sync tokens if one exists but not the other
+    if (authToken && !accessToken) {
+      localStorage.setItem('access_token', authToken)
+      console.log('🔄 Synced authToken to access_token')
+    } else if (accessToken && !authToken) {
+      localStorage.setItem('authToken', accessToken)
+      console.log('🔄 Synced access_token to authToken')
+    }
+    
+    const token = authToken || accessToken
+    if (!token) {
+      console.log('🔒 No auth token found, redirecting to login...')
+      router.push('/login')
+      return
+    }
+    
+    console.log('🔑 Auth token found:', token.substring(0, 20) + '...')
     // Only load if not already loading and no error from CORS/network issues
     if (!isLoading && !error?.toLowerCase().includes('cors') && !error?.toLowerCase().includes('fetch')) {
       loadInitialData()
     }
-  }, [loadInitialData, isLoading, error])
+  }, [loadInitialData, isLoading, error, router])
 
   // Filter campaigns when search/filter changes
   useEffect(() => {
