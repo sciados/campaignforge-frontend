@@ -511,6 +511,74 @@ export default function CampaignsPage() {
           </button>
         </div>
 
+        {/* 🔧 DEBUG: Add manual test buttons with hardcoded parameters */}
+        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
+          <h3 className="text-yellow-800 font-medium mb-2">🔧 Debug: Manual Test Buttons</h3>
+          <div className="flex space-x-4">
+            <button
+              onClick={() => {
+                console.log('🧪 DEBUG: Manual video test')
+                handleCreateCampaign('video_content', 'video')
+              }}
+              className="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700"
+            >
+              Test Video
+            </button>
+            <button
+              onClick={() => {
+                console.log('🧪 DEBUG: Manual email test')
+                handleCreateCampaign('email_marketing', 'document')
+              }}
+              className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+            >
+              Test Email
+            </button>
+            <button
+              onClick={() => {
+                console.log('🧪 DEBUG: Manual brand test')
+                handleCreateCampaign('brand_awareness', 'website')
+              }}
+              className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
+            >
+              Test Brand
+            </button>
+            <button
+              onClick={async () => {
+                console.log('🔍 DEBUG: Direct API call test')
+                try {
+                  const response = await fetch('/api/campaigns', {
+                    method: 'POST',
+                    headers: {
+                      'Content-Type': 'application/json',
+                      'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+                    },
+                    body: JSON.stringify({
+                      title: 'Direct API Test',
+                      description: 'Testing direct API call',
+                      campaign_type: 'EMAIL_MARKETING',
+                      tone: 'conversational',
+                      style: 'modern',
+                      settings: { test: true }
+                    })
+                  })
+                  console.log('🔍 Direct API Response status:', response.status)
+                  console.log('🔍 Direct API Response headers:', response.headers)
+                  const data = await response.text()
+                  console.log('🔍 Direct API Response text:', data)
+                  if (!response.ok) {
+                    console.error('🔍 Direct API Error Response:', data)
+                  }
+                } catch (err) {
+                  console.error('🔍 Direct API Error:', err)
+                }
+              }}
+              className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+            >
+              Direct API Test
+            </button>
+          </div>
+        </div>
+
         {/* Error Display */}
         {error && (
           <div className="bg-red-50 border border-red-200 rounded-lg p-4">
