@@ -231,28 +231,63 @@ export default function CampaignsPage() {
       console.error('❌ Error message:', error?.message)
       console.error('❌ Error stack:', error?.stack)
       
-      // 🔧 FIX: Log response details if available
+      // 🔧 FIX: Try to access response data more thoroughly
       if (error?.response) {
         console.error('❌ Response status:', error.response.status)
+        console.error('❌ Response statusText:', error.response.statusText)
         console.error('❌ Response data:', error.response.data)
         console.error('❌ Response headers:', error.response.headers)
+        
+        // Try different ways to extract the error message
+        if (typeof error.response.data === 'string') {
+          console.error('❌ Raw response string:', error.response.data)
+        }
       }
       
-      // 🔧 FIX: Try to get the full error message
+      // 🔧 FIX: Also check if this is a network/fetch error
+      if (error?.cause) {
+        console.error('❌ Error cause:', error.cause)
+      }
+      
+      // 🔧 FIX: More comprehensive error message extraction
       let errorMessage = 'Failed to create campaign'
       
-      if (error?.response?.data?.detail) {
-        errorMessage = `Backend Error: ${error.response.data.detail}`
-      } else if (error?.response?.data?.message) {
-        errorMessage = `Backend Error: ${error.response.data.message}`
-      } else if (error?.response?.data) {
-        errorMessage = `Backend Error: ${JSON.stringify(error.response.data)}`
-      } else if (error?.message) {
+      if (error?.response?.data) {
+        const responseData = error.response.data
+        if (typeof responseData === 'string') {
+          errorMessage = `Backend Error: ${responseData}`
+        } else if (responseData?.detail) {
+          errorMessage = `Backend Error: ${responseData.detail}`
+        } else if (responseData?.message) {
+          errorMessage = `Backend Error: ${responseData.message}`
+        } else if (responseData?.error) {
+          errorMessage = `Backend Error: ${responseData.error}`
+        } else {
+          errorMessage = `Backend Error: ${JSON.stringify(responseData)}`
+        }
+      } else if (error?.message && !error.message.endsWith(': ')) {
         errorMessage = error.message
+      } else if (error?.status) {
+        errorMessage = `HTTP ${error.status}: ${error.statusText || 'Unknown error'}`
       }
       
       console.error('🔴 Final error message:', errorMessage)
       setError(errorMessage)
+      
+      // 🔧 FIX: Check if campaign was actually created despite the error
+      console.log('🔄 Checking if campaign was created despite error...')
+      setTimeout(async () => {
+        try {
+          const campaignsData = await api.getCampaigns({ limit: 50 })
+          if (campaignsData && campaignsData.campaigns.length > campaigns.length) {
+            console.log('✅ Campaign was actually created! Refreshing list...')
+            setCampaigns(campaignsData.campaigns)
+            setError(null) // Clear the error since it worked
+          }
+        } catch (refreshErr) {
+          console.log('❌ Could not refresh campaigns list:', refreshErr)
+        }
+      }, 1000) // Wait 1 second then check
     }
   }
 
@@ -468,7 +503,11 @@ export default function CampaignsPage() {
             </div>
 
             <div 
-              onClick={() => handleCreateCampaign('email_marketing', 'document')}
+              onClick={(e) => {
+                e.preventDefault()
+                console.log('🖱️ Document button clicked')
+                handleCreateCampaign('email_marketing', 'document')
+              }}
               className="bg-white rounded-xl shadow-sm p-6 border border-gray-200 hover:border-blue-300 transition-colors cursor-pointer"
             >
               <div className="flex items-center mb-4">
