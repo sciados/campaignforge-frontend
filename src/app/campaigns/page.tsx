@@ -225,11 +225,16 @@ export default function CampaignsPage() {
     } catch (err) {
       console.error('❌ Full error object:', err)
       
-      // 🔧 FIX: Proper TypeScript error handling
+      // 🔧 FIX: Proper TypeScript error handling with deep inspection
       const error = err as any
       console.error('❌ Error name:', error?.name)
       console.error('❌ Error message:', error?.message)
       console.error('❌ Error stack:', error?.stack)
+      console.error('❌ Error toString:', error?.toString())
+      
+      // 🔧 FIX: Deep dive into error properties
+      console.error('❌ All error keys:', Object.keys(error || {}))
+      console.error('❌ Error prototype:', Object.getPrototypeOf(error || {}))
       
       // 🔧 FIX: Try to access response data more thoroughly
       if (error?.response) {
@@ -237,16 +242,33 @@ export default function CampaignsPage() {
         console.error('❌ Response statusText:', error.response.statusText)
         console.error('❌ Response data:', error.response.data)
         console.error('❌ Response headers:', error.response.headers)
+        console.error('❌ Response config:', error.response.config)
         
         // Try different ways to extract the error message
         if (typeof error.response.data === 'string') {
           console.error('❌ Raw response string:', error.response.data)
         }
+      } else if (error?.request) {
+        console.error('❌ Request object:', error.request)
+        console.error('❌ Request status:', error.request.status)
+        console.error('❌ Request response:', error.request.response)
+        console.error('❌ Request responseText:', error.request.responseText)
       }
       
       // 🔧 FIX: Also check if this is a network/fetch error
       if (error?.cause) {
         console.error('❌ Error cause:', error.cause)
+      }
+      
+      // 🔧 FIX: Check for custom error properties
+      if (error?.status) {
+        console.error('❌ Error status property:', error.status)
+      }
+      if (error?.statusText) {
+        console.error('❌ Error statusText property:', error.statusText)
+      }
+      if (error?.data) {
+        console.error('❌ Error data property:', error.data)
       }
       
       // 🔧 FIX: More comprehensive error message extraction
@@ -265,6 +287,10 @@ export default function CampaignsPage() {
         } else {
           errorMessage = `Backend Error: ${JSON.stringify(responseData)}`
         }
+      } else if (error?.request?.response) {
+        errorMessage = `Backend Error: ${error.request.response}`
+      } else if (error?.request?.responseText) {
+        errorMessage = `Backend Error: ${error.request.responseText}`
       } else if (error?.message && !error.message.endsWith(': ')) {
         errorMessage = error.message
       } else if (error?.status) {
@@ -489,9 +515,12 @@ export default function CampaignsPage() {
         {/* Quick Start Options */}
         {campaigns.length === 0 && !showIntelligence && (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div 
-              onClick={() => handleCreateCampaign('video_content', 'video')}
-              className="bg-white rounded-xl shadow-sm p-6 border border-gray-200 hover:border-purple-300 transition-colors cursor-pointer"
+            <button 
+              onClick={() => {
+                console.log('🖱️ Video button clicked - calling handleCreateCampaign')
+                handleCreateCampaign('video_content', 'video')
+              }}
+              className="bg-white rounded-xl shadow-sm p-6 border border-gray-200 hover:border-purple-300 transition-colors cursor-pointer text-left"
             >
               <div className="flex items-center mb-4">
                 <div className="bg-purple-100 p-3 rounded-lg">
@@ -500,15 +529,14 @@ export default function CampaignsPage() {
                 <h3 className="ml-3 text-lg font-semibold text-gray-900">From Video</h3>
               </div>
               <p className="text-gray-600">Process videos from YouTube, TikTok, and 8+ platforms</p>
-            </div>
+            </button>
 
-            <div 
-              onClick={(e) => {
-                e.preventDefault()
-                console.log('🖱️ Document button clicked')
+            <button 
+              onClick={() => {
+                console.log('🖱️ Document button clicked - calling handleCreateCampaign')
                 handleCreateCampaign('email_marketing', 'document')
               }}
-              className="bg-white rounded-xl shadow-sm p-6 border border-gray-200 hover:border-blue-300 transition-colors cursor-pointer"
+              className="bg-white rounded-xl shadow-sm p-6 border border-gray-200 hover:border-blue-300 transition-colors cursor-pointer text-left"
             >
               <div className="flex items-center mb-4">
                 <div className="bg-blue-100 p-3 rounded-lg">
@@ -517,11 +545,14 @@ export default function CampaignsPage() {
                 <h3 className="ml-3 text-lg font-semibold text-gray-900">From Document</h3>
               </div>
               <p className="text-gray-600">Upload PDFs, docs, presentations, and spreadsheets</p>
-            </div>
+            </button>
 
-            <div 
-              onClick={() => handleCreateCampaign('brand_awareness', 'website')}
-              className="bg-white rounded-xl shadow-sm p-6 border border-gray-200 hover:border-emerald-300 transition-colors cursor-pointer"
+            <button 
+              onClick={() => {
+                console.log('🖱️ Website button clicked - calling handleCreateCampaign')
+                handleCreateCampaign('brand_awareness', 'website')
+              }}
+              className="bg-white rounded-xl shadow-sm p-6 border border-gray-200 hover:border-emerald-300 transition-colors cursor-pointer text-left"
             >
               <div className="flex items-center mb-4">
                 <div className="bg-emerald-100 p-3 rounded-lg">
@@ -530,7 +561,7 @@ export default function CampaignsPage() {
                 <h3 className="ml-3 text-lg font-semibold text-gray-900">From Website</h3>
               </div>
               <p className="text-gray-600">Extract content from web pages and articles</p>
-            </div>
+            </button>
           </div>
         )}
 
