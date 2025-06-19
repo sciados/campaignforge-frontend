@@ -120,19 +120,15 @@ export default function CampaignsPage() {
       const errorMessage = err instanceof Error ? err.message : 'Failed to load data'
       setError(errorMessage)
       
-      // PREVENT INFINITE RETRIES - Only redirect on auth errors, not CORS
-      if (err instanceof Error && 
-          err.message.includes('401') && 
-          !err.message.toLowerCase().includes('cors') &&
-          !err.message.toLowerCase().includes('fetch')) {
-        console.log('🔄 Redirecting to login...')
-        router.push('/login')
-      }
+      // PREVENT INFINITE RETRIES - Stop all retries on any error
+      // Don't redirect or retry automatically
+      console.log('🛑 Stopping retries due to error')
+      
     } finally {
       console.log('🏁 loadInitialData finished')
       setIsLoading(false)
     }
-  }, [api, router, isLoading]) // Add isLoading to dependencies
+  }, [api, isLoading]) // Remove router dependency to prevent redirects
 
   // Load initial data - with retry prevention
   useEffect(() => {
@@ -152,15 +148,30 @@ export default function CampaignsPage() {
     const token = authToken || accessToken
     if (!token) {
       console.log('🔒 No auth token found, redirecting to login...')
+      setIsLoading(false) // Stop loading
       router.push('/login')
       return
     }
     
     console.log('🔑 Auth token found:', token.substring(0, 20) + '...')
+    
+    // Add timeout failsafe to prevent infinite loading
+    const loadingTimeout = setTimeout(() => {
+      console.log('⏰ Loading timeout - forcing stop')
+      setIsLoading(false)
+      setError('Loading timeout - please try refreshing the page')
+    }, 15000) // 15 second timeout
+    
     // Only load if not already loading and no error from CORS/network issues
     if (!isLoading && !error?.toLowerCase().includes('cors') && !error?.toLowerCase().includes('fetch')) {
-      loadInitialData()
+      loadInitialData().finally(() => {
+        clearTimeout(loadingTimeout)
+      })
+    } else {
+      clearTimeout(loadingTimeout)
     }
+    
+    return () => clearTimeout(loadingTimeout)
   }, [loadInitialData, isLoading, error, router])
 
   // Filter campaigns when search/filter changes
