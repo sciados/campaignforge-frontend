@@ -192,7 +192,7 @@ export default function CampaignsPage() {
         'ads': 'ADVERTISEMENT',
         'content': 'BLOG_POST',
         'website': 'BRAND_AWARENESS',
-        'document': 'BLOG_POST'
+        'document': 'EMAIL_MARKETING'  // 🔧 FIX: Map document to EMAIL_MARKETING for email series
       }
       
       // Use the mapped value or default to VIDEO_CONTENT
@@ -201,22 +201,49 @@ export default function CampaignsPage() {
       const campaignData = {
         title: `New ${type || 'Campaign'}`,
         description: `Campaign created from ${method}`,
-        campaign_type: campaignType, // Use actual database enum value
+        campaign_type: campaignType,
         tone: 'conversational',
         style: 'modern',
         settings: { method, created_from: 'campaigns_page' }
       }
 
       console.log('🚀 Creating campaign with data:', campaignData)
+      console.log('🔍 Mapped type from', type, 'to', campaignType)
+      
+      // 🔧 ADD: More detailed error logging
+      console.log('📡 About to call api.createCampaign...')
       const newCampaign = await api.createCampaign(campaignData)
+      console.log('✅ Campaign created successfully:', newCampaign)
+      
       setCampaigns(prev => [newCampaign, ...prev])
       setSelectedCampaignId(newCampaign.id)
       setShowIntelligence(true)
       
     } catch (err) {
-      console.error('Failed to create campaign:', err)
+      console.error('❌ Full error object:', err)
       
-      let errorMessage = err instanceof Error ? err.message : 'Failed to create campaign'
+      // 🔧 FIX: Proper TypeScript error handling
+      const error = err as any // Cast to any for debugging
+      console.error('❌ Error name:', error?.name)
+      console.error('❌ Error message:', error?.message)
+      console.error('❌ Error stack:', error?.stack)
+      
+      // 🔧 FIX: Log the full error details
+      if (error?.response) {
+        console.error('❌ Response status:', error.response.status)
+        console.error('❌ Response data:', error.response.data)
+        console.error('❌ Response headers:', error.response.headers)
+      }
+      
+      let errorMessage = 'Failed to create campaign'
+      
+      if (error instanceof Error) {
+        errorMessage = error.message
+      } else if (typeof error === 'string') {
+        errorMessage = error
+      } else if (error?.message) {
+        errorMessage = error.message
+      }
       
       if (errorMessage.includes('invalid input value for enum campaigntype')) {
         const match = errorMessage.match(/invalid input value for enum campaigntype: "([^"]+)"/)
@@ -224,6 +251,20 @@ export default function CampaignsPage() {
         errorMessage = `Campaign type "${invalidValue}" is not supported. Available types: VIDEO_CONTENT, SOCIAL_MEDIA, EMAIL_MARKETING, BLOG_POST, ADVERTISEMENT, PRODUCT_LAUNCH, BRAND_AWARENESS`
       }
       
+      // 🔧 ADD: Check for other common errors
+      if (errorMessage.includes('null value in column')) {
+        errorMessage = 'Missing required field. Please check that all required campaign data is provided.'
+      }
+      
+      if (errorMessage.includes('violates foreign key constraint')) {
+        errorMessage = 'Invalid user or company reference. Please refresh the page and try again.'
+      }
+      
+      if (errorMessage.includes('duplicate key value')) {
+        errorMessage = 'A campaign with this information already exists. Please try with different details.'
+      }
+      
+      console.error('🔴 Final error message:', errorMessage)
       setError(errorMessage)
     }
   }
