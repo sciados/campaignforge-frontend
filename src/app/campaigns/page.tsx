@@ -205,10 +205,15 @@ export default function CampaignsPage() {
       const campaignData = {
         title: `New ${inputType.replace('_', ' ')} Campaign`,
         description: `Campaign created from ${method}`,
+        target_audience: 'general',  // 🔧 ADD: Missing field
         campaign_type: campaignType,
+        status: 'DRAFT',  // 🔧 ADD: Missing field
         tone: 'conversational',
         style: 'modern',
-        settings: { method, created_from: 'campaigns_page' }
+        brand_voice: 'professional',  // 🔧 ADD: Missing field
+        content: {},  // 🔧 ADD: Missing field
+        settings: { method, created_from: 'campaigns_page' },
+        campaign_metadata: {}  // 🔧 ADD: Missing field
       }
 
       console.log('🚀 Creating campaign with data:', campaignData)
@@ -550,10 +555,15 @@ export default function CampaignsPage() {
                 const testData = {
                   title: 'Direct API Test',
                   description: 'Testing direct API call',
+                  target_audience: 'general',  // 🔧 ADD: Missing field
                   campaign_type: 'EMAIL_MARKETING',
+                  status: 'DRAFT',  // 🔧 ADD: Missing field  
                   tone: 'conversational',
                   style: 'modern',
-                  settings: { test: true }
+                  brand_voice: 'professional',  // 🔧 ADD: Missing field
+                  content: {},  // 🔧 ADD: Missing field
+                  settings: { test: true },
+                  campaign_metadata: {}  // 🔧 ADD: Missing field
                 }
                 
                 // Try different possible endpoints
