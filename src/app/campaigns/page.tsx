@@ -176,12 +176,14 @@ export default function CampaignsPage() {
 
   const handleCreateCampaign = async (type: string, method: string) => {
     try {
+      console.log('🎯 INPUT PARAMS:', { type, method })
+      
       // 🔧 FIX: Map to your actual database enum values (UPPERCASE)
       const typeMapping: { [key: string]: string } = {
         'video_content': 'VIDEO_CONTENT',
         'social_media': 'SOCIAL_MEDIA', 
         'email_marketing': 'EMAIL_MARKETING',
-        'multimedia': 'VIDEO_CONTENT',  // Default to video content
+        'multimedia': 'VIDEO_CONTENT',
         'content_marketing': 'BLOG_POST',
         'advertising': 'ADVERTISEMENT',
         'blog': 'BLOG_POST',
@@ -192,14 +194,16 @@ export default function CampaignsPage() {
         'ads': 'ADVERTISEMENT',
         'content': 'BLOG_POST',
         'website': 'BRAND_AWARENESS',
-        'document': 'EMAIL_MARKETING'  // 🔧 FIX: Map document to EMAIL_MARKETING for email series
+        'document': 'EMAIL_MARKETING',
+        'brand_awareness': 'BRAND_AWARENESS'
       }
       
-      // Use the mapped value or default to VIDEO_CONTENT
-      const campaignType = typeMapping[type] || 'VIDEO_CONTENT'
+      // 🔧 FIX: Handle empty/undefined type
+      const inputType = type || 'video_content'
+      const campaignType = typeMapping[inputType] || 'VIDEO_CONTENT'
       
       const campaignData = {
-        title: `New ${type || 'Campaign'}`,
+        title: `New ${inputType.replace('_', ' ')} Campaign`,
         description: `Campaign created from ${method}`,
         campaign_type: campaignType,
         tone: 'conversational',
@@ -208,9 +212,8 @@ export default function CampaignsPage() {
       }
 
       console.log('🚀 Creating campaign with data:', campaignData)
-      console.log('🔍 Mapped type from', type, 'to', campaignType)
+      console.log('🔍 Mapped type from', inputType, 'to', campaignType)
       
-      // 🔧 ADD: More detailed error logging
       console.log('📡 About to call api.createCampaign...')
       const newCampaign = await api.createCampaign(campaignData)
       console.log('✅ Campaign created successfully:', newCampaign)
@@ -223,45 +226,29 @@ export default function CampaignsPage() {
       console.error('❌ Full error object:', err)
       
       // 🔧 FIX: Proper TypeScript error handling
-      const error = err as any // Cast to any for debugging
+      const error = err as any
       console.error('❌ Error name:', error?.name)
       console.error('❌ Error message:', error?.message)
       console.error('❌ Error stack:', error?.stack)
       
-      // 🔧 FIX: Log the full error details
+      // 🔧 FIX: Log response details if available
       if (error?.response) {
         console.error('❌ Response status:', error.response.status)
         console.error('❌ Response data:', error.response.data)
         console.error('❌ Response headers:', error.response.headers)
       }
       
+      // 🔧 FIX: Try to get the full error message
       let errorMessage = 'Failed to create campaign'
       
-      if (error instanceof Error) {
-        errorMessage = error.message
-      } else if (typeof error === 'string') {
-        errorMessage = error
+      if (error?.response?.data?.detail) {
+        errorMessage = `Backend Error: ${error.response.data.detail}`
+      } else if (error?.response?.data?.message) {
+        errorMessage = `Backend Error: ${error.response.data.message}`
+      } else if (error?.response?.data) {
+        errorMessage = `Backend Error: ${JSON.stringify(error.response.data)}`
       } else if (error?.message) {
         errorMessage = error.message
-      }
-      
-      if (errorMessage.includes('invalid input value for enum campaigntype')) {
-        const match = errorMessage.match(/invalid input value for enum campaigntype: "([^"]+)"/)
-        const invalidValue = match ? match[1] : 'unknown'
-        errorMessage = `Campaign type "${invalidValue}" is not supported. Available types: VIDEO_CONTENT, SOCIAL_MEDIA, EMAIL_MARKETING, BLOG_POST, ADVERTISEMENT, PRODUCT_LAUNCH, BRAND_AWARENESS`
-      }
-      
-      // 🔧 ADD: Check for other common errors
-      if (errorMessage.includes('null value in column')) {
-        errorMessage = 'Missing required field. Please check that all required campaign data is provided.'
-      }
-      
-      if (errorMessage.includes('violates foreign key constraint')) {
-        errorMessage = 'Invalid user or company reference. Please refresh the page and try again.'
-      }
-      
-      if (errorMessage.includes('duplicate key value')) {
-        errorMessage = 'A campaign with this information already exists. Please try with different details.'
       }
       
       console.error('🔴 Final error message:', errorMessage)
@@ -481,7 +468,7 @@ export default function CampaignsPage() {
             </div>
 
             <div 
-              onClick={() => handleCreateCampaign('social_media', 'document')}
+              onClick={() => handleCreateCampaign('email_marketing', 'document')}
               className="bg-white rounded-xl shadow-sm p-6 border border-gray-200 hover:border-blue-300 transition-colors cursor-pointer"
             >
               <div className="flex items-center mb-4">
@@ -494,7 +481,7 @@ export default function CampaignsPage() {
             </div>
 
             <div 
-              onClick={() => handleCreateCampaign('email_marketing', 'website')}
+              onClick={() => handleCreateCampaign('brand_awareness', 'website')}
               className="bg-white rounded-xl shadow-sm p-6 border border-gray-200 hover:border-emerald-300 transition-colors cursor-pointer"
             >
               <div className="flex items-center mb-4">
