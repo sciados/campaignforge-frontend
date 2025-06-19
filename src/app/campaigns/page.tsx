@@ -81,35 +81,56 @@ export default function CampaignsPage() {
 
   // Memoize load function to prevent unnecessary re-renders
   const loadInitialData = useCallback(async () => {
+    // Prevent multiple simultaneous calls
+    if (isLoading) return;
+    
     try {
       setIsLoading(true)
       setError(null)
 
+      // Add timeout to prevent hanging
+      const timeoutId = setTimeout(() => {
+        throw new Error('Request timeout - please check your connection')
+      }, 10000) // 10 second timeout
+
       // Load user profile
       const userProfile = await api.getUserProfile()
+      clearTimeout(timeoutId)
       setUser(userProfile)
 
-      // Load campaigns
+      // Load campaigns with a new timeout
+      const campaignsTimeoutId = setTimeout(() => {
+        throw new Error('Campaigns request timeout - please check your connection')
+      }, 10000)
+
       const campaignsData = await api.getCampaigns({ limit: 50 })
+      clearTimeout(campaignsTimeoutId)
       setCampaigns(campaignsData.campaigns)
 
     } catch (err) {
       console.error('Failed to load data:', err)
-      setError(err instanceof Error ? err.message : 'Failed to load data')
+      const errorMessage = err instanceof Error ? err.message : 'Failed to load data'
+      setError(errorMessage)
       
-      // Redirect to login if unauthorized
-      if (err instanceof Error && err.message.includes('401')) {
+      // PREVENT INFINITE RETRIES - Only redirect on auth errors, not CORS
+      if (err instanceof Error && 
+          err.message.includes('401') && 
+          !err.message.toLowerCase().includes('cors') &&
+          !err.message.toLowerCase().includes('fetch')) {
         router.push('/login')
       }
     } finally {
       setIsLoading(false)
     }
-  }, [api, router])
+  }, [api, router, isLoading]) // Add isLoading to dependencies
 
-  // Load initial data
+  // Load initial data - with retry prevention
   useEffect(() => {
-    loadInitialData()
-  }, [loadInitialData])
+    // Only load if not already loading and no error from CORS/network issues
+    if (!isLoading && !error?.toLowerCase().includes('cors') && !error?.toLowerCase().includes('fetch')) {
+      loadInitialData()
+    }
+  }, [loadInitialData, isLoading, error])
 
   // Filter campaigns when search/filter changes
   useEffect(() => {
@@ -247,16 +268,37 @@ export default function CampaignsPage() {
           </button>
         </div>
 
-        {/* Error Display */}
+        {/* Error Display with Retry Button */}
         {error && (
           <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-            <p className="text-red-700">{error}</p>
-            <button 
-              onClick={() => setError(null)}
-              className="mt-2 text-red-600 hover:text-red-800 text-sm"
-            >
-              Dismiss
-            </button>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-red-700 font-medium">Connection Error</p>
+                <p className="text-red-600 text-sm mt-1">{error}</p>
+                {error.toLowerCase().includes('cors') && (
+                  <p className="text-red-600 text-sm mt-2">
+                    🔧 This appears to be a server configuration issue. Please check that the backend is deployed and CORS is configured correctly.
+                  </p>
+                )}
+              </div>
+              <div className="flex space-x-2">
+                <button 
+                  onClick={() => {
+                    setError(null)
+                    loadInitialData()
+                  }}
+                  className="px-3 py-1 bg-red-100 text-red-700 text-sm rounded hover:bg-red-200 transition-colors"
+                >
+                  Retry
+                </button>
+                <button 
+                  onClick={() => setError(null)}
+                  className="text-red-500 hover:text-red-700 text-sm"
+                >
+                  Dismiss
+                </button>
+              </div>
+            </div>
           </div>
         )}
 
