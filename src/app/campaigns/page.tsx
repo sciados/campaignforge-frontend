@@ -176,31 +176,32 @@ export default function CampaignsPage() {
 
   const handleCreateCampaign = async (type: string, method: string) => {
     try {
-      // 🔧 FIX: Map to common lowercase enum values
-      // These are the most common campaign type enums in marketing platforms
+      // 🔧 FIX: Map to your actual database enum values (UPPERCASE)
       const typeMapping: { [key: string]: string } = {
-        'video_content': 'video',
-        'social_media': 'social', 
-        'email_marketing': 'email',
-        'multimedia': 'video',  // fallback to video
-        'content_marketing': 'content',
-        'advertising': 'ads',
-        'blog': 'blog',
-        'newsletter': 'newsletter'
+        'video_content': 'VIDEO_CONTENT',
+        'social_media': 'SOCIAL_MEDIA', 
+        'email_marketing': 'EMAIL_MARKETING',
+        'multimedia': 'VIDEO_CONTENT',  // Default to video content
+        'content_marketing': 'BLOG_POST',
+        'advertising': 'ADVERTISEMENT',
+        'blog': 'BLOG_POST',
+        'newsletter': 'EMAIL_MARKETING',
+        'video': 'VIDEO_CONTENT',
+        'social': 'SOCIAL_MEDIA',
+        'email': 'EMAIL_MARKETING',
+        'ads': 'ADVERTISEMENT',
+        'content': 'BLOG_POST',
+        'website': 'BRAND_AWARENESS',
+        'document': 'BLOG_POST'
       }
       
-      // Try the mapped value first, then fallback to common values
-      let campaignType = typeMapping[type] || type.toLowerCase()
-      
-      // Common fallbacks for campaign types
-      if (!['video', 'social', 'email', 'content', 'ads', 'blog', 'newsletter'].includes(campaignType)) {
-        campaignType = 'video' // Safe fallback
-      }
+      // Use the mapped value or default to VIDEO_CONTENT
+      const campaignType = typeMapping[type] || 'VIDEO_CONTENT'
       
       const campaignData = {
         title: `New ${type || 'Campaign'}`,
         description: `Campaign created from ${method}`,
-        campaign_type: campaignType, // Use properly mapped lowercase value
+        campaign_type: campaignType, // Use actual database enum value
         tone: 'conversational',
         style: 'modern',
         settings: { method, created_from: 'campaigns_page' }
@@ -215,13 +216,12 @@ export default function CampaignsPage() {
     } catch (err) {
       console.error('Failed to create campaign:', err)
       
-      // 🔧 FIX: Show more helpful error message for enum issues
       let errorMessage = err instanceof Error ? err.message : 'Failed to create campaign'
       
       if (errorMessage.includes('invalid input value for enum campaigntype')) {
         const match = errorMessage.match(/invalid input value for enum campaigntype: "([^"]+)"/)
         const invalidValue = match ? match[1] : 'unknown'
-        errorMessage = `Campaign type "${invalidValue}" is not supported. Please try a different campaign type. Contact support if this issue persists.`
+        errorMessage = `Campaign type "${invalidValue}" is not supported. Available types: VIDEO_CONTENT, SOCIAL_MEDIA, EMAIL_MARKETING, BLOG_POST, ADVERTISEMENT, PRODUCT_LAUNCH, BRAND_AWARENESS`
       }
       
       setError(errorMessage)
