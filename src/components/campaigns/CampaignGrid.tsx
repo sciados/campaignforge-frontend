@@ -1,21 +1,6 @@
 import React, { useState } from 'react'
 import { Grid, List, SortAsc, SortDesc, Filter, Calendar, Star, Zap, FileText, Eye, Edit, Copy, Trash2, Clock, Play, TrendingUp, Award, Archive } from 'lucide-react'
-
-interface Campaign {
-  id: string
-  title: string
-  description: string
-  campaign_type: string
-  status: string
-  created_at: string
-  user_id: string
-  company_id: string
-  content: any
-  intelligence_count?: number
-  generated_content_count?: number
-  confidence_score?: number
-  last_activity?: string
-}
+import { Campaign } from '@/lib/api' // Import Campaign type from API client
 
 interface CampaignGridProps {
   campaigns: Campaign[]
@@ -62,7 +47,7 @@ const SORT_OPTIONS = [
   { value: 'last_activity', label: 'Last Activity' }
 ]
 
-// Inline CampaignCard component to avoid import issues
+// Inline CampaignCard component using the imported Campaign type
 function CampaignCard({ 
   campaign, 
   onView, 

@@ -1,4 +1,4 @@
-// src/components/intelligence/ContentGenerator.tsx
+// frontend/src/components/ContentGenerator.tsx
 import React, { useState, useCallback } from 'react'
 import { 
   Wand2, 
@@ -17,11 +17,8 @@ import {
   Loader2,
   CheckCircle,
   Lightbulb,
-  AlertCircle,
-  Plus,
-  Sparkles
+  AlertCircle
 } from 'lucide-react'
-import { useApi } from '@/lib/api'
 
 interface IntelligenceSource {
   id: string
@@ -55,8 +52,7 @@ const CONTENT_TYPES = [
     icon: Mail,
     description: 'Multi-email nurture sequence',
     credits: 3,
-    color: 'bg-blue-500',
-    estimatedTime: '2-3 minutes'
+    color: 'bg-blue-500'
   },
   {
     id: 'social_posts',
@@ -64,8 +60,7 @@ const CONTENT_TYPES = [
     icon: MessageSquare,
     description: '10+ social media posts',
     credits: 2,
-    color: 'bg-green-500',
-    estimatedTime: '1-2 minutes'
+    color: 'bg-green-500'
   },
   {
     id: 'ad_copy',
@@ -73,8 +68,7 @@ const CONTENT_TYPES = [
     icon: Megaphone,
     description: 'Multiple ad variations',
     credits: 2,
-    color: 'bg-red-500',
-    estimatedTime: '1-2 minutes'
+    color: 'bg-red-500'
   },
   {
     id: 'blog_post',
@@ -82,8 +76,7 @@ const CONTENT_TYPES = [
     icon: FileText,
     description: 'SEO-optimized article',
     credits: 4,
-    color: 'bg-purple-500',
-    estimatedTime: '3-4 minutes'
+    color: 'bg-purple-500'
   },
   {
     id: 'landing_page',
@@ -91,8 +84,7 @@ const CONTENT_TYPES = [
     icon: Globe,
     description: 'Conversion-optimized page',
     credits: 5,
-    color: 'bg-orange-500',
-    estimatedTime: '4-5 minutes'
+    color: 'bg-orange-500'
   },
   {
     id: 'video_script',
@@ -100,21 +92,17 @@ const CONTENT_TYPES = [
     icon: Video,
     description: 'Engaging video content',
     credits: 3,
-    color: 'bg-indigo-500',
-    estimatedTime: '2-3 minutes'
+    color: 'bg-indigo-500'
   }
 ]
 
 export default function ContentGenerator({ campaignId, intelligenceSources }: ContentGeneratorProps) {
-  const api = useApi()
-  
   const [selectedContentType, setSelectedContentType] = useState<string | null>(null)
   const [selectedIntelligence, setSelectedIntelligence] = useState<string>('')
   const [isGenerating, setIsGenerating] = useState(false)
   const [generatedContent, setGeneratedContent] = useState<GeneratedContent | null>(null)
   const [showPreferences, setShowPreferences] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [successMessage, setSuccessMessage] = useState<string | null>(null)
   
   // Content preferences state
   const [preferences, setPreferences] = useState({
@@ -125,33 +113,34 @@ export default function ContentGenerator({ campaignId, intelligenceSources }: Co
     platform: 'general'
   })
 
-  // Auto-select first intelligence source on load
-  React.useEffect(() => {
-    if (intelligenceSources.length > 0 && !selectedIntelligence) {
-      setSelectedIntelligence(intelligenceSources[0].id)
-    }
-  }, [intelligenceSources, selectedIntelligence])
-
   const generateContent = useCallback(async () => {
-    if (!selectedContentType || !selectedIntelligence) {
-      setError('Please select both content type and intelligence source')
-      return
-    }
+    if (!selectedContentType || !selectedIntelligence) return
     
     setIsGenerating(true)
     setError(null)
-    setSuccessMessage(null)
     
     try {
-      const result = await api.generateContent({
-        intelligence_id: selectedIntelligence,
-        content_type: selectedContentType,
-        preferences: preferences,
-        campaign_id: campaignId
+      const response = await fetch('/intelligence/generate-content', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
+        },
+        body: JSON.stringify({
+          intelligence_id: selectedIntelligence,
+          content_type: selectedContentType,
+          preferences: preferences,
+          campaign_id: campaignId
+        })
       })
       
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.detail || 'Content generation failed')
+      }
+      
+      const result = await response.json()
       setGeneratedContent(result)
-      setSuccessMessage('Content generated successfully!')
       
     } catch (error) {
       console.error('Content generation error:', error)
@@ -159,16 +148,15 @@ export default function ContentGenerator({ campaignId, intelligenceSources }: Co
     } finally {
       setIsGenerating(false)
     }
-  }, [selectedContentType, selectedIntelligence, preferences, campaignId, api])
+  }, [selectedContentType, selectedIntelligence, preferences, campaignId])
 
   const copyToClipboard = useCallback(async (text: string) => {
     try {
       await navigator.clipboard.writeText(text)
-      setSuccessMessage('Content copied to clipboard!')
-      setTimeout(() => setSuccessMessage(null), 3000)
+      // Show success toast - you can implement toast notification here
+      console.log('Content copied to clipboard')
     } catch (error) {
       console.error('Failed to copy:', error)
-      setError('Failed to copy to clipboard')
     }
   }, [])
 
@@ -183,17 +171,6 @@ export default function ContentGenerator({ campaignId, intelligenceSources }: Co
     document.body.removeChild(link)
     URL.revokeObjectURL(url)
   }, [])
-
-  const clearMessages = () => {
-    setError(null)
-    setSuccessMessage(null)
-  }
-
-  const resetGenerator = () => {
-    setGeneratedContent(null)
-    setSelectedContentType(null)
-    clearMessages()
-  }
 
   if (intelligenceSources.length === 0) {
     return (
@@ -221,24 +198,13 @@ export default function ContentGenerator({ campaignId, intelligenceSources }: Co
               Generate marketing content using competitive intelligence
             </p>
           </div>
-          <div className="flex items-center space-x-3">
-            <button
-              onClick={() => setShowPreferences(!showPreferences)}
-              className="flex items-center px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-            >
-              <Settings className="h-4 w-4 mr-2" />
-              Preferences
-            </button>
-            {generatedContent && (
-              <button
-                onClick={resetGenerator}
-                className="flex items-center px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                New Content
-              </button>
-            )}
-          </div>
+          <button
+            onClick={() => setShowPreferences(!showPreferences)}
+            className="flex items-center px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+          >
+            <Settings className="h-4 w-4 mr-2" />
+            Preferences
+          </button>
         </div>
 
         {/* Preferences Panel */}
@@ -317,31 +283,12 @@ export default function ContentGenerator({ campaignId, intelligenceSources }: Co
         )}
       </div>
 
-      {/* Messages */}
+      {/* Error Display */}
       {error && (
         <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center">
-              <AlertCircle className="h-5 w-5 text-red-500 mr-2" />
-              <p className="text-red-700">{error}</p>
-            </div>
-            <button onClick={clearMessages} className="text-red-500 hover:text-red-700">
-              <CheckCircle className="h-4 w-4" />
-            </button>
-          </div>
-        </div>
-      )}
-
-      {successMessage && (
-        <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center">
-              <CheckCircle className="h-5 w-5 text-green-500 mr-2" />
-              <p className="text-green-700">{successMessage}</p>
-            </div>
-            <button onClick={clearMessages} className="text-green-500 hover:text-green-700">
-              <CheckCircle className="h-4 w-4" />
-            </button>
+          <div className="flex items-center">
+            <AlertCircle className="h-5 w-5 text-red-500 mr-2" />
+            <p className="text-red-700">{error}</p>
           </div>
         </div>
       )}
@@ -401,7 +348,7 @@ export default function ContentGenerator({ campaignId, intelligenceSources }: Co
                   </div>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-xs text-gray-500">{contentType.credits} credits • {contentType.estimatedTime}</span>
+                  <span className="text-xs text-gray-500">{contentType.credits} credits</span>
                   {selectedContentType === contentType.id && (
                     <CheckCircle className="h-4 w-4 text-purple-600" />
                   )}
@@ -432,8 +379,7 @@ export default function ContentGenerator({ campaignId, intelligenceSources }: Co
       {generatedContent && (
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
           <div className="flex items-center justify-between mb-6">
-            <h3 className="text-xl font-bold text-gray-900 flex items-center">
-              <Sparkles className="h-5 w-5 mr-2 text-purple-600" />
+            <h3 className="text-xl font-bold text-gray-900">
               {generatedContent.generated_content?.title || 'Generated Content'}
             </h3>
             <div className="flex space-x-2">
@@ -669,16 +615,48 @@ export default function ContentGenerator({ campaignId, intelligenceSources }: Co
                 <Lightbulb className="h-5 w-5 text-yellow-600 mr-2" />
                 <h4 className="font-medium text-gray-900">Usage Tips</h4>
               </div>
-              <ul className="space-y-2">
+              <ul className="space-y-1">
                 {generatedContent.generated_content.usage_tips.map((tip: string, index: number) => (
-                  <li key={index} className="flex items-start text-sm text-gray-700">
-                    <div className="w-2 h-2 bg-yellow-400 rounded-full mt-2 mr-2 flex-shrink-0"></div>
-                    <span>{tip}</span>
+                  <li key={index} className="text-sm text-gray-700 flex items-start">
+                    <span className="text-yellow-600 mr-2">•</span>
+                    {tip}
                   </li>
                 ))}
               </ul>
             </div>
           )}
+
+          {/* Action Buttons */}
+          <div className="mt-6 flex space-x-3 pt-4 border-t border-gray-200">
+            <button 
+              onClick={() => {
+                // Save content to campaign
+                console.log('Saving content to campaign:', generatedContent)
+              }}
+              className="flex-1 bg-gradient-to-r from-green-600 to-blue-600 text-white py-3 px-4 rounded-lg font-medium hover:from-green-700 hover:to-blue-700 transition-all"
+            >
+              Save to Campaign
+            </button>
+            <button 
+              onClick={() => {
+                // Generate more variations with same settings
+                generateContent()
+              }}
+              className="flex-1 bg-gradient-to-r from-purple-600 to-pink-600 text-white py-3 px-4 rounded-lg font-medium hover:from-purple-700 hover:to-pink-700 transition-all"
+            >
+              Generate More Variations
+            </button>
+            <button 
+              onClick={() => {
+                // Preview content in new window or modal
+                console.log('Previewing content:', generatedContent)
+              }}
+              className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-50 transition-colors"
+            >
+              <Eye className="h-4 w-4 mr-2 inline" />
+              Preview
+            </button>
+          </div>
         </div>
       )}
     </div>

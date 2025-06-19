@@ -1,4 +1,4 @@
-// frontend/src/components/IntelligenceAnalyzer.tsx
+// src/components/intelligence/IntelligenceAnalyzer.tsx
 import React, { useState, useCallback } from 'react'
 import { 
   Brain, 
@@ -13,8 +13,11 @@ import {
   Target,
   Eye,
   Lightbulb,
-  Calendar
+  Calendar,
+  X,
+  Plus
 } from 'lucide-react'
+import { useApi } from '@/lib/api'
 
 interface AnalysisResult {
   intelligence_id: string
@@ -34,10 +37,13 @@ interface IntelligenceAnalyzerProps {
 }
 
 export default function IntelligenceAnalyzer({ campaignId, onAnalysisComplete }: IntelligenceAnalyzerProps) {
+  const api = useApi()
+  
   const [activeTab, setActiveTab] = useState<'url' | 'document' | 'results'>('url')
   const [isAnalyzing, setIsAnalyzing] = useState(false)
   const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [successMessage, setSuccessMessage] = useState<string | null>(null)
   
   // URL Analysis State
   const [url, setUrl] = useState('')
@@ -46,36 +52,41 @@ export default function IntelligenceAnalyzer({ campaignId, onAnalysisComplete }:
   // Document Upload State
   const [dragActive, setDragActive] = useState(false)
   const [uploadedFile, setUploadedFile] = useState<File | null>(null)
+  const [uploadProgress, setUploadProgress] = useState(0)
 
   const analyzeUrl = useCallback(async () => {
-    if (!url.trim()) return
+    if (!url.trim()) {
+      setError('Please enter a valid URL')
+      return
+    }
     
     setIsAnalyzing(true)
     setError(null)
+    setSuccessMessage(null)
     
     try {
-      const response = await fetch('/intelligence/analyze-url', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
-        },
-        body: JSON.stringify({
-          url: url.trim(),
-          campaign_id: campaignId,
-          analysis_type: analysisType
-        })
+      const result = await api.analyzeURL({
+        url: url.trim(),
+        campaign_id: campaignId,
+        analysis_type: analysisType
       })
       
-      if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.detail || 'Analysis failed')
+      // Transform the API response to match the expected interface
+      const analysisResult: AnalysisResult = {
+        intelligence_id: result.intelligence_id,
+        confidence_score: result.confidence_score,
+        offer_intelligence: result.offer_intelligence,
+        psychology_intelligence: result.psychology_intelligence,
+        competitive_opportunities: result.competitive_opportunities,
+        campaign_suggestions: result.campaign_suggestions,
+        analysis_status: result.analysis_status,
+        source_url: url.trim()
       }
       
-      const result = await response.json()
-      setAnalysisResult(result)
+      setAnalysisResult(analysisResult)
       setActiveTab('results')
-      onAnalysisComplete(result)
+      setSuccessMessage('Analysis completed successfully!')
+      onAnalysisComplete(analysisResult)
       
     } catch (err) {
       console.error('Analysis error:', err)
@@ -83,54 +94,50 @@ export default function IntelligenceAnalyzer({ campaignId, onAnalysisComplete }:
     } finally {
       setIsAnalyzing(false)
     }
-  }, [url, analysisType, campaignId, onAnalysisComplete])
+  }, [url, analysisType, campaignId, onAnalysisComplete, api])
 
   const uploadDocument = useCallback(async (file: File) => {
     setIsAnalyzing(true)
     setError(null)
+    setSuccessMessage(null)
+    setUploadProgress(0)
     
     try {
-      const formData = new FormData()
-      formData.append('file', file)
-      formData.append('campaign_id', campaignId)
+      // Simulate upload progress
+      const progressInterval = setInterval(() => {
+        setUploadProgress(prev => Math.min(prev + 10, 90))
+      }, 200)
       
-      const response = await fetch('/intelligence/upload-document', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
-        },
-        body: formData
-      })
+      const result = await api.uploadDocument(file, campaignId)
       
-      if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.detail || 'Document analysis failed')
-      }
+      clearInterval(progressInterval)
+      setUploadProgress(100)
       
-      const result = await response.json()
       // Convert document result to match AnalysisResult interface
       const analysisResult: AnalysisResult = {
         intelligence_id: result.intelligence_id,
-        confidence_score: result.confidence_score || 0.7,
-        offer_intelligence: result.content_intelligence || {},
-        psychology_intelligence: result.competitive_intelligence || {},
-        competitive_opportunities: result.content_opportunities || [],
-        campaign_suggestions: result.content_opportunities || [],
-        analysis_status: 'completed',
+        confidence_score: 0.8, // Default confidence for documents
+        offer_intelligence: {},
+        psychology_intelligence: {},
+        competitive_opportunities: result.content_opportunities.map((opp: any) => ({ description: opp })),
+        campaign_suggestions: result.content_opportunities,
+        analysis_status: result.status,
         source_title: file.name
       }
       
       setAnalysisResult(analysisResult)
       setActiveTab('results')
+      setSuccessMessage(`Document analyzed successfully! Found ${result.insights_extracted} insights.`)
       onAnalysisComplete(analysisResult)
       
     } catch (err) {
       console.error('Document upload error:', err)
       setError(err instanceof Error ? err.message : 'Document analysis failed')
+      setUploadProgress(0)
     } finally {
       setIsAnalyzing(false)
     }
-  }, [campaignId, onAnalysisComplete])
+  }, [campaignId, onAnalysisComplete, api])
 
   const handleDrag = useCallback((e: React.DragEvent) => {
     e.preventDefault()
@@ -161,6 +168,20 @@ export default function IntelligenceAnalyzer({ campaignId, onAnalysisComplete }:
       uploadDocument(files[0])
     }
   }, [uploadDocument])
+
+  const clearMessages = () => {
+    setError(null)
+    setSuccessMessage(null)
+  }
+
+  const startNewAnalysis = () => {
+    setAnalysisResult(null)
+    setActiveTab('url')
+    setUrl('')
+    setUploadedFile(null)
+    setUploadProgress(0)
+    clearMessages()
+  }
 
   return (
     <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
@@ -213,12 +234,31 @@ export default function IntelligenceAnalyzer({ campaignId, onAnalysisComplete }:
         )}
       </div>
 
-      {/* Error Display */}
+      {/* Messages */}
       {error && (
         <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
-          <div className="flex items-center">
-            <AlertCircle className="h-5 w-5 text-red-500 mr-2" />
-            <p className="text-red-700">{error}</p>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center">
+              <AlertCircle className="h-5 w-5 text-red-500 mr-2" />
+              <p className="text-red-700">{error}</p>
+            </div>
+            <button onClick={clearMessages} className="text-red-500 hover:text-red-700">
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
+      )}
+
+      {successMessage && (
+        <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center">
+              <CheckCircle className="h-5 w-5 text-green-500 mr-2" />
+              <p className="text-green-700">{successMessage}</p>
+            </div>
+            <button onClick={clearMessages} className="text-green-500 hover:text-green-700">
+              <X className="h-4 w-4" />
+            </button>
           </div>
         </div>
       )}
@@ -234,6 +274,7 @@ export default function IntelligenceAnalyzer({ campaignId, onAnalysisComplete }:
               value={analysisType}
               onChange={(e) => setAnalysisType(e.target.value)}
               className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+              disabled={isAnalyzing}
             >
               <option value="sales_page">Sales Page Analysis</option>
               <option value="website">General Website Analysis</option>
@@ -253,6 +294,7 @@ export default function IntelligenceAnalyzer({ campaignId, onAnalysisComplete }:
                 placeholder="https://competitor-sales-page.com"
                 className="flex-1 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                 disabled={isAnalyzing}
+                onKeyPress={(e) => e.key === 'Enter' && !isAnalyzing && analyzeUrl()}
               />
               <button
                 onClick={analyzeUrl}
@@ -314,6 +356,17 @@ export default function IntelligenceAnalyzer({ campaignId, onAnalysisComplete }:
                 <p className="text-sm text-gray-500">
                   {(uploadedFile.size / 1024 / 1024).toFixed(2)} MB
                 </p>
+                {isAnalyzing && (
+                  <div className="mt-4">
+                    <div className="w-full bg-gray-200 rounded-full h-2">
+                      <div 
+                        className="bg-purple-600 h-2 rounded-full transition-all duration-300"
+                        style={{ width: `${uploadProgress}%` }}
+                      ></div>
+                    </div>
+                    <p className="text-sm text-gray-600 mt-2">Processing... {uploadProgress}%</p>
+                  </div>
+                )}
               </div>
             ) : (
               <div className="space-y-4">
@@ -365,6 +418,18 @@ export default function IntelligenceAnalyzer({ campaignId, onAnalysisComplete }:
       {/* Results Tab */}
       {activeTab === 'results' && analysisResult && (
         <div className="space-y-6">
+          {/* Header with New Analysis Button */}
+          <div className="flex items-center justify-between">
+            <h3 className="text-xl font-semibold text-gray-900">Analysis Results</h3>
+            <button
+              onClick={startNewAnalysis}
+              className="flex items-center px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              New Analysis
+            </button>
+          </div>
+
           {/* Confidence Score */}
           <div className="bg-gradient-to-r from-purple-50 to-blue-50 rounded-lg p-4">
             <div className="flex items-center justify-between">
@@ -480,17 +545,17 @@ export default function IntelligenceAnalyzer({ campaignId, onAnalysisComplete }:
           <div className="flex space-x-3 pt-4 border-t border-gray-200">
             <button 
               onClick={() => {
-                // This will be handled by the parent component through onAnalysisComplete
-                // The ContentGenerator component will show up when analysis is complete
+                // Content generator will automatically show when analysis is complete
+                // This is handled by the parent component
               }}
               className="flex-1 bg-gradient-to-r from-purple-600 to-blue-600 text-white py-3 px-4 rounded-lg font-medium hover:from-purple-700 hover:to-blue-700 transition-all"
             >
-              Generate Content from Intelligence
+              Proceed to Content Generation
             </button>
             <button 
               onClick={() => {
-                // Save analysis to favorites or campaign notes
                 console.log('Saving analysis:', analysisResult)
+                // Implement save functionality
               }}
               className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-50 transition-colors"
             >

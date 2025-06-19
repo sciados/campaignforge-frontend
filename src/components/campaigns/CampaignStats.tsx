@@ -1,21 +1,6 @@
 import React from 'react'
 import { Target, Play, Zap, BarChart3, TrendingUp } from 'lucide-react'
-
-interface Campaign {
-  id: string
-  status: string
-  created_at: string
-  intelligence_count?: number
-  generated_content_count?: number
-  confidence_score?: number
-}
-
-interface User {
-  company: {
-    monthly_credits_used: number
-    monthly_credits_limit: number
-  }
-}
+import { Campaign, User } from '@/lib/api' // Import types from API client
 
 interface CampaignStatsProps {
   campaigns: Campaign[]
