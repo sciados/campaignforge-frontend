@@ -113,7 +113,15 @@ export default function CampaignsPage() {
       const campaignsData = await api.getCampaigns({ limit: 50 })
       clearTimeout(campaignsTimeoutId)
       console.log('✅ getCampaigns success:', campaignsData)
-      setCampaigns(campaignsData.campaigns)
+      
+      // Handle empty campaigns explicitly
+      if (campaignsData && Array.isArray(campaignsData.campaigns)) {
+        setCampaigns(campaignsData.campaigns)
+        console.log(`📊 Set ${campaignsData.campaigns.length} campaigns`)
+      } else {
+        console.log('⚠️ Invalid campaigns data format:', campaignsData)
+        setCampaigns([]) // Set empty array as fallback
+      }
 
     } catch (err) {
       console.error('❌ loadInitialData error:', err)
@@ -132,6 +140,8 @@ export default function CampaignsPage() {
 
   // Load initial data - with retry prevention
   useEffect(() => {
+    console.log('🔥 useEffect triggered, isLoading:', isLoading)
+    
     // Check authentication first and sync tokens
     const authToken = localStorage.getItem('authToken')
     const accessToken = localStorage.getItem('access_token')
@@ -155,24 +165,35 @@ export default function CampaignsPage() {
     
     console.log('🔑 Auth token found:', token.substring(0, 20) + '...')
     
-    // Add timeout failsafe to prevent infinite loading
-    const loadingTimeout = setTimeout(() => {
-      console.log('⏰ Loading timeout - forcing stop')
+    // AGGRESSIVE TIMEOUT - Force stop loading after 10 seconds
+    const aggressiveTimeout = setTimeout(() => {
+      console.log('🚨 AGGRESSIVE TIMEOUT - Forcing loading to stop!')
       setIsLoading(false)
-      setError('Loading timeout - please try refreshing the page')
-    }, 15000) // 15 second timeout
+      setError('Connection timeout. The API calls succeeded but the page failed to update. Please refresh.')
+    }, 10000) // 10 seconds
     
-    // Only load if not already loading and no error from CORS/network issues
+    // Try to load data
     if (!isLoading && !error?.toLowerCase().includes('cors') && !error?.toLowerCase().includes('fetch')) {
-      loadInitialData().finally(() => {
-        clearTimeout(loadingTimeout)
+      console.log('🚀 Attempting to load data...')
+      loadInitialData().catch((err) => {
+        console.error('💥 loadInitialData failed:', err)
+        setIsLoading(false)
+        setError('Failed to load campaigns: ' + err.message)
+      }).finally(() => {
+        console.log('🏁 loadInitialData completed')
+        clearTimeout(aggressiveTimeout)
       })
     } else {
-      clearTimeout(loadingTimeout)
+      console.log('⏸️ Skipping load due to conditions:', { isLoading, error })
+      clearTimeout(aggressiveTimeout)
     }
     
-    return () => clearTimeout(loadingTimeout)
-  }, [loadInitialData, isLoading, error, router])
+    // Cleanup
+    return () => {
+      console.log('🧹 Cleaning up timeout')
+      clearTimeout(aggressiveTimeout)
+    }
+  }, [error, isLoading, loadInitialData, router]) // Removed isLoading and error from deps to prevent loops
 
   // Filter campaigns when search/filter changes
   useEffect(() => {
