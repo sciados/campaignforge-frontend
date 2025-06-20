@@ -175,157 +175,58 @@ export default function CampaignsPage() {
   }, [filterCampaigns])
 
   const handleCreateCampaign = useCallback(async (type: string, method: string) => {
-    try {
-      console.log('🎯 INPUT PARAMS:', { type, method })
-      
-      // 🔧 FIX: Map to backend enum values (lowercase with underscores)
-      const typeMapping: { [key: string]: string } = {
-        'video_content': 'video_content',
-        'social_media': 'social_media', 
-        'email_marketing': 'email_marketing',
-        'multimedia': 'video_content',
-        'content_marketing': 'blog_post',
-        'advertising': 'advertisement',
-        'blog': 'blog_post',
-        'newsletter': 'email_marketing',
-        'video': 'video_content',
-        'social': 'social_media',
-        'email': 'email_marketing',
-        'ads': 'advertisement',
-        'content': 'blog_post',
-        'website': 'brand_awareness',
-        'document': 'email_marketing',
-        'brand_awareness': 'brand_awareness'
+  try {
+    console.log('🎯 Creating universal campaign:', { type, method })
+    
+    // Create universal campaign data
+    const campaignData = {
+      title: method === 'blank' ? 'New Campaign' : `Campaign from ${method}`,
+      description: method === 'blank' 
+        ? 'Universal campaign ready for any content type' 
+        : `Campaign created from ${method} analysis`,
+      keywords: [], // Will be populated during analysis
+      target_audience: 'general',
+      // Remove campaign_type entirely - backend should default or make optional
+      tone: 'conversational',
+      style: 'modern',
+      settings: { 
+        method, 
+        created_from: 'campaigns_page',
+        campaign_type: 'universal',
+        input_source_type: method
       }
-      
-      // 🔧 FIX: Handle empty/undefined type
-      const inputType = type || 'video_content'
-      const campaignType = typeMapping[inputType] || 'social_media'  // Use backend default
-      
-      const campaignData = {
-        title: `New ${inputType.replace('_', ' ')} Campaign`,
-        description: `Campaign created from ${method}`,
-        target_audience: 'general',  // 🔧 ADD: Missing field
-        campaign_type: campaignType,  // 🔧 FIX: Use lowercase enum values
-        tone: 'conversational',
-        style: 'modern',
-        settings: { method, created_from: 'campaigns_page' }
-      }
+    }
 
-      console.log('🚀 Creating campaign with data:', campaignData)
-      console.log('🔍 Mapped type from', inputType, 'to', campaignType)
-      
-      console.log('📡 About to call api.createCampaign...')
-      const newCampaign = await api.createCampaign(campaignData)
-      console.log('✅ Campaign created successfully:', newCampaign)
-      
-      setCampaigns(prev => [newCampaign, ...prev])
+    console.log('🚀 Creating universal campaign with data:', campaignData)
+    
+    const newCampaign = await api.createCampaign(campaignData)
+    console.log('✅ Universal campaign created successfully:', newCampaign)
+    
+    setCampaigns(prev => [newCampaign, ...prev])
+    
+    // If not blank, immediately go to intelligence analysis
+    if (method !== 'blank') {
       setSelectedCampaignId(newCampaign.id)
       setShowIntelligence(true)
-      
-    } catch (err) {
-      console.error('❌ Full error object:', err)
-      
-      // 🔧 FIX: Proper TypeScript error handling with deep inspection
-      const error = err as any
-      console.error('❌ Error name:', error?.name)
-      console.error('❌ Error message:', error?.message)
-      console.error('❌ Error stack:', error?.stack)
-      console.error('❌ Error toString:', error?.toString())
-      
-      // 🔧 FIX: Deep dive into error properties
-      console.error('❌ All error keys:', Object.keys(error || {}))
-      console.error('❌ Error prototype:', Object.getPrototypeOf(error || {}))
-      
-      // 🔧 FIX: Try to access response data more thoroughly
-      if (error?.response) {
-        console.error('❌ Response status:', error.response.status)
-        console.error('❌ Response statusText:', error.response.statusText)
-        console.error('❌ Response data:', error.response.data)
-        console.error('❌ Response headers:', error.response.headers)
-        console.error('❌ Response config:', error.response.config)
-        
-        // Try different ways to extract the error message
-        if (typeof error.response.data === 'string') {
-          console.error('❌ Raw response string:', error.response.data)
-        }
-      } else if (error?.request) {
-        console.error('❌ Request object:', error.request)
-        console.error('❌ Request status:', error.request.status)
-        console.error('❌ Request response:', error.request.response)
-        console.error('❌ Request responseText:', error.request.responseText)
-      }
-      
-      // 🔧 FIX: Also check if this is a network/fetch error
-      if (error?.cause) {
-        console.error('❌ Error cause:', error.cause)
-      }
-      
-      // 🔧 FIX: Check for custom error properties
-      if (error?.status) {
-        console.error('❌ Error status property:', error.status)
-      }
-      if (error?.statusText) {
-        console.error('❌ Error statusText property:', error.statusText)
-      }
-      if (error?.data) {
-        console.error('❌ Error data property:', error.data)
-      }
-      
-      // 🔧 FIX: More comprehensive error message extraction
-      let errorMessage = 'Failed to create campaign'
-      
-      // 🔧 FIX: Handle the specific case where data.detail exists but is truncated  
-      if (error?.data?.detail) {
-        errorMessage = `Backend Error: ${error.data.detail}`
-        console.error('🎯 Found error.data.detail:', error.data.detail)
-      } else if (error?.response?.data) {
-        const responseData = error.response.data
-        if (typeof responseData === 'string') {
-          errorMessage = `Backend Error: ${responseData}`
-        } else if (responseData?.detail) {
-          errorMessage = `Backend Error: ${responseData.detail}`
-        } else if (responseData?.message) {
-          errorMessage = `Backend Error: ${responseData.message}`
-        } else if (responseData?.error) {
-          errorMessage = `Backend Error: ${responseData.error}`
-        } else {
-          errorMessage = `Backend Error: ${JSON.stringify(responseData)}`
-        }
-      } else if (error?.request?.response) {
-        errorMessage = `Backend Error: ${error.request.response}`
-      } else if (error?.request?.responseText) {
-        errorMessage = `Backend Error: ${error.request.responseText}`
-      } else if (error?.message && !error.message.endsWith(': ')) {
-        errorMessage = error.message
-      } else if (error?.status) {
-        errorMessage = `HTTP ${error.status}: ${error.statusText || 'Unknown error'}`
-      }
-      
-      // 🔧 FIX: If the message is still truncated, add helpful info
-      if (errorMessage.endsWith(': ') || errorMessage.endsWith(':')) {
-        errorMessage += ' [Error message appears to be truncated. Check backend logs for full details.]'
-      }
-      
-      console.error('🔴 Final error message:', errorMessage)
-      setError(errorMessage)
-      
-      // 🔧 FIX: Check if campaign was actually created despite the error
-      console.log('🔄 Checking if campaign was created despite error...')
-      setTimeout(async () => {
-        try {
-          const campaignsData = await api.getCampaigns({ limit: 50 })
-          if (campaignsData && campaignsData.campaigns.length > campaigns.length) {
-            console.log('✅ Campaign was actually created! Refreshing list...')
-            setCampaigns(campaignsData.campaigns)
-            setError(null) // Clear the error since it worked
-          }
-        } catch (refreshErr) {
-          console.log('❌ Could not refresh campaigns list:', refreshErr)
-        }
-      }, 1000) // Wait 1 second then check
     }
-  }, [api, campaigns.length, setCampaigns, setSelectedCampaignId, setShowIntelligence, setError])
+    
+  } catch (err) {
+    console.error('❌ Campaign creation error:', err)
+    
+    // Handle the error as before (your existing error handling is good)
+    const error = err as any
+    let errorMessage = 'Failed to create campaign'
+    
+    if (error?.response?.data?.detail) {
+      errorMessage = `Backend Error: ${error.response.data.detail}`
+    } else if (error?.message) {
+      errorMessage = error.message
+    }
+    
+    console.error('🔴 Final error message:', errorMessage)
+    setError(errorMessage)
+  }
+}, [api, setCampaigns, setSelectedCampaignId, setShowIntelligence, setError])
 
   // 🔧 FIX: Create explicit button handlers after handleCreateCampaign is defined
   const handleVideoClick = useCallback(() => {

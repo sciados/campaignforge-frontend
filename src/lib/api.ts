@@ -20,6 +20,7 @@ export interface Campaign {
   id: string
   title: string
   description: string
+  keywords?: string[]  // NEW: Add keywords
   target_audience?: string
   campaign_type: string
   status: string
@@ -74,6 +75,148 @@ export interface User {
     monthly_credits_used: number
     monthly_credits_limit: number
     company_size?: string
+  }
+}
+
+// NEW: Enhanced Intelligence Types
+export interface EnhancedSalesPageIntelligence {
+  intelligence_id: string
+  confidence_score: number
+  source_url: string
+  source_title: string
+  analysis_timestamp: string
+  
+  // Core Intelligence Areas
+  offer_analysis: {
+    primary_offer: string
+    pricing_strategy: string[]
+    value_propositions: string[]
+    guarantees: string[]
+    bonuses: string[]
+    urgency_tactics: string[]
+    pricing_details?: {
+      price_points: string[]
+      payment_options: string[]
+      discount_strategies: string[]
+    }
+  }
+  
+  psychology_analysis: {
+    emotional_triggers: string[]
+    persuasion_techniques: string[]
+    social_proof_elements: string[]
+    authority_indicators: string[]
+    scarcity_elements: string[]
+    cognitive_biases_used: string[]
+  }
+  
+  content_strategy: {
+    headline_patterns: string[]
+    story_elements: string[]
+    objection_handling: string[]
+    call_to_action_analysis: string[]
+    content_flow: string[]
+    messaging_hierarchy: string[]
+  }
+  
+  competitive_intelligence: {
+    unique_differentiators: string[]
+    market_gaps: string[]
+    improvement_opportunities: string[]
+    competitive_advantages: string[]
+    weakness_analysis: string[]
+  }
+  
+  // Video Sales Letter Detection
+  vsl_analysis?: {
+    has_video: boolean
+    video_length_estimate: string
+    video_type: 'vsl' | 'demo' | 'testimonial' | 'other'
+    transcript_available: boolean
+    key_video_elements: string[]
+    video_url?: string
+    thumbnail_analysis?: string[]
+  }
+  
+  // Campaign Angle Generation
+  campaign_angles: {
+    primary_angle: string
+    alternative_angles: string[]
+    positioning_strategy: string
+    target_audience_insights: string[]
+    messaging_framework: string[]
+    differentiation_strategy: string
+  }
+  
+  // Actionable Insights
+  actionable_insights: {
+    immediate_opportunities: string[]
+    content_creation_ideas: string[]
+    campaign_strategies: string[]
+    testing_recommendations: string[]
+    implementation_priorities: string[]
+  }
+  
+  // Technical Analysis
+  technical_analysis?: {
+    page_load_speed: string
+    mobile_optimization: boolean
+    conversion_elements: string[]
+    trust_signals: string[]
+    checkout_analysis?: string[]
+  }
+}
+
+export interface VSLTranscriptionResult {
+  transcript_id: string
+  video_url: string
+  transcript_text: string
+  key_moments: {
+    timestamp: string
+    description: string
+    importance_score: number
+  }[]
+  psychological_hooks: string[]
+  offer_mentions: {
+    timestamp: string
+    offer_details: string
+  }[]
+  call_to_actions: {
+    timestamp: string
+    cta_text: string
+    urgency_level: 'low' | 'medium' | 'high'
+  }[]
+}
+
+export interface CampaignAngleRequest {
+  campaign_id: string
+  intelligence_sources: string[] // Array of intelligence_ids
+  target_audience?: string
+  industry?: string
+  tone_preferences?: string[]
+  unique_value_props?: string[]
+  avoid_angles?: string[]
+}
+
+export interface MultiSourceIntelligence {
+  campaign_id: string
+  consolidated_intelligence: {
+    top_opportunities: string[]
+    consistent_patterns: string[]
+    conflicting_insights: string[]
+    confidence_weighted_insights: any
+  }
+  source_comparison: {
+    intelligence_id: string
+    source_url: string
+    key_insights: string[]
+    confidence_score: number
+  }[]
+  recommended_campaign_strategy: {
+    primary_positioning: string
+    messaging_pillars: string[]
+    content_recommendations: string[]
+    testing_priorities: string[]
   }
 }
 
@@ -257,16 +400,23 @@ class ApiClient {
   async createCampaign(campaignData: {
     title: string
     description: string
+    keywords?: string[]  // NEW: Add keywords support
     target_audience?: string
-    campaign_type: string
+    campaign_type?: string  // Make optional
     tone?: string
     style?: string
     settings?: Record<string, any>
   }): Promise<Campaign> {
+    // Set default campaign_type if not provided
+    const dataWithDefaults = {
+      campaign_type: 'social_media', // Backend default
+      ...campaignData
+    }
+    
     const response = await fetch(`${this.baseURL}/api/campaigns`, {
       method: 'POST',
       headers: this.getHeaders(),
-      body: JSON.stringify(campaignData)
+      body: JSON.stringify(dataWithDefaults)
     })
     
     return this.handleResponse<Campaign>(response)
@@ -333,7 +483,7 @@ class ApiClient {
   }
 
   // ============================================================================
-  // INTELLIGENCE METHODS
+  // INTELLIGENCE METHODS (EXISTING)
   // ============================================================================
 
   async analyzeURL(data: {
@@ -406,6 +556,172 @@ class ApiClient {
   }> {
     const response = await fetch(`${this.baseURL}/api/intelligence/campaign/${campaignId}/intelligence`, {
       headers: this.getHeaders()
+    })
+    
+    return this.handleResponse(response)
+  }
+
+  // ============================================================================
+  // ENHANCED INTELLIGENCE METHODS (NEW)
+  // ============================================================================
+
+  /**
+   * Enhanced sales page analysis with comprehensive intelligence extraction
+   */
+  async analyzeSalesPageEnhanced(data: {
+    url: string
+    campaign_id: string
+    analysis_depth?: 'basic' | 'comprehensive' | 'competitive'
+    include_vsl_detection?: boolean
+    custom_analysis_points?: string[]
+  }): Promise<EnhancedSalesPageIntelligence> {
+    const response = await fetch(`${this.baseURL}/api/intelligence/analyze-sales-page-enhanced`, {
+      method: 'POST',
+      headers: this.getHeaders(),
+      body: JSON.stringify({
+        ...data,
+        analysis_depth: data.analysis_depth || 'comprehensive',
+        include_vsl_detection: data.include_vsl_detection ?? true
+      })
+    })
+    
+    return this.handleResponse<EnhancedSalesPageIntelligence>(response)
+  }
+
+  /**
+   * Detect and analyze Video Sales Letters
+   */
+  async detectAndAnalyzeVSL(data: {
+    url: string
+    campaign_id: string
+    extract_transcript?: boolean
+    analyze_psychological_hooks?: boolean
+  }): Promise<VSLTranscriptionResult> {
+    const response = await fetch(`${this.baseURL}/api/intelligence/vsl-analysis`, {
+      method: 'POST',
+      headers: this.getHeaders(),
+      body: JSON.stringify({
+        ...data,
+        extract_transcript: data.extract_transcript ?? true,
+        analyze_psychological_hooks: data.analyze_psychological_hooks ?? true
+      })
+    })
+    
+    return this.handleResponse<VSLTranscriptionResult>(response)
+  }
+
+  /**
+   * Generate unique campaign angles based on intelligence
+   */
+  async generateCampaignAngles(data: CampaignAngleRequest): Promise<{
+    primary_angle: {
+      angle: string
+      reasoning: string
+      target_audience: string
+      key_messages: string[]
+      differentiation_points: string[]
+    }
+    alternative_angles: {
+      angle: string
+      reasoning: string
+      strength_score: number
+      use_case: string
+    }[]
+    positioning_strategy: {
+      market_position: string
+      competitive_advantage: string
+      value_proposition: string
+      messaging_framework: string[]
+    }
+    implementation_guide: {
+      content_priorities: string[]
+      channel_recommendations: string[]
+      testing_suggestions: string[]
+    }
+  }> {
+    const response = await fetch(`${this.baseURL}/api/intelligence/generate-campaign-angles`, {
+      method: 'POST',
+      headers: this.getHeaders(),
+      body: JSON.stringify(data)
+    })
+    
+    return this.handleResponse(response)
+  }
+
+  /**
+   * Consolidate intelligence from multiple sources
+   */
+  async consolidateMultiSourceIntelligence(campaignId: string, options?: {
+    weight_by_confidence?: boolean
+    include_conflicting_insights?: boolean
+    generate_unified_strategy?: boolean
+  }): Promise<MultiSourceIntelligence> {
+    const response = await fetch(`${this.baseURL}/api/intelligence/consolidate/${campaignId}`, {
+      method: 'POST',
+      headers: this.getHeaders(),
+      body: JSON.stringify(options || {})
+    })
+    
+    return this.handleResponse<MultiSourceIntelligence>(response)
+  }
+
+  /**
+   * Batch analyze multiple competitor URLs
+   */
+  async batchAnalyzeCompetitors(data: {
+    urls: string[]
+    campaign_id: string
+    analysis_type?: 'quick' | 'detailed'
+    compare_results?: boolean
+  }): Promise<{
+    analyses: EnhancedSalesPageIntelligence[]
+    comparative_analysis: {
+      common_strategies: string[]
+      unique_approaches: {
+        url: string
+        unique_elements: string[]
+      }[]
+      market_gaps: string[]
+      opportunity_matrix: {
+        opportunity: string
+        difficulty: 'low' | 'medium' | 'high'
+        impact: 'low' | 'medium' | 'high'
+      }[]
+    }
+  }> {
+    const response = await fetch(`${this.baseURL}/api/intelligence/batch-analyze`, {
+      method: 'POST',
+      headers: this.getHeaders(),
+      body: JSON.stringify(data)
+    })
+    
+    return this.handleResponse(response)
+  }
+
+  /**
+   * Smart URL validation and pre-analysis
+   */
+  async validateAndPreAnalyzeURL(url: string): Promise<{
+    is_valid: boolean
+    is_accessible: boolean
+    page_type: 'sales_page' | 'landing_page' | 'website' | 'blog' | 'social' | 'unknown'
+    analysis_readiness: {
+      content_extractable: boolean
+      video_detected: boolean
+      estimated_analysis_time: string
+      confidence_prediction: number
+    }
+    optimization_suggestions: string[]
+    analysis_recommendations: {
+      recommended_analysis_type: string
+      expected_insights: string[]
+      potential_limitations: string[]
+    }
+  }> {
+    const response = await fetch(`${this.baseURL}/api/intelligence/validate-url`, {
+      method: 'POST',
+      headers: this.getHeaders(),
+      body: JSON.stringify({ url })
     })
     
     return this.handleResponse(response)
@@ -518,11 +834,19 @@ export const useApi = () => {
     deleteCampaign: apiClient.deleteCampaign.bind(apiClient),
     duplicateCampaign: apiClient.duplicateCampaign.bind(apiClient),
     
-    // Intelligence operations
+    // Intelligence operations (existing)
     analyzeURL: apiClient.analyzeURL.bind(apiClient),
     uploadDocument: apiClient.uploadDocument.bind(apiClient),
     generateContent: apiClient.generateContent.bind(apiClient),
     getCampaignIntelligence: apiClient.getCampaignIntelligence.bind(apiClient),
+    
+    // Enhanced intelligence operations (new)
+    analyzeSalesPageEnhanced: apiClient.analyzeSalesPageEnhanced.bind(apiClient),
+    detectAndAnalyzeVSL: apiClient.detectAndAnalyzeVSL.bind(apiClient),
+    generateCampaignAngles: apiClient.generateCampaignAngles.bind(apiClient),
+    consolidateMultiSourceIntelligence: apiClient.consolidateMultiSourceIntelligence.bind(apiClient),
+    batchAnalyzeCompetitors: apiClient.batchAnalyzeCompetitors.bind(apiClient),
+    validateAndPreAnalyzeURL: apiClient.validateAndPreAnalyzeURL.bind(apiClient),
     
     // Dashboard
     getDashboardStats: apiClient.getDashboardStats.bind(apiClient),
