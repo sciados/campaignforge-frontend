@@ -66,17 +66,18 @@ export default function RegisterPage() {
     setIsLoading(true)
 
     try {
-      const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
+      const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://campaign-backend-production-e2db.up.railway.app'
+      
+      // ✅ FIXED: Prepare user data in correct format for backend
       const userData = {
-  email: formData.email,
-  password: formData.password,
-  full_name: `${formData.firstName} ${formData.lastName}`, // ✅ Add this line
-  first_name: formData.firstName,  // Keep for compatibility
-  last_name: formData.lastName,    // Keep for compatibility  
-  company: formData.company || null
-}
+        email: formData.email,
+        password: formData.password,
+        full_name: `${formData.firstName} ${formData.lastName}`,
+        company_name: formData.company || 'Default Company'  // Backend requires company_name
+      }
 
-      const response = await fetch(`${API_BASE_URL}/auth/register`, {
+      // ✅ FIXED: Use correct API endpoint with /api prefix
+      const response = await fetch(`${API_BASE_URL}/api/auth/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(userData)
@@ -92,9 +93,11 @@ export default function RegisterPage() {
         router.push('/dashboard')
       } else {
         const errorData = await response.json()
+        console.error('Registration error:', errorData)
         setError(errorData.detail || 'Registration failed')
       }
     } catch (error) {
+      console.error('Network error:', error)
       setError('Network error - please try again')
     } finally {
       setIsLoading(false)
@@ -188,7 +191,7 @@ export default function RegisterPage() {
             {/* Company */}
             <div>
               <label htmlFor="company" className="block text-sm font-medium text-gray-700 mb-1">
-                Company <span className="text-gray-400">(Optional)</span>
+                Company Name
               </label>
               <div className="relative">
                 <Building className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
@@ -196,10 +199,11 @@ export default function RegisterPage() {
                   id="company"
                   name="company"
                   type="text"
+                  required
                   value={formData.company}
                   onChange={handleChange}
                   className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-colors"
-                  placeholder="Your Company"
+                  placeholder="Your Company Name"
                 />
               </div>
             </div>

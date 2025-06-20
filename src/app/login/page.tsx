@@ -25,8 +25,10 @@ export default function LoginPage() {
     setIsLoading(true)
 
     try {
-      const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
-      const response = await fetch(`${API_BASE_URL}/auth/login`, {
+      const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://campaign-backend-production-e2db.up.railway.app'
+      
+      // ✅ FIXED: Use correct API endpoint with /api prefix
+      const response = await fetch(`${API_BASE_URL}/api/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData)
@@ -49,6 +51,7 @@ export default function LoginPage() {
         setError(errorData.detail || 'Login failed')
       }
     } catch (error) {
+      console.error('Login error:', error)
       setError('Network error - please try again')
     } finally {
       setIsLoading(false)
