@@ -1,6 +1,6 @@
-import { CampaignIntelligence } from "@/types"
+// File: src/lib/stores/intelligenceStore.ts
+import { CampaignIntelligence } from "../types/intelligence"
 
-// lib/stores/intelligenceStore.ts
 interface IntelligenceStore {
   intelligence: CampaignIntelligence | null
   isAnalyzing: boolean
@@ -8,4 +8,20 @@ interface IntelligenceStore {
   suggestedKeywords: string[]
   analyzeContent: (campaignId: string) => Promise<void>
   updateKeywords: (keywords: string[]) => Promise<void>
+}
+
+// Placeholder implementation
+export const useIntelligenceStore = (): IntelligenceStore => {
+  return {
+    intelligence: null,
+    isAnalyzing: false,
+    keywords: [],
+    suggestedKeywords: [],
+    analyzeContent: async (campaignId: string) => {
+      console.log('Analyzing content for campaign:', campaignId)
+    },
+    updateKeywords: async (keywords: string[]) => {
+      console.log('Updating keywords:', keywords)
+    }
+  }
 }
