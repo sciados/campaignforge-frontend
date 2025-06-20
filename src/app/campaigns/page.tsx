@@ -155,7 +155,7 @@ export default function CampaignsPage() {
     filterCampaigns()
   }, [filterCampaigns])
 
-  // ✨ NEW: Simplified campaign creation handler
+  // ✨ NEW: Simplified campaign creation handler with enhanced debugging
   const handleCreateCampaign = useCallback(async (campaignData: {
     title: string
     description: string
@@ -165,8 +165,8 @@ export default function CampaignsPage() {
     try {
       console.log('🎯 Creating simplified campaign:', campaignData)
       
-      // Create campaign with simplified data structure
-      const newCampaign = await api.createCampaign({
+      // Enhanced logging of the exact payload
+      const payload = {
         title: campaignData.title,
         description: campaignData.description,
         keywords: campaignData.keywords,
@@ -179,7 +179,12 @@ export default function CampaignsPage() {
           campaign_type: 'universal',
           creation_method: 'basic_info_only'
         }
-      })
+      }
+      
+      console.log('📤 Exact payload being sent:', JSON.stringify(payload, null, 2))
+      
+      // Create campaign with simplified data structure
+      const newCampaign = await api.createCampaign(payload)
       
       console.log('✅ Campaign created successfully:', newCampaign)
       
@@ -194,15 +199,50 @@ export default function CampaignsPage() {
       
       const error = err as any
       let errorMessage = 'Failed to create campaign'
+      let debugInfo = ''
       
-      if (error?.response?.data?.detail) {
-        errorMessage = `Backend Error: ${error.response.data.detail}`
+      // Enhanced error parsing
+      if (error?.response) {
+        console.log('📥 Error response status:', error.response.status)
+        console.log('📥 Error response headers:', error.response.headers)
+        console.log('📥 Error response data:', error.response.data)
+        
+        if (error.response.data?.detail) {
+          if (Array.isArray(error.response.data.detail)) {
+            // Validation errors
+            const validationErrors = error.response.data.detail.map((err: any) => 
+              `${err.loc?.join(' -> ') || 'field'}: ${err.msg}`
+            ).join(', ')
+            errorMessage = `Validation Error: ${validationErrors}`
+            debugInfo = JSON.stringify(error.response.data.detail, null, 2)
+          } else {
+            errorMessage = `Backend Error: ${error.response.data.detail}`
+            debugInfo = String(error.response.data.detail)
+          }
+        } else if (error.response.status === 422) {
+          errorMessage = 'Validation Error: Invalid data format'
+          debugInfo = JSON.stringify(error.response.data, null, 2)
+        } else if (error.response.status === 500) {
+          errorMessage = 'Server Error: Internal server error'
+          debugInfo = JSON.stringify(error.response.data, null, 2)
+        } else {
+          errorMessage = `HTTP ${error.response.status}: ${error.response.statusText}`
+          debugInfo = JSON.stringify(error.response.data, null, 2)
+        }
       } else if (error?.message) {
         errorMessage = error.message
+        debugInfo = error.stack || ''
       }
       
       console.error('🔴 Final error message:', errorMessage)
-      throw new Error(errorMessage) // Re-throw for modal to handle
+      console.error('🔍 Debug info:', debugInfo)
+      
+      // Show debug info in error for development
+      const devError = process.env.NODE_ENV === 'development' 
+        ? `${errorMessage}\n\nDebug: ${debugInfo}` 
+        : errorMessage
+      
+      throw new Error(devError) // Re-throw for modal to handle
     }
   }, [api, setCampaigns, router])
 
