@@ -1,34 +1,20 @@
-// src/app/campaigns/page.tsx - FIXED VERSION
+// src/app/campaigns/page.tsx - UPDATED WITH SIMPLIFIED FLOW
 'use client'
 
 import React, { useState, useEffect, useCallback, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { Plus, Video, FileText, Globe, Calendar, Filter, Grid, List } from 'lucide-react'
 import { useApi, type Campaign } from '@/lib/api'
-import IntelligenceAnalyzer from '@/components/intelligence/IntelligenceAnalyzer'
-import ContentGenerator from '@/components/intelligence/ContentGenerator'
 import CampaignFilters from '@/components/campaigns/CampaignFilters'
 import CampaignGrid from '@/components/campaigns/CampaignGrid'
 import CampaignStats from '@/components/campaigns/CampaignStats'
-import CreateCampaignModal from '@/components/campaigns/CreateCampaignModal'
+import SimpleCampaignModal from '@/components/campaigns/SimpleCampaignModal'
 
 interface IntelligenceSource {
   id: string
   source_title: string
   source_type: string
   confidence_score: number
-}
-
-interface AnalysisResult {
-  intelligence_id: string
-  confidence_score: number
-  offer_intelligence: any
-  psychology_intelligence: any
-  competitive_opportunities: any[]
-  campaign_suggestions: string[]
-  analysis_status: string
-  source_title?: string
-  source_url?: string
 }
 
 export default function CampaignsPage() {
@@ -38,15 +24,12 @@ export default function CampaignsPage() {
   // State management
   const [campaigns, setCampaigns] = useState<Campaign[]>([])
   const [filteredCampaigns, setFilteredCampaigns] = useState<Campaign[]>([])
-  const [intelligenceSources, setIntelligenceSources] = useState<IntelligenceSource[]>([])
   const [user, setUser] = useState<any>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   
   // UI State
-  const [showIntelligence, setShowIntelligence] = useState(false)
   const [showCreateModal, setShowCreateModal] = useState(false)
-  const [selectedCampaignId, setSelectedCampaignId] = useState<string>('')
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
   
   // Filter state
@@ -54,7 +37,7 @@ export default function CampaignsPage() {
   const [statusFilter, setStatusFilter] = useState('all')
   const [typeFilter, setTypeFilter] = useState('all')
 
-  // 🔧 FIX: Use ref to prevent multiple loads and track completion
+  // Use ref to prevent multiple loads and track completion
   const isInitialized = useRef(false)
   const isLoadingData = useRef(false)
 
@@ -80,9 +63,7 @@ export default function CampaignsPage() {
     setFilteredCampaigns(filtered)
   }, [campaigns, searchQuery, statusFilter, typeFilter])
 
-  // 🔧 FIX: Simplified load function - moved inside useEffect to avoid dependency issues
-  
-  // 🔧 FIX: Simplified useEffect with better control
+  // Initialize campaigns page
   useEffect(() => {
     // Only run once
     if (isInitialized.current) {
@@ -114,7 +95,7 @@ export default function CampaignsPage() {
     console.log('🔑 Auth token found')
     isInitialized.current = true
     
-    // 🔧 FIX: Define loadInitialData inside useEffect to avoid dependency issues
+    // Load initial data
     const loadInitialData = async () => {
       // Prevent concurrent calls
       if (isLoadingData.current) {
@@ -144,7 +125,7 @@ export default function CampaignsPage() {
           setCampaigns([])
         }
 
-        // 🔧 FIX: Force state update with setTimeout
+        // Force state update
         setTimeout(() => {
           console.log('🔄 Force updating loading state...')
           setIsLoading(false)
@@ -156,7 +137,7 @@ export default function CampaignsPage() {
         console.error('❌ loadInitialData error:', err)
         const errorMessage = err instanceof Error ? err.message : 'Failed to load data'
         setError(errorMessage)
-        setIsLoading(false) // This should work in catch block
+        setIsLoading(false)
         
       } finally {
         isLoadingData.current = false
@@ -167,121 +148,70 @@ export default function CampaignsPage() {
     // Load data
     loadInitialData()
     
-  }, [api, router]) // 🔧 FIX: Include required dependencies
+  }, [api, router])
 
   // Filter campaigns when data changes
   useEffect(() => {
     filterCampaigns()
   }, [filterCampaigns])
 
-  const handleCreateCampaign = useCallback(async (type: string, method: string) => {
-  try {
-    console.log('🎯 Creating universal campaign:', { type, method })
-    
-    // Create universal campaign data
-    const campaignData = {
-      title: method === 'blank' ? 'New Campaign' : `Campaign from ${method}`,
-      description: method === 'blank' 
-        ? 'Universal campaign ready for any content type' 
-        : `Campaign created from ${method} analysis`,
-      keywords: [], // Will be populated during analysis
-      target_audience: 'general',
-      // Remove campaign_type entirely - backend should default or make optional
-      tone: 'conversational',
-      style: 'modern',
-      settings: { 
-        method, 
-        created_from: 'campaigns_page',
-        campaign_type: 'universal',
-        input_source_type: method
-      }
-    }
-
-    console.log('🚀 Creating universal campaign with data:', campaignData)
-    
-    const newCampaign = await api.createCampaign(campaignData)
-    console.log('✅ Universal campaign created successfully:', newCampaign)
-    
-    setCampaigns(prev => [newCampaign, ...prev])
-    
-    // If not blank, immediately go to intelligence analysis
-    if (method !== 'blank') {
-      setSelectedCampaignId(newCampaign.id)
-      setShowIntelligence(true)
-    }
-    
-  } catch (err) {
-    console.error('❌ Campaign creation error:', err)
-    
-    // Handle the error as before (your existing error handling is good)
-    const error = err as any
-    let errorMessage = 'Failed to create campaign'
-    
-    if (error?.response?.data?.detail) {
-      errorMessage = `Backend Error: ${error.response.data.detail}`
-    } else if (error?.message) {
-      errorMessage = error.message
-    }
-    
-    console.error('🔴 Final error message:', errorMessage)
-    setError(errorMessage)
-  }
-}, [api, setCampaigns, setSelectedCampaignId, setShowIntelligence, setError])
-
-  // 🔧 FIX: Create explicit button handlers after handleCreateCampaign is defined
-  const handleVideoClick = useCallback(() => {
-    console.log('🖱️ Video button clicked - explicit handler')
-    handleCreateCampaign('video_content', 'video')
-  }, [handleCreateCampaign])
-
-  const handleDocumentClick = useCallback(() => {
-    console.log('🖱️ Document button clicked - explicit handler')
-    handleCreateCampaign('email_marketing', 'document')
-  }, [handleCreateCampaign])
-
-  const handleWebsiteClick = useCallback(() => {
-    console.log('🖱️ Website button clicked - explicit handler')
-    handleCreateCampaign('brand_awareness', 'website')
-  }, [handleCreateCampaign])
-
-  const handleAnalysisComplete = async (result: AnalysisResult) => {
+  // ✨ NEW: Simplified campaign creation handler
+  const handleCreateCampaign = useCallback(async (campaignData: {
+    title: string
+    description: string
+    keywords: string[]
+    target_audience: string
+  }) => {
     try {
-      const newIntelligenceSource: IntelligenceSource = {
-        id: result.intelligence_id,
-        source_title: result.source_title || result.source_url || 'Analysis Result',
-        source_type: result.analysis_status || 'analysis',
-        confidence_score: result.confidence_score
-      }
-
-      setIntelligenceSources(prev => [...prev, newIntelligenceSource])
+      console.log('🎯 Creating simplified campaign:', campaignData)
       
-      if (selectedCampaignId) {
-        const intelligence = await api.getCampaignIntelligence(selectedCampaignId)
-        setIntelligenceSources(intelligence.intelligence_sources)
-      }
+      // Create campaign with simplified data structure
+      const newCampaign = await api.createCampaign({
+        title: campaignData.title,
+        description: campaignData.description,
+        keywords: campaignData.keywords,
+        target_audience: campaignData.target_audience,
+        campaign_type: 'universal', // Always universal now
+        tone: 'conversational',
+        style: 'modern',
+        settings: { 
+          created_from: 'simplified_flow',
+          campaign_type: 'universal',
+          creation_method: 'basic_info_only'
+        }
+      })
+      
+      console.log('✅ Campaign created successfully:', newCampaign)
+      
+      // Add to campaigns list
+      setCampaigns(prev => [newCampaign, ...prev])
+      
+      // Redirect to campaign detail page (Input Sources tab will be default)
+      router.push(`/campaigns/${newCampaign.id}`)
       
     } catch (err) {
-      console.error('Failed to update intelligence sources:', err)
+      console.error('❌ Campaign creation error:', err)
+      
+      const error = err as any
+      let errorMessage = 'Failed to create campaign'
+      
+      if (error?.response?.data?.detail) {
+        errorMessage = `Backend Error: ${error.response.data.detail}`
+      } else if (error?.message) {
+        errorMessage = error.message
+      }
+      
+      console.error('🔴 Final error message:', errorMessage)
+      throw new Error(errorMessage) // Re-throw for modal to handle
     }
-  }
-
-  const loadCampaignIntelligence = useCallback(async (campaignId: string) => {
-    try {
-      const intelligence = await api.getCampaignIntelligence(campaignId)
-      setIntelligenceSources(intelligence.intelligence_sources)
-    } catch (err) {
-      console.error('Failed to load campaign intelligence:', err)
-    }
-  }, [api])
+  }, [api, setCampaigns, router])
 
   const handleCampaignView = useCallback((campaign: Campaign) => {
-    setSelectedCampaignId(campaign.id)
-    setShowIntelligence(true)
-    loadCampaignIntelligence(campaign.id)
-  }, [loadCampaignIntelligence])
+    router.push(`/campaigns/${campaign.id}`)
+  }, [router])
 
   const handleCampaignEdit = useCallback((campaign: Campaign) => {
-    router.push(`/campaigns/${campaign.id}/edit`)
+    router.push(`/campaigns/${campaign.id}/settings`)
   }, [router])
 
   const handleCampaignDuplicate = useCallback(async (campaign: Campaign) => {
@@ -314,7 +244,7 @@ export default function CampaignsPage() {
     setTypeFilter('all')
   }, [])
 
-  // 🔧 FIX: Add manual retry function that recreates the loadInitialData function
+  // Manual retry function
   const handleRetry = () => {
     console.log('🔄 Manual retry triggered')
     setError(null)
@@ -322,7 +252,7 @@ export default function CampaignsPage() {
     isInitialized.current = false
     isLoadingData.current = false
     
-    // 🔧 FIX: Recreate loadInitialData for retry
+    // Recreate loadInitialData for retry
     const retryLoadData = async () => {
       if (isLoadingData.current) return
       
@@ -360,7 +290,7 @@ export default function CampaignsPage() {
     }, 100)
   }
 
-  // 🔧 FIX: Add debug info in loading state
+  // Loading state
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -389,14 +319,6 @@ export default function CampaignsPage() {
   return (
     <div className="min-h-screen bg-gray-50 p-6">
       <div className="max-w-7xl mx-auto space-y-8">
-        
-        {/* 🔧 FIX: Add success indicator */}
-        <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
-          <p className="text-green-700 font-medium">✅ SUCCESS! Page loaded successfully</p>
-          <p className="text-green-600 text-sm mt-1">
-            Found {campaigns.length} campaigns. Backend API is working correctly.
-          </p>
-        </div>
 
         {/* Header */}
         <div className="flex justify-between items-center">
@@ -411,128 +333,6 @@ export default function CampaignsPage() {
             <Plus className="h-5 w-5 mr-2" />
             New Campaign
           </button>
-        </div>
-
-        {/* 🔧 DEBUG: Add manual test buttons with hardcoded parameters */}
-        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
-          <h3 className="text-yellow-800 font-medium mb-2">🔧 Debug: Manual Test Buttons</h3>
-          <div className="flex space-x-4">
-            <button
-              onClick={() => {
-                console.log('🧪 DEBUG: Manual video test')
-                handleCreateCampaign('video_content', 'video')
-              }}
-              className="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700"
-            >
-              Test Video
-            </button>
-            <button
-              onClick={() => {
-                console.log('🧪 DEBUG: Manual email test')
-                handleCreateCampaign('email_marketing', 'document')
-              }}
-              className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-            >
-              Test Email
-            </button>
-            <button
-              onClick={() => {
-                console.log('🧪 DEBUG: Manual brand test')
-                handleCreateCampaign('brand_awareness', 'website')
-              }}
-              className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
-            >
-              Test Brand
-            </button>
-            <button
-              onClick={async () => {
-                console.log('🔍 DEBUG: Testing multiple scenarios')
-                const token = localStorage.getItem('authToken') || localStorage.getItem('access_token')
-                const endpoint = 'https://campaign-backend-production-e2db.up.railway.app/api/campaigns'
-                
-                // Test different scenarios
-                const scenarios = [
-                  {
-                    name: 'Test social_media (default)',
-                    data: {
-                      title: 'Test 1',
-                      description: 'Test Description 1',
-                      campaign_type: 'social_media'
-                    }
-                  },
-                  {
-                    name: 'Test email_marketing lowercase',
-                    data: {
-                      title: 'Test 2',
-                      description: 'Test Description 2', 
-                      campaign_type: 'email_marketing'
-                    }
-                  },
-                  {
-                    name: 'Test video_content lowercase',
-                    data: {
-                      title: 'Test 3',
-                      description: 'Test Description 3',
-                      campaign_type: 'video_content'
-                    }
-                  },
-                  {
-                    name: 'Test blog_post lowercase',
-                    data: {
-                      title: 'Test 4',
-                      description: 'Test Description 4',
-                      campaign_type: 'blog_post'
-                    }
-                  },
-                  {
-                    name: 'Test Just Required Fields',
-                    data: {
-                      title: 'Test 5',
-                      description: 'Test Description 5'
-                      // Let it use the default campaign_type
-                    }
-                  }
-                ]
-                
-                for (const scenario of scenarios) {
-                  try {
-                    console.log(`🧪 Testing: ${scenario.name}`)
-                    console.log('📤 Request data:', scenario.data)
-                    
-                    const response = await fetch(endpoint, {
-                      method: 'POST',
-                      headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${token}`
-                      },
-                      body: JSON.stringify(scenario.data)
-                    })
-                    
-                    const responseText = await response.text()
-                    console.log(`📥 ${scenario.name} - Status: ${response.status}`)
-                    console.log(`📥 ${scenario.name} - Response: ${responseText}`)
-                    
-                    if (response.ok) {
-                      console.log(`✅ SUCCESS: ${scenario.name} worked!`)
-                      break // Stop on first success
-                    } else {
-                      console.log(`❌ FAILED: ${scenario.name}`)
-                    }
-                    
-                    // Wait a bit between requests
-                    await new Promise(resolve => setTimeout(resolve, 1000))
-                    
-                  } catch (err) {
-                    const error = err as any
-                    console.log(`🚨 ${scenario.name} - Error: ${error.message || error}`)
-                  }
-                }
-              }}
-              className="px-4 py-2 bg-orange-600 text-white rounded hover:bg-orange-700"
-            >
-              Test Multiple Scenarios
-            </button>
-          </div>
         </div>
 
         {/* Error Display */}
@@ -561,47 +361,62 @@ export default function CampaignsPage() {
           </div>
         )}
 
-        {/* Quick Start Options */}
-        {campaigns.length === 0 && !showIntelligence && (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <button 
-              onClick={handleVideoClick}
-              className="bg-white rounded-xl shadow-sm p-6 border border-gray-200 hover:border-purple-300 transition-colors cursor-pointer text-left"
-            >
-              <div className="flex items-center mb-4">
-                <div className="bg-purple-100 p-3 rounded-lg">
-                  <Video className="h-6 w-6 text-purple-600" />
-                </div>
-                <h3 className="ml-3 text-lg font-semibold text-gray-900">From Video</h3>
+        {/* Empty State - First Time User */}
+        {campaigns.length === 0 && !error && (
+          <div className="text-center py-12">
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8 max-w-2xl mx-auto">
+              <div className="w-16 h-16 bg-gradient-to-r from-purple-600 to-blue-600 rounded-full flex items-center justify-center mx-auto mb-6">
+                <Plus className="h-8 w-8 text-white" />
               </div>
-              <p className="text-gray-600">Process videos from YouTube, TikTok, and 8+ platforms</p>
-            </button>
-
-            <button 
-              onClick={handleDocumentClick}
-              className="bg-white rounded-xl shadow-sm p-6 border border-gray-200 hover:border-blue-300 transition-colors cursor-pointer text-left"
-            >
-              <div className="flex items-center mb-4">
-                <div className="bg-blue-100 p-3 rounded-lg">
-                  <FileText className="h-6 w-6 text-blue-600" />
+              
+              <h2 className="text-2xl font-bold text-gray-900 mb-4">Welcome to CampaignForge!</h2>
+              <p className="text-gray-600 mb-8 max-w-lg mx-auto">
+                Create your first campaign to start generating intelligent marketing content from competitor analysis.
+              </p>
+              
+              {/* Process Overview */}
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+                <div className="text-center">
+                  <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center mx-auto mb-3">
+                    <FileText className="h-6 w-6 text-purple-600" />
+                  </div>
+                  <h3 className="font-medium text-gray-900 mb-1">1. Create Campaign</h3>
+                  <p className="text-sm text-gray-600">Set name and basic details</p>
                 </div>
-                <h3 className="ml-3 text-lg font-semibold text-gray-900">From Document</h3>
-              </div>
-              <p className="text-gray-600">Upload PDFs, docs, presentations, and spreadsheets</p>
-            </button>
-
-            <button 
-              onClick={handleWebsiteClick}
-              className="bg-white rounded-xl shadow-sm p-6 border border-gray-200 hover:border-emerald-300 transition-colors cursor-pointer text-left"
-            >
-              <div className="flex items-center mb-4">
-                <div className="bg-emerald-100 p-3 rounded-lg">
-                  <Globe className="h-6 w-6 text-emerald-600" />
+                
+                <div className="text-center">
+                  <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mx-auto mb-3">
+                    <Globe className="h-6 w-6 text-blue-600" />
+                  </div>
+                  <h3 className="font-medium text-gray-900 mb-1">2. Add Sources</h3>
+                  <p className="text-sm text-gray-600">VSL, webpages, documents</p>
                 </div>
-                <h3 className="ml-3 text-lg font-semibold text-gray-900">From Website</h3>
+                
+                <div className="text-center">
+                  <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center mx-auto mb-3">
+                    <Video className="h-6 w-6 text-green-600" />
+                  </div>
+                  <h3 className="font-medium text-gray-900 mb-1">3. AI Analysis</h3>
+                  <p className="text-sm text-gray-600">Extract marketing intelligence</p>
+                </div>
+                
+                <div className="text-center">
+                  <div className="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center mx-auto mb-3">
+                    <Plus className="h-6 w-6 text-orange-600" />
+                  </div>
+                  <h3 className="font-medium text-gray-900 mb-1">4. Generate Content</h3>
+                  <p className="text-sm text-gray-600">Create promotional materials</p>
+                </div>
               </div>
-              <p className="text-gray-600">Extract content from web pages and articles</p>
-            </button>
+              
+              <button 
+                onClick={() => setShowCreateModal(true)}
+                className="bg-gradient-to-r from-purple-600 to-blue-600 text-white px-8 py-3 rounded-lg font-medium hover:from-purple-700 hover:to-blue-700 transition-all inline-flex items-center text-lg"
+              >
+                <Plus className="h-5 w-5 mr-2" />
+                Create Your First Campaign
+              </button>
+            </div>
           </div>
         )}
 
@@ -611,7 +426,7 @@ export default function CampaignsPage() {
         )}
 
         {/* Campaign Management */}
-        {campaigns.length > 0 && !showIntelligence && (
+        {campaigns.length > 0 && (
           <>
             <CampaignFilters
               searchQuery={searchQuery}
@@ -636,35 +451,8 @@ export default function CampaignsPage() {
           </>
         )}
 
-        {/* Intelligence Analysis Section */}
-        {showIntelligence && selectedCampaignId && (
-          <div className="space-y-8">
-            <div className="flex items-center justify-between">
-              <h2 className="text-2xl font-bold text-gray-900">Campaign Intelligence</h2>
-              <button
-                onClick={() => setShowIntelligence(false)}
-                className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-              >
-                Back to Campaigns
-              </button>
-            </div>
-
-            <IntelligenceAnalyzer 
-              campaignId={selectedCampaignId}
-              onAnalysisComplete={handleAnalysisComplete}
-            />
-            
-            {intelligenceSources.length > 0 && (
-              <ContentGenerator 
-                campaignId={selectedCampaignId}
-                intelligenceSources={intelligenceSources}
-              />
-            )}
-          </div>
-        )}
-
         {/* Recent Campaigns */}
-        {campaigns.length > 0 && !showIntelligence && (
+        {campaigns.length > 0 && (
           <div className="bg-white rounded-xl shadow-sm border border-gray-200">
             <div className="p-6 border-b border-gray-200">
               <div className="flex items-center justify-between">
@@ -689,10 +477,10 @@ export default function CampaignsPage() {
               ) : (
                 <div className="space-y-4">
                   {filteredCampaigns.slice(0, 3).map((campaign) => (
-                    <div key={campaign.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                    <div key={campaign.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
                       <div className="flex items-center">
                         <div className="bg-purple-100 p-2 rounded-lg mr-3">
-                          <Video className="h-5 w-5 text-purple-600" />
+                          <FileText className="h-5 w-5 text-purple-600" />
                         </div>
                         <div>
                           <h4 className="font-semibold text-gray-900">{campaign.title}</h4>
@@ -726,8 +514,8 @@ export default function CampaignsPage() {
         )}
       </div>
 
-      {/* Create Campaign Modal */}
-      <CreateCampaignModal
+      {/* ✨ NEW: Simplified Campaign Creation Modal */}
+      <SimpleCampaignModal
         isOpen={showCreateModal}
         onClose={() => setShowCreateModal(false)}
         onCreateCampaign={handleCreateCampaign}
