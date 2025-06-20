@@ -171,12 +171,12 @@ export default function CampaignsPage() {
         description: campaignData.description,
         keywords: campaignData.keywords,
         target_audience: campaignData.target_audience,
-        campaign_type: 'universal', // Always universal now
+        campaign_type: 'multimedia', // ✅ Use valid enum value instead of 'universal'
         tone: 'conversational',
         style: 'modern',
         settings: { 
           created_from: 'simplified_flow',
-          campaign_type: 'universal',
+          campaign_type: 'multimedia', // ✅ Update this too
           creation_method: 'basic_info_only'
         }
       }
