@@ -73,7 +73,8 @@ export type CampaignType =
   | 'advertisement' 
   | 'product_launch' 
   | 'brand_awareness' 
-  | 'multimedia';
+  | 'multimedia'
+    'universal';
 
 export type CampaignStatus = 
   | 'draft' 

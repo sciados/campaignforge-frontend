@@ -1,7 +1,6 @@
 // src/lib/api.ts
 /**
- * Centralized API client for CampaignForge
- * Handles all backend communication with proper error handling and typing
+ * Enhanced API client for CampaignForge with flexible workflow support
  */
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://campaign-backend-production-e2db.up.railway.app'
@@ -10,17 +9,11 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://campaign-backen
 // TYPES
 // ============================================================================
 
-interface ApiResponse<T = any> {
-  data?: T
-  error?: string
-  message?: string
-}
-
 export interface Campaign {
   id: string
   title: string
   description: string
-  keywords?: string[]  // NEW: Add keywords
+  keywords?: string[]
   target_audience?: string
   campaign_type: string
   status: string
@@ -31,20 +24,86 @@ export interface Campaign {
   updated_at: string
   user_id: string
   company_id: string
-  content?: any
+  
+  // Enhanced workflow fields
+  workflow_state?: string
+  workflow_preference?: string
+  completion_percentage?: number
+  sources_count?: number
   intelligence_count?: number
   generated_content_count?: number
+  
+  // Legacy fields for backward compatibility
+  content?: any
   confidence_score?: number
   last_activity?: string
+}
+
+export interface WorkflowState {
+  campaign_id: string
+  workflow_state: string
+  workflow_preference: string
+  current_session: Record<string, any>
+  available_actions: Array<{
+    step: number
+    action: string
+    title: string
+    description: string
+    can_access: boolean
+    is_complete: boolean
+    suggested?: boolean
+    prerequisites?: string[]
+  }>
+  quick_actions: Array<{
+    action: string
+    title: string
+    description: string
+  }>
+  primary_suggestion: string
+  suggested_step: number
+  progress_summary: {
+    sources_added: number
+    sources_analyzed: number
+    content_generated: number
+    completion_percentage: number
+  }
+  progress: {
+    steps: {
+      step_1: number
+      step_2: number
+      step_3: number
+      step_4: number
+    }
+  }
+  user_settings: {
+    quick_mode: boolean
+    auto_advance: boolean
+    detailed_guidance: boolean
+    save_frequently: boolean
+  }
+  resume_info: {
+    last_action?: string
+    time_spent_today?: string
+    suggested_session_length: string
+    can_quick_complete: boolean
+  }
 }
 
 export interface IntelligenceSource {
   id: string
   source_title: string
   source_type: string
+  source_url?: string
   confidence_score: number
   usage_count?: number
+  analysis_status: string
   created_at: string
+  updated_at?: string
+  offer_intelligence?: Record<string, any>
+  psychology_intelligence?: Record<string, any>
+  content_intelligence?: Record<string, any>
+  competitive_intelligence?: Record<string, any>
+  brand_intelligence?: Record<string, any>
 }
 
 export interface GeneratedContent {
@@ -78,150 +137,8 @@ export interface User {
   }
 }
 
-// NEW: Enhanced Intelligence Types
-export interface EnhancedSalesPageIntelligence {
-  intelligence_id: string
-  confidence_score: number
-  source_url: string
-  source_title: string
-  analysis_timestamp: string
-  
-  // Core Intelligence Areas
-  offer_analysis: {
-    primary_offer: string
-    pricing_strategy: string[]
-    value_propositions: string[]
-    guarantees: string[]
-    bonuses: string[]
-    urgency_tactics: string[]
-    pricing_details?: {
-      price_points: string[]
-      payment_options: string[]
-      discount_strategies: string[]
-    }
-  }
-  
-  psychology_analysis: {
-    emotional_triggers: string[]
-    persuasion_techniques: string[]
-    social_proof_elements: string[]
-    authority_indicators: string[]
-    scarcity_elements: string[]
-    cognitive_biases_used: string[]
-  }
-  
-  content_strategy: {
-    headline_patterns: string[]
-    story_elements: string[]
-    objection_handling: string[]
-    call_to_action_analysis: string[]
-    content_flow: string[]
-    messaging_hierarchy: string[]
-  }
-  
-  competitive_intelligence: {
-    unique_differentiators: string[]
-    market_gaps: string[]
-    improvement_opportunities: string[]
-    competitive_advantages: string[]
-    weakness_analysis: string[]
-  }
-  
-  // Video Sales Letter Detection
-  vsl_analysis?: {
-    has_video: boolean
-    video_length_estimate: string
-    video_type: 'vsl' | 'demo' | 'testimonial' | 'other'
-    transcript_available: boolean
-    key_video_elements: string[]
-    video_url?: string
-    thumbnail_analysis?: string[]
-  }
-  
-  // Campaign Angle Generation
-  campaign_angles: {
-    primary_angle: string
-    alternative_angles: string[]
-    positioning_strategy: string
-    target_audience_insights: string[]
-    messaging_framework: string[]
-    differentiation_strategy: string
-  }
-  
-  // Actionable Insights
-  actionable_insights: {
-    immediate_opportunities: string[]
-    content_creation_ideas: string[]
-    campaign_strategies: string[]
-    testing_recommendations: string[]
-    implementation_priorities: string[]
-  }
-  
-  // Technical Analysis
-  technical_analysis?: {
-    page_load_speed: string
-    mobile_optimization: boolean
-    conversion_elements: string[]
-    trust_signals: string[]
-    checkout_analysis?: string[]
-  }
-}
-
-export interface VSLTranscriptionResult {
-  transcript_id: string
-  video_url: string
-  transcript_text: string
-  key_moments: {
-    timestamp: string
-    description: string
-    importance_score: number
-  }[]
-  psychological_hooks: string[]
-  offer_mentions: {
-    timestamp: string
-    offer_details: string
-  }[]
-  call_to_actions: {
-    timestamp: string
-    cta_text: string
-    urgency_level: 'low' | 'medium' | 'high'
-  }[]
-}
-
-export interface CampaignAngleRequest {
-  campaign_id: string
-  intelligence_sources: string[] // Array of intelligence_ids
-  target_audience?: string
-  industry?: string
-  tone_preferences?: string[]
-  unique_value_props?: string[]
-  avoid_angles?: string[]
-}
-
-export interface MultiSourceIntelligence {
-  campaign_id: string
-  consolidated_intelligence: {
-    top_opportunities: string[]
-    consistent_patterns: string[]
-    conflicting_insights: string[]
-    confidence_weighted_insights: any
-  }
-  source_comparison: {
-    intelligence_id: string
-    source_url: string
-    key_insights: string[]
-    confidence_score: number
-  }[]
-  recommended_campaign_strategy: {
-    primary_positioning: string
-    messaging_pillars: string[]
-    content_recommendations: string[]
-    testing_priorities: string[]
-  }
-}
-
 // ============================================================================
-// CUSTOM ERROR CLASSES
+// ERROR CLASSES
 // ============================================================================
 
 export class ApiError extends Error {
@@ -314,7 +231,6 @@ class ApiClient {
   setAuthToken(token: string) {
     if (typeof window !== 'undefined') {
       localStorage.setItem('access_token', token)
-      // Also set authToken for backward compatibility
       localStorage.setItem('authToken', token)
     }
   }
@@ -344,7 +260,6 @@ class ApiClient {
     
     const result = await this.handleResponse<any>(response)
     
-    // Store token
     if (result.access_token) {
       this.setAuthToken(result.access_token)
     }
@@ -381,10 +296,6 @@ class ApiClient {
     }
   }
 
-  // ============================================================================
-  // USER PROFILE METHODS
-  // ============================================================================
-
   async getUserProfile(): Promise<User> {
     const response = await fetch(`${this.baseURL}/auth/profile`, {
       headers: this.getHeaders()
@@ -394,22 +305,21 @@ class ApiClient {
   }
 
   // ============================================================================
-  // CAMPAIGN METHODS
+  // ENHANCED CAMPAIGN METHODS
   // ============================================================================
 
   async createCampaign(campaignData: {
     title: string
     description: string
-    keywords?: string[]  // NEW: Add keywords support
+    keywords?: string[]
     target_audience?: string
-    campaign_type?: string  // Make optional
+    campaign_type?: string
     tone?: string
     style?: string
     settings?: Record<string, any>
   }): Promise<Campaign> {
-    // Set default campaign_type if not provided
     const dataWithDefaults = {
-      campaign_type: 'social_media', // Backend default
+      campaign_type: 'universal',
       ...campaignData
     }
     
@@ -483,7 +393,89 @@ class ApiClient {
   }
 
   // ============================================================================
-  // INTELLIGENCE METHODS (EXISTING)
+  // FLEXIBLE WORKFLOW METHODS
+  // ============================================================================
+
+  async getWorkflowState(campaignId: string): Promise<WorkflowState> {
+    const response = await fetch(`${this.baseURL}/api/campaigns/${campaignId}/workflow-state`, {
+      headers: this.getHeaders()
+    })
+    
+    return this.handleResponse<WorkflowState>(response)
+  }
+
+  async setWorkflowPreference(campaignId: string, preferences: {
+    workflow_preference?: 'quick' | 'methodical' | 'flexible'
+    quick_mode?: boolean
+    auto_advance?: boolean
+    detailed_guidance?: boolean
+  }): Promise<{
+    campaign_id: string
+    workflow_preference: string
+    settings_updated: Record<string, any>
+    message: string
+  }> {
+    const response = await fetch(`${this.baseURL}/api/campaigns/${campaignId}/workflow/set-preference`, {
+      method: 'POST',
+      headers: this.getHeaders(),
+      body: JSON.stringify(preferences)
+    })
+    
+    return this.handleResponse(response)
+  }
+
+  async advanceCampaignStep(campaignId: string, stepData: Record<string, any> = {}): Promise<{
+    campaign_id: string
+    previous_step: number
+    current_step: number
+    workflow_state: string
+    message: string
+  }> {
+    const response = await fetch(`${this.baseURL}/api/campaigns/${campaignId}/workflow/advance-step`, {
+      method: 'POST',
+      headers: this.getHeaders(),
+      body: JSON.stringify(stepData)
+    })
+    
+    return this.handleResponse(response)
+  }
+
+  async saveProgress(campaignId: string, progressData: Record<string, any>): Promise<{
+    campaign_id: string
+    message: string
+    saved_at: string
+  }> {
+    const response = await fetch(`${this.baseURL}/api/campaigns/${campaignId}/workflow/save-progress`, {
+      method: 'POST',
+      headers: this.getHeaders(),
+      body: JSON.stringify(progressData)
+    })
+    
+    return this.handleResponse(response)
+  }
+
+  async quickCompleteCampaign(campaignId: string, options: Record<string, any> = {}): Promise<{
+    campaign_id: string
+    completion_plan: Array<{
+      step: number
+      action: string
+      description: string
+    }>
+    estimated_time: string
+    can_execute: boolean
+    message: string
+  }> {
+    const response = await fetch(`${this.baseURL}/api/campaigns/${campaignId}/workflow/quick-complete`, {
+      method: 'POST',
+      headers: this.getHeaders(),
+      body: JSON.stringify(options)
+    })
+    
+    return this.handleResponse(response)
+  }
+
+  // ============================================================================
+  // INTELLIGENCE METHODS
   // ============================================================================
 
   async analyzeURL(data: {
@@ -562,19 +554,16 @@ class ApiClient {
   }
 
   // ============================================================================
-  // ENHANCED INTELLIGENCE METHODS (NEW)
+  // ENHANCED INTELLIGENCE METHODS
   // ============================================================================
 
-  /**
-   * Enhanced sales page analysis with comprehensive intelligence extraction
-   */
   async analyzeSalesPageEnhanced(data: {
     url: string
     campaign_id: string
     analysis_depth?: 'basic' | 'comprehensive' | 'competitive'
     include_vsl_detection?: boolean
     custom_analysis_points?: string[]
-  }): Promise<EnhancedSalesPageIntelligence> {
+  }): Promise<any> {
     const response = await fetch(`${this.baseURL}/api/intelligence/analyze-sales-page-enhanced`, {
       method: 'POST',
       headers: this.getHeaders(),
@@ -585,18 +574,15 @@ class ApiClient {
       })
     })
     
-    return this.handleResponse<EnhancedSalesPageIntelligence>(response)
+    return this.handleResponse(response)
   }
 
-  /**
-   * Detect and analyze Video Sales Letters
-   */
   async detectAndAnalyzeVSL(data: {
     url: string
     campaign_id: string
     extract_transcript?: boolean
     analyze_psychological_hooks?: boolean
-  }): Promise<VSLTranscriptionResult> {
+  }): Promise<any> {
     const response = await fetch(`${this.baseURL}/api/intelligence/vsl-analysis`, {
       method: 'POST',
       headers: this.getHeaders(),
@@ -607,38 +593,18 @@ class ApiClient {
       })
     })
     
-    return this.handleResponse<VSLTranscriptionResult>(response)
+    return this.handleResponse(response)
   }
 
-  /**
-   * Generate unique campaign angles based on intelligence
-   */
-  async generateCampaignAngles(data: CampaignAngleRequest): Promise<{
-    primary_angle: {
-      angle: string
-      reasoning: string
-      target_audience: string
-      key_messages: string[]
-      differentiation_points: string[]
-    }
-    alternative_angles: {
-      angle: string
-      reasoning: string
-      strength_score: number
-      use_case: string
-    }[]
-    positioning_strategy: {
-      market_position: string
-      competitive_advantage: string
-      value_proposition: string
-      messaging_framework: string[]
-    }
-    implementation_guide: {
-      content_priorities: string[]
-      channel_recommendations: string[]
-      testing_suggestions: string[]
-    }
-  }> {
+  async generateCampaignAngles(data: {
+    campaign_id: string
+    intelligence_sources: string[]
+    target_audience?: string
+    industry?: string
+    tone_preferences?: string[]
+    unique_value_props?: string[]
+    avoid_angles?: string[]
+  }): Promise<any> {
     const response = await fetch(`${this.baseURL}/api/intelligence/generate-campaign-angles`, {
       method: 'POST',
       headers: this.getHeaders(),
@@ -648,47 +614,26 @@ class ApiClient {
     return this.handleResponse(response)
   }
 
-  /**
-   * Consolidate intelligence from multiple sources
-   */
   async consolidateMultiSourceIntelligence(campaignId: string, options?: {
     weight_by_confidence?: boolean
     include_conflicting_insights?: boolean
     generate_unified_strategy?: boolean
-  }): Promise<MultiSourceIntelligence> {
+  }): Promise<any> {
     const response = await fetch(`${this.baseURL}/api/intelligence/consolidate/${campaignId}`, {
       method: 'POST',
       headers: this.getHeaders(),
       body: JSON.stringify(options || {})
     })
     
-    return this.handleResponse<MultiSourceIntelligence>(response)
+    return this.handleResponse(response)
   }
 
-  /**
-   * Batch analyze multiple competitor URLs
-   */
   async batchAnalyzeCompetitors(data: {
     urls: string[]
     campaign_id: string
     analysis_type?: 'quick' | 'detailed'
     compare_results?: boolean
-  }): Promise<{
-    analyses: EnhancedSalesPageIntelligence[]
-    comparative_analysis: {
-      common_strategies: string[]
-      unique_approaches: {
-        url: string
-        unique_elements: string[]
-      }[]
-      market_gaps: string[]
-      opportunity_matrix: {
-        opportunity: string
-        difficulty: 'low' | 'medium' | 'high'
-        impact: 'low' | 'medium' | 'high'
-      }[]
-    }
-  }> {
+  }): Promise<any> {
     const response = await fetch(`${this.baseURL}/api/intelligence/batch-analyze`, {
       method: 'POST',
       headers: this.getHeaders(),
@@ -698,26 +643,7 @@ class ApiClient {
     return this.handleResponse(response)
   }
 
-  /**
-   * Smart URL validation and pre-analysis
-   */
-  async validateAndPreAnalyzeURL(url: string): Promise<{
-    is_valid: boolean
-    is_accessible: boolean
-    page_type: 'sales_page' | 'landing_page' | 'website' | 'blog' | 'social' | 'unknown'
-    analysis_readiness: {
-      content_extractable: boolean
-      video_detected: boolean
-      estimated_analysis_time: string
-      confidence_prediction: number
-    }
-    optimization_suggestions: string[]
-    analysis_recommendations: {
-      recommended_analysis_type: string
-      expected_insights: string[]
-      potential_limitations: string[]
-    }
-  }> {
+  async validateAndPreAnalyzeURL(url: string): Promise<any> {
     const response = await fetch(`${this.baseURL}/api/intelligence/validate-url`, {
       method: 'POST',
       headers: this.getHeaders(),
@@ -737,7 +663,7 @@ class ApiClient {
     total_campaigns: number
     active_campaigns: number
   }> {
-    const response = await fetch(`${this.baseURL}/api/dashboard/stats`, {
+    const response = await fetch(`${this.baseURL}/api/campaigns/dashboard/stats`, {
       headers: this.getHeaders()
     })
     
@@ -826,7 +752,7 @@ export const useApi = () => {
     logout: apiClient.logout.bind(apiClient),
     getUserProfile: apiClient.getUserProfile.bind(apiClient),
     
-    // Campaign operations
+    // Enhanced campaign operations
     createCampaign: apiClient.createCampaign.bind(apiClient),
     getCampaigns: apiClient.getCampaigns.bind(apiClient),
     getCampaign: apiClient.getCampaign.bind(apiClient),
@@ -834,13 +760,20 @@ export const useApi = () => {
     deleteCampaign: apiClient.deleteCampaign.bind(apiClient),
     duplicateCampaign: apiClient.duplicateCampaign.bind(apiClient),
     
+    // Flexible workflow operations
+    getWorkflowState: apiClient.getWorkflowState.bind(apiClient),
+    setWorkflowPreference: apiClient.setWorkflowPreference.bind(apiClient),
+    advanceCampaignStep: apiClient.advanceCampaignStep.bind(apiClient),
+    saveProgress: apiClient.saveProgress.bind(apiClient),
+    quickCompleteCampaign: apiClient.quickCompleteCampaign.bind(apiClient),
+    
     // Intelligence operations (existing)
     analyzeURL: apiClient.analyzeURL.bind(apiClient),
     uploadDocument: apiClient.uploadDocument.bind(apiClient),
     generateContent: apiClient.generateContent.bind(apiClient),
     getCampaignIntelligence: apiClient.getCampaignIntelligence.bind(apiClient),
     
-    // Enhanced intelligence operations (new)
+    // Enhanced intelligence operations
     analyzeSalesPageEnhanced: apiClient.analyzeSalesPageEnhanced.bind(apiClient),
     detectAndAnalyzeVSL: apiClient.detectAndAnalyzeVSL.bind(apiClient),
     generateCampaignAngles: apiClient.generateCampaignAngles.bind(apiClient),
