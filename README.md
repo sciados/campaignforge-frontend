@@ -21,7 +21,7 @@ copy .env.local.template .env.local
 npm run dev
 ```
 
-5. Open [http://localhost:3000](http://localhost:3000) in your browser
+5. # Open [http://localhost:3000](http://localhost:3000) in your browser
 
 ## Project Structure
 

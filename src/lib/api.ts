@@ -5,6 +5,12 @@
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://campaign-backend-production-e2db.up.railway.app'
 
+// Add this right after the API_BASE_URL declaration
+console.log('🔍 Environment check:')
+console.log('- process.env.NEXT_PUBLIC_API_URL:', process.env.NEXT_PUBLIC_API_URL)
+console.log('- API_BASE_URL being used:', API_BASE_URL)
+console.log('- Window location:', typeof window !== 'undefined' ? window.location.href : 'SSR')
+
 // ============================================================================
 // TYPES
 // ============================================================================
