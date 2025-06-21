@@ -250,8 +250,8 @@ export default function CampaignsPage() {
       console.error('🔴 Final error message:', errorMessage)
       console.error('🔍 Debug info:', debugInfo)
       
-      // Show debug info in error for development
-      const devError = process.env.NODE_ENV === 'development' 
+      // Show debug info in error for production
+      const devError = process.env.NODE_ENV === 'production' 
         ? `${errorMessage}\n\nDebug: ${debugInfo}` 
         : errorMessage
       
