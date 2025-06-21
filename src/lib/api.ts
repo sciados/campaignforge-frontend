@@ -252,7 +252,7 @@ class ApiClient {
     expires_in: number
     user_id: string
   }> {
-    const response = await fetch(`${this.baseURL}/auth/login`, {
+    const response = await fetch(`${this.baseURL}/api/auth/login`, {
       method: 'POST',
       headers: this.defaultHeaders,
       body: JSON.stringify(credentials)
@@ -276,7 +276,7 @@ class ApiClient {
     user_id: string
     company_id: string
   }> {
-    const response = await fetch(`${this.baseURL}/auth/register`, {
+    const response = await fetch(`${this.baseURL}/api/auth/register`, {
       method: 'POST',
       headers: this.defaultHeaders,
       body: JSON.stringify(data)
@@ -287,7 +287,7 @@ class ApiClient {
 
   async logout(): Promise<void> {
     try {
-      await fetch(`${this.baseURL}/auth/logout`, {
+      await fetch(`${this.baseURL}/api/auth/logout`, {
         method: 'POST',
         headers: this.getHeaders()
       })
@@ -297,7 +297,7 @@ class ApiClient {
   }
 
   async getUserProfile(): Promise<User> {
-    const response = await fetch(`${this.baseURL}/auth/profile`, {
+    const response = await fetch(`${this.baseURL}/api/auth/profile`, {
       headers: this.getHeaders()
     })
     
