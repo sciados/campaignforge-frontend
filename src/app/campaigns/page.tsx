@@ -1,4 +1,4 @@
-// src/app/campaigns/page.tsx - UPDATED WITH SIMPLIFIED FLOW
+// src/app/campaigns/page.tsx - FIXED TO MATCH BACKEND API
 'use client'
 
 import React, { useState, useEffect, useCallback, useRef } from 'react'
@@ -113,16 +113,29 @@ export default function CampaignsPage() {
         setUser(userProfile)
 
         console.log('📞 Calling getCampaigns...')
+        // ✅ FIXED: Backend returns array directly now
         const campaignsData = await api.getCampaigns({ limit: 50 })
         console.log('✅ getCampaigns success:', campaignsData)
         
-        // Handle campaigns data
-        if (campaignsData && Array.isArray(campaignsData.campaigns)) {
-          setCampaigns(campaignsData.campaigns)
-          console.log(`📊 Set ${campaignsData.campaigns.length} campaigns`)
+        // ✅ FIXED: Handle the correct response format
+        if (campaignsData && Array.isArray(campaignsData)) {
+          // Backend returns array directly
+          setCampaigns(campaignsData)
+          console.log(`📊 Set ${campaignsData.length} campaigns`)
         } else {
           console.log('⚠️ Invalid campaigns data, setting empty array')
           setCampaigns([])
+        }
+
+        // ✅ OPTIONAL: Load dashboard stats for additional info (non-critical)
+        try {
+          console.log('📞 Calling getDashboardStats...')
+          const dashboardStats = await api.getDashboardStats()
+          console.log('✅ getDashboardStats success:', dashboardStats)
+          // You can use this data in your UI if needed
+        } catch (statsError) {
+          console.warn('⚠️ Dashboard stats failed (non-critical):', statsError)
+          // Don't fail the whole load for this
         }
 
         // Force state update
@@ -305,8 +318,8 @@ export default function CampaignsPage() {
 
         const campaignsData = await api.getCampaigns({ limit: 50 })
         
-        if (campaignsData && Array.isArray(campaignsData.campaigns)) {
-          setCampaigns(campaignsData.campaigns)
+        if (campaignsData && Array.isArray(campaignsData)) {
+          setCampaigns(campaignsData)
         } else {
           setCampaigns([])
         }

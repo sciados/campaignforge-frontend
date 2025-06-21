@@ -337,12 +337,7 @@ class ApiClient {
     limit?: number
     status_filter?: string
     search?: string
-  }): Promise<{
-    campaigns: Campaign[]
-    total: number
-    page: number
-    limit: number
-  }> {
+  }): Promise<Campaign[]> {
     const searchParams = new URLSearchParams()
     if (params?.page) searchParams.set('page', params.page.toString())
     if (params?.limit) searchParams.set('limit', params.limit.toString())
@@ -353,7 +348,8 @@ class ApiClient {
       headers: this.getHeaders()
     })
     
-    return this.handleResponse(response)
+    // ✅ FIXED: Backend returns array directly, not wrapped in object
+    return this.handleResponse<Campaign[]>(response)
   }
 
   async getCampaign(campaignId: string): Promise<Campaign> {
@@ -654,16 +650,40 @@ class ApiClient {
   }
 
   // ============================================================================
-  // DASHBOARD METHODS
+  // DASHBOARD METHODS - FIXED TO MATCH BACKEND
   // ============================================================================
 
   async getDashboardStats(): Promise<{
-    credits_used_this_month: number
+    company_name: string
+    subscription_tier: string
+    monthly_credits_used: number
+    monthly_credits_limit: number
     credits_remaining: number
     total_campaigns: number
     active_campaigns: number
+    team_members: number
+    campaigns_this_month: number
+    usage_percentage: number
   }> {
-    const response = await fetch(`${this.baseURL}/api/campaigns/dashboard/stats`, {
+    // ✅ FIXED: Use the correct backend endpoint
+    const response = await fetch(`${this.baseURL}/api/dashboard/stats`, {
+      headers: this.getHeaders()
+    })
+    
+    return this.handleResponse(response)
+  }
+
+  // ✅ NEW: Add method for campaign-specific stats if needed
+  async getCampaignStats(): Promise<{
+    total_campaigns: number
+    active_campaigns: number
+    draft_campaigns: number
+    completed_campaigns: number
+    total_sources: number
+    total_content: number
+    avg_completion: number
+  }> {
+    const response = await fetch(`${this.baseURL}/api/campaigns/stats/overview`, {
       headers: this.getHeaders()
     })
     
@@ -682,11 +702,8 @@ class ApiClient {
     campaigns_this_month: number
     usage_percentage: number
   }> {
-    const response = await fetch(`${this.baseURL}/api/dashboard/stats`, {
-      headers: this.getHeaders()
-    })
-    
-    return this.handleResponse(response)
+    // ✅ This is already correct, just alias to getDashboardStats for clarity
+    return this.getDashboardStats()
   }
 
   async getCompanyDetails(): Promise<{
@@ -704,6 +721,111 @@ class ApiClient {
   }> {
     const response = await fetch(`${this.baseURL}/api/dashboard/company`, {
       headers: this.getHeaders()
+    })
+    
+    return this.handleResponse(response)
+  }
+
+  // ============================================================================
+  // ADMIN METHODS
+  // ============================================================================
+
+  async getAdminStats(): Promise<{
+    total_users: number
+    total_companies: number
+    total_campaigns: number
+    monthly_recurring_revenue: number
+    subscription_breakdown: Record<string, number>
+  }> {
+    const response = await fetch(`${this.baseURL}/api/admin/stats`, {
+      headers: this.getHeaders()
+    })
+    
+    return this.handleResponse(response)
+  }
+
+  async getAdminUsers(params?: {
+    page?: number
+    limit?: number
+    search?: string
+    subscription_tier?: string
+    is_active?: boolean
+  }): Promise<{
+    users: any[]
+    total: number
+    page: number
+    limit: number
+    pages: number
+  }> {
+    const searchParams = new URLSearchParams()
+    if (params?.page) searchParams.set('page', params.page.toString())
+    if (params?.limit) searchParams.set('limit', params.limit.toString())
+    if (params?.search) searchParams.set('search', params.search)
+    if (params?.subscription_tier) searchParams.set('subscription_tier', params.subscription_tier)
+    if (params?.is_active !== undefined) searchParams.set('is_active', params.is_active.toString())
+
+    const response = await fetch(`${this.baseURL}/api/admin/users?${searchParams}`, {
+      headers: this.getHeaders()
+    })
+    
+    return this.handleResponse(response)
+  }
+
+  async getAdminCompanies(params?: {
+    page?: number
+    limit?: number
+    search?: string
+    subscription_tier?: string
+  }): Promise<{
+    companies: any[]
+    total: number
+    page: number
+    limit: number
+    pages: number
+  }> {
+    const searchParams = new URLSearchParams()
+    if (params?.page) searchParams.set('page', params.page.toString())
+    if (params?.limit) searchParams.set('limit', params.limit.toString())
+    if (params?.search) searchParams.set('search', params.search)
+    if (params?.subscription_tier) searchParams.set('subscription_tier', params.subscription_tier)
+
+    const response = await fetch(`${this.baseURL}/api/admin/companies?${searchParams}`, {
+      headers: this.getHeaders()
+    })
+    
+    return this.handleResponse(response)
+  }
+
+  async updateUserStatus(userId: string, isActive: boolean): Promise<{ message: string }> {
+    const response = await fetch(`${this.baseURL}/api/admin/users/${userId}`, {
+      method: 'PUT',
+      headers: this.getHeaders(),
+      body: JSON.stringify({ is_active: isActive })
+    })
+    
+    return this.handleResponse(response)
+  }
+
+  async updateUserRole(userId: string, newRole: string): Promise<{ message: string }> {
+    const response = await fetch(`${this.baseURL}/api/admin/users/${userId}/role`, {
+      method: 'PUT',
+      headers: this.getHeaders(),
+      body: JSON.stringify({ new_role: newRole })
+    })
+    
+    return this.handleResponse(response)
+  }
+
+  async updateCompanySubscription(companyId: string, data: {
+    subscription_tier?: string
+    monthly_credits_limit?: number
+    subscription_status?: string
+    reset_monthly_credits?: boolean
+  }): Promise<{ message: string }> {
+    const response = await fetch(`${this.baseURL}/api/admin/companies/${companyId}/subscription`, {
+      method: 'PUT',
+      headers: this.getHeaders(),
+      body: JSON.stringify(data)
     })
     
     return this.handleResponse(response)
@@ -781,10 +903,19 @@ export const useApi = () => {
     batchAnalyzeCompetitors: apiClient.batchAnalyzeCompetitors.bind(apiClient),
     validateAndPreAnalyzeURL: apiClient.validateAndPreAnalyzeURL.bind(apiClient),
     
-    // Dashboard
+    // Dashboard - FIXED
     getDashboardStats: apiClient.getDashboardStats.bind(apiClient),
+    getCampaignStats: apiClient.getCampaignStats.bind(apiClient),
     getCompanyStats: apiClient.getCompanyStats.bind(apiClient),
     getCompanyDetails: apiClient.getCompanyDetails.bind(apiClient),
+    
+    // Admin methods
+    getAdminStats: apiClient.getAdminStats.bind(apiClient),
+    getAdminUsers: apiClient.getAdminUsers.bind(apiClient),
+    getAdminCompanies: apiClient.getAdminCompanies.bind(apiClient),
+    updateUserStatus: apiClient.updateUserStatus.bind(apiClient),
+    updateUserRole: apiClient.updateUserRole.bind(apiClient),
+    updateCompanySubscription: apiClient.updateCompanySubscription.bind(apiClient),
     
     // Token management
     setAuthToken: apiClient.setAuthToken.bind(apiClient),
