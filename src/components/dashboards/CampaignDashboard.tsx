@@ -54,7 +54,7 @@ export default function DashboardPage() {
         const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://campaign-backend-production-e2db.up.railway.app'
         
         // Get user profile from the new /auth/profile endpoint
-        const authResponse = await fetch(`${API_BASE_URL}/auth/profile`, {
+        const authResponse = await fetch(`${API_BASE_URL}/api/auth/profile`, {
           headers: { 'Authorization': `Bearer ${token}` }
         })
 

@@ -51,7 +51,7 @@ export default function DashboardPage() {
         const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
         
         // Validate user authentication
-        const authResponse = await fetch(`${API_BASE_URL}/auth/validate`, {
+        const authResponse = await fetch(`${API_BASE_URL}/api/auth/validate`, {
           headers: { 'Authorization': `Bearer ${token}` }
         })
 
