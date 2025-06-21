@@ -339,33 +339,56 @@ class ApiClient {
     return this.handleResponse<Campaign>(response)
   }
 
-  async getCampaigns(params?: {
-    page?: number
-    limit?: number
-    status_filter?: string
-    search?: string
-  }): Promise<Campaign[]> {
-    const searchParams = new URLSearchParams()
-    if (params?.page) searchParams.set('page', params.page.toString())
-    if (params?.limit) searchParams.set('limit', params.limit.toString())
-    if (params?.status_filter) searchParams.set('status_filter', params.status_filter)
-    if (params?.search) searchParams.set('search', params.search)
+ async getCampaigns(params?: {
+  page?: number
+  limit?: number
+  status_filter?: string
+  search?: string
+}): Promise<Campaign[]> {
+  const searchParams = new URLSearchParams()
+  if (params?.page) searchParams.set('page', params.page.toString())
+  if (params?.limit) searchParams.set('limit', params.limit.toString())
+  if (params?.status_filter) searchParams.set('status_filter', params.status_filter)
+  if (params?.search) searchParams.set('search', params.search)
 
-    const response = await fetch(`${this.baseURL}/api/campaigns?${searchParams}`, {
-      headers: this.getHeaders()
-    })
-    
-    // ✅ FIXED: Backend returns array directly, not wrapped in object
-    return this.handleResponse<Campaign[]>(response)
-  }
+  // 🔍 CRITICAL DEBUG: Log everything about the URL construction
+  const fullUrl = `${this.baseURL}/api/campaigns?${searchParams}`
+  
+  console.log('🔍 CRITICAL DEBUG getCampaigns:')
+  console.log('- this.baseURL:', this.baseURL)
+  console.log('- this.baseURL type:', typeof this.baseURL)
+  console.log('- searchParams.toString():', searchParams.toString())
+  console.log('- fullUrl:', fullUrl)
+  console.log('- fullUrl type:', typeof fullUrl)
+  console.log('- new URL(fullUrl).protocol:', new URL(fullUrl).protocol)
+  console.log('- new URL(fullUrl).host:', new URL(fullUrl).host)
+  console.log('- new URL(fullUrl).href:', new URL(fullUrl).href)
+  
+  // Test what happens if we create the URL differently
+  const testUrl = new URL('/api/campaigns', this.baseURL)
+  testUrl.search = searchParams.toString()
+  console.log('- testUrl.href:', testUrl.href)
+  console.log('- testUrl.protocol:', testUrl.protocol)
+  
+  console.log('🚀 About to call fetch with URL:', fullUrl)
+  
+  const response = await fetch(fullUrl, {
+    headers: this.getHeaders()
+  })
+  
+  console.log('✅ Fetch completed, response status:', response.status)
+  
+  // ✅ FIXED: Backend returns array directly, not wrapped in object
+  return this.handleResponse<Campaign[]>(response)
+}
 
-  async getCampaign(campaignId: string): Promise<Campaign> {
-    const response = await fetch(`${this.baseURL}/api/campaigns/${campaignId}`, {
-      headers: this.getHeaders()
-    })
-    
-    return this.handleResponse<Campaign>(response)
-  }
+async getCampaign(campaignId: string): Promise<Campaign> {
+  const response = await fetch(`${this.baseURL}/api/campaigns/${campaignId}`, {
+    headers: this.getHeaders()
+  })
+  
+  return this.handleResponse<Campaign>(response)
+}
 
   async updateCampaign(campaignId: string, updates: Partial<Campaign>): Promise<Campaign> {
     const response = await fetch(`${this.baseURL}/api/campaigns/${campaignId}`, {
