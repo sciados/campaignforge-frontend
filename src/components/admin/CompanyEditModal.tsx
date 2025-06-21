@@ -100,7 +100,7 @@ const CompanyEditModal: React.FC<CompanyEditModalProps> = ({ company, isOpen, on
         throw new Error('No authentication token found');
       }
 
-      const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+      const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://campaign-backend-production-e2db.up.railway.app';
       
       // Update company details (we'll need to add this endpoint)
       const companyResponse = await fetch(`${API_BASE_URL}/api/admin/companies/${company.id}`, {

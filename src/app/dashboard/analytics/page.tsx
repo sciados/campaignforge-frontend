@@ -48,7 +48,7 @@ export default function DashboardPage() {
       }
 
       try {
-        const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
+        const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://campaign-backend-production-e2db.up.railway.app'
         
         // Validate user authentication
         const authResponse = await fetch(`${API_BASE_URL}/api/auth/validate`, {

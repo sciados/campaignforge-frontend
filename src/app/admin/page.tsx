@@ -78,7 +78,7 @@ export default function AdminPage() {
       const token = localStorage.getItem('authToken');
       if (!token) return;
       
-      const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+      const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://campaign-backend-production-e2db.up.railway.app';
       const response = await fetch(`${API_BASE_URL}/api/admin/stats`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -97,7 +97,7 @@ export default function AdminPage() {
       const token = localStorage.getItem('authToken');
       if (!token) return;
       
-      const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+      const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://campaign-backend-production-e2db.up.railway.app';
       const params = new URLSearchParams({
         page: currentPage.toString(),
         limit: '20',
@@ -125,7 +125,7 @@ export default function AdminPage() {
       const token = localStorage.getItem('authToken');
       if (!token) return;
       
-      const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+      const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://campaign-backend-production-e2db.up.railway.app';
       const params = new URLSearchParams({
         page: currentPage.toString(),
         limit: '20',
@@ -167,7 +167,7 @@ export default function AdminPage() {
       const token = localStorage.getItem('authToken');
       if (!token) return;
       
-      const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+      const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://campaign-backend-production-e2db.up.railway.app';
       const response = await fetch(`${API_BASE_URL}/api/admin/users/${userId}`, {
         method: 'PUT',
         headers: {
@@ -189,7 +189,7 @@ export default function AdminPage() {
       const token = localStorage.getItem('authToken');
       if (!token) return;
       
-      const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+      const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://campaign-backend-production-e2db.up.railway.app';
       const response = await fetch(`${API_BASE_URL}/api/admin/users/${userId}/role`, {
         method: 'PUT',
         headers: {
@@ -218,7 +218,7 @@ export default function AdminPage() {
       const token = localStorage.getItem('authToken');
       if (!token) return;
       
-      const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+      const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://campaign-backend-production-e2db.up.railway.app';
       const response = await fetch(`${API_BASE_URL}/api/admin/companies/${companyId}/subscription`, {
         method: 'PUT',
         headers: {

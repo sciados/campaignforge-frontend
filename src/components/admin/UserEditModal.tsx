@@ -71,7 +71,7 @@ const UserEditModal: React.FC<UserEditModalProps> = ({ user, isOpen, onClose, on
         throw new Error('No authentication token found');
       }
 
-      const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+      const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://campaign-backend-production-e2db.up.railway.app';
       const response = await fetch(`${API_BASE_URL}/api/admin/users/${user.id}`, {
         method: 'PUT',
         headers: {
