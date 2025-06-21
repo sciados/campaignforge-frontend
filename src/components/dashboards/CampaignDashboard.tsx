@@ -71,7 +71,7 @@ export default function DashboardPage() {
           
           // Try to fetch company dashboard stats from the campaigns endpoint
           try {
-            const statsResponse = await fetch(`${API_BASE_URL}/campaigns/dashboard/stats`, {
+            const statsResponse = await fetch(`${API_BASE_URL}/api/campaigns/dashboard/stats`, {
               headers: { 'Authorization': `Bearer ${token}` }
             })
             

@@ -110,7 +110,7 @@ export default function CampaignDashboard() {
       }
 
       // Load dashboard stats
-      const statsResponse = await fetch(`${API_BASE_URL}/dashboard/stats`, {
+      const statsResponse = await fetch(`${API_BASE_URL}/api/dashboard/stats`, {
         headers: { 'Authorization': `Bearer ${token}` }
       })
       

@@ -67,7 +67,7 @@ export default function DashboardPage() {
           setUser(userData)
           
           // Fetch company dashboard stats
-          const statsResponse = await fetch(`${API_BASE_URL}/dashboard/stats`, {
+          const statsResponse = await fetch(`${API_BASE_URL}/api/dashboard/stats`, {
             headers: { 'Authorization': `Bearer ${token}` }
           })
           
