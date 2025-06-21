@@ -3,7 +3,8 @@
  * Enhanced API client for CampaignForge with flexible workflow support
  */
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://campaign-backend-production-e2db.up.railway.app'
+const API_BASE_URL = 'https://campaign-backend-production-e2db.up.railway.app'
+// const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://campaign-backend-production-e2db.up.railway.app'
 
 // Add this right after the API_BASE_URL declaration
 console.log('🔍 Environment check:')
