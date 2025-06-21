@@ -103,7 +103,7 @@ const CompanyEditModal: React.FC<CompanyEditModalProps> = ({ company, isOpen, on
       const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
       
       // Update company details (we'll need to add this endpoint)
-      const companyResponse = await fetch(`${API_BASE_URL}/admin/companies/${company.id}`, {
+      const companyResponse = await fetch(`${API_BASE_URL}/api/admin/companies/${company.id}`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -113,7 +113,7 @@ const CompanyEditModal: React.FC<CompanyEditModalProps> = ({ company, isOpen, on
       });
 
       // Update subscription (existing endpoint)
-      const subscriptionResponse = await fetch(`${API_BASE_URL}/admin/companies/${company.id}/subscription`, {
+      const subscriptionResponse = await fetch(`${API_BASE_URL}/api/admin/companies/${company.id}/subscription`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,

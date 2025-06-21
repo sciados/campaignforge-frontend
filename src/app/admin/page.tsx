@@ -79,7 +79,7 @@ export default function AdminPage() {
       if (!token) return;
       
       const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
-      const response = await fetch(`${API_BASE_URL}/admin/stats`, {
+      const response = await fetch(`${API_BASE_URL}/api/admin/stats`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (response.ok) {
@@ -105,7 +105,7 @@ export default function AdminPage() {
         ...(filterTier && { subscription_tier: filterTier })
       });
       
-      const response = await fetch(`${API_BASE_URL}/admin/users?${params}`, {
+      const response = await fetch(`${API_BASE_URL}/api/admin/users?${params}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (response.ok) {
@@ -133,7 +133,7 @@ export default function AdminPage() {
         ...(filterTier && { subscription_tier: filterTier })
       });
       
-      const response = await fetch(`${API_BASE_URL}/admin/companies?${params}`, {
+      const response = await fetch(`${API_BASE_URL}/api/admin/companies?${params}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (response.ok) {
@@ -168,7 +168,7 @@ export default function AdminPage() {
       if (!token) return;
       
       const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
-      const response = await fetch(`${API_BASE_URL}/admin/users/${userId}`, {
+      const response = await fetch(`${API_BASE_URL}/api/admin/users/${userId}`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -190,7 +190,7 @@ export default function AdminPage() {
       if (!token) return;
       
       const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
-      const response = await fetch(`${API_BASE_URL}/admin/users/${userId}/role`, {
+      const response = await fetch(`${API_BASE_URL}/api/admin/users/${userId}/role`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -219,7 +219,7 @@ export default function AdminPage() {
       if (!token) return;
       
       const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
-      const response = await fetch(`${API_BASE_URL}/admin/companies/${companyId}/subscription`, {
+      const response = await fetch(`${API_BASE_URL}/api/admin/companies/${companyId}/subscription`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,
