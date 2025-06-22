@@ -1,6 +1,7 @@
-// src/app/campaigns/[id]/page.tsx
+
+        // src/app/campaigns/[id]/page.tsx
 'use client'
-import React, { useState, useEffect, useCallback } from 'react'
+import React, { useState, useEffect, useCallback, useMemo } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { 
   ArrowLeft, 
@@ -75,65 +76,86 @@ export default function FlexibleCampaignDetailPage() {
   const [sessionTimer, setSessionTimer] = useState(0)
   const [isActiveSession, setIsActiveSession] = useState(false)
   const [intelligenceData, setIntelligenceData] = useState<IntelligenceSource[]>([])
+  const [isInitialized, setIsInitialized] = useState(false)
 
-  // Load campaign and workflow state
-  useEffect(() => {
-    const loadCampaignData = async () => {
+  // 🔧 FIX: Memoize API methods to prevent recreation on each render
+  const stableApi = useMemo(() => ({
+    getCampaign: api.getCampaign,
+    getWorkflowState: api.getWorkflowState,
+    getCampaignIntelligence: api.getCampaignIntelligence,
+    setWorkflowPreference: api.setWorkflowPreference,
+    saveProgress: api.saveProgress
+  }), [api.getCampaign, api.getWorkflowState, api.getCampaignIntelligence, api.setWorkflowPreference, api.saveProgress])
+
+  // 🔧 FIX: Load campaign data with proper dependency management
+  const loadCampaignData = useCallback(async () => {
+    if (!campaignId || isInitialized) {
+      console.log('⏸️ Skipping loadCampaignData - already initialized or no campaignId')
+      return
+    }
+
+    try {
+      console.log('🔄 Loading campaign data for:', campaignId)
+      setIsLoading(true)
+      setError(null)
+      
+      // Load basic campaign data
+      const campaignData = await stableApi.getCampaign(campaignId)
+      console.log('✅ Campaign loaded:', campaignData)
+      setCampaign(campaignData)
+      
+      // Load workflow state
       try {
-        setIsLoading(true)
-        setError(null)
-        
-        console.log('🔄 Loading campaign:', campaignId)
-        
-        // Load basic campaign data
-        const campaignData = await api.getCampaign(campaignId)
-        console.log('✅ Campaign loaded:', campaignData)
-        setCampaign(campaignData)
-        
-        // Load workflow state
-        try {
-          const workflow = await api.getWorkflowState(campaignId)
-          setWorkflowState(workflow)
-          setCurrentStep(workflow.suggested_step || 1)
-          // Safely set workflow mode with type checking
-          const mode = workflow.workflow_preference
-          if (mode === 'quick' || mode === 'methodical' || mode === 'flexible') {
-            setWorkflowMode(mode)
-          } else {
-            setWorkflowMode('flexible')
-          }
-          console.log('✅ Workflow status loaded:', workflow)
-        } catch (workflowError) {
-          console.warn('⚠️ Could not load workflow status, using defaults:', workflowError)
-          setCurrentStep(1)
+        const workflow = await stableApi.getWorkflowState(campaignId)
+        setWorkflowState(workflow)
+        setCurrentStep(workflow.suggested_step || 1)
+        // Safely set workflow mode with type checking
+        const mode = workflow.workflow_preference
+        if (mode === 'quick' || mode === 'methodical' || mode === 'flexible') {
+          setWorkflowMode(mode)
+        } else {
+          setWorkflowMode('flexible')
         }
+        console.log('✅ Workflow status loaded:', workflow)
+      } catch (workflowError) {
+        console.warn('⚠️ Could not load workflow status, using defaults:', workflowError)
+        setCurrentStep(1)
+      }
 
-        // Load intelligence data if available
-        try {
-          const intelligence = await api.getCampaignIntelligence(campaignId)
-          if (intelligence && intelligence.intelligence_sources) {
-            setIntelligenceData(intelligence.intelligence_sources)
-            console.log(`📊 Loaded ${intelligence.intelligence_sources.length} intelligence sources`)
-          }
-        } catch (intelligenceError) {
-          console.warn('⚠️ Intelligence loading failed (normal for new campaigns):', intelligenceError)
+      // Load intelligence data if available
+      try {
+        const intelligence = await stableApi.getCampaignIntelligence(campaignId)
+        if (intelligence && intelligence.intelligence_sources) {
+          setIntelligenceData(intelligence.intelligence_sources)
+          console.log(`📊 Loaded ${intelligence.intelligence_sources.length} intelligence sources`)
+        } else {
           setIntelligenceData([])
         }
-        
-      } catch (err) {
-        console.error('❌ Failed to load campaign:', err)
-        setError(err instanceof Error ? err.message : 'Failed to load campaign')
-      } finally {
-        setIsLoading(false)
+      } catch (intelligenceError) {
+        console.warn('⚠️ Intelligence loading failed (normal for new campaigns):', intelligenceError)
+        setIntelligenceData([])
       }
+      
+      // Mark as initialized to prevent further loads
+      setIsInitialized(true)
+      console.log('🏁 Campaign data loading completed')
+      
+    } catch (err) {
+      console.error('❌ Failed to load campaign:', err)
+      setError(err instanceof Error ? err.message : 'Failed to load campaign')
+    } finally {
+      setIsLoading(false)
     }
+  }, [campaignId, stableApi, isInitialized])
 
-    if (campaignId) {
+  // 🔧 FIX: Use proper dependencies and prevent infinite loops
+  useEffect(() => {
+    if (campaignId && !isInitialized) {
       loadCampaignData()
     }
-  }, [campaignId, api])
+  }, [campaignId, loadCampaignData, isInitialized])
 
-  // Session timer
+  // Session timer - isolated effect
   useEffect(() => {
     let interval: NodeJS.Timeout
     if (isActiveSession) {
@@ -146,10 +168,10 @@ export default function FlexibleCampaignDetailPage() {
 
   // Auto-save functionality
   const saveProgress = useCallback(async (data: any = {}) => {
-    if (!autoSave) return
+    if (!autoSave || !campaignId) return
     
     try {
-      await api.saveProgress(campaignId, {
+      await stableApi.saveProgress(campaignId, {
         current_step: currentStep,
         session_data: data,
         timestamp: new Date().toISOString()
@@ -158,9 +180,9 @@ export default function FlexibleCampaignDetailPage() {
     } catch (error) {
       console.error('Auto-save failed:', error)
     }
-  }, [campaignId, currentStep, autoSave, api])
+  }, [campaignId, currentStep, autoSave, stableApi])
 
-  // Auto-save every 30 seconds when user is active
+  // Auto-save timer - isolated effect
   useEffect(() => {
     if (!autoSave || !isActiveSession) return
     
@@ -177,8 +199,10 @@ export default function FlexibleCampaignDetailPage() {
   }, [saveProgress])
 
   const handleModeChange = useCallback(async (mode: 'quick' | 'methodical' | 'flexible') => {
+    if (!campaignId) return
+    
     try {
-      await api.setWorkflowPreference(campaignId, {
+      await stableApi.setWorkflowPreference(campaignId, {
         workflow_preference: mode,
         quick_mode: mode === 'quick',
         detailed_guidance: mode === 'methodical',
@@ -187,12 +211,12 @@ export default function FlexibleCampaignDetailPage() {
       
       setWorkflowMode(mode)
       // Reload workflow state
-      const newWorkflow = await api.getWorkflowState(campaignId)
+      const newWorkflow = await stableApi.getWorkflowState(campaignId)
       setWorkflowState(newWorkflow)
     } catch (error) {
       console.error('Failed to update workflow preference:', error)
     }
-  }, [campaignId, api])
+  }, [campaignId, stableApi])
 
   const handleIntelligenceGenerated = useCallback((intelligence: IntelligenceSource) => {
     setIntelligenceData(prev => [...prev, intelligence])
@@ -487,7 +511,7 @@ export default function FlexibleCampaignDetailPage() {
   )
 }
 
-// Step Navigation Component
+// Step Navigation Component (unchanged)
 function StepNavigation({ 
   currentStep, 
   workflowMode, 
@@ -623,8 +647,7 @@ function StepNavigation({
   )
 }
 
-// Step Content Components
-// Fix for CampaignBasicInfo component - Line 689 area
+// Step Content Components (unchanged implementations)
 function CampaignBasicInfo({ 
   campaign, 
   onUpdate, 
@@ -686,8 +709,7 @@ function CampaignBasicInfo({
               rows={3}
               className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
             />
-          </div>
-          <div>
+          </div><div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Target Audience</label>
             <input
               type="text"
