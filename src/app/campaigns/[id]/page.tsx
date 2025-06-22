@@ -624,6 +624,7 @@ function StepNavigation({
 }
 
 // Step Content Components
+// Fix for CampaignBasicInfo component - Line 689 area
 function CampaignBasicInfo({ 
   campaign, 
   onUpdate, 
@@ -662,7 +663,7 @@ function CampaignBasicInfo({
       <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
         <h3 className="text-lg font-medium text-blue-900 mb-2">✅ Step 1: Campaign Created</h3>
         <p className="text-blue-700">
-          Your campaign is set up and ready. You can edit details here or move to Step 2 to add sources.
+          Your universal campaign is set up and ready. You can edit details here or move to Step 2 to add sources.
         </p>
       </div>
 
@@ -712,7 +713,15 @@ function CampaignBasicInfo({
             </div>
             <div>
               <h3 className="text-sm font-medium text-gray-700">Campaign Type</h3>
-              <p className="text-gray-900 mt-1 capitalize">{campaign.campaign_type.replace('_', ' ')}</p>
+              {/* ✅ FIXED: Handle universal campaign type safely */}
+              <p className="text-gray-900 mt-1">
+                <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-purple-100 text-purple-800">
+                  🌟 Universal Campaign
+                </span>
+              </p>
+              <p className="text-xs text-gray-500 mt-1">
+                Accepts any input • Generates all content types
+              </p>
             </div>
           </div>
           <div>

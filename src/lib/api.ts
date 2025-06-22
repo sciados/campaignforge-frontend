@@ -365,7 +365,7 @@ class ApiClient {
   console.log('- new URL(fullUrl).href:', new URL(fullUrl).href)
   
   // Test what happens if we create the URL differently
-  const testUrl = new URL('/api/campaigns/', this.baseURL)
+  const testUrl = new URL('/api/campaigns', this.baseURL)
   testUrl.search = searchParams.toString()
   console.log('- testUrl.href:', testUrl.href)
   console.log('- testUrl.protocol:', testUrl.protocol)

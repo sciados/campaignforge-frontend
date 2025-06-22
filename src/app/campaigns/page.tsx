@@ -1,4 +1,4 @@
-// src/app/campaigns/page.tsx - FIXED TO MATCH BACKEND API
+// src/app/campaigns/page.tsx - SIMPLIFIED - Universal Campaigns Only
 'use client'
 
 import React, { useState, useEffect, useCallback, useRef } from 'react'
@@ -32,16 +32,15 @@ export default function CampaignsPage() {
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
   
-  // Filter state
+  // Filter state - ✅ SIMPLIFIED: Only status filter, no campaign type
   const [searchQuery, setSearchQuery] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
-  const [typeFilter, setTypeFilter] = useState('all')
 
   // Use ref to prevent multiple loads and track completion
   const isInitialized = useRef(false)
   const isLoadingData = useRef(false)
 
-  // Memoize filter function to prevent unnecessary re-renders
+  // ✅ SIMPLIFIED: Remove campaign type filtering
   const filterCampaigns = useCallback(() => {
     let filtered = campaigns
 
@@ -56,12 +55,8 @@ export default function CampaignsPage() {
       filtered = filtered.filter(campaign => campaign.status === statusFilter)
     }
 
-    if (typeFilter !== 'all') {
-      filtered = filtered.filter(campaign => campaign.campaign_type === typeFilter)
-    }
-
     setFilteredCampaigns(filtered)
-  }, [campaigns, searchQuery, statusFilter, typeFilter])
+  }, [campaigns, searchQuery, statusFilter])
 
   // Initialize campaigns page
   useEffect(() => {
@@ -113,13 +108,10 @@ export default function CampaignsPage() {
         setUser(userProfile)
 
         console.log('📞 Calling getCampaigns...')
-        // ✅ FIXED: Backend returns array directly now
         const campaignsData = await api.getCampaigns({ limit: 50 })
         console.log('✅ getCampaigns success:', campaignsData)
         
-        // ✅ FIXED: Handle the correct response format
         if (campaignsData && Array.isArray(campaignsData)) {
-          // Backend returns array directly
           setCampaigns(campaignsData)
           console.log(`📊 Set ${campaignsData.length} campaigns`)
         } else {
@@ -127,15 +119,13 @@ export default function CampaignsPage() {
           setCampaigns([])
         }
 
-        // ✅ OPTIONAL: Load dashboard stats for additional info (non-critical)
+        // ✅ FIXED: Use the correct endpoint for dashboard stats
         try {
-          console.log('📞 Calling getDashboardStats...')
+          console.log('📞 Calling getDashboardStats from /api/campaigns/dashboard/stats...')
           const dashboardStats = await api.getDashboardStats()
           console.log('✅ getDashboardStats success:', dashboardStats)
-          // You can use this data in your UI if needed
         } catch (statsError) {
           console.warn('⚠️ Dashboard stats failed (non-critical):', statsError)
-          // Don't fail the whole load for this
         }
 
         // Force state update
@@ -168,7 +158,7 @@ export default function CampaignsPage() {
     filterCampaigns()
   }, [filterCampaigns])
 
-  // ✨ NEW: Simplified campaign creation handler with enhanced debugging
+  // ✅ SIMPLIFIED: Create universal campaign (no campaign type selection)
   const handleCreateCampaign = useCallback(async (campaignData: {
     title: string
     description: string
@@ -176,20 +166,18 @@ export default function CampaignsPage() {
     target_audience: string
   }) => {
     try {
-      console.log('🎯 Creating simplified campaign:', campaignData)
+      console.log('🎯 Creating universal campaign:', campaignData)
       
-      // Enhanced logging of the exact payload
+      // ✅ SIMPLIFIED: No campaign_type field needed - all campaigns are universal
       const payload = {
         title: campaignData.title,
         description: campaignData.description,
         keywords: campaignData.keywords,
         target_audience: campaignData.target_audience,
-        campaign_type: 'multimedia', // ✅ Use valid enum value instead of 'universal'
         tone: 'conversational',
         style: 'modern',
         settings: { 
           created_from: 'simplified_flow',
-          campaign_type: 'multimedia', // ✅ Update this too
           creation_method: 'basic_info_only'
         }
       }
@@ -291,10 +279,10 @@ export default function CampaignsPage() {
     }
   }, [api])
 
+  // ✅ SIMPLIFIED: Remove campaign type filter clearing
   const clearFilters = useCallback(() => {
     setSearchQuery('')
     setStatusFilter('all')
-    setTypeFilter('all')
   }, [])
 
   // Manual retry function
@@ -376,8 +364,8 @@ export default function CampaignsPage() {
         {/* Header */}
         <div className="flex justify-between items-center">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Campaigns</h1>
-            <p className="text-gray-600 mt-2">Create and manage your marketing campaigns</p>
+            <h1 className="text-3xl font-bold text-gray-900">Universal Campaigns</h1>
+            <p className="text-gray-600 mt-2">Create intelligent campaigns that work with any input and generate multiple content types</p>
           </div>
           <button 
             onClick={() => setShowCreateModal(true)}
@@ -424,10 +412,10 @@ export default function CampaignsPage() {
               
               <h2 className="text-2xl font-bold text-gray-900 mb-4">Welcome to CampaignForge!</h2>
               <p className="text-gray-600 mb-8 max-w-lg mx-auto">
-                Create your first campaign to start generating intelligent marketing content from competitor analysis.
+                Create your first universal campaign that accepts any input source and generates multiple content types automatically.
               </p>
               
-              {/* Process Overview */}
+              {/* ✅ SIMPLIFIED: Universal workflow description */}
               <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
                 <div className="text-center">
                   <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center mx-auto mb-3">
@@ -441,8 +429,8 @@ export default function CampaignsPage() {
                   <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mx-auto mb-3">
                     <Globe className="h-6 w-6 text-blue-600" />
                   </div>
-                  <h3 className="font-medium text-gray-900 mb-1">2. Add Sources</h3>
-                  <p className="text-sm text-gray-600">VSL, webpages, documents</p>
+                  <h3 className="font-medium text-gray-900 mb-1">2. Add Any Sources</h3>
+                  <p className="text-sm text-gray-600">URLs, documents, videos, text</p>
                 </div>
                 
                 <div className="text-center">
@@ -457,8 +445,8 @@ export default function CampaignsPage() {
                   <div className="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center mx-auto mb-3">
                     <Plus className="h-6 w-6 text-orange-600" />
                   </div>
-                  <h3 className="font-medium text-gray-900 mb-1">4. Generate Content</h3>
-                  <p className="text-sm text-gray-600">Create promotional materials</p>
+                  <h3 className="font-medium text-gray-900 mb-1">4. Generate Everything</h3>
+                  <p className="text-sm text-gray-600">Emails, ads, posts, pages, videos</p>
                 </div>
               </div>
               
@@ -478,19 +466,55 @@ export default function CampaignsPage() {
           <CampaignStats campaigns={campaigns} user={user} />
         )}
 
-        {/* Campaign Management */}
+        {/* ✅ SIMPLIFIED: Campaign Management without type filter */}
         {campaigns.length > 0 && (
           <>
-            <CampaignFilters
-              searchQuery={searchQuery}
-              onSearchChange={setSearchQuery}
-              statusFilter={statusFilter}
-              onStatusChange={setStatusFilter}
-              typeFilter={typeFilter}
-              onTypeChange={setTypeFilter}
-              onClearFilters={clearFilters}
-              resultsCount={filteredCampaigns.length}
-            />
+            {/* Simplified Filters Component */}
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+              <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between space-y-4 lg:space-y-0">
+                <div className="flex-1 max-w-md">
+                  <div className="relative">
+                    <input
+                      type="text"
+                      placeholder="Search campaigns..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    />
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                      </svg>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="flex items-center space-x-4">
+                  <select
+                    value={statusFilter}
+                    onChange={(e) => setStatusFilter(e.target.value)}
+                    className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  >
+                    <option value="all">All Status</option>
+                    <option value="draft">Draft</option>
+                    <option value="active">Active</option>
+                    <option value="completed">Completed</option>
+                    <option value="paused">Paused</option>
+                  </select>
+                  
+                  <button
+                    onClick={clearFilters}
+                    className="px-4 py-2 text-gray-600 hover:text-gray-800 font-medium"
+                  >
+                    Clear Filters
+                  </button>
+                  
+                  <span className="text-sm text-gray-500">
+                    {filteredCampaigns.length} campaigns
+                  </span>
+                </div>
+              </div>
+            </div>
 
             <CampaignGrid
               campaigns={filteredCampaigns}
@@ -540,6 +564,8 @@ export default function CampaignsPage() {
                           <p className="text-gray-600 text-sm flex items-center">
                             <Calendar className="h-4 w-4 mr-1" />
                             {new Date(campaign.created_at).toLocaleDateString()}
+                            <span className="mx-2">•</span>
+                            <span className="text-purple-600 font-medium">Universal Campaign</span>
                           </p>
                         </div>
                       </div>
@@ -567,7 +593,7 @@ export default function CampaignsPage() {
         )}
       </div>
 
-      {/* ✨ NEW: Simplified Campaign Creation Modal */}
+      {/* ✅ SIMPLIFIED: Campaign Creation Modal */}
       <SimpleCampaignModal
         isOpen={showCreateModal}
         onClose={() => setShowCreateModal(false)}
