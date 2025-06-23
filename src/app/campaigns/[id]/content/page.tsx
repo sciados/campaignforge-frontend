@@ -1,6 +1,6 @@
-// src/app/campaigns/[id]/content/page.tsx
+// src/app/campaigns/[id]/content/page.tsx - FIXED VERSION
 'use client'
-import React, { useState, useEffect, useCallback } from 'react'
+import React, { useState, useEffect, useCallback, useRef } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { 
   ArrowLeft, 
@@ -18,7 +18,8 @@ import {
   Search,
   Plus,
   ExternalLink,
-  X
+  X,
+  RefreshCw
 } from 'lucide-react'
 import { useApi } from '@/lib/api'
 
@@ -45,7 +46,7 @@ interface CampaignData {
   generated_content?: ContentItem[]
 }
 
-export default function CampaignContentPage() {
+export default function FixedCampaignContentPage() {
   const params = useParams()
   const router = useRouter()
   const api = useApi()
@@ -61,6 +62,10 @@ export default function CampaignContentPage() {
   const [isEditing, setIsEditing] = useState(false)
   const [editedContent, setEditedContent] = useState('')
 
+  // 🔧 FIX: Use refs to prevent infinite loops
+  const isInitializedRef = useRef(false)
+  const isLoadingRef = useRef(false)
+
   // Navigation functions
   const goBackToCampaign = () => {
     router.push(`/campaigns/${campaignId}`)
@@ -74,14 +79,25 @@ export default function CampaignContentPage() {
     router.push('/campaigns')
   }
 
+  // 🔧 FIX: Completely rewritten loadCampaignContent to prevent infinite loops
   const loadCampaignContent = useCallback(async () => {
+    // ✅ CRITICAL: Only load once and prevent concurrent loads
+    if (!campaignId || isInitializedRef.current || isLoadingRef.current) {
+      console.log('⏸️ Skipping loadCampaignContent - already initialized/loading or no campaignId')
+      return
+    }
+
     try {
+      console.log('🔄 Loading campaign content for:', campaignId)
+      isLoadingRef.current = true
+      isInitializedRef.current = true // Mark as initialized immediately to prevent multiple calls
       setIsLoading(true)
+      setError(null)
       
       // Load campaign details
       const campaignData = await api.getCampaign(campaignId)
       setCampaign(campaignData)
-      console.log('📋 Campaign data:', campaignData)
+      console.log('📋 Campaign data loaded:', campaignData.title)
       
       // Try multiple approaches to find generated content
       let foundContent: ContentItem[] = []
@@ -92,11 +108,12 @@ export default function CampaignContentPage() {
         foundContent = (campaignData as any).generated_content
       }
       
-      // Approach 2: Try getCampaignIntelligence 
+      // Approach 2: Try getCampaignIntelligence ONLY if no content found yet
       if (foundContent.length === 0) {
         try {
+          console.log('🔍 Trying intelligence endpoint for content...')
           const intelligence = await api.getCampaignIntelligence(campaignId)
-          console.log('🧠 Intelligence response:', intelligence)
+          console.log('🧠 Intelligence response received')
           
           if (intelligence?.generated_content && Array.isArray(intelligence.generated_content)) {
             console.log('✅ Found generated content in intelligence data')
@@ -107,9 +124,10 @@ export default function CampaignContentPage() {
         }
       }
       
-      // Approach 3: Try a direct content endpoint (if it exists)
+      // Approach 3: Try a direct content endpoint ONLY if still no content found
       if (foundContent.length === 0) {
         try {
+          console.log('🔍 Trying direct content endpoint...')
           const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/campaigns/${campaignId}/content`, {
             headers: {
               'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
@@ -119,7 +137,7 @@ export default function CampaignContentPage() {
           
           if (response.ok) {
             const contentData = await response.json()
-            console.log('✅ Found content via direct endpoint:', contentData)
+            console.log('✅ Found content via direct endpoint')
             if (Array.isArray(contentData)) {
               foundContent = contentData
             } else if (contentData.content && Array.isArray(contentData.content)) {
@@ -139,12 +157,34 @@ export default function CampaignContentPage() {
       setError(err instanceof Error ? err.message : 'Failed to load content')
     } finally {
       setIsLoading(false)
+      isLoadingRef.current = false
+    }
+  }, [campaignId, api]) // ✅ Stable dependencies only
+
+  // 🔧 FIX: Manual refresh function that bypasses the ref guards
+  const refreshContent = useCallback(async () => {
+    try {
+      console.log('🔄 Manual refresh of content')
+      setError(null)
+      
+      // Try to get fresh content from intelligence
+      const intelligence = await api.getCampaignIntelligence(campaignId)
+      if (intelligence?.generated_content && Array.isArray(intelligence.generated_content)) {
+        setContent(intelligence.generated_content)
+        console.log('✅ Content refreshed successfully')
+      }
+    } catch (error) {
+      console.warn('⚠️ Manual refresh failed:', error)
+      setError('Failed to refresh content')
     }
   }, [campaignId, api])
 
+  // 🔧 FIX: Use proper dependencies and prevent infinite loops
   useEffect(() => {
-    loadCampaignContent()
-  }, [loadCampaignContent])
+    if (campaignId && !isInitializedRef.current && !isLoadingRef.current) {
+      loadCampaignContent()
+    }
+  }, [campaignId, loadCampaignContent])
 
   const getContentIcon = (type: string) => {
     const icons: Record<string, any> = {
@@ -210,7 +250,6 @@ export default function CampaignContentPage() {
   }
 
   const getContentCategories = () => {
-    // Use Array.from to convert Set to Array for better compatibility
     const uniqueTypes = Array.from(new Set(content.map(c => c.content_type)))
     const categories = ['all', ...uniqueTypes]
     
@@ -338,12 +377,20 @@ export default function CampaignContentPage() {
         <div className="text-center">
           <h1 className="text-2xl font-bold text-gray-900 mb-2">Error Loading Content</h1>
           <p className="text-gray-600 mb-4">{error}</p>
-          <button
-            onClick={goBackToCampaigns}
-            className="bg-purple-600 text-white px-6 py-2 rounded-lg hover:bg-purple-700 transition-colors"
-          >
-            Back to Campaigns
-          </button>
+          <div className="flex space-x-3 justify-center">
+            <button
+              onClick={refreshContent}
+              className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+            >
+              Try Again
+            </button>
+            <button
+              onClick={goBackToCampaigns}
+              className="bg-purple-600 text-white px-6 py-2 rounded-lg hover:bg-purple-700 transition-colors"
+            >
+              Back to Campaigns
+            </button>
+          </div>
         </div>
       </div>
     )
@@ -369,6 +416,14 @@ export default function CampaignContentPage() {
             </div>
             
             <div className="flex items-center space-x-3">
+              {/* 🔧 FIX: Add manual refresh button */}
+              <button
+                onClick={refreshContent}
+                className="flex items-center space-x-2 px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                <RefreshCw className="h-4 w-4" />
+                <span>Refresh</span>
+              </button>
               <button
                 onClick={handleDownloadAll}
                 className="flex items-center space-x-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
