@@ -1,7 +1,8 @@
 import React from 'react'
+import { useRouter } from 'next/navigation'
 import { 
   Calendar, Star, Zap, FileText, Eye, Edit, Copy, Trash2, 
-  Clock, Play, TrendingUp, Award, Archive
+  Clock, Play, TrendingUp, Award, Archive, Folder
 } from 'lucide-react'
 
 interface Campaign {
@@ -25,15 +26,9 @@ interface CampaignCardProps {
   onDelete?: (campaign: Campaign) => void
 }
 
+// Updated for Universal Campaigns only
 const CAMPAIGN_TYPES = {
-  social_media: { label: 'Social Media', icon: '📱', color: 'bg-blue-100 text-blue-800' },
-  email_marketing: { label: 'Email Marketing', icon: '📧', color: 'bg-green-100 text-green-800' },
-  video_content: { label: 'Video Content', icon: '🎥', color: 'bg-purple-100 text-purple-800' },
-  blog_post: { label: 'Blog Post', icon: '📝', color: 'bg-orange-100 text-orange-800' },
-  advertisement: { label: 'Advertisement', icon: '📢', color: 'bg-red-100 text-red-800' },
-  product_launch: { label: 'Product Launch', icon: '🚀', color: 'bg-emerald-100 text-emerald-800' },
-  brand_awareness: { label: 'Brand Awareness', icon: '🎯', color: 'bg-pink-100 text-pink-800' },
-  multimedia: { label: 'Multimedia', icon: '🎨', color: 'bg-indigo-100 text-indigo-800' }
+  universal: { label: 'Universal Campaign', icon: '🌟', color: 'bg-purple-100 text-purple-800' }
 }
 
 const STATUS_CONFIG = {
@@ -66,6 +61,8 @@ export default function CampaignCard({
   onDuplicate, 
   onDelete 
 }: CampaignCardProps) {
+  const router = useRouter()
+
   // Add safety checks for campaign object
   if (!campaign) {
     return (
@@ -80,10 +77,11 @@ export default function CampaignCard({
     )
   }
 
-  const typeConfig = CAMPAIGN_TYPES[campaign.campaign_type as keyof typeof CAMPAIGN_TYPES] || {
-    label: 'Unknown',
-    icon: '📊',
-    color: 'bg-gray-100 text-gray-800'
+  // Always use universal campaign config
+  const typeConfig = CAMPAIGN_TYPES['universal'] || {
+    label: 'Universal Campaign',
+    icon: '🌟',
+    color: 'bg-purple-100 text-purple-800'
   }
   
   const statusConfig = STATUS_CONFIG[campaign.status as keyof typeof STATUS_CONFIG] || {
@@ -94,12 +92,16 @@ export default function CampaignCard({
   
   const StatusIcon = statusConfig.icon
 
+  // Check for generated content
+  const contentCount = campaign.generated_content_count ?? 0
+  const hasContent = contentCount > 0
+
   return (
     <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-all hover:border-purple-200 group">
       {/* Header */}
       <div className="flex items-start justify-between mb-4">
         <div className="w-12 h-12 bg-gradient-to-r from-purple-100 to-blue-100 rounded-lg flex items-center justify-center text-2xl">
-          {typeConfig?.icon || '📊'}
+          🌟
         </div>
         <div className="flex items-center space-x-2">
           <div className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${statusConfig.color}`}>
@@ -114,19 +116,41 @@ export default function CampaignCard({
       <p className="text-gray-600 text-sm mb-4 line-clamp-2">{campaign.description}</p>
       
       {/* Campaign Type Badge */}
-      <div className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium mb-4 ${typeConfig?.color}`}>
-        {typeConfig?.label}
+      <div className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium mb-4 ${typeConfig.color}`}>
+        {typeConfig.label}
       </div>
+      
+      {/* Content Preview (if exists) */}
+      {hasContent && (
+        <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg">
+          <div className="flex items-center justify-between">
+            <span className="text-sm text-green-700 font-medium">
+              {contentCount} content piece{contentCount !== 1 ? 's' : ''} ready
+            </span>
+            <button
+              onClick={() => router.push(`/campaigns/${campaign.id}/content`)}
+              className="text-green-600 hover:text-green-700 text-sm font-medium"
+            >
+              View All →
+            </button>
+          </div>
+        </div>
+      )}
       
       {/* Metrics */}
       <div className="space-y-2 mb-4">
         <div className="flex items-center justify-between text-sm">
           <span className="text-gray-500">Intelligence Sources</span>
-          <span className="font-medium">{campaign.intelligence_count || 0}</span>
+          <span className="font-medium">{campaign.intelligence_count ?? 0}</span>
         </div>
         <div className="flex items-center justify-between text-sm">
           <span className="text-gray-500">Generated Content</span>
-          <span className="font-medium">{campaign.generated_content_count || 0}</span>
+          <div className="flex items-center space-x-1">
+            <span className="font-medium">{contentCount}</span>
+            {hasContent && (
+              <span className="w-2 h-2 bg-green-500 rounded-full"></span>
+            )}
+          </div>
         </div>
         {campaign.confidence_score && campaign.confidence_score > 0 && (
           <div className="flex items-center justify-between text-sm">
@@ -148,26 +172,53 @@ export default function CampaignCard({
       </div>
       
       {/* Actions */}
-      <div className="flex items-center space-x-2">
-        <button 
-          onClick={() => onView?.(campaign)}
-          className="flex-1 px-3 py-2 bg-gradient-to-r from-purple-600 to-blue-600 text-white text-sm font-medium rounded-lg hover:from-purple-700 hover:to-blue-700 transition-all"
-        >
-          <Eye className="w-4 h-4 mr-1 inline" />
-          View
-        </button>
-        <button 
-          onClick={() => onEdit?.(campaign)}
-          className="px-3 py-2 border border-gray-300 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-50 transition-colors"
-        >
-          <Edit className="w-4 h-4" />
-        </button>
-        <button 
-          onClick={() => onDuplicate?.(campaign)}
-          className="px-3 py-2 border border-gray-300 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-50 transition-colors"
-        >
-          <Copy className="w-4 h-4" />
-        </button>
+      <div className="space-y-2">
+        {/* Primary Actions */}
+        <div className="flex items-center space-x-2">
+          <button 
+            onClick={() => onView?.(campaign)}
+            className="flex-1 px-3 py-2 bg-gradient-to-r from-purple-600 to-blue-600 text-white text-sm font-medium rounded-lg hover:from-purple-700 hover:to-blue-700 transition-all"
+          >
+            <Eye className="w-4 h-4 mr-1 inline" />
+            Open Campaign
+          </button>
+          
+          {/* Content Library Button */}
+          <button
+            onClick={() => router.push(`/campaigns/${campaign.id}/content`)}
+            className={`px-3 py-2 rounded-lg transition-all text-sm font-medium flex items-center space-x-1 ${
+              hasContent
+                ? 'bg-green-100 text-green-700 hover:bg-green-200 border border-green-300'
+                : 'bg-gray-100 text-gray-500 hover:bg-gray-200 border border-gray-300'
+            }`}
+            title={hasContent ? `View ${contentCount} content pieces` : 'No content generated yet'}
+          >
+            <Folder className="w-4 h-4" />
+            <span className="hidden sm:inline">Content</span>
+            {contentCount > 0 && (
+              <span className="bg-green-600 text-white text-xs px-2 py-1 rounded-full">
+                {contentCount}
+              </span>
+            )}
+          </button>
+        </div>
+        
+        {/* Secondary Actions */}
+        <div className="flex items-center space-x-2">
+          <button 
+            onClick={() => onEdit?.(campaign)}
+            className="flex-1 px-3 py-2 border border-gray-300 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-50 transition-colors"
+          >
+            <Edit className="w-4 h-4 mr-1 inline" />
+            Edit
+          </button>
+          <button 
+            onClick={() => onDuplicate?.(campaign)}
+            className="px-3 py-2 border border-gray-300 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-50 transition-colors"
+          >
+            <Copy className="w-4 h-4" />
+          </button>
+        </div>
       </div>
     </div>
   )

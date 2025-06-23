@@ -6,34 +6,17 @@ interface CampaignFiltersProps {
   onSearchChange: (query: string) => void
   statusFilter: string
   onStatusChange: (status: string) => void
-  typeFilter: string
-  onTypeChange: (type: string) => void
-  dateRange?: string
-  onDateRangeChange?: (range: string) => void
-  confidenceFilter?: string
-  onConfidenceChange?: (confidence: string) => void
   onClearFilters: () => void
   resultsCount: number
 }
 
-const CAMPAIGN_TYPES = {
-  social_media: { label: 'Social Media', icon: '📱' },
-  email_marketing: { label: 'Email Marketing', icon: '📧' },
-  video_content: { label: 'Video Content', icon: '🎥' },
-  blog_post: { label: 'Blog Post', icon: '📝' },
-  advertisement: { label: 'Advertisement', icon: '📢' },
-  product_launch: { label: 'Product Launch', icon: '🚀' },
-  brand_awareness: { label: 'Brand Awareness', icon: '🎯' },
-  multimedia: { label: 'Multimedia', icon: '🎨' }
-}
-
+// Simplified for Universal Campaigns only
 const STATUS_OPTIONS = [
   { value: 'all', label: 'All Status' },
   { value: 'draft', label: 'Draft' },
-  { value: 'in_progress', label: 'In Progress' },
-  { value: 'review', label: 'Review' },
   { value: 'active', label: 'Active' },
   { value: 'completed', label: 'Completed' },
+  { value: 'paused', label: 'Paused' },
   { value: 'archived', label: 'Archived' }
 ]
 
@@ -58,26 +41,21 @@ export default function CampaignFilters({
   onSearchChange,
   statusFilter,
   onStatusChange,
-  typeFilter,
-  onTypeChange,
-  dateRange = 'all',
-  onDateRangeChange,
-  confidenceFilter = 'all',
-  onConfidenceChange,
   onClearFilters,
   resultsCount
 }: CampaignFiltersProps) {
   const [showAdvanced, setShowAdvanced] = useState(false)
+  const [dateRange, setDateRange] = useState('all')
+  const [confidenceFilter, setConfidenceFilter] = useState('all')
 
-  const hasActiveFilters = searchQuery || statusFilter !== 'all' || typeFilter !== 'all' || 
+  const hasActiveFilters = searchQuery || statusFilter !== 'all' || 
                           dateRange !== 'all' || confidenceFilter !== 'all'
 
   const handleClearAll = () => {
     onSearchChange('')
     onStatusChange('all')
-    onTypeChange('all')
-    onDateRangeChange?.('all')
-    onConfidenceChange?.('all')
+    setDateRange('all')
+    setConfidenceFilter('all')
     onClearFilters()
   }
 
@@ -87,7 +65,7 @@ export default function CampaignFilters({
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center space-x-3">
           <Filter className="h-5 w-5 text-gray-600" />
-          <h3 className="text-lg font-semibold text-gray-900">Filter Campaigns</h3>
+          <h3 className="text-lg font-semibold text-gray-900">Filter Universal Campaigns</h3>
           <span className="px-2 py-1 bg-purple-100 text-purple-800 text-xs font-medium rounded-full">
             {resultsCount} results
           </span>
@@ -122,7 +100,7 @@ export default function CampaignFilters({
         <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
         <input
           type="text"
-          placeholder="Search campaigns by title, description, or tags..."
+          placeholder="Search campaigns by title, description, or audience..."
           value={searchQuery}
           onChange={(e) => onSearchChange(e.target.value)}
           className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
@@ -158,24 +136,15 @@ export default function CampaignFilters({
           </select>
         </div>
 
-        {/* Campaign Type Filter */}
+        {/* Campaign Type - Simplified for Universal */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
             <Filter className="w-4 h-4 inline mr-1" />
             Campaign Type
           </label>
-          <select
-            value={typeFilter}
-            onChange={(e) => onTypeChange(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-          >
-            <option value="all">All Types</option>
-            {Object.entries(CAMPAIGN_TYPES).map(([type, config]) => (
-              <option key={type} value={type}>
-                {config.icon} {config.label}
-              </option>
-            ))}
-          </select>
+          <div className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-purple-50 text-purple-800 font-medium">
+            🌟 Universal Campaign
+          </div>
         </div>
 
         {/* Date Range Filter */}
@@ -186,7 +155,7 @@ export default function CampaignFilters({
           </label>
           <select
             value={dateRange}
-            onChange={(e) => onDateRangeChange?.(e.target.value)}
+            onChange={(e) => setDateRange(e.target.value)}
             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
           >
             {DATE_RANGES.map((option) => (
@@ -212,7 +181,7 @@ export default function CampaignFilters({
               </label>
               <select
                 value={confidenceFilter}
-                onChange={(e) => onConfidenceChange?.(e.target.value)}
+                onChange={(e) => setConfidenceFilter(e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
               >
                 {CONFIDENCE_LEVELS.map((option) => (
@@ -223,30 +192,30 @@ export default function CampaignFilters({
               </select>
             </div>
 
-            {/* Intelligence Sources Filter */}
+            {/* Content Status Filter */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 <Zap className="w-4 h-4 inline mr-1" />
-                Intelligence Sources
+                Content Status
               </label>
               <select className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent">
-                <option value="all">All Sources</option>
-                <option value="has-intelligence">Has Intelligence</option>
-                <option value="no-intelligence">No Intelligence</option>
-                <option value="multiple">Multiple Sources (2+)</option>
+                <option value="all">All Campaigns</option>
+                <option value="has-content">Has Generated Content</option>
+                <option value="no-content">No Content Yet</option>
+                <option value="multiple-content">Multiple Content Types</option>
               </select>
             </div>
           </div>
 
           {/* Performance Filters */}
           <div className="mt-4">
-            <label className="block text-sm font-medium text-gray-700 mb-3">Performance</label>
+            <label className="block text-sm font-medium text-gray-700 mb-3">Performance & Status</label>
             <div className="flex flex-wrap gap-2">
               {[
-                { id: 'high-performing', label: 'High Performing' },
-                { id: 'needs-attention', label: 'Needs Attention' },
+                { id: 'high-performing', label: 'High Intelligence Score' },
+                { id: 'needs-sources', label: 'Needs Sources' },
                 { id: 'recent-updates', label: 'Recently Updated' },
-                { id: 'stale', label: 'Stale (>30 days)' }
+                { id: 'ready-to-generate', label: 'Ready to Generate' }
               ].map((filter) => (
                 <button
                   key={filter.id}
@@ -285,10 +254,10 @@ export default function CampaignFilters({
                   </span>
                 )}
                 
-                {typeFilter !== 'all' && (
+                {dateRange !== 'all' && (
                   <span className="inline-flex items-center px-2 py-1 bg-purple-100 text-purple-800 text-xs font-medium rounded-full">
-                    Type: {CAMPAIGN_TYPES[typeFilter as keyof typeof CAMPAIGN_TYPES]?.label}
-                    <button onClick={() => onTypeChange('all')} className="ml-1 hover:text-purple-600">
+                    Date: {DATE_RANGES.find(d => d.value === dateRange)?.label}
+                    <button onClick={() => setDateRange('all')} className="ml-1 hover:text-purple-600">
                       <X className="w-3 h-3" />
                     </button>
                   </span>
