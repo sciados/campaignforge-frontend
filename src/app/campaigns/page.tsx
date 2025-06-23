@@ -3,7 +3,7 @@
 
 import React, { useState, useEffect, useCallback, useRef } from 'react'
 import { useRouter } from 'next/navigation'
-import { Plus, Video, FileText, Globe, Calendar, Filter, Grid, List } from 'lucide-react'
+import { Plus, Video, FileText, Globe, Calendar, Filter, Grid, List, FolderOpen } from 'lucide-react'
 import { useApi, type Campaign } from '@/lib/api'
 import CampaignFilters from '@/components/campaigns/CampaignFilters'
 import CampaignGrid from '@/components/campaigns/CampaignGrid'
@@ -529,68 +529,101 @@ export default function CampaignsPage() {
         )}
 
         {/* Recent Campaigns */}
-        {campaigns.length > 0 && (
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200">
-            <div className="p-6 border-b border-gray-200">
-              <div className="flex items-center justify-between">
-                <h3 className="text-lg font-semibold text-gray-900">Recent Activity</h3>
-                <div className="flex items-center space-x-2">
-                  <Filter className="h-4 w-4 text-gray-400" />
-                  <span className="text-sm text-gray-500">{filteredCampaigns.length} campaigns</span>
+{campaigns.length > 0 && (
+  <div className="bg-white rounded-xl shadow-sm border border-gray-200">
+    <div className="p-6 border-b border-gray-200">
+      <div className="flex items-center justify-between">
+        <h3 className="text-lg font-semibold text-gray-900">Recent Activity</h3>
+        <div className="flex items-center space-x-2">
+          <Filter className="h-4 w-4 text-gray-400" />
+          <span className="text-sm text-gray-500">
+            {filteredCampaigns.length} campaigns • {' '}
+            {filteredCampaigns.reduce((acc, campaign) => acc + (campaign.generated_content_count ?? 0), 0)} content pieces
+          </span>
+        </div>
+      </div>
+    </div>
+    <div className="p-6">
+      {filteredCampaigns.length === 0 ? (
+        <div className="text-center py-8 text-gray-500">
+          <p>No campaigns match your current filters.</p>
+          <button 
+            onClick={clearFilters}
+            className="mt-2 text-purple-600 hover:text-purple-700"
+          >
+            Clear filters
+          </button>
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {filteredCampaigns.slice(0, 3).map((campaign) => {
+            const contentCount = campaign.generated_content_count ?? 0
+            const hasContent = contentCount > 0
+            
+            return (
+              <div key={campaign.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+                <div className="flex items-center">
+                  <div className="bg-purple-100 p-2 rounded-lg mr-3">
+                    <span className="text-lg">🌟</span>
+                  </div>
+                  <div>
+                    <div className="flex items-center space-x-2 mb-1">
+                      <h4 className="font-semibold text-gray-900">{campaign.title}</h4>
+                      {hasContent && (
+                        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                          📄 {contentCount}
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-gray-600 text-sm flex items-center">
+                      <Calendar className="h-4 w-4 mr-1" />
+                      {new Date(campaign.created_at).toLocaleDateString()}
+                      <span className="mx-2">•</span>
+                      <span className="text-purple-600 font-medium">Universal Campaign</span>
+                      {hasContent && (
+                        <>
+                          <span className="mx-2">•</span>
+                          <span className="text-green-600 font-medium">{contentCount} content pieces ready</span>
+                        </>
+                      )}
+                    </p>
+                  </div>
                 </div>
-              </div>
-            </div>
-            <div className="p-6">
-              {filteredCampaigns.length === 0 ? (
-                <div className="text-center py-8 text-gray-500">
-                  <p>No campaigns match your current filters.</p>
+                <div className="flex items-center space-x-2">
+                  <span className={`px-3 py-1 rounded-full text-sm font-medium ${
+                    campaign.status === 'active' ? 'bg-green-100 text-green-800' :
+                    campaign.status === 'completed' ? 'bg-blue-100 text-blue-800' :
+                    'bg-gray-100 text-gray-800'
+                  }`}>
+                    {campaign.status}
+                  </span>
+                  
+                  {/* Content Library Button - only show if content exists */}
+                  {hasContent && (
+                    <button 
+                      onClick={() => router.push(`/campaigns/${campaign.id}/content`)}
+                      className="text-green-600 hover:text-green-700 text-sm font-medium flex items-center space-x-1 px-3 py-1 hover:bg-green-50 rounded-lg transition-colors"
+                    >
+                      <FolderOpen className="h-4 w-4" />
+                      <span>Content</span>
+                    </button>
+                  )}
+                  
                   <button 
-                    onClick={clearFilters}
-                    className="mt-2 text-purple-600 hover:text-purple-700"
+                    onClick={() => handleCampaignView(campaign)}
+                    className="text-purple-600 hover:text-purple-700 text-sm font-medium px-3 py-1 hover:bg-purple-50 rounded-lg transition-colors"
                   >
-                    Clear filters
+                    View
                   </button>
                 </div>
-              ) : (
-                <div className="space-y-4">
-                  {filteredCampaigns.slice(0, 3).map((campaign) => (
-                    <div key={campaign.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
-                      <div className="flex items-center">
-                        <div className="bg-purple-100 p-2 rounded-lg mr-3">
-                          <FileText className="h-5 w-5 text-purple-600" />
-                        </div>
-                        <div>
-                          <h4 className="font-semibold text-gray-900">{campaign.title}</h4>
-                          <p className="text-gray-600 text-sm flex items-center">
-                            <Calendar className="h-4 w-4 mr-1" />
-                            {new Date(campaign.created_at).toLocaleDateString()}
-                            <span className="mx-2">•</span>
-                            <span className="text-purple-600 font-medium">Universal Campaign</span>
-                          </p>
-                        </div>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <span className={`px-3 py-1 rounded-full text-sm font-medium ${
-                          campaign.status === 'active' ? 'bg-green-100 text-green-800' :
-                          campaign.status === 'completed' ? 'bg-blue-100 text-blue-800' :
-                          'bg-gray-100 text-gray-800'
-                        }`}>
-                          {campaign.status}
-                        </span>
-                        <button 
-                          onClick={() => handleCampaignView(campaign)}
-                          className="text-purple-600 hover:text-purple-700 text-sm font-medium"
-                        >
-                          View
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-        )}
+              </div>
+            )
+          })}
+        </div>
+      )}
+    </div>
+  </div>
+)}
       </div>
 
       {/* ✅ SIMPLIFIED: Campaign Creation Modal */}

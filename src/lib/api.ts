@@ -579,6 +579,15 @@ async getCampaign(campaignId: string): Promise<Campaign> {
     return this.handleResponse(response)
   }
 
+
+async getGeneratedContent(campaignId: string): Promise<GeneratedContent[]> {
+  const response = await fetch(`${this.baseURL}/api/campaigns/${campaignId}/content`, {
+    headers: this.getHeaders()
+  })
+  
+  return this.handleResponse<GeneratedContent[]>(response)
+}
+
   // ============================================================================
   // ENHANCED INTELLIGENCE METHODS
   // ============================================================================

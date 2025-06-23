@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
-import { Grid, List, SortAsc, SortDesc, Filter, Calendar, Star, Zap, FileText, Eye, Edit, Copy, Trash2, Clock, Play, TrendingUp, Award, Archive } from 'lucide-react'
+import { useRouter } from 'next/navigation'
+import { Grid, List, SortAsc, SortDesc, Filter, Calendar, Star, Zap, FileText, Eye, Edit, Copy, Trash2, Clock, Play, TrendingUp, Award, Archive, FolderOpen } from 'lucide-react'
 import { Campaign } from '@/lib/api' // Import Campaign type from API client
 
 interface CampaignGridProps {
@@ -16,15 +17,9 @@ interface CampaignGridProps {
   isLoading?: boolean
 }
 
+// Simplified for Universal Campaigns only
 const CAMPAIGN_TYPES = {
-  social_media: { label: 'Social Media', icon: '📱', color: 'bg-blue-100 text-blue-800' },
-  email_marketing: { label: 'Email Marketing', icon: '📧', color: 'bg-green-100 text-green-800' },
-  video_content: { label: 'Video Content', icon: '🎥', color: 'bg-purple-100 text-purple-800' },
-  blog_post: { label: 'Blog Post', icon: '📝', color: 'bg-orange-100 text-orange-800' },
-  advertisement: { label: 'Advertisement', icon: '📢', color: 'bg-red-100 text-red-800' },
-  product_launch: { label: 'Product Launch', icon: '🚀', color: 'bg-emerald-100 text-emerald-800' },
-  brand_awareness: { label: 'Brand Awareness', icon: '🎯', color: 'bg-pink-100 text-pink-800' },
-  multimedia: { label: 'Multimedia', icon: '🎨', color: 'bg-indigo-100 text-indigo-800' }
+  universal: { label: 'Universal Campaign', icon: '🌟', color: 'bg-purple-100 text-purple-800' }
 }
 
 const STATUS_CONFIG = {
@@ -47,7 +42,7 @@ const SORT_OPTIONS = [
   { value: 'last_activity', label: 'Last Activity' }
 ]
 
-// Inline CampaignCard component using the imported Campaign type
+// Enhanced CampaignCard component with Content Library access
 function CampaignCard({ 
   campaign, 
   onView, 
@@ -61,6 +56,8 @@ function CampaignCard({
   onDuplicate?: (campaign: Campaign) => void
   onDelete?: (campaign: Campaign) => void
 }) {
+  const router = useRouter()
+
   // Add safety checks for campaign object
   if (!campaign) {
     return (
@@ -75,10 +72,10 @@ function CampaignCard({
     )
   }
 
-  const typeConfig = CAMPAIGN_TYPES[campaign.campaign_type as keyof typeof CAMPAIGN_TYPES] || {
-    label: 'Unknown',
-    icon: '📊',
-    color: 'bg-gray-100 text-gray-800'
+  const typeConfig = CAMPAIGN_TYPES['universal'] || {
+    label: 'Universal Campaign',
+    icon: '🌟',
+    color: 'bg-purple-100 text-purple-800'
   }
   
   const statusConfig = STATUS_CONFIG[campaign.status as keyof typeof STATUS_CONFIG] || {
@@ -88,6 +85,10 @@ function CampaignCard({
   }
   
   const StatusIcon = statusConfig.icon
+
+  // Check if campaign has generated content - use only the count field that exists
+  const contentCount = campaign.generated_content_count ?? 0
+  const hasContent = contentCount > 0
 
   const formatTimeAgo = (dateString: string) => {
     const date = new Date(dateString)
@@ -108,7 +109,7 @@ function CampaignCard({
       {/* Header */}
       <div className="flex items-start justify-between mb-4">
         <div className="w-12 h-12 bg-gradient-to-r from-purple-100 to-blue-100 rounded-lg flex items-center justify-center text-2xl">
-          {typeConfig?.icon || '📊'}
+          {typeConfig?.icon || '🌟'}
         </div>
         <div className="flex items-center space-x-2">
           <div className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${statusConfig.color}`}>
@@ -131,11 +132,16 @@ function CampaignCard({
       <div className="space-y-2 mb-4">
         <div className="flex items-center justify-between text-sm">
           <span className="text-gray-500">Intelligence Sources</span>
-          <span className="font-medium">{campaign.intelligence_count || 0}</span>
+          <span className="font-medium">{campaign.intelligence_count ?? 0}</span>
         </div>
         <div className="flex items-center justify-between text-sm">
           <span className="text-gray-500">Generated Content</span>
-          <span className="font-medium">{campaign.generated_content_count || 0}</span>
+          <div className="flex items-center space-x-1">
+            <span className="font-medium">{contentCount}</span>
+            {hasContent && (
+              <span className="w-2 h-2 bg-green-500 rounded-full"></span>
+            )}
+          </div>
         </div>
         {campaign.confidence_score && campaign.confidence_score > 0 && (
           <div className="flex items-center justify-between text-sm">
@@ -148,6 +154,23 @@ function CampaignCard({
         )}
       </div>
       
+      {/* Content Preview (if exists) */}
+      {hasContent && (
+        <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg">
+          <div className="flex items-center justify-between">
+            <span className="text-sm text-green-700 font-medium">
+              {contentCount} content piece{contentCount !== 1 ? 's' : ''} ready
+            </span>
+            <button
+              onClick={() => router.push(`/campaigns/${campaign.id}/content`)}
+              className="text-green-600 hover:text-green-700 text-sm font-medium"
+            >
+              View All →
+            </button>
+          </div>
+        </div>
+      )}
+      
       {/* Timestamps */}
       <div className="flex items-center justify-between text-sm text-gray-500 mb-4">
         <span>Created {formatTimeAgo(campaign.created_at)}</span>
@@ -157,26 +180,53 @@ function CampaignCard({
       </div>
       
       {/* Actions */}
-      <div className="flex items-center space-x-2">
-        <button 
-          onClick={() => onView?.(campaign)}
-          className="flex-1 px-3 py-2 bg-gradient-to-r from-purple-600 to-blue-600 text-white text-sm font-medium rounded-lg hover:from-purple-700 hover:to-blue-700 transition-all"
-        >
-          <Eye className="w-4 h-4 mr-1 inline" />
-          View
-        </button>
-        <button 
-          onClick={() => onEdit?.(campaign)}
-          className="px-3 py-2 border border-gray-300 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-50 transition-colors"
-        >
-          <Edit className="w-4 h-4" />
-        </button>
-        <button 
-          onClick={() => onDuplicate?.(campaign)}
-          className="px-3 py-2 border border-gray-300 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-50 transition-colors"
-        >
-          <Copy className="w-4 h-4" />
-        </button>
+      <div className="space-y-2">
+        {/* Primary Actions */}
+        <div className="flex items-center space-x-2">
+          <button 
+            onClick={() => onView?.(campaign)}
+            className="flex-1 px-3 py-2 bg-gradient-to-r from-purple-600 to-blue-600 text-white text-sm font-medium rounded-lg hover:from-purple-700 hover:to-blue-700 transition-all"
+          >
+            <Eye className="w-4 h-4 mr-1 inline" />
+            Open Campaign
+          </button>
+          
+          {/* Content Library Button */}
+          <button
+            onClick={() => router.push(`/campaigns/${campaign.id}/content`)}
+            className={`px-3 py-2 rounded-lg transition-all text-sm font-medium flex items-center space-x-1 ${
+              hasContent
+                ? 'bg-green-100 text-green-700 hover:bg-green-200 border border-green-300'
+                : 'bg-gray-100 text-gray-500 hover:bg-gray-200 border border-gray-300'
+            }`}
+            title={hasContent ? `View ${contentCount} content pieces` : 'No content generated yet'}
+          >
+            <FolderOpen className="w-4 h-4" />
+            <span className="hidden sm:inline">Content</span>
+            {contentCount > 0 && (
+              <span className="bg-green-600 text-white text-xs px-2 py-1 rounded-full">
+                {contentCount}
+              </span>
+            )}
+          </button>
+        </div>
+        
+        {/* Secondary Actions */}
+        <div className="flex items-center space-x-2">
+          <button 
+            onClick={() => onEdit?.(campaign)}
+            className="flex-1 px-3 py-2 border border-gray-300 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-50 transition-colors"
+          >
+            <Edit className="w-4 h-4 mr-1 inline" />
+            Edit
+          </button>
+          <button 
+            onClick={() => onDuplicate?.(campaign)}
+            className="px-3 py-2 border border-gray-300 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-50 transition-colors"
+          >
+            <Copy className="w-4 h-4" />
+          </button>
+        </div>
       </div>
     </div>
   )
@@ -195,6 +245,7 @@ export default function CampaignGrid({
   onCampaignDelete,
   isLoading = false
 }: CampaignGridProps) {
+  const router = useRouter()
   const [showSortMenu, setShowSortMenu] = useState(false)
 
   // Ensure campaigns is always an array
@@ -282,6 +333,11 @@ export default function CampaignGrid({
             {safeCampaigns.length} Campaign{safeCampaigns.length !== 1 ? 's' : ''}
           </h3>
           
+          {/* Content Summary */}
+          <div className="text-sm text-gray-500">
+            {safeCampaigns.reduce((acc, campaign) => acc + (campaign.generated_content_count ?? 0), 0)} total content pieces
+          </div>
+          
           {/* Sort Dropdown */}
           <div className="relative">
             <button
@@ -368,74 +424,87 @@ export default function CampaignGrid({
           ))}
         </div>
       ) : (
-        /* List View */
+        /* Enhanced List View with Content Library Access */
         <div className="space-y-4">
-          {safeCampaigns.map((campaign) => (
-            <div
-              key={campaign.id}
-              className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow"
-            >
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-4 flex-1">
-                  {/* Campaign Icon */}
-                  <div className="w-12 h-12 bg-gradient-to-r from-purple-100 to-blue-100 rounded-lg flex items-center justify-center text-2xl">
-                    {campaign.campaign_type === 'social_media' && '📱'}
-                    {campaign.campaign_type === 'email_marketing' && '📧'}
-                    {campaign.campaign_type === 'video_content' && '🎥'}
-                    {campaign.campaign_type === 'blog_post' && '📝'}
-                    {campaign.campaign_type === 'advertisement' && '📢'}
-                    {campaign.campaign_type === 'product_launch' && '🚀'}
-                    {campaign.campaign_type === 'brand_awareness' && '🎯'}
-                    {campaign.campaign_type === 'multimedia' && '🎨'}
-                    {!['social_media', 'email_marketing', 'video_content', 'blog_post', 'advertisement', 'product_launch', 'brand_awareness', 'multimedia'].includes(campaign.campaign_type) && '📊'}
-                  </div>
-                  
-                  {/* Campaign Info */}
-                  <div className="flex-1">
-                    <div className="flex items-center space-x-3 mb-1">
-                      <h3 className="text-lg font-semibold text-gray-900">{campaign.title}</h3>
-                      <div className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(campaign.status)}`}>
-                        {campaign.status.replace('_', ' ').toUpperCase()}
+          {safeCampaigns.map((campaign) => {
+            const contentCount = campaign.generated_content_count ?? 0
+            const hasContent = contentCount > 0
+            
+            return (
+              <div
+                key={campaign.id}
+                className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow"
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-4 flex-1">
+                    {/* Campaign Icon */}
+                    <div className="w-12 h-12 bg-gradient-to-r from-purple-100 to-blue-100 rounded-lg flex items-center justify-center text-2xl">
+                      🌟
+                    </div>
+                    
+                    {/* Campaign Info */}
+                    <div className="flex-1">
+                      <div className="flex items-center space-x-3 mb-1">
+                        <h3 className="text-lg font-semibold text-gray-900">{campaign.title}</h3>
+                        <div className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(campaign.status)}`}>
+                          {campaign.status.replace('_', ' ').toUpperCase()}
+                        </div>
+                        {hasContent && (
+                          <div className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                            📄 {contentCount} content
+                          </div>
+                        )}
+                      </div>
+                      <p className="text-gray-600 text-sm mb-2 line-clamp-1">{campaign.description}</p>
+                      
+                      {/* Metrics */}
+                      <div className="flex items-center space-x-4 text-sm text-gray-500">
+                        <span>🔍 {campaign.intelligence_count ?? 0} intelligence</span>
+                        <span>📄 {contentCount} content pieces</span>
+                        <span>📅 {formatTimeAgo(campaign.created_at)}</span>
+                        {campaign.confidence_score && campaign.confidence_score > 0 && (
+                          <span>⭐ {(campaign.confidence_score * 100).toFixed(0)}% confidence</span>
+                        )}
                       </div>
                     </div>
-                    <p className="text-gray-600 text-sm mb-2 line-clamp-1">{campaign.description}</p>
+                  </div>
+                  
+                  {/* Actions */}
+                  <div className="flex items-center space-x-2">
+                    {/* Content Library Button */}
+                    {hasContent && (
+                      <button
+                        onClick={() => router.push(`/campaigns/${campaign.id}/content`)}
+                        className="px-3 py-2 text-sm text-green-600 hover:text-green-800 hover:bg-green-50 rounded-lg transition-colors flex items-center space-x-1"
+                      >
+                        <FolderOpen className="w-4 h-4" />
+                        <span>Content Library</span>
+                      </button>
+                    )}
                     
-                    {/* Metrics */}
-                    <div className="flex items-center space-x-4 text-sm text-gray-500">
-                      <span>🔍 {campaign.intelligence_count || 0} intelligence</span>
-                      <span>📄 {campaign.generated_content_count || 0} content pieces</span>
-                      <span>📅 {formatTimeAgo(campaign.created_at)}</span>
-                      {campaign.confidence_score && campaign.confidence_score > 0 && (
-                        <span>⭐ {(campaign.confidence_score * 100).toFixed(0)}% confidence</span>
-                      )}
-                    </div>
+                    <button
+                      onClick={() => onCampaignView?.(campaign)}
+                      className="px-3 py-2 text-sm text-purple-600 hover:text-purple-800 hover:bg-purple-50 rounded-lg transition-colors"
+                    >
+                      Open Campaign
+                    </button>
+                    <button
+                      onClick={() => onCampaignEdit?.(campaign)}
+                      className="px-3 py-2 text-sm text-gray-600 hover:text-gray-800 hover:bg-gray-50 rounded-lg transition-colors"
+                    >
+                      Edit
+                    </button>
+                    <button
+                      onClick={() => onCampaignDuplicate?.(campaign)}
+                      className="px-3 py-2 text-sm text-gray-600 hover:text-gray-800 hover:bg-gray-50 rounded-lg transition-colors"
+                    >
+                      Duplicate
+                    </button>
                   </div>
                 </div>
-                
-                {/* Actions */}
-                <div className="flex items-center space-x-2">
-                  <button
-                    onClick={() => onCampaignView?.(campaign)}
-                    className="px-3 py-2 text-sm text-purple-600 hover:text-purple-800 hover:bg-purple-50 rounded-lg transition-colors"
-                  >
-                    View
-                  </button>
-                  <button
-                    onClick={() => onCampaignEdit?.(campaign)}
-                    className="px-3 py-2 text-sm text-gray-600 hover:text-gray-800 hover:bg-gray-50 rounded-lg transition-colors"
-                  >
-                    Edit
-                  </button>
-                  <button
-                    onClick={() => onCampaignDuplicate?.(campaign)}
-                    className="px-3 py-2 text-sm text-gray-600 hover:text-gray-800 hover:bg-gray-50 rounded-lg transition-colors"
-                  >
-                    Duplicate
-                  </button>
-                </div>
               </div>
-            </div>
-          ))}
+            )
+          })}
         </div>
       )}
     </div>
