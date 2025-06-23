@@ -1,6 +1,6 @@
-// src/app/campaigns/[id]/page.tsx
+// src/app/campaigns/[id]/page.tsx - COMPLETE FIX FOR INFINITE LOOPS
 'use client'
-import React, { useState, useEffect, useCallback, useMemo } from 'react'
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { 
   ArrowLeft, 
@@ -22,7 +22,8 @@ import {
   Plus,
   Play,
   Loader2,
-  TrendingUp
+  TrendingUp,
+  RefreshCw
 } from 'lucide-react'
 import { useApi } from '@/lib/api'
 import { Campaign } from '@/lib/api'
@@ -58,10 +59,14 @@ interface WorkflowState {
   primary_suggestion?: string
 }
 
-export default function FlexibleCampaignDetailPage() {
+export default function FixedCampaignDetailPage() {
   const params = useParams()
   const router = useRouter()
   const api = useApi()
+  
+  // 🔧 FIX 1: Use refs to prevent infinite loops
+  const isInitializedRef = useRef(false)
+  const isLoadingRef = useRef(false)
   
   const campaignId = params.id as string
   const [campaign, setCampaign] = useState<Campaign | null>(null)
@@ -75,9 +80,8 @@ export default function FlexibleCampaignDetailPage() {
   const [sessionTimer, setSessionTimer] = useState(0)
   const [isActiveSession, setIsActiveSession] = useState(false)
   const [intelligenceData, setIntelligenceData] = useState<IntelligenceSource[]>([])
-  const [isInitialized, setIsInitialized] = useState(false)
 
-  // 🔧 FIX: Memoize API methods to prevent recreation on each render
+  // 🔧 FIX 2: Memoize API methods to prevent recreation on each render
   const stableApi = useMemo(() => ({
     getCampaign: api.getCampaign,
     getWorkflowState: api.getWorkflowState,
@@ -89,28 +93,31 @@ export default function FlexibleCampaignDetailPage() {
     generateContent: api.generateContent
   }), [api])
 
-  // 🔧 FIX: Load campaign data with proper dependency management
+  // 🔧 FIX 3: Completely rewritten loadCampaignData to prevent infinite loops
   const loadCampaignData = useCallback(async () => {
-    if (!campaignId || isInitialized) {
-      console.log('⏸️ Skipping loadCampaignData - already initialized or no campaignId')
+    // ✅ CRITICAL: Only load once and prevent concurrent loads
+    if (!campaignId || isInitializedRef.current || isLoadingRef.current) {
+      console.log('⏸️ Skipping loadCampaignData - already initialized/loading or no campaignId')
       return
     }
 
     try {
       console.log('🔄 Loading campaign data for:', campaignId)
+      isLoadingRef.current = true
       setIsLoading(true)
       setError(null)
       
       // Load basic campaign data
       const campaignData = await stableApi.getCampaign(campaignId)
-      console.log('✅ Campaign loaded:', campaignData)
+      console.log('✅ Campaign loaded:', campaignData.title)
       setCampaign(campaignData)
       
-      // Load workflow state
+      // Load workflow state (safe to fail)
       try {
         const workflow = await stableApi.getWorkflowState(campaignId)
         setWorkflowState(workflow)
         setCurrentStep(workflow.suggested_step || 1)
+        
         // Safely set workflow mode with type checking
         const mode = workflow.workflow_preference
         if (mode === 'quick' || mode === 'methodical' || mode === 'flexible') {
@@ -118,13 +125,13 @@ export default function FlexibleCampaignDetailPage() {
         } else {
           setWorkflowMode('flexible')
         }
-        console.log('✅ Workflow status loaded:', workflow)
+        console.log('✅ Workflow status loaded:', workflow.workflow_preference)
       } catch (workflowError) {
         console.warn('⚠️ Could not load workflow status, using defaults:', workflowError)
         setCurrentStep(1)
       }
 
-      // Load intelligence data if available
+      // Load intelligence data (safe to fail)
       try {
         const intelligence = await stableApi.getCampaignIntelligence(campaignId)
         if (intelligence && intelligence.intelligence_sources) {
@@ -138,24 +145,44 @@ export default function FlexibleCampaignDetailPage() {
         setIntelligenceData([])
       }
       
-      // Mark as initialized to prevent further loads
-      setIsInitialized(true)
+      // ✅ CRITICAL: Mark as initialized to prevent further loads
+      isInitializedRef.current = true
       console.log('🏁 Campaign data loading completed')
       
     } catch (err) {
       console.error('❌ Failed to load campaign:', err)
       setError(err instanceof Error ? err.message : 'Failed to load campaign')
+      
+      // ✅ CRITICAL: Mark as initialized even on error to prevent infinite retries
+      isInitializedRef.current = true
     } finally {
       setIsLoading(false)
+      isLoadingRef.current = false
     }
-  }, [campaignId, stableApi, isInitialized])
+  }, [campaignId, stableApi])
 
-  // 🔧 FIX: Use proper dependencies and prevent infinite loops
+  // 🔧 FIX 4: Safe manual refresh function
+  const refreshIntelligenceData = useCallback(async () => {
+    if (!campaignId) return
+    
+    try {
+      console.log('🔄 Manual refresh of intelligence data')
+      const intelligence = await stableApi.getCampaignIntelligence(campaignId)
+      if (intelligence && intelligence.intelligence_sources) {
+        setIntelligenceData(intelligence.intelligence_sources)
+        console.log(`✅ Refreshed: ${intelligence.intelligence_sources.length} intelligence sources`)
+      }
+    } catch (error) {
+      console.warn('⚠️ Manual refresh failed:', error)
+    }
+  }, [campaignId, stableApi])
+
+  // 🔧 FIX 5: Use proper dependencies and prevent infinite loops
   useEffect(() => {
-    if (campaignId && !isInitialized) {
+    if (campaignId && !isInitializedRef.current && !isLoadingRef.current) {
       loadCampaignData()
     }
-  }, [campaignId, loadCampaignData, isInitialized])
+  }, [campaignId, loadCampaignData])
 
   // Session timer - isolated effect
   useEffect(() => {
@@ -220,14 +247,16 @@ export default function FlexibleCampaignDetailPage() {
     }
   }, [campaignId, stableApi])
 
+  // 🔧 FIX 6: REMOVED infinite loop causing callbacks
+  // ✅ NEW (safe local state updates):
   const handleIntelligenceGenerated = useCallback((intelligence: IntelligenceSource) => {
+    console.log('✅ Intelligence generated, updating local state:', intelligence.id)
     setIntelligenceData(prev => [...prev, intelligence])
     if (workflowMode === 'quick') {
       setTimeout(() => setCurrentStep(4), 1000)
     }
-    // Refresh campaign intelligence data
-    loadCampaignData()
-  }, [workflowMode, loadCampaignData])
+    // ✅ SAFE: No more loadCampaignData() call
+  }, [workflowMode])
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60)
@@ -255,9 +284,10 @@ export default function FlexibleCampaignDetailPage() {
             workflowMode={workflowMode}
             api={stableApi}
             onSourceAdded={(source) => {
+              console.log('✅ Source added, updating local state:', source)
               saveProgress({ source_added: source })
-              // Reload intelligence data after adding source
-              loadCampaignData()
+              // ✅ SAFE: Update local state directly instead of full reload
+              setIntelligenceData(prev => [...prev, source])
               if (workflowMode === 'quick') {
                 setTimeout(() => setCurrentStep(3), 1000)
               }
@@ -273,6 +303,7 @@ export default function FlexibleCampaignDetailPage() {
             sourcesCount={intelligenceData.length}
             intelligenceData={intelligenceData}
             onIntelligenceGenerated={handleIntelligenceGenerated}
+            onRefresh={refreshIntelligenceData}
           />
         )
       
@@ -287,6 +318,7 @@ export default function FlexibleCampaignDetailPage() {
             api={stableApi}
             router={router}
             onContentGenerated={(content) => {
+              console.log('✅ Content generated:', content)
               saveProgress({ content_generated: content })
             }}
           />
@@ -364,6 +396,16 @@ export default function FlexibleCampaignDetailPage() {
               >
                 {isActiveSession ? <Clock className="h-4 w-4" /> : <Play className="h-4 w-4" />}
                 <span className="text-sm">{isActiveSession ? 'Pause' : 'Start'} Session</span>
+              </button>
+              
+              {/* Manual refresh button */}
+              <button
+                onClick={refreshIntelligenceData}
+                className="flex items-center space-x-2 px-3 py-1 rounded-lg bg-blue-100 text-blue-700 hover:bg-blue-200 transition-colors"
+                title="Refresh intelligence data"
+              >
+                <RefreshCw className="h-4 w-4" />
+                <span className="text-sm">Refresh</span>
               </button>
               
               {/* Auto-save indicator */}
@@ -604,7 +646,7 @@ function StepNavigation({
   )
 }
 
-// Step Content Components
+// Step Content Components - Basic Info
 function CampaignBasicInfo({ 
   campaign, 
   onUpdate, 
@@ -995,17 +1037,28 @@ function IntelligenceAnalysisStep({
   workflowMode, 
   sourcesCount, 
   intelligenceData, 
-  onIntelligenceGenerated 
+  onIntelligenceGenerated,
+  onRefresh 
 }: {
   campaignId: string
   workflowMode: 'quick' | 'methodical' | 'flexible'
   sourcesCount: number
   intelligenceData: IntelligenceSource[]
   onIntelligenceGenerated: (intelligence: IntelligenceSource) => void
+  onRefresh: () => void
 }) {
   return (
     <div className="space-y-6">
-      <h2 className="text-2xl font-bold text-gray-900">AI Analysis</h2>
+      <div className="flex items-center justify-between">
+        <h2 className="text-2xl font-bold text-gray-900">AI Analysis</h2>
+        <button
+          onClick={onRefresh}
+          className="flex items-center space-x-2 px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+        >
+          <RefreshCw className="h-4 w-4" />
+          <span>Refresh Data</span>
+        </button>
+      </div>
       
       {sourcesCount === 0 ? (
         <div className="text-center py-12">
@@ -1063,7 +1116,7 @@ function IntelligenceAnalysisStep({
                 </div>
                 <div>
                   <div className="text-2xl font-bold text-purple-600">
-                    {Math.round(intelligenceData.reduce((acc: number, intel: IntelligenceSource) => acc + (intel.confidence_score || 0.8), 0) / intelligenceData.length * 100)}%
+                    {intelligenceData.length > 0 ? Math.round(intelligenceData.reduce((acc: number, intel: IntelligenceSource) => acc + (intel.confidence_score || 0.8), 0) / intelligenceData.length * 100) : 0}%
                   </div>
                   <div className="text-sm text-purple-700">Avg Confidence</div>
                 </div>
@@ -1082,7 +1135,7 @@ function IntelligenceAnalysisStep({
   )
 }
 
-// 🚀 THE MAIN FIX: Real Content Generation Component
+// Content Generation Component
 function ContentGenerationStep({ 
   campaignId, 
   workflowMode, 
@@ -1138,7 +1191,7 @@ function ContentGenerationStep({
     }
   }, [campaignId, api])
 
-  // 🚀 REAL CONTENT GENERATION - No more simulation!
+  // Real content generation function
   const handleGenerateContent = async (contentType: string) => {
     setIsGenerating(true)
     
@@ -1154,7 +1207,7 @@ function ContentGenerationStep({
       const firstIntelligence = intelligenceData[0]
       console.log('📊 Using intelligence source:', firstIntelligence)
       
-      // 🚀 REAL API call to your backend using your existing API client
+      // Real API call to your backend using your existing API client
       const response = await api.generateContent({
         intelligence_id: firstIntelligence.id,
         content_type: contentType,
