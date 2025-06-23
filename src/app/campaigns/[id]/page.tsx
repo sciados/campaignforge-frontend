@@ -1159,15 +1159,31 @@ function ContentGenerationStep({
   const [generatedContent, setGeneratedContent] = useState<any[]>([])
   const [isLoadingExisting, setIsLoadingExisting] = useState(true)
 
-  // Load existing generated content when component mounts
+  // 🔧 FIX: Use useRef to prevent infinite loops
+  const hasLoadedContentRef = useRef(false)
+  
+  // 🔧 FIX: Memoize the API method to prevent recreation
+  const stableGetCampaignIntelligence = useCallback(
+    (id: string) => api.getCampaignIntelligence(id),
+    [api]
+  )
+
+  // 🔧 FIX: Load existing content only once using ref guard
   useEffect(() => {
     const loadExistingContent = async () => {
+      // ✅ CRITICAL: Only load once
+      if (!campaignId || hasLoadedContentRef.current) {
+        console.log('⏸️ Skipping content load - already loaded or no campaignId')
+        return
+      }
+
       try {
         setIsLoadingExisting(true)
+        hasLoadedContentRef.current = true // Mark as loaded immediately
+        
         console.log('🔍 Loading existing generated content for campaign:', campaignId)
         
-        // Try to get existing content from the campaign intelligence
-        const intelligence = await api.getCampaignIntelligence(campaignId)
+        const intelligence = await stableGetCampaignIntelligence(campaignId)
         console.log('📊 Intelligence response:', intelligence)
         
         if (intelligence?.generated_content && Array.isArray(intelligence.generated_content)) {
@@ -1186,28 +1202,41 @@ function ContentGenerationStep({
       }
     }
     
-    if (campaignId) {
+    // Only run if we have a campaignId and haven't loaded yet
+    if (campaignId && !hasLoadedContentRef.current) {
       loadExistingContent()
     }
-  }, [campaignId, api])
+  }, [campaignId, stableGetCampaignIntelligence]) // ✅ Stable dependencies only
 
-  // Real content generation function
+  // 🔧 FIX: Manual refresh function that bypasses the ref guard
+  const refreshGeneratedContent = useCallback(async () => {
+    try {
+      console.log('🔄 Manual refresh of generated content')
+      const intelligence = await stableGetCampaignIntelligence(campaignId)
+      
+      if (intelligence?.generated_content && Array.isArray(intelligence.generated_content)) {
+        setGeneratedContent(intelligence.generated_content)
+        console.log('✅ Refreshed generated content:', intelligence.generated_content.length, 'items')
+      }
+    } catch (error) {
+      console.warn('⚠️ Manual refresh failed:', error)
+    }
+  }, [campaignId, stableGetCampaignIntelligence])
+
+  // Real content generation function (unchanged)
   const handleGenerateContent = async (contentType: string) => {
     setIsGenerating(true)
     
     try {
       console.log('🎯 Starting REAL content generation for:', contentType)
       
-      // Check if we have intelligence sources
       if (intelligenceData.length === 0) {
         throw new Error('No intelligence sources available. Please add sources in Step 2 first.')
       }
       
-      // Get the first available intelligence source
       const firstIntelligence = intelligenceData[0]
       console.log('📊 Using intelligence source:', firstIntelligence)
       
-      // Real API call to your backend using your existing API client
       const response = await api.generateContent({
         intelligence_id: firstIntelligence.id,
         content_type: contentType,
@@ -1222,7 +1251,6 @@ function ContentGenerationStep({
       
       console.log('✅ Content generation SUCCESS:', response)
       
-      // Create the content object with data from the API response
       const newContent = {
         id: response.content_id,
         type: contentType,
@@ -1234,12 +1262,10 @@ function ContentGenerationStep({
         smart_url: response.smart_url,
         performance_predictions: response.performance_predictions,
         preview: (() => {
-          // Safe preview generation
           const content = response.generated_content?.content
           if (typeof content === 'string') {
             return content.substring(0, 200) + (content.length > 200 ? '...' : '')
           } else if (content && typeof content === 'object') {
-            // If content is an object, try to extract text
             const contentStr = JSON.stringify(content, null, 2)
             return contentStr.substring(0, 200) + (contentStr.length > 200 ? '...' : '')
           }
@@ -1247,6 +1273,7 @@ function ContentGenerationStep({
         })()
       }
       
+      // ✅ Update local state immediately
       setGeneratedContent(prev => [...prev, newContent])
       onContentGenerated(newContent)
       
@@ -1254,11 +1281,8 @@ function ContentGenerationStep({
       
     } catch (error) {
       console.error('❌ Content generation failed:', error)
-      
-      // User-friendly error message
       const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred'
       alert(`Content generation failed: ${errorMessage}`)
-      
     } finally {
       setIsGenerating(false)
     }
@@ -1278,7 +1302,18 @@ function ContentGenerationStep({
 
   return (
     <div className="space-y-6">
-      <h2 className="text-2xl font-bold text-gray-900">Generate Content</h2>
+      <div className="flex items-center justify-between">
+        <h2 className="text-2xl font-bold text-gray-900">Generate Content</h2>
+        
+        {/* 🔧 FIX: Add manual refresh button */}
+        <button
+          onClick={refreshGeneratedContent}
+          className="flex items-center space-x-2 px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+        >
+          <RefreshCw className="h-4 w-4" />
+          <span>Refresh Content</span>
+        </button>
+      </div>
       
       {intelligenceCount === 0 ? (
         <div className="text-center py-12">
@@ -1300,7 +1335,7 @@ function ContentGenerationStep({
             </p>
           </div>
 
-          {/* Content Type Grid */}
+          {/* Content Type Grid - unchanged */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {[
               { 
@@ -1359,8 +1394,18 @@ function ContentGenerationStep({
             ))}
           </div>
 
-          {/* Generated Content */}
-          {generatedContent.length > 0 && (
+          {/* 🔧 FIX: Show loading state properly */}
+          {isLoadingExisting && (
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <div className="flex items-center space-x-2">
+                <Loader2 className="h-4 w-4 animate-spin text-blue-600" />
+                <span className="text-blue-700">Loading existing content...</span>
+              </div>
+            </div>
+          )}
+
+          {/* Generated Content - unchanged */}
+          {generatedContent.length > 0 && !isLoadingExisting && (
             <div className="space-y-4">
               <h3 className="text-lg font-medium text-gray-900">
                 Generated Content ({generatedContent.length})
@@ -1418,7 +1463,7 @@ function ContentGenerationStep({
                 ))}
               </div>
 
-              {/* Campaign Complete Message */}
+              {/* Campaign Complete Message - unchanged */}
               <div className="bg-green-50 border border-green-200 rounded-lg p-6 text-center">
                 <CheckCircle className="h-12 w-12 text-green-600 mx-auto mb-4" />
                 <h3 className="text-lg font-medium text-green-900 mb-2">🎉 Campaign Complete!</h3>
@@ -1434,7 +1479,6 @@ function ContentGenerationStep({
                   </button>
                   <button 
                     onClick={() => {
-                      // Simple download function
                       const content = `Campaign: ${campaign?.title}\n\nGenerated Content Summary\n\nThis feature can be enhanced to include actual generated content when available.`
                       
                       const blob = new Blob([content], { type: 'text/plain' })
