@@ -1143,7 +1143,18 @@ function ContentGenerationStep({
         metadata: response.generated_content?.metadata,
         smart_url: response.smart_url,
         performance_predictions: response.performance_predictions,
-        preview: response.generated_content?.content?.substring(0, 200) + '...'
+        preview: (() => {
+          // Safe preview generation
+          const content = response.generated_content?.content
+          if (typeof content === 'string') {
+            return content.substring(0, 200) + (content.length > 200 ? '...' : '')
+          } else if (content && typeof content === 'object') {
+            // If content is an object, try to extract text
+            const contentStr = JSON.stringify(content, null, 2)
+            return contentStr.substring(0, 200) + (contentStr.length > 200 ? '...' : '')
+          }
+          return 'Content generated successfully'
+        })()
       }
       
       setGeneratedContent(prev => [...prev, newContent])
