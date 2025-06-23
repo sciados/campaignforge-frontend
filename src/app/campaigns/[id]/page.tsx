@@ -284,6 +284,7 @@ export default function FlexibleCampaignDetailPage() {
             intelligenceData={intelligenceData}
             campaign={campaign}
             api={stableApi}
+            router={router}
             onContentGenerated={(content) => {
               saveProgress({ content_generated: content })
             }}
@@ -1088,6 +1089,7 @@ function ContentGenerationStep({
   intelligenceData,
   campaign,
   api,
+  router,
   onContentGenerated 
 }: {
   campaignId: string
@@ -1096,6 +1098,7 @@ function ContentGenerationStep({
   intelligenceData: IntelligenceSource[]
   campaign: Campaign | null
   api: any
+  router: any
   onContentGenerated: (content: any) => void
 }) {
   const [isGenerating, setIsGenerating] = useState(false)
@@ -1305,14 +1308,20 @@ function ContentGenerationStep({
                         )}
                       </div>
                       <div className="flex space-x-2">
-                        <button className="px-3 py-1 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-sm">
-                          View Full
+                        <button 
+                          onClick={() => router.push(`/campaigns/${campaignId}/content`)}
+                          className="px-3 py-1 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-sm"
+                        >
+                          View All Content
                         </button>
                         <button className="px-3 py-1 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors text-sm">
-                          Edit
+                          Quick Edit
                         </button>
                         {content.smart_url && (
-                          <button className="px-3 py-1 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm">
+                          <button 
+                            onClick={() => window.open(content.smart_url, '_blank')}
+                            className="px-3 py-1 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
+                          >
                             Track
                           </button>
                         )}
@@ -1330,10 +1339,35 @@ function ContentGenerationStep({
                   You have successfully created a complete marketing campaign with AI-generated content.
                 </p>
                 <div className="flex justify-center space-x-4">
-                  <button className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors">
+                  <button 
+                    onClick={() => router.push(`/campaigns/${campaignId}/content`)}
+                    className="px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
+                  >
+                    View All Content
+                  </button>
+                  <button 
+                    onClick={() => {
+                      // Simple download function
+                      const content = `Campaign: ${campaign?.title}\n\nGenerated Content Summary\n\nThis feature can be enhanced to include actual generated content when available.`
+                      
+                      const blob = new Blob([content], { type: 'text/plain' })
+                      const url = URL.createObjectURL(blob)
+                      const a = document.createElement('a')
+                      a.href = url
+                      a.download = `${campaign?.title?.replace(/[^a-z0-9]/gi, '_').toLowerCase() || 'campaign'}_content.txt`
+                      document.body.appendChild(a)
+                      a.click()
+                      document.body.removeChild(a)
+                      URL.revokeObjectURL(url)
+                    }}
+                    className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                  >
                     Download All Content
                   </button>
-                  <button className="px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors">
+                  <button 
+                    onClick={() => router.push('/campaigns')}
+                    className="px-6 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
+                  >
                     Create New Campaign
                   </button>
                 </div>
