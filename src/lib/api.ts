@@ -1,4 +1,4 @@
-// src/lib/api.ts
+// src/lib/api.ts - COMPLETE FIXED VERSION
 /**
  * Enhanced API client for CampaignForge with flexible workflow support
  */
@@ -339,56 +339,60 @@ class ApiClient {
     return this.handleResponse<Campaign>(response)
   }
 
- async getCampaigns(params?: {
-  page?: number
-  limit?: number
-  status_filter?: string
-  search?: string
-}): Promise<Campaign[]> {
-  const searchParams = new URLSearchParams()
-  if (params?.page) searchParams.set('page', params.page.toString())
-  if (params?.limit) searchParams.set('limit', params.limit.toString())
-  if (params?.status_filter) searchParams.set('status_filter', params.status_filter)
-  if (params?.search) searchParams.set('search', params.search)
+  // 🔧 FIXED: Complete getCampaigns method
+  async getCampaigns(params?: {
+    page?: number
+    limit?: number
+    status_filter?: string
+    search?: string
+  }): Promise<Campaign[]> {
+    // 🔧 FIX: Properly construct URL to avoid any potential issues
+    const baseUrl = `${this.baseURL}/api/campaigns`
+    
+    // Build search params
+    const searchParams = new URLSearchParams()
+    if (params?.page) searchParams.set('page', params.page.toString())
+    if (params?.limit) searchParams.set('limit', params.limit.toString())
+    if (params?.status_filter) searchParams.set('status_filter', params.status_filter)
+    if (params?.search) searchParams.set('search', params.search)
 
-  // 🔍 CRITICAL DEBUG: Log everything about the URL construction
-  const fullUrl = `${this.baseURL}/api/campaigns?${searchParams}`
-  
-  console.log('🔍 CRITICAL DEBUG getCampaigns:')
-  console.log('- this.baseURL:', this.baseURL)
-  console.log('- this.baseURL type:', typeof this.baseURL)
-  console.log('- searchParams.toString():', searchParams.toString())
-  console.log('- fullUrl:', fullUrl)
-  console.log('- fullUrl type:', typeof fullUrl)
-  console.log('- new URL(fullUrl).protocol:', new URL(fullUrl).protocol)
-  console.log('- new URL(fullUrl).host:', new URL(fullUrl).host)
-  console.log('- new URL(fullUrl).href:', new URL(fullUrl).href)
-  
-  // Test what happens if we create the URL differently
-  const testUrl = new URL('/api/campaigns', this.baseURL)
-  testUrl.search = searchParams.toString()
-  console.log('- testUrl.href:', testUrl.href)
-  console.log('- testUrl.protocol:', testUrl.protocol)
-  
-  console.log('🚀 About to call fetch with URL:', fullUrl)
-  
-  const response = await fetch(fullUrl, {
-    headers: this.getHeaders()
-  })
-  
-  console.log('✅ Fetch completed, response status:', response.status)
-  
-  // ✅ FIXED: Backend returns array directly, not wrapped in object
-  return this.handleResponse<Campaign[]>(response)
-}
+    // 🔧 FIX: Use proper URL construction
+    const fullUrl = searchParams.toString() 
+      ? `${baseUrl}?${searchParams.toString()}`
+      : baseUrl
+    
+    console.log('🔍 getCampaigns URL:', fullUrl)
+    
+    try {
+      const response = await fetch(fullUrl, {
+        headers: this.getHeaders()
+      })
+      
+      console.log('✅ getCampaigns response status:', response.status)
+      
+      if (!response.ok) {
+        console.error('❌ getCampaigns failed:', response.status, response.statusText)
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`)
+      }
+      
+      const data = await this.handleResponse<Campaign[]>(response)
+      console.log('✅ getCampaigns success, got', Array.isArray(data) ? data.length : 'unknown', 'campaigns')
+      
+      return data
+      
+    } catch (error) {
+      console.error('❌ getCampaigns error:', error)
+      throw error
+    }
+  }
 
-async getCampaign(campaignId: string): Promise<Campaign> {
-  const response = await fetch(`${this.baseURL}/api/campaigns/${campaignId}`, {
-    headers: this.getHeaders()
-  })
-  
-  return this.handleResponse<Campaign>(response)
-}
+  async getCampaign(campaignId: string): Promise<Campaign> {
+    const response = await fetch(`${this.baseURL}/api/campaigns/${campaignId}`, {
+      headers: this.getHeaders()
+    })
+    
+    return this.handleResponse<Campaign>(response)
+  }
 
   async updateCampaign(campaignId: string, updates: Partial<Campaign>): Promise<Campaign> {
     const response = await fetch(`${this.baseURL}/api/campaigns/${campaignId}`, {
@@ -416,6 +420,37 @@ async getCampaign(campaignId: string): Promise<Campaign> {
     })
     
     return this.handleResponse<Campaign>(response)
+  }
+
+  // 🔧 FIXED: Add the missing getGeneratedContent method that the frontend expects
+  async getGeneratedContent(campaignId: string): Promise<any[]> {
+    console.log('🔍 getGeneratedContent called for campaign:', campaignId)
+    
+    try {
+      const response = await fetch(`${this.baseURL}/api/campaigns/${campaignId}/content`, {
+        headers: this.getHeaders()
+      })
+      
+      console.log('✅ getGeneratedContent response status:', response.status)
+      
+      if (!response.ok) {
+        if (response.status === 404) {
+          console.warn('⚠️ Content endpoint not found, returning empty array')
+          return []
+        }
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`)
+      }
+      
+      const data = await this.handleResponse<any[]>(response)
+      console.log('✅ getGeneratedContent success, got', Array.isArray(data) ? data.length : 'unknown', 'content items')
+      
+      return data
+      
+    } catch (error) {
+      console.error('❌ getGeneratedContent error:', error)
+      // Return empty array instead of throwing to prevent infinite loops
+      return []
+    }
   }
 
   // ============================================================================
@@ -579,15 +614,6 @@ async getCampaign(campaignId: string): Promise<Campaign> {
     return this.handleResponse(response)
   }
 
-
-async getGeneratedContent(campaignId: string): Promise<GeneratedContent[]> {
-  const response = await fetch(`${this.baseURL}/api/campaigns/${campaignId}/content`, {
-    headers: this.getHeaders()
-  })
-  
-  return this.handleResponse<GeneratedContent[]>(response)
-}
-
   // ============================================================================
   // ENHANCED INTELLIGENCE METHODS
   // ============================================================================
@@ -693,19 +719,20 @@ async getGeneratedContent(campaignId: string): Promise<GeneratedContent[]> {
   // ============================================================================
 
   async getDashboardStats(): Promise<{
-    company_name: string
-    subscription_tier: string
-    monthly_credits_used: number
-    monthly_credits_limit: number
-    credits_remaining: number
     total_campaigns: number
     active_campaigns: number
-    team_members: number
-    campaigns_this_month: number
-    usage_percentage: number
+    draft_campaigns: number
+    completed_campaigns: number
+    total_sources: number
+    total_content: number
+    avg_completion: number
+    recent_activity: any[]
+    user_id: string
+    company_id: string
+    generated_at: string
   }> {
     // ✅ FIXED: Use the correct backend endpoint
-    const response = await fetch(`${this.baseURL}/api/dashboard/stats`, {
+    const response = await fetch(`${this.baseURL}/api/campaigns/dashboard/stats`, {
       headers: this.getHeaders()
     })
     
@@ -741,8 +768,12 @@ async getGeneratedContent(campaignId: string): Promise<GeneratedContent[]> {
     campaigns_this_month: number
     usage_percentage: number
   }> {
-    // ✅ This is already correct, just alias to getDashboardStats for clarity
-    return this.getDashboardStats()
+    // 🔧 FIXED: Call the correct dashboard endpoint that returns company stats
+    const response = await fetch(`${this.baseURL}/api/dashboard/stats`, {
+      headers: this.getHeaders()
+    })
+    
+    return this.handleResponse(response)
   }
 
   async getCompanyDetails(): Promise<{
@@ -920,6 +951,9 @@ export const useApi = () => {
     updateCampaign: apiClient.updateCampaign.bind(apiClient),
     deleteCampaign: apiClient.deleteCampaign.bind(apiClient),
     duplicateCampaign: apiClient.duplicateCampaign.bind(apiClient),
+    
+    // 🔧 FIXED: Add the missing method
+    getGeneratedContent: apiClient.getGeneratedContent.bind(apiClient),
     
     // Flexible workflow operations
     getWorkflowState: apiClient.getWorkflowState.bind(apiClient),
