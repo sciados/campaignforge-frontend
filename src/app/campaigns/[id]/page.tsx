@@ -1103,6 +1103,39 @@ function ContentGenerationStep({
 }) {
   const [isGenerating, setIsGenerating] = useState(false)
   const [generatedContent, setGeneratedContent] = useState<any[]>([])
+  const [isLoadingExisting, setIsLoadingExisting] = useState(true)
+
+  // Load existing generated content when component mounts
+  useEffect(() => {
+    const loadExistingContent = async () => {
+      try {
+        setIsLoadingExisting(true)
+        console.log('🔍 Loading existing generated content for campaign:', campaignId)
+        
+        // Try to get existing content from the campaign intelligence
+        const intelligence = await api.getCampaignIntelligence(campaignId)
+        console.log('📊 Intelligence response:', intelligence)
+        
+        if (intelligence?.generated_content && Array.isArray(intelligence.generated_content)) {
+          console.log('✅ Found existing generated content:', intelligence.generated_content.length, 'items')
+          setGeneratedContent(intelligence.generated_content)
+        } else {
+          console.log('⚠️ No existing generated content found')
+          setGeneratedContent([])
+        }
+        
+      } catch (error) {
+        console.error('❌ Failed to load existing content:', error)
+        setGeneratedContent([])
+      } finally {
+        setIsLoadingExisting(false)
+      }
+    }
+    
+    if (campaignId) {
+      loadExistingContent()
+    }
+  }, [campaignId, api])
 
   // 🚀 REAL CONTENT GENERATION - No more simulation!
   const handleGenerateContent = async (contentType: string) => {
