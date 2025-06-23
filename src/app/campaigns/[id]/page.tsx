@@ -1,5 +1,3 @@
-
-        // src/app/campaigns/[id]/page.tsx
 'use client'
 import React, { useState, useEffect, useCallback, useMemo } from 'react'
 import { useParams, useRouter } from 'next/navigation'
@@ -84,8 +82,10 @@ export default function FlexibleCampaignDetailPage() {
     getWorkflowState: api.getWorkflowState,
     getCampaignIntelligence: api.getCampaignIntelligence,
     setWorkflowPreference: api.setWorkflowPreference,
-    saveProgress: api.saveProgress
-  }), [api.getCampaign, api.getWorkflowState, api.getCampaignIntelligence, api.setWorkflowPreference, api.saveProgress])
+    saveProgress: api.saveProgress,
+    analyzeURL: api.analyzeURL,
+    uploadDocument: api.uploadDocument
+  }), [api])
 
   // 🔧 FIX: Load campaign data with proper dependency management
   const loadCampaignData = useCallback(async () => {
@@ -223,7 +223,9 @@ export default function FlexibleCampaignDetailPage() {
     if (workflowMode === 'quick') {
       setTimeout(() => setCurrentStep(4), 1000)
     }
-  }, [workflowMode])
+    // Refresh campaign intelligence data
+    loadCampaignData()
+  }, [workflowMode, loadCampaignData])
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60)
@@ -232,7 +234,7 @@ export default function FlexibleCampaignDetailPage() {
   }
 
   const renderStepContent = () => {
-    if (!campaign || !workflowState) return null
+    if (!campaign) return null
 
     switch (currentStep) {
       case 1:
@@ -249,8 +251,11 @@ export default function FlexibleCampaignDetailPage() {
           <SourceCollectionStep
             campaignId={campaignId}
             workflowMode={workflowMode}
+            api={stableApi}
             onSourceAdded={(source) => {
               saveProgress({ source_added: source })
+              // Reload intelligence data after adding source
+              loadCampaignData()
               if (workflowMode === 'quick') {
                 setTimeout(() => setCurrentStep(3), 1000)
               }
@@ -263,7 +268,7 @@ export default function FlexibleCampaignDetailPage() {
           <IntelligenceAnalysisStep
             campaignId={campaignId}
             workflowMode={workflowMode}
-            sourcesCount={workflowState.progress_summary?.sources_added || 0}
+            sourcesCount={intelligenceData.length}
             intelligenceData={intelligenceData}
             onIntelligenceGenerated={handleIntelligenceGenerated}
           />
@@ -274,7 +279,7 @@ export default function FlexibleCampaignDetailPage() {
           <ContentGenerationStep
             campaignId={campaignId}
             workflowMode={workflowMode}
-            intelligenceCount={workflowState.progress_summary?.sources_analyzed || 0}
+            intelligenceCount={intelligenceData.length}
             onContentGenerated={(content) => {
               saveProgress({ content_generated: content })
             }}
@@ -462,13 +467,13 @@ export default function FlexibleCampaignDetailPage() {
                 <div className="grid grid-cols-3 gap-2 mt-4 text-center">
                   <div>
                     <div className="text-lg font-bold text-purple-600">
-                      {workflowState.progress_summary?.sources_added || 0}
+                      {intelligenceData.length}
                     </div>
                     <div className="text-xs text-gray-600">Sources</div>
                   </div>
                   <div>
                     <div className="text-lg font-bold text-blue-600">
-                      {workflowState.progress_summary?.sources_analyzed || 0}
+                      {intelligenceData.filter(s => s.confidence_score && s.confidence_score > 0).length}
                     </div>
                     <div className="text-xs text-gray-600">Analyzed</div>
                   </div>
@@ -511,7 +516,7 @@ export default function FlexibleCampaignDetailPage() {
   )
 }
 
-// Step Navigation Component (unchanged)
+// Step Navigation Component
 function StepNavigation({ 
   currentStep, 
   workflowMode, 
@@ -531,14 +536,9 @@ function StepNavigation({
   ]
 
   const getStepStatus = (stepNumber: number) => {
-    if (!workflowState?.progress?.steps) return 'locked'
-    
-    const progress = workflowState.progress.steps[`step_${stepNumber}`] || 0
-    
-    if (progress >= 100) return 'completed'
     if (stepNumber === currentStep) return 'active'
-    if (workflowState.available_actions?.some((a: any) => a.step === stepNumber && a.can_access)) return 'available'
-    return 'locked'
+    if (stepNumber < currentStep) return 'completed'
+    return 'available'
   }
 
   const getStepIcon = (step: any, status: string) => {
@@ -555,52 +555,6 @@ function StepNavigation({
     }
   }
 
-  if (workflowMode === 'methodical') {
-    return (
-      <div className="bg-white rounded-lg border border-gray-200 p-4">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Campaign Steps</h3>
-        
-        <div className="space-y-4">
-          {steps.map((step, index) => {
-            const status = getStepStatus(step.number)
-            const isClickable = status !== 'locked'
-            
-            return (
-              <div key={step.number}>
-                <button
-                  onClick={() => isClickable && onStepClick(step.number)}
-                  className={`w-full p-3 rounded-lg border text-left transition-all ${
-                    status === 'completed' ? 'bg-green-50 border-green-200' :
-                    status === 'active' ? 'bg-purple-50 border-purple-200 ring-2 ring-purple-200' :
-                    status === 'available' ? 'bg-blue-50 border-blue-200 hover:bg-blue-100' :
-                    'bg-gray-50 border-gray-200 opacity-50 cursor-not-allowed'
-                  }`}
-                  disabled={!isClickable}
-                >
-                  <div className="flex items-center space-x-3">
-                    {getStepIcon(step, status)}
-                    <div>
-                      <h4 className="text-sm font-medium text-gray-900">
-                        {step.number}. {step.title}
-                      </h4>
-                      <p className="text-xs text-gray-600">{step.description}</p>
-                    </div>
-                  </div>
-                </button>
-                
-                {index < steps.length - 1 && (
-                  <div className="flex justify-center py-1">
-                    <div className="w-px h-4 bg-gray-200"></div>
-                  </div>
-                )}
-              </div>
-            )
-          })}
-        </div>
-      </div>
-    )
-  }
-
   return (
     <div className="bg-white rounded-lg border border-gray-200 p-4">
       <h3 className="text-lg font-semibold text-gray-900 mb-4">Steps</h3>
@@ -608,19 +562,16 @@ function StepNavigation({
       <div className="grid grid-cols-2 gap-3">
         {steps.map((step) => {
           const status = getStepStatus(step.number)
-          const isClickable = status !== 'locked'
           
           return (
             <button
               key={step.number}
-              onClick={() => isClickable && onStepClick(step.number)}
+              onClick={() => onStepClick(step.number)}
               className={`p-3 rounded-lg border text-center transition-all ${
                 status === 'completed' ? 'bg-green-50 border-green-200' :
                 status === 'active' ? 'bg-purple-50 border-purple-200 ring-2 ring-purple-200' :
-                status === 'available' ? 'bg-blue-50 border-blue-200 hover:bg-blue-100' :
-                'bg-gray-50 border-gray-200 opacity-50 cursor-not-allowed'
+                'bg-blue-50 border-blue-200 hover:bg-blue-100'
               }`}
-              disabled={!isClickable}
             >
               <div className="flex flex-col items-center space-y-2">
                 {getStepIcon(step, status)}
@@ -647,7 +598,7 @@ function StepNavigation({
   )
 }
 
-// Step Content Components (unchanged implementations)
+// Step Content Components
 function CampaignBasicInfo({ 
   campaign, 
   onUpdate, 
@@ -709,7 +660,8 @@ function CampaignBasicInfo({
               rows={3}
               className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
             />
-          </div><div>
+          </div>
+          <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Target Audience</label>
             <input
               type="text"
@@ -735,7 +687,6 @@ function CampaignBasicInfo({
             </div>
             <div>
               <h3 className="text-sm font-medium text-gray-700">Campaign Type</h3>
-              {/* ✅ FIXED: Handle universal campaign type safely */}
               <p className="text-gray-900 mt-1">
                 <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-purple-100 text-purple-800">
                   🌟 Universal Campaign
@@ -765,40 +716,71 @@ function CampaignBasicInfo({
 function SourceCollectionStep({ 
   campaignId, 
   workflowMode, 
+  api,
   onSourceAdded 
 }: {
   campaignId: string
   workflowMode: 'quick' | 'methodical' | 'flexible'
+  api: any
   onSourceAdded: (source: any) => void
 }) {
   const [urlInput, setUrlInput] = useState('')
   const [isAnalyzing, setIsAnalyzing] = useState(false)
   const [sources, setSources] = useState<any[]>([])
-  const api = useApi()
 
   const handleAddURL = async () => {
     if (!urlInput.trim()) return
     
     setIsAnalyzing(true)
     try {
-      // Add the URL as a source
+      console.log('🎯 Starting URL analysis for:', urlInput)
+      
+      // Actually call the backend API to analyze the URL
+      const analysisResult = await api.analyzeURL({
+        url: urlInput,
+        campaign_id: campaignId,
+        analysis_type: 'sales_page'
+      })
+      
+      console.log('✅ Analysis completed:', analysisResult)
+      
+      // Create source object with analysis results
       const newSource = {
-        id: Date.now().toString(),
+        id: analysisResult.intelligence_id,
         type: 'url',
         url: urlInput,
-        status: 'added',
-        title: urlInput
+        status: 'analyzed',
+        title: urlInput,
+        confidence_score: analysisResult.confidence_score,
+        intelligence_id: analysisResult.intelligence_id
       }
       
       setSources(prev => [...prev, newSource])
       onSourceAdded(newSource)
       setUrlInput('')
       
-      // In a real implementation, you'd validate the URL first
-      console.log('Added URL source:', urlInput)
+      console.log('✅ URL source added and analyzed:', newSource)
       
     } catch (error) {
-      console.error('Failed to add URL:', error)
+      console.error('❌ Failed to analyze URL:', error)
+      
+      // Still add the URL but mark it as failed
+      const failedSource = {
+        id: Date.now().toString(),
+        type: 'url',
+        url: urlInput,
+        status: 'failed',
+        title: urlInput,
+        error: error instanceof Error ? error.message : 'Analysis failed'
+      }
+      
+      setSources(prev => [...prev, failedSource])
+      onSourceAdded(failedSource)
+      setUrlInput('')
+      
+      // Show user-friendly error
+      alert(`Failed to analyze URL: ${error instanceof Error ? error.message : 'Unknown error'}`)
+      
     } finally {
       setIsAnalyzing(false)
     }
@@ -869,12 +851,12 @@ function SourceCollectionStep({
               {isAnalyzing ? (
                 <>
                   <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                  Adding...
+                  Analyzing...
                 </>
               ) : (
                 <>
                   <Plus className="h-4 w-4 mr-2" />
-                  Add URL
+                  Analyze URL
                 </>
               )}
             </button>
@@ -929,16 +911,28 @@ function SourceCollectionStep({
                         {source.title || source.filename || source.url}
                       </span>
                       <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                        source.status === 'uploaded' || source.status === 'added'
+                        source.status === 'analyzed' || source.status === 'uploaded'
                           ? 'bg-green-100 text-green-800'
+                          : source.status === 'failed'
+                          ? 'bg-red-100 text-red-800'
                           : 'bg-yellow-100 text-yellow-800'
                       }`}>
                         {source.status}
                       </span>
+                      {source.confidence_score && (
+                        <span className="text-xs text-purple-600">
+                          {Math.round(source.confidence_score * 100)}% confidence
+                        </span>
+                      )}
                     </div>
                     {source.insights && (
                       <p className="text-sm text-gray-600">
                         {source.insights} insights extracted
+                      </p>
+                    )}
+                    {source.error && (
+                      <p className="text-sm text-red-600">
+                        Error: {source.error}
                       </p>
                     )}
                   </div>
@@ -966,12 +960,12 @@ function SourceCollectionStep({
       {/* Quick Actions for Different Modes */}
       {workflowMode === 'quick' && sources.length > 0 && (
         <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
-          <h4 className="font-medium text-orange-900 mb-2">Quick Mode: Ready to Analyze</h4>
+          <h4 className="font-medium text-orange-900 mb-2">Quick Mode: Sources Added</h4>
           <p className="text-sm text-orange-700 mb-3">
-            You have {sources.length} source(s). Ready to run AI analysis?
+            You have {sources.length} source(s) analyzed. Ready to move to content generation!
           </p>
           <button className="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors">
-            Start Analysis Now
+            Go to Step 4: Generate Content
           </button>
         </div>
       )}
@@ -1003,53 +997,6 @@ function IntelligenceAnalysisStep({
   intelligenceData: IntelligenceSource[]
   onIntelligenceGenerated: (intelligence: IntelligenceSource) => void
 }) {
-  const [isAnalyzing, setIsAnalyzing] = useState(false)
-  const [analysisProgress, setAnalysisProgress] = useState(0)
-  const api = useApi()
-
-  const handleStartAnalysis = async () => {
-    setIsAnalyzing(true)
-    setAnalysisProgress(0)
-    
-    try {
-      // Simulate analysis progress
-      const progressInterval = setInterval(() => {
-        setAnalysisProgress(prev => {
-          if (prev >= 90) {
-            clearInterval(progressInterval)
-            return 90
-          }
-          return prev + 10
-        })
-      }, 500)
-
-      // In a real implementation, you'd analyze actual sources
-      // For now, we'll simulate with a delay
-      await new Promise(resolve => setTimeout(resolve, 3000))
-      
-      clearInterval(progressInterval)
-      setAnalysisProgress(100)
-      
-      // Generate mock intelligence data
-      const mockIntelligence: IntelligenceSource = {
-        id: Date.now().toString(),
-        source_title: "Analyzed Sources",
-        confidence_score: 0.85,
-        created_at: new Date().toISOString(),
-        insights_extracted: sourcesCount * 3,
-        intelligence_type: 'competitive_analysis'
-      }
-      
-      onIntelligenceGenerated(mockIntelligence)
-      
-    } catch (error) {
-      console.error('Analysis failed:', error)
-    } finally {
-      setIsAnalyzing(false)
-      setAnalysisProgress(0)
-    }
-  }
-
   return (
     <div className="space-y-6">
       <h2 className="text-2xl font-bold text-gray-900">AI Analysis</h2>
@@ -1068,130 +1015,61 @@ function IntelligenceAnalysisStep({
       ) : (
         <div className="space-y-6">
           <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-            <h3 className="text-lg font-medium text-green-900 mb-2">Ready for Analysis</h3>
+            <h3 className="text-lg font-medium text-green-900 mb-2">✅ Analysis Complete</h3>
             <p className="text-green-700">
-              You have {sourcesCount} sources ready for AI analysis.
-              {workflowMode === 'quick' && " Run quick analysis to move fast."}
-              {workflowMode === 'methodical' && " Take time to configure analysis settings for best results."}
+              You have {sourcesCount} sources analyzed and ready for content generation.
             </p>
           </div>
 
-          {/* Analysis Progress */}
-          {isAnalyzing && (
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-              <div className="flex items-center justify-between mb-2">
-                <h4 className="font-medium text-blue-900">Analyzing Sources...</h4>
-                <span className="text-sm text-blue-700">{analysisProgress}%</span>
-              </div>
-              <div className="w-full bg-blue-200 rounded-full h-2">
-                <div 
-                  className="bg-blue-600 h-2 rounded-full transition-all duration-300"
-                  style={{ width: `${analysisProgress}%` }}
-                ></div>
-              </div>
-              <p className="text-sm text-blue-600 mt-2">
-                Extracting insights from your sources...
-              </p>
-            </div>
-          )}
-
-          {/* Analysis Options */}
-          {!isAnalyzing && intelligenceData.length === 0 && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="border border-gray-200 rounded-lg p-6">
-                <h3 className="text-lg font-medium text-gray-900 mb-4">Standard Analysis</h3>
-                <ul className="text-sm text-gray-600 space-y-2 mb-4">
-                  <li>• Extract key insights and themes</li>
-                  <li>• Identify persuasion techniques</li>
-                  <li>• Analyze competitive positioning</li>
-                  <li>• Generate campaign suggestions</li>
-                </ul>
-                <button 
-                  onClick={handleStartAnalysis}
-                  className="w-full px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
-                >
-                  Start Standard Analysis
-                </button>
-              </div>
-
-              <div className="border border-gray-200 rounded-lg p-6">
-                <h3 className="text-lg font-medium text-gray-900 mb-4">Enhanced Analysis</h3>
-                <ul className="text-sm text-gray-600 space-y-2 mb-4">
-                  <li>• Deep psychological analysis</li>
-                  <li>• VSL detection and transcription</li>
-                  <li>• Advanced competitive insights</li>
-                  <li>• Campaign angle generation</li>
-                </ul>
-                <button 
-                  onClick={handleStartAnalysis}
-                  className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-                >
-                  Start Enhanced Analysis
-                </button>
-              </div>
-            </div>
-          )}
-
           {/* Intelligence Results */}
-          {intelligenceData.length > 0 && (
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <h3 className="text-lg font-medium text-gray-900">
-                  Analysis Results ({intelligenceData.length})
-                </h3>
-                <button 
-                  onClick={handleStartAnalysis}
-                  disabled={isAnalyzing}
-                  className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 transition-colors"
-                >
-                  Analyze More Sources
-                </button>
-              </div>
+          <div className="space-y-4">
+            <h3 className="text-lg font-medium text-gray-900">
+              Analysis Results ({intelligenceData.length})
+            </h3>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {intelligenceData.map((intel, index) => (
+                <div key={index} className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                  <div className="flex items-center justify-between mb-2">
+                    <h4 className="font-medium text-gray-900">{intel.source_title}</h4>
+                    <span className="text-sm text-purple-600">
+                      {Math.round((intel.confidence_score || 0.8) * 100)}%
+                    </span>
+                  </div>
+                  <p className="text-sm text-gray-600 mb-3">
+                    {intel.insights_extracted || 15} insights extracted
+                  </p>
+                  <div className="flex items-center justify-between text-xs text-gray-500">
+                    <span>{intel.intelligence_type || 'Sales Page'}</span>
+                    <span>{new Date(intel.created_at || Date.now()).toLocaleDateString()}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {intelligenceData.map((intel, index) => (
-                  <div key={index} className="bg-gray-50 rounded-lg p-4 border border-gray-200">
-                    <div className="flex items-center justify-between mb-2">
-                      <h4 className="font-medium text-gray-900">{intel.source_title}</h4>
-                      <span className="text-sm text-purple-600">
-                        {Math.round((intel.confidence_score || 0.8) * 100)}%
-                      </span>
-                    </div>
-                    <p className="text-sm text-gray-600 mb-3">
-                      {intel.insights_extracted || 15} insights extracted
-                    </p>
-                    <div className="flex items-center justify-between text-xs text-gray-500">
-                      <span>{intel.intelligence_type || 'Sales Page'}</span>
-                      <span>{new Date(intel.created_at || Date.now()).toLocaleDateString()}</span>
-                    </div>
+            {/* Summary Stats */}
+            <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
+              <h4 className="font-medium text-purple-900 mb-2">Analysis Summary</h4>
+              <div className="grid grid-cols-3 gap-4 text-center">
+                <div>
+                  <div className="text-2xl font-bold text-purple-600">{intelligenceData.length}</div>
+                  <div className="text-sm text-purple-700">Sources Analyzed</div>
+                </div>
+                <div>
+                  <div className="text-2xl font-bold text-purple-600">
+                    {Math.round(intelligenceData.reduce((acc: number, intel: IntelligenceSource) => acc + (intel.confidence_score || 0.8), 0) / intelligenceData.length * 100)}%
                   </div>
-                ))}
-              </div>
-
-              {/* Summary Stats */}
-              <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
-                <h4 className="font-medium text-purple-900 mb-2">Analysis Summary</h4>
-                <div className="grid grid-cols-3 gap-4 text-center">
-                  <div>
-                    <div className="text-2xl font-bold text-purple-600">{intelligenceData.length}</div>
-                    <div className="text-sm text-purple-700">Sources Analyzed</div>
+                  <div className="text-sm text-purple-700">Avg Confidence</div>
+                </div>
+                <div>
+                  <div className="text-2xl font-bold text-purple-600">
+                    {intelligenceData.reduce((acc: number, intel: IntelligenceSource) => acc + (intel.insights_extracted || 15), 0)}
                   </div>
-                  <div>
-                    <div className="text-2xl font-bold text-purple-600">
-                      {Math.round(intelligenceData.reduce((acc: number, intel: IntelligenceSource) => acc + (intel.confidence_score || 0.8), 0) / intelligenceData.length * 100)}%
-                    </div>
-                    <div className="text-sm text-purple-700">Avg Confidence</div>
-                  </div>
-                  <div>
-                    <div className="text-2xl font-bold text-purple-600">
-                      {intelligenceData.reduce((acc: number, intel: IntelligenceSource) => acc + (intel.insights_extracted || 15), 0)}
-                    </div>
-                    <div className="text-sm text-purple-700">Total Insights</div>
-                  </div>
+                  <div className="text-sm text-purple-700">Total Insights</div>
                 </div>
               </div>
             </div>
-          )}
+          </div>
         </div>
       )}
     </div>
@@ -1261,7 +1139,7 @@ function ContentGenerationStep({
             Complete source analysis before generating content
           </p>
           <button className="px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors">
-            Go to Step 3: Analyze Sources
+            Go to Step 2: Add Sources
           </button>
         </div>
       ) : (
@@ -1331,23 +1209,6 @@ function ContentGenerationStep({
               </button>
             ))}
           </div>
-
-          {/* Quick Generate All for Quick Mode */}
-          {workflowMode === 'quick' && (
-            <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
-              <h4 className="font-medium text-orange-900 mb-2">Quick Generate All</h4>
-              <p className="text-sm text-orange-700 mb-3">
-                Generate a complete content suite based on your intelligence sources.
-              </p>
-              <button 
-                onClick={() => handleGenerateContent('content_suite')}
-                disabled={isGenerating}
-                className="px-6 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 disabled:opacity-50 transition-colors"
-              >
-                Generate Content Suite
-              </button>
-            </div>
-          )}
 
           {/* Generated Content */}
           {generatedContent.length > 0 && (
