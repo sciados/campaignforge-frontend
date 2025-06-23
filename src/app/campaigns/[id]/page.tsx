@@ -84,7 +84,8 @@ export default function FlexibleCampaignDetailPage() {
     setWorkflowPreference: api.setWorkflowPreference,
     saveProgress: api.saveProgress,
     analyzeURL: api.analyzeURL,
-    uploadDocument: api.uploadDocument
+    uploadDocument: api.uploadDocument,
+    generateContent: api.generateContent
   }), [api])
 
   // 🔧 FIX: Load campaign data with proper dependency management
@@ -280,6 +281,9 @@ export default function FlexibleCampaignDetailPage() {
             campaignId={campaignId}
             workflowMode={workflowMode}
             intelligenceCount={intelligenceData.length}
+            intelligenceData={intelligenceData}
+            campaign={campaign}
+            api={stableApi}
             onContentGenerated={(content) => {
               saveProgress({ content_generated: content })
             }}
@@ -1076,40 +1080,84 @@ function IntelligenceAnalysisStep({
   )
 }
 
+// 🚀 THE MAIN FIX: Real Content Generation Component
 function ContentGenerationStep({ 
   campaignId, 
   workflowMode, 
-  intelligenceCount, 
+  intelligenceCount,
+  intelligenceData,
+  campaign,
+  api,
   onContentGenerated 
 }: {
   campaignId: string
   workflowMode: 'quick' | 'methodical' | 'flexible'
   intelligenceCount: number
+  intelligenceData: IntelligenceSource[]
+  campaign: Campaign | null
+  api: any
   onContentGenerated: (content: any) => void
 }) {
   const [isGenerating, setIsGenerating] = useState(false)
   const [generatedContent, setGeneratedContent] = useState<any[]>([])
 
+  // 🚀 REAL CONTENT GENERATION - No more simulation!
   const handleGenerateContent = async (contentType: string) => {
     setIsGenerating(true)
     
     try {
-      // Simulate content generation
-      await new Promise(resolve => setTimeout(resolve, 2000))
+      console.log('🎯 Starting REAL content generation for:', contentType)
       
+      // Check if we have intelligence sources
+      if (intelligenceData.length === 0) {
+        throw new Error('No intelligence sources available. Please add sources in Step 2 first.')
+      }
+      
+      // Get the first available intelligence source
+      const firstIntelligence = intelligenceData[0]
+      console.log('📊 Using intelligence source:', firstIntelligence)
+      
+      // 🚀 REAL API call to your backend using your existing API client
+      const response = await api.generateContent({
+        intelligence_id: firstIntelligence.id,
+        content_type: contentType,
+        campaign_id: campaignId,
+        preferences: {
+          style: workflowMode === 'quick' ? 'concise' : 'detailed',
+          tone: 'professional',
+          length: workflowMode === 'methodical' ? 'long' : 'medium',
+          target_audience: campaign?.target_audience || 'general audience'
+        }
+      })
+      
+      console.log('✅ Content generation SUCCESS:', response)
+      
+      // Create the content object with data from the API response
       const newContent = {
-        id: Date.now().toString(),
+        id: response.content_id,
         type: contentType,
-        title: getContentTitle(contentType),
+        title: response.generated_content?.title || getContentTitle(contentType),
         generated_at: new Date(),
-        status: 'generated'
+        status: 'generated',
+        content: response.generated_content?.content,
+        metadata: response.generated_content?.metadata,
+        smart_url: response.smart_url,
+        performance_predictions: response.performance_predictions,
+        preview: response.generated_content?.content?.substring(0, 200) + '...'
       }
       
       setGeneratedContent(prev => [...prev, newContent])
       onContentGenerated(newContent)
       
+      console.log('✅ Content successfully added to UI:', newContent.title)
+      
     } catch (error) {
-      console.error('Content generation failed:', error)
+      console.error('❌ Content generation failed:', error)
+      
+      // User-friendly error message
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred'
+      alert(`Content generation failed: ${errorMessage}`)
+      
     } finally {
       setIsGenerating(false)
     }
@@ -1230,18 +1278,33 @@ function ContentGenerationStep({
                           <span className="px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs font-medium">
                             Generated
                           </span>
+                          {content.smart_url && (
+                            <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-medium">
+                              Smart URL
+                            </span>
+                          )}
                         </div>
-                        <p className="text-sm text-gray-600">
+                        <p className="text-sm text-gray-600 mb-2">
                           Generated {new Date(content.generated_at).toLocaleString()}
                         </p>
+                        {content.preview && (
+                          <p className="text-sm text-gray-700 bg-white p-2 rounded border">
+                            {content.preview}
+                          </p>
+                        )}
                       </div>
                       <div className="flex space-x-2">
                         <button className="px-3 py-1 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-sm">
-                          View
+                          View Full
                         </button>
                         <button className="px-3 py-1 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors text-sm">
                           Edit
                         </button>
+                        {content.smart_url && (
+                          <button className="px-3 py-1 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm">
+                            Track
+                          </button>
+                        )}
                       </div>
                     </div>
                   </div>
