@@ -1,6 +1,6 @@
-// src/app/campaigns/[id]/content/page.tsx - FIXED VERSION
+// src/app/campaigns/[id]/content/page.tsx - FIXED TO MATCH BACKEND
 'use client'
-import React, { useState, useEffect, useCallback, useRef } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { 
   ArrowLeft, 
@@ -8,7 +8,6 @@ import {
   Edit3, 
   Eye, 
   Copy, 
-  MoreHorizontal,
   Mail,
   FileText,
   Video,
@@ -17,25 +16,47 @@ import {
   TrendingUp,
   Search,
   Plus,
-  ExternalLink,
   X,
   RefreshCw
 } from 'lucide-react'
 import { useApi } from '@/lib/api'
 
-// Local type definitions to avoid conflicts
-interface ContentItem {
+// ✅ FIXED: Match the actual backend response structure
+interface GeneratedContentItem {
   id: string
-  campaign_id: string
   content_type: string
-  title: string
-  content: string | any
-  status: string
-  quality_score?: number
-  performance_metrics?: any
+  content_title: string
   created_at: string
-  updated_at: string
-  generation_parameters?: any
+  user_rating?: number
+  is_published?: boolean
+  performance_data?: any
+}
+
+interface IntelligenceSource {
+  id: string
+  source_title: string
+  source_url?: string  // ✅ FIXED: Make optional to match API
+  source_type: string
+  confidence_score: number
+  analysis_status: string
+  created_at: string
+  // ✅ FIXED: Include intelligence data from backend
+  offer_intelligence?: any
+  psychology_intelligence?: any
+  content_intelligence?: any
+  competitive_intelligence?: any
+  brand_intelligence?: any
+}
+
+interface CampaignIntelligenceResponse {
+  campaign_id: string
+  intelligence_sources: IntelligenceSource[]
+  generated_content: GeneratedContentItem[]
+  summary: {
+    total_intelligence_sources: number
+    total_generated_content: number
+    avg_confidence_score: number
+  }
 }
 
 interface CampaignData {
@@ -43,7 +64,6 @@ interface CampaignData {
   title: string
   description: string
   target_audience?: string
-  generated_content?: ContentItem[]
 }
 
 export default function FixedCampaignContentPage() {
@@ -53,18 +73,14 @@ export default function FixedCampaignContentPage() {
   
   const campaignId = params.id as string
   const [campaign, setCampaign] = useState<CampaignData | null>(null)
-  const [content, setContent] = useState<ContentItem[]>([])
+  const [intelligenceData, setIntelligenceData] = useState<CampaignIntelligenceResponse | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [selectedCategory, setSelectedCategory] = useState<string>('all')
   const [searchTerm, setSearchTerm] = useState('')
-  const [selectedContent, setSelectedContent] = useState<ContentItem | null>(null)
+  const [selectedContent, setSelectedContent] = useState<any | null>(null)
   const [isEditing, setIsEditing] = useState(false)
   const [editedContent, setEditedContent] = useState('')
-
-  // 🔧 FIX: Use refs to prevent infinite loops
-  const isInitializedRef = useRef(false)
-  const isLoadingRef = useRef(false)
 
   // Navigation functions
   const goBackToCampaign = () => {
@@ -79,115 +95,95 @@ export default function FixedCampaignContentPage() {
     router.push('/campaigns')
   }
 
-  // 🔧 FIX: Completely rewritten loadCampaignContent to prevent infinite loops
+  // ✅ FIXED: Simplified load function that matches backend exactly
   const loadCampaignContent = useCallback(async () => {
-    // ✅ CRITICAL: Only load once and prevent concurrent loads
-    if (!campaignId || isInitializedRef.current || isLoadingRef.current) {
-      console.log('⏸️ Skipping loadCampaignContent - already initialized/loading or no campaignId')
-      return
-    }
+    if (!campaignId || isLoading) return
 
     try {
       console.log('🔄 Loading campaign content for:', campaignId)
-      isLoadingRef.current = true
-      isInitializedRef.current = true // Mark as initialized immediately to prevent multiple calls
       setIsLoading(true)
       setError(null)
       
       // Load campaign details
       const campaignData = await api.getCampaign(campaignId)
       setCampaign(campaignData)
-      console.log('📋 Campaign data loaded:', campaignData.title)
+      console.log('✅ Campaign loaded:', campaignData.title)
       
-      // Try multiple approaches to find generated content
-      let foundContent: ContentItem[] = []
+      // ✅ FIXED: Use the correct intelligence endpoint that actually exists
+      const intelligence = await api.getCampaignIntelligence(campaignId)
+      setIntelligenceData(intelligence)
       
-      // Approach 1: Check if campaign has generated_content (cast to any to avoid type conflicts)
-      if ((campaignData as any).generated_content && Array.isArray((campaignData as any).generated_content)) {
-        console.log('✅ Found generated content in campaign data')
-        foundContent = (campaignData as any).generated_content
-      }
-      
-      // Approach 2: Try getCampaignIntelligence ONLY if no content found yet
-      if (foundContent.length === 0) {
-        try {
-          console.log('🔍 Trying intelligence endpoint for content...')
-          const intelligence = await api.getCampaignIntelligence(campaignId)
-          console.log('🧠 Intelligence response received')
-          
-          if (intelligence?.generated_content && Array.isArray(intelligence.generated_content)) {
-            console.log('✅ Found generated content in intelligence data')
-            foundContent = intelligence.generated_content
-          }
-        } catch (intelligenceError) {
-          console.warn('⚠️ Intelligence call failed:', intelligenceError)
-        }
-      }
-      
-      // Approach 3: Try a direct content endpoint ONLY if still no content found
-      if (foundContent.length === 0) {
-        try {
-          console.log('🔍 Trying direct content endpoint...')
-          const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/campaigns/${campaignId}/content`, {
-            headers: {
-              'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
-              'Content-Type': 'application/json'
-            }
-          })
-          
-          if (response.ok) {
-            const contentData = await response.json()
-            console.log('✅ Found content via direct endpoint')
-            if (Array.isArray(contentData)) {
-              foundContent = contentData
-            } else if (contentData.content && Array.isArray(contentData.content)) {
-              foundContent = contentData.content
-            }
-          }
-        } catch (directError) {
-          console.warn('⚠️ Direct content endpoint failed:', directError)
-        }
-      }
-      
-      setContent(foundContent)
-      console.log(`📊 Final content count: ${foundContent.length}`)
+      console.log('✅ Intelligence loaded:', {
+        sources: intelligence.intelligence_sources?.length || 0,
+        content: intelligence.generated_content?.length || 0
+      })
       
     } catch (err) {
       console.error('❌ Failed to load campaign content:', err)
       setError(err instanceof Error ? err.message : 'Failed to load content')
     } finally {
       setIsLoading(false)
-      isLoadingRef.current = false
     }
-  }, [campaignId, api]) // ✅ Stable dependencies only
+  }, [campaignId, isLoading, api])
 
-  // 🔧 FIX: Manual refresh function that bypasses the ref guards
   const refreshContent = useCallback(async () => {
-    try {
-      console.log('🔄 Manual refresh of content')
-      setError(null)
-      
-      // Try to get fresh content from intelligence
-      const intelligence = await api.getCampaignIntelligence(campaignId)
-      if (intelligence?.generated_content && Array.isArray(intelligence.generated_content)) {
-        setContent(intelligence.generated_content)
-        console.log('✅ Content refreshed successfully')
-      }
-    } catch (error) {
-      console.warn('⚠️ Manual refresh failed:', error)
-      setError('Failed to refresh content')
-    }
-  }, [campaignId, api])
+    setIsLoading(true)
+    await loadCampaignContent()
+  }, [loadCampaignContent])
 
-  // 🔧 FIX: Use proper dependencies and prevent infinite loops
   useEffect(() => {
-    if (campaignId && !isInitializedRef.current && !isLoadingRef.current) {
+    if (campaignId) {
       loadCampaignContent()
     }
   }, [campaignId, loadCampaignContent])
 
+  // ✅ FIXED: Work with actual generated content structure
+  const getDisplayContent = () => {
+    if (!intelligenceData) return []
+    
+    // Convert both intelligence sources and generated content to display format
+    const displayItems: any[] = []
+    
+    // Add intelligence sources as viewable content
+    intelligenceData.intelligence_sources?.forEach(source => {
+      displayItems.push({
+        id: source.id,
+        type: 'intelligence',
+        title: source.source_title || 'Intelligence Source',
+        content_type: 'intelligence_source',
+        created_at: source.created_at,
+        confidence_score: source.confidence_score,
+        source_url: source.source_url,
+        data: {
+          offer_intelligence: source.offer_intelligence,
+          psychology_intelligence: source.psychology_intelligence,
+          content_intelligence: source.content_intelligence,
+          competitive_intelligence: source.competitive_intelligence,
+          brand_intelligence: source.brand_intelligence
+        }
+      })
+    })
+    
+    // Add generated content
+    intelligenceData.generated_content?.forEach(content => {
+      displayItems.push({
+        id: content.id,
+        type: 'generated_content',
+        title: content.content_title || 'Generated Content',
+        content_type: content.content_type,
+        created_at: content.created_at,
+        user_rating: content.user_rating,
+        is_published: content.is_published,
+        performance_data: content.performance_data
+      })
+    })
+    
+    return displayItems
+  }
+
   const getContentIcon = (type: string) => {
     const icons: Record<string, any> = {
+      'intelligence_source': TrendingUp,
       'email': Mail,
       'email_series': Mail,
       'email_sequence': Mail,
@@ -197,18 +193,14 @@ export default function FixedCampaignContentPage() {
       'blog_post': FileText,
       'video_script': Video,
       'lead_magnet': Globe,
-      'sales_material': FileText,
-      'newsletter': Mail,
-      'case_study': FileText,
-      'whitepaper': FileText,
-      'presentation': FileText,
-      'landing_page': Globe
+      'sales_material': FileText
     }
     return icons[type] || FileText
   }
 
   const getContentColor = (type: string) => {
     const colors: Record<string, string> = {
+      'intelligence_source': 'bg-purple-100 text-purple-800 border-purple-200',
       'email': 'bg-blue-100 text-blue-800 border-blue-200',
       'email_series': 'bg-blue-100 text-blue-800 border-blue-200',
       'email_sequence': 'bg-blue-100 text-blue-800 border-blue-200',
@@ -216,20 +208,14 @@ export default function FixedCampaignContentPage() {
       'social_posts': 'bg-pink-100 text-pink-800 border-pink-200',
       'ad_copy': 'bg-green-100 text-green-800 border-green-200',
       'blog_post': 'bg-purple-100 text-purple-800 border-purple-200',
-      'video_script': 'bg-red-100 text-red-800 border-red-200',
-      'lead_magnet': 'bg-orange-100 text-orange-800 border-orange-200',
-      'sales_material': 'bg-gray-100 text-gray-800 border-gray-200',
-      'newsletter': 'bg-indigo-100 text-indigo-800 border-indigo-200',
-      'case_study': 'bg-yellow-100 text-yellow-800 border-yellow-200',
-      'whitepaper': 'bg-teal-100 text-teal-800 border-teal-200',
-      'presentation': 'bg-cyan-100 text-cyan-800 border-cyan-200',
-      'landing_page': 'bg-orange-100 text-orange-800 border-orange-200'
+      'video_script': 'bg-red-100 text-red-800 border-red-200'
     }
     return colors[type] || 'bg-gray-100 text-gray-800 border-gray-200'
   }
 
   const formatContentType = (type: string) => {
     const formatted: Record<string, string> = {
+      'intelligence_source': 'Intelligence Source',
       'email': 'Email',
       'email_series': 'Email Series',
       'email_sequence': 'Email Sequence',
@@ -237,19 +223,13 @@ export default function FixedCampaignContentPage() {
       'social_posts': 'Social Media Posts',
       'ad_copy': 'Ad Copy',
       'blog_post': 'Blog Post',
-      'video_script': 'Video Script',
-      'lead_magnet': 'Lead Magnet',
-      'sales_material': 'Sales Material',
-      'newsletter': 'Newsletter',
-      'case_study': 'Case Study',
-      'whitepaper': 'Whitepaper',
-      'presentation': 'Presentation',
-      'landing_page': 'Landing Page'
+      'video_script': 'Video Script'
     }
     return formatted[type] || type.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())
   }
 
   const getContentCategories = () => {
+    const content = getDisplayContent()
     const uniqueTypes = Array.from(new Set(content.map(c => c.content_type)))
     const categories = ['all', ...uniqueTypes]
     
@@ -260,28 +240,42 @@ export default function FixedCampaignContentPage() {
     }))
   }
 
-  const filteredContent = content.filter(item => {
+  const filteredContent = getDisplayContent().filter(item => {
     const matchesCategory = selectedCategory === 'all' || item.content_type === selectedCategory
     const matchesSearch = searchTerm === '' || 
       item.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (typeof item.content === 'string' ? item.content : JSON.stringify(item.content)).toLowerCase().includes(searchTerm.toLowerCase())
+      item.content_type.toLowerCase().includes(searchTerm.toLowerCase())
     
     return matchesCategory && matchesSearch
   })
 
-  const handleCopyContent = async (content: ContentItem) => {
+  const handleCopyContent = async (content: any) => {
     try {
-      const textContent = typeof content.content === 'string' 
-        ? content.content 
-        : JSON.stringify(content.content, null, 2)
+      let textContent = ''
+      
+      if (content.type === 'intelligence') {
+        // Format intelligence data for copying
+        const data = content.data || {}
+        textContent = `Intelligence Source: ${content.title}\n\n`
+        
+        if (data.offer_intelligence?.value_propositions) {
+          textContent += `Value Propositions:\n${data.offer_intelligence.value_propositions.join('\n')}\n\n`
+        }
+        
+        if (data.psychology_intelligence?.emotional_triggers) {
+          textContent += `Emotional Triggers:\n${data.psychology_intelligence.emotional_triggers.join('\n')}\n\n`
+        }
+      } else {
+        textContent = `${content.title}\n\nType: ${formatContentType(content.content_type)}`
+      }
       
       await navigator.clipboard.writeText(textContent)
       
-      // Show temporary success message
+      // Show success feedback
       const button = document.getElementById(`copy-${content.id}`)
       if (button) {
         const originalText = button.innerHTML
-        button.innerHTML = '<svg class="h-4 w-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path></svg> Copied!'
+        button.innerHTML = '✓ Copied!'
         setTimeout(() => {
           button.innerHTML = originalText
         }, 2000)
@@ -291,10 +285,18 @@ export default function FixedCampaignContentPage() {
     }
   }
 
-  const handleDownloadContent = (content: ContentItem) => {
-    const textContent = typeof content.content === 'string' 
-      ? content.content 
-      : JSON.stringify(content.content, null, 2)
+  const handleDownloadContent = (content: any) => {
+    let textContent = ''
+    
+    if (content.type === 'intelligence') {
+      const data = content.data || {}
+      textContent = `Intelligence Source: ${content.title}\n\n`
+      textContent += `Source URL: ${content.source_url || 'N/A'}\n`
+      textContent += `Confidence Score: ${content.confidence_score || 'N/A'}\n\n`
+      textContent += JSON.stringify(data, null, 2)
+    } else {
+      textContent = `${content.title}\n\nType: ${formatContentType(content.content_type)}\nCreated: ${new Date(content.created_at).toLocaleDateString()}`
+    }
     
     const blob = new Blob([textContent], { type: 'text/plain' })
     const url = URL.createObjectURL(blob)
@@ -307,57 +309,16 @@ export default function FixedCampaignContentPage() {
     URL.revokeObjectURL(url)
   }
 
-  const handleDownloadAll = () => {
-    const allContent = filteredContent.map(item => {
-      const textContent = typeof item.content === 'string' 
-        ? item.content 
-        : JSON.stringify(item.content, null, 2)
-      
-      return `\n\n=== ${item.title} ===\nType: ${formatContentType(item.content_type)}\nCreated: ${new Date(item.created_at).toLocaleDateString()}\n\n${textContent}`
-    }).join('\n')
-    
-    const blob = new Blob([`Campaign: ${campaign?.title}\n\n${allContent}`], { type: 'text/plain' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `${campaign?.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_all_content.txt`
-    document.body.appendChild(a)
-    a.click()
-    document.body.removeChild(a)
-    URL.revokeObjectURL(url)
-  }
-
-  const openContentModal = (content: ContentItem) => {
+  const openContentModal = (content: any) => {
     setSelectedContent(content)
-    setEditedContent(
-      typeof content.content === 'string' 
-        ? content.content 
-        : JSON.stringify(content.content, null, 2)
-    )
-    setIsEditing(false)
-  }
-
-  const saveEditedContent = async () => {
-    if (!selectedContent) return
     
-    try {
-      const updatedContent = content.map(item => 
-        item.id === selectedContent.id 
-          ? {
-              ...item,
-              content: editedContent,
-              updated_at: new Date().toISOString()
-            }
-          : item
-      )
-      
-      setContent(updatedContent)
-      setIsEditing(false)
-      setSelectedContent(null)
-      
-    } catch (err) {
-      console.error('Failed to save content:', err)
+    if (content.type === 'intelligence') {
+      setEditedContent(JSON.stringify(content.data, null, 2))
+    } else {
+      setEditedContent(content.title)
     }
+    
+    setIsEditing(false)
   }
 
   if (isLoading) {
@@ -411,25 +372,19 @@ export default function FixedCampaignContentPage() {
               </button>
               <div>
                 <h1 className="text-xl font-semibold text-gray-900">Content Library</h1>
-                <p className="text-sm text-gray-500">{campaign.title} • {content.length} items</p>
+                <p className="text-sm text-gray-500">
+                  {campaign.title} • {filteredContent.length} items
+                </p>
               </div>
             </div>
             
             <div className="flex items-center space-x-3">
-              {/* 🔧 FIX: Add manual refresh button */}
               <button
                 onClick={refreshContent}
                 className="flex items-center space-x-2 px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
               >
                 <RefreshCw className="h-4 w-4" />
                 <span>Refresh</span>
-              </button>
-              <button
-                onClick={handleDownloadAll}
-                className="flex items-center space-x-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
-              >
-                <Download className="h-4 w-4" />
-                <span>Download All</span>
               </button>
               <button
                 onClick={goToGenerateMore}
@@ -484,8 +439,8 @@ export default function FixedCampaignContentPage() {
             <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
             <h3 className="text-lg font-medium text-gray-900 mb-2">No Content Found</h3>
             <p className="text-gray-600 mb-4">
-              {content.length === 0 
-                ? "No content has been generated for this campaign yet."
+              {getDisplayContent().length === 0 
+                ? "No content or intelligence sources have been created for this campaign yet."
                 : "No content matches your current filters."
               }
             </p>
@@ -518,29 +473,19 @@ export default function FixedCampaignContentPage() {
                         </p>
                       </div>
                     </div>
-                    <div className="flex items-center space-x-1">
-                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                        item.status === 'published' ? 'bg-green-100 text-green-800' :
-                        item.status === 'approved' ? 'bg-blue-100 text-blue-800' :
-                        item.status === 'draft' ? 'bg-yellow-100 text-yellow-800' :
-                        'bg-gray-100 text-gray-800'
-                      }`}>
-                        {item.status}
+                    {item.confidence_score && (
+                      <span className="text-xs text-purple-600">
+                        {Math.round(item.confidence_score * 100)}%
                       </span>
-                      {item.quality_score && (
-                        <span className="text-xs text-purple-600">
-                          {Math.round(item.quality_score * 100)}%
-                        </span>
-                      )}
-                    </div>
+                    )}
                   </div>
 
                   {/* Content Preview */}
                   <div className="mb-4">
                     <div className="text-sm text-gray-600 line-clamp-3">
-                      {typeof item.content === 'string'
-                        ? item.content.substring(0, 150) + (item.content.length > 150 ? '...' : '')
-                        : 'Structured content available'
+                      {item.type === 'intelligence' 
+                        ? `Intelligence source with ${Object.keys(item.data || {}).length} analysis types`
+                        : `Generated ${formatContentType(item.content_type)}`
                       }
                     </div>
                   </div>
@@ -548,9 +493,9 @@ export default function FixedCampaignContentPage() {
                   {/* Metadata */}
                   <div className="flex items-center justify-between text-xs text-gray-500 mb-4">
                     <span>Created {new Date(item.created_at).toLocaleDateString()}</span>
-                    {item.performance_metrics && (
-                      <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded">
-                        Analytics
+                    {item.is_published && (
+                      <span className="bg-green-100 text-green-800 px-2 py-1 rounded">
+                        Published
                       </span>
                     )}
                   </div>
@@ -577,14 +522,6 @@ export default function FixedCampaignContentPage() {
                     >
                       <Download className="h-4 w-4" />
                     </button>
-                    {item.performance_metrics && (
-                      <button
-                        onClick={() => console.log('View analytics for:', item.id)}
-                        className="px-3 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors"
-                      >
-                        <TrendingUp className="h-4 w-4" />
-                      </button>
-                    )}
                   </div>
                 </div>
               )
@@ -603,89 +540,31 @@ export default function FixedCampaignContentPage() {
                   {selectedContent.title}
                 </h2>
                 <p className="text-sm text-gray-500">
-                  {formatContentType(selectedContent.content_type)} • {selectedContent.status}
-                  {selectedContent.quality_score && (
+                  {formatContentType(selectedContent.content_type)}
+                  {selectedContent.confidence_score && (
                     <span className="ml-2 text-purple-600">
-                      Quality: {Math.round(selectedContent.quality_score * 100)}%
+                      Confidence: {Math.round(selectedContent.confidence_score * 100)}%
                     </span>
                   )}
                 </p>
               </div>
-              <div className="flex items-center space-x-2">
-                {!isEditing && (
-                  <button
-                    onClick={() => setIsEditing(true)}
-                    className="flex items-center space-x-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
-                  >
-                    <Edit3 className="h-4 w-4" />
-                    <span>Edit</span>
-                  </button>
-                )}
-                <button
-                  onClick={() => setSelectedContent(null)}
-                  className="p-2 text-gray-400 hover:text-gray-600 transition-colors"
-                >
-                  <X className="h-5 w-5" />
-                </button>
-              </div>
+              <button
+                onClick={() => setSelectedContent(null)}
+                className="p-2 text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                <X className="h-5 w-5" />
+              </button>
             </div>
             
             <div className="p-6 overflow-y-auto max-h-[calc(90vh-140px)]">
-              {isEditing ? (
-                <div className="space-y-4">
-                  <textarea
-                    value={editedContent}
-                    onChange={(e) => setEditedContent(e.target.value)}
-                    className="w-full h-96 p-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent font-mono text-sm"
-                    placeholder="Edit your content here..."
-                  />
-                  <div className="flex justify-end space-x-3">
-                    <button
-                      onClick={() => setIsEditing(false)}
-                      className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      onClick={saveEditedContent}
-                      className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
-                    >
-                      Save Changes
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <div className="prose max-w-none">
-                  <pre className="whitespace-pre-wrap font-sans text-gray-800 leading-relaxed">
-                    {typeof selectedContent.content === 'string'
-                      ? selectedContent.content
-                      : JSON.stringify(selectedContent.content, null, 2)
-                    }
-                  </pre>
-                  
-                  {selectedContent.generation_parameters && (
-                    <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                      <h4 className="font-medium text-blue-900 mb-2">Generation Parameters:</h4>
-                      <div className="text-sm text-blue-800 space-y-1">
-                        {Object.entries(selectedContent.generation_parameters).map(([key, value]) => (
-                          <div key={key}><strong>{key}:</strong> {String(value)}</div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {selectedContent.performance_metrics && (
-                    <div className="mt-4 p-4 bg-green-50 border border-green-200 rounded-lg">
-                      <h4 className="font-medium text-green-900 mb-2">Performance Metrics:</h4>
-                      <div className="grid grid-cols-2 gap-4 text-sm text-green-800">
-                        {Object.entries(selectedContent.performance_metrics).map(([key, value]) => (
-                          <div key={key}><strong>{key}:</strong> {typeof value === 'number' ? Math.round(value * 100) + '%' : String(value)}</div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
+              <div className="prose max-w-none">
+                <pre className="whitespace-pre-wrap font-sans text-gray-800 leading-relaxed">
+                  {selectedContent.type === 'intelligence' 
+                    ? JSON.stringify(selectedContent.data, null, 2)
+                    : `Content Type: ${selectedContent.content_type}\nCreated: ${new Date(selectedContent.created_at).toLocaleDateString()}\n\nThis is generated content. Full content details would be loaded from the specific content endpoint.`
+                  }
+                </pre>
+              </div>
             </div>
           </div>
         </div>
