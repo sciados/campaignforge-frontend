@@ -1,6 +1,6 @@
-// src/app/campaigns/[id]/content/page.tsx - ENHANCED CONTENT VIEW/EDIT
+// src/app/campaigns/[id]/content/page.tsx - OPTIMIZED ENHANCED CONTENT VIEW/EDIT
 'use client'
-import React, { useState, useEffect, useCallback } from 'react'
+import React, { useState, useEffect, useCallback, useMemo } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { 
   ArrowLeft, 
@@ -237,6 +237,7 @@ export default function EnhancedCampaignContentPage() {
   const [editedContent, setEditedContent] = useState('')
   const [hasChanges, setHasChanges] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
+  const [isRefreshing, setIsRefreshing] = useState(false)
 
   // Navigation functions
   const goBackToCampaign = () => {
@@ -247,25 +248,30 @@ export default function EnhancedCampaignContentPage() {
     router.push(`/campaigns/${campaignId}?step=4`)
   }
 
-  // ✅ ENHANCED: Load campaign content
-  const loadCampaignContent = useCallback(async () => {
-    if (!campaignId || isLoading) return
+  // ✅ OPTIMIZED: Memoized content loading function to prevent unnecessary re-renders
+  const loadCampaignContent = useCallback(async (forceRefresh = false) => {
+    if (!campaignId || (isLoading && !forceRefresh)) return
 
     try {
       console.log('🔄 Loading enhanced campaign content for:', campaignId)
-      setIsLoading(true)
+      if (forceRefresh) {
+        setIsRefreshing(true)
+      } else {
+        setIsLoading(true)
+      }
       setError(null)
       
-      // Load campaign details
-      const campaignData = await api.getCampaign(campaignId)
-      setCampaign(campaignData)
-      console.log('✅ Campaign loaded:', campaignData.title)
+      // Load campaign details and intelligence in parallel
+      const [campaignData, intelligence] = await Promise.all([
+        api.getCampaign(campaignId),
+        api.getCampaignIntelligence(campaignId)
+      ])
       
-      // Load intelligence and content
-      const intelligence = await api.getCampaignIntelligence(campaignId)
+      setCampaign(campaignData)
       setIntelligenceData(intelligence)
       
       console.log('✅ Enhanced intelligence loaded:', {
+        campaign: campaignData.title,
         sources: intelligence.intelligence_sources?.length || 0,
         content: intelligence.generated_content?.length || 0,
         amplified_sources: intelligence.summary?.amplification_summary?.sources_amplified || 0
@@ -276,17 +282,19 @@ export default function EnhancedCampaignContentPage() {
       setError(err instanceof Error ? err.message : 'Failed to load content')
     } finally {
       setIsLoading(false)
+      setIsRefreshing(false)
     }
   }, [campaignId, isLoading, api])
 
+  // ✅ OPTIMIZED: Only load on mount and campaignId change
   useEffect(() => {
-    if (campaignId) {
+    if (campaignId && !intelligenceData) {
       loadCampaignContent()
     }
-  }, [campaignId, loadCampaignContent])
+  }, [campaignId, intelligenceData, loadCampaignContent])
 
-  // ✅ ENHANCED: Get display content with proper parsing
-  const getDisplayContent = () => {
+  // ✅ OPTIMIZED: Memoized display content to prevent recalculation on every render
+  const displayContent = useMemo(() => {
     if (!intelligenceData) return []
     
     const displayItems: any[] = []
@@ -313,7 +321,7 @@ export default function EnhancedCampaignContentPage() {
       })
     })
     
-    // ✅ ENHANCED: Add generated content with proper parsing
+    // Add generated content with proper parsing
     intelligenceData.generated_content?.forEach(content => {
       const parsedContent = parseContentBody(content.content_body, content.content_type)
       const formattedContent = formatContentForDisplay(parsedContent, content.content_type)
@@ -327,20 +335,18 @@ export default function EnhancedCampaignContentPage() {
         user_rating: content.user_rating,
         is_published: content.is_published,
         performance_data: content.performance_data,
-        // ✅ ENHANCED: Include parsed content structure
         parsed_content: parsedContent,
         formatted_content: formattedContent,
         content_metadata: content.content_metadata,
         generation_settings: content.generation_settings,
         intelligence_used: content.intelligence_used,
-        // Amplification context
         is_amplified_content: content.amplification_context?.generated_from_amplified_intelligence || false,
         amplification_metadata: content.amplification_context?.amplification_metadata || {}
       })
     })
     
     return displayItems
-  }
+  }, [intelligenceData])
 
   // ✅ ENHANCED: Content type icons and colors
   const getContentIcon = (type: string) => {
@@ -385,28 +391,34 @@ export default function EnhancedCampaignContentPage() {
     return formatted[type] || type.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())
   }
 
-  // ✅ ENHANCED: Categories with counts
-  const getContentCategories = () => {
-    const content = getDisplayContent()
-    const uniqueTypes = Array.from(new Set(content.map(c => c.content_type)))
+  // ✅ OPTIMIZED: Memoized categories to prevent recalculation
+  const contentCategories = useMemo(() => {
+    const uniqueTypes = Array.from(new Set(displayContent.map(c => c.content_type)))
     const categories = ['all', ...uniqueTypes]
     
     return categories.map(cat => ({
       value: cat,
       label: cat === 'all' ? 'All Content' : formatContentType(cat),
-      count: cat === 'all' ? content.length : content.filter(c => c.content_type === cat).length
+      count: cat === 'all' ? displayContent.length : displayContent.filter(c => c.content_type === cat).length
     }))
-  }
+  }, [displayContent])
 
-  // ✅ ENHANCED: Filtering with amplification status
-  const filteredContent = getDisplayContent().filter(item => {
-    const matchesCategory = selectedCategory === 'all' || item.content_type === selectedCategory
-    const matchesSearch = searchTerm === '' || 
-      item.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.content_type.toLowerCase().includes(searchTerm.toLowerCase())
-    
-    return matchesCategory && matchesSearch
-  })
+  // ✅ OPTIMIZED: Memoized filtered content
+  const filteredContent = useMemo(() => {
+    return displayContent.filter(item => {
+      const matchesCategory = selectedCategory === 'all' || item.content_type === selectedCategory
+      const matchesSearch = searchTerm === '' || 
+        item.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        item.content_type.toLowerCase().includes(searchTerm.toLowerCase())
+      
+      return matchesCategory && matchesSearch
+    })
+  }, [displayContent, selectedCategory, searchTerm])
+
+  // ✅ OPTIMIZED: Handle refresh with loading state
+  const handleRefresh = useCallback(async () => {
+    await loadCampaignContent(true)
+  }, [loadCampaignContent])
 
   // ✅ ENHANCED: Copy content with proper formatting
   const handleCopyContent = async (content: any) => {
@@ -433,7 +445,6 @@ export default function EnhancedCampaignContentPage() {
           textContent += `Emotional Triggers:\n${data.psychology_intelligence.emotional_triggers.join('\n')}\n\n`
         }
       } else {
-        // ✅ ENHANCED: Copy formatted content
         textContent = `${content.title}\n\nType: ${formatContentType(content.content_type)}\n\n`
         
         if (content.is_amplified_content) {
@@ -514,7 +525,6 @@ export default function EnhancedCampaignContentPage() {
     if (content.type === 'intelligence') {
       setEditedContent(JSON.stringify(content.data, null, 2))
     } else if (content.formatted_content) {
-      // Create editable text from formatted content
       const editableText = content.formatted_content.map((section: any) => 
         `${section.title}\n${'-'.repeat(section.title.length)}\n${section.content}`
       ).join('\n\n')
@@ -534,17 +544,13 @@ export default function EnhancedCampaignContentPage() {
     setIsSaving(true)
     try {
       // Here you would implement the actual save functionality
-      // For now, we'll just simulate it
       await new Promise(resolve => setTimeout(resolve, 1000))
-      
-      // In real implementation, you'd call:
-      // await api.updateGeneratedContent(selectedContent.id, editedContent)
       
       setHasChanges(false)
       setIsEditing(false)
       
       // Refresh the content
-      await loadCampaignContent()
+      await loadCampaignContent(true)
       
     } catch (error) {
       console.error('Failed to save content:', error)
@@ -578,10 +584,11 @@ export default function EnhancedCampaignContentPage() {
           <p className="text-gray-600 mb-4">{error}</p>
           <div className="flex space-x-3 justify-center">
             <button
-              onClick={() => window.location.reload()}
-              className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+              onClick={handleRefresh}
+              disabled={isRefreshing}
+              className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors disabled:bg-blue-400"
             >
-              Try Again
+              {isRefreshing ? 'Retrying...' : 'Try Again'}
             </button>
             <button
               onClick={() => router.push('/campaigns')}
@@ -623,11 +630,12 @@ export default function EnhancedCampaignContentPage() {
             
             <div className="flex items-center space-x-3">
               <button
-                onClick={() => window.location.reload()}
-                className="flex items-center space-x-2 px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                onClick={handleRefresh}
+                disabled={isRefreshing}
+                className="flex items-center space-x-2 px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:bg-blue-400"
               >
-                <RefreshCw className="h-4 w-4" />
-                <span>Refresh</span>
+                <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+                <span>{isRefreshing ? 'Refreshing...' : 'Refresh'}</span>
               </button>
               <button
                 onClick={goToGenerateMore}
@@ -647,7 +655,7 @@ export default function EnhancedCampaignContentPage() {
           <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between space-y-4 lg:space-y-0">
             {/* Category Filter */}
             <div className="flex flex-wrap gap-2">
-              {getContentCategories().map(category => (
+              {contentCategories.map(category => (
                 <button
                   key={category.value}
                   onClick={() => setSelectedCategory(category.value)}
@@ -682,7 +690,7 @@ export default function EnhancedCampaignContentPage() {
             <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
             <h3 className="text-lg font-medium text-gray-900 mb-2">No Content Found</h3>
             <p className="text-gray-600 mb-4">
-              {getDisplayContent().length === 0 
+              {displayContent.length === 0 
                 ? "No content or intelligence sources have been created for this campaign yet."
                 : "No content matches your current filters."
               }
