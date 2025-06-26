@@ -1,4 +1,4 @@
-// src/app/campaigns/[id]/content/page.tsx - OPTIMIZED ENHANCED CONTENT VIEW/EDIT
+// src/app/campaigns/[id]/content/page.tsx - FIXED INFINITE LOOP ISSUE
 'use client'
 import React, { useState, useEffect, useCallback, useMemo } from 'react'
 import { useParams, useRouter } from 'next/navigation'
@@ -238,6 +238,8 @@ export default function EnhancedCampaignContentPage() {
   const [hasChanges, setHasChanges] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [isRefreshing, setIsRefreshing] = useState(false)
+  // ✅ FIX: Add a flag to track if data has been loaded to prevent infinite loops
+  const [hasInitiallyLoaded, setHasInitiallyLoaded] = useState(false)
 
   // Navigation functions
   const goBackToCampaign = () => {
@@ -248,17 +250,13 @@ export default function EnhancedCampaignContentPage() {
     router.push(`/campaigns/${campaignId}?step=4`)
   }
 
-  // ✅ OPTIMIZED: Memoized content loading function to prevent unnecessary re-renders
-  const loadCampaignContent = useCallback(async (forceRefresh = false) => {
-    if (!campaignId || (isLoading && !forceRefresh)) return
+  // ✅ FIX: Simplified loading function without dependencies that cause infinite loops
+  const loadCampaignContent = useCallback(async () => {
+    if (!campaignId) return
 
     try {
       console.log('🔄 Loading enhanced campaign content for:', campaignId)
-      if (forceRefresh) {
-        setIsRefreshing(true)
-      } else {
-        setIsLoading(true)
-      }
+      setIsLoading(true)
       setError(null)
       
       // Load campaign details and intelligence in parallel
@@ -269,6 +267,7 @@ export default function EnhancedCampaignContentPage() {
       
       setCampaign(campaignData)
       setIntelligenceData(intelligence)
+      setHasInitiallyLoaded(true) // ✅ FIX: Mark as loaded
       
       console.log('✅ Enhanced intelligence loaded:', {
         campaign: campaignData.title,
@@ -282,16 +281,42 @@ export default function EnhancedCampaignContentPage() {
       setError(err instanceof Error ? err.message : 'Failed to load content')
     } finally {
       setIsLoading(false)
+    }
+  }, [campaignId, api]) // ✅ FIX: Only depend on stable values
+
+  // ✅ FIX: Separate refresh function to avoid dependency issues
+  const handleRefresh = useCallback(async () => {
+    if (!campaignId) return
+
+    try {
+      console.log('🔄 Refreshing campaign content...')
+      setIsRefreshing(true)
+      setError(null)
+      
+      const [campaignData, intelligence] = await Promise.all([
+        api.getCampaign(campaignId),
+        api.getCampaignIntelligence(campaignId)
+      ])
+      
+      setCampaign(campaignData)
+      setIntelligenceData(intelligence)
+      
+      console.log('✅ Content refreshed successfully')
+      
+    } catch (err) {
+      console.error('❌ Failed to refresh content:', err)
+      setError(err instanceof Error ? err.message : 'Failed to refresh content')
+    } finally {
       setIsRefreshing(false)
     }
-  }, [campaignId, isLoading, api])
+  }, [campaignId, api])
 
-  // ✅ OPTIMIZED: Only load on mount and campaignId change
+  // ✅ FIX: Only load once when component mounts and campaignId exists
   useEffect(() => {
-    if (campaignId && !intelligenceData) {
+    if (campaignId && !hasInitiallyLoaded && !isLoading) {
       loadCampaignContent()
     }
-  }, [campaignId, intelligenceData, loadCampaignContent])
+  }, [campaignId, hasInitiallyLoaded, isLoading, loadCampaignContent])
 
   // ✅ OPTIMIZED: Memoized display content to prevent recalculation on every render
   const displayContent = useMemo(() => {
@@ -414,11 +439,6 @@ export default function EnhancedCampaignContentPage() {
       return matchesCategory && matchesSearch
     })
   }, [displayContent, selectedCategory, searchTerm])
-
-  // ✅ OPTIMIZED: Handle refresh with loading state
-  const handleRefresh = useCallback(async () => {
-    await loadCampaignContent(true)
-  }, [loadCampaignContent])
 
   // ✅ ENHANCED: Copy content with proper formatting
   const handleCopyContent = async (content: any) => {
@@ -550,7 +570,7 @@ export default function EnhancedCampaignContentPage() {
       setIsEditing(false)
       
       // Refresh the content
-      await loadCampaignContent(true)
+      await handleRefresh()
       
     } catch (error) {
       console.error('Failed to save content:', error)
