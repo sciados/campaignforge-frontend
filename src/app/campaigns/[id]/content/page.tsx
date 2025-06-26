@@ -1,11 +1,10 @@
-// src/app/campaigns/[id]/content/page.tsx - FIXED VERSION WITH ROBUST PARSING
+// src/app/campaigns/[id]/content/page.tsx - CLEAN VERSION WITH SEPARATE MODAL
 'use client'
 import React, { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { 
   ArrowLeft, 
   Download, 
-  Edit3, 
   Eye, 
   Copy, 
   Mail,
@@ -16,16 +15,14 @@ import {
   TrendingUp,
   Search,
   Plus,
-  X,
   RefreshCw,
-  Save,
-  Undo,
   ExternalLink,
   Star,
   Target,
   Zap
 } from 'lucide-react'
 import { useApi } from '@/lib/api'
+import ContentViewEditModal from '@/components/campaigns/ContentViewEditModal'
 
 export default function FixedCampaignContentPage() {
   const params = useParams()
@@ -39,12 +36,9 @@ export default function FixedCampaignContentPage() {
   const [error, setError] = useState<string | null>(null)
   const [selectedCategory, setSelectedCategory] = useState<string>('all')
   const [searchTerm, setSearchTerm] = useState('')
-  const [selectedContent, setSelectedContent] = useState<any | null>(null)
-  const [isEditing, setIsEditing] = useState(false)
-  const [editedContent, setEditedContent] = useState('')
-  const [hasChanges, setHasChanges] = useState(false)
-  const [isSaving, setIsSaving] = useState(false)
   const [isRefreshing, setIsRefreshing] = useState(false)
+  const [selectedContent, setSelectedContent] = useState<any | null>(null)
+  const [isContentModalOpen, setIsContentModalOpen] = useState(false)
 
   // Load data on mount
   useEffect(() => {
@@ -938,44 +932,29 @@ export default function FixedCampaignContentPage() {
     URL.revokeObjectURL(url)
   }
 
+  // Modal functions
   const openContentModal = (content: any) => {
     setSelectedContent(content)
-    
-    if (content.type === 'intelligence') {
-      setEditedContent(JSON.stringify(content.data, null, 2))
-    } else {
-      // Use the formatted editable text instead of raw JSON
-      setEditedContent(content.editable_text || content.raw_content_body || 'No content available')
-    }
-    
-    setIsEditing(false)
-    setHasChanges(false)
+    setIsContentModalOpen(true)
   }
 
-  const handleSaveContent = async () => {
-    if (!selectedContent || !hasChanges) return
-    
-    setIsSaving(true)
-    try {
-      // Simulate save
-      await new Promise(resolve => setTimeout(resolve, 1000))
-      
-      setHasChanges(false)
-      setIsEditing(false)
-      
-      // Refresh
-      await handleRefresh()
-      
-    } catch (error) {
-      console.error('Failed to save content:', error)
-    } finally {
-      setIsSaving(false)
-    }
+  const closeContentModal = () => {
+    setSelectedContent(null)
+    setIsContentModalOpen(false)
   }
 
-  const handleContentChange = (newContent: string) => {
-    setEditedContent(newContent)
-    setHasChanges(true)
+  const handleSaveContent = async (contentId: string, newContent: string) => {
+    // TODO: Implement actual save logic
+    // This would parse the edited content back into the appropriate format
+    // and call your API to update the content
+    
+    console.log('Saving content:', { contentId, newContent })
+    
+    // Simulate save
+    await new Promise(resolve => setTimeout(resolve, 1000))
+    
+    // Refresh content after save
+    await handleRefresh()
   }
 
   // Get data for rendering
@@ -1160,7 +1139,7 @@ export default function FixedCampaignContentPage() {
                     )}
                   </div>
 
-                  {/* Content Preview - ENHANCED with better status indicators */}
+                  {/* Content Preview */}
                   <div className="mb-4">
                     <div className="text-sm text-gray-600 line-clamp-3">
                       {item.type === 'intelligence' 
@@ -1241,359 +1220,15 @@ export default function FixedCampaignContentPage() {
         )}
       </div>
 
-      {/* Content Modal - ENHANCED */}
-      {selectedContent && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg max-w-4xl w-full max-h-[80vh] overflow-hidden flex flex-col">
-            {/* Modal Header */}
-            <div className="flex items-center justify-between p-6 border-b border-gray-200">
-              <div>
-                <h2 className="text-xl font-semibold text-gray-900 flex items-center">
-                  {selectedContent.title}
-                  {(selectedContent.is_amplified || selectedContent.is_amplified_content) && (
-                    <span className="ml-2 text-purple-600">🚀</span>
-                  )}
-                </h2>
-                <p className="text-sm text-gray-500">
-                  {formatContentType(selectedContent.content_type)}
-                  {selectedContent.confidence_score && (
-                    <span className="ml-2 text-purple-600">
-                      Confidence: {Math.round(selectedContent.confidence_score * 100)}%
-                    </span>
-                  )}
-                  {!selectedContent.has_valid_content && selectedContent.type === 'generated_content' && (
-                    <span className="ml-2 text-red-600">
-                      ⚠️ {selectedContent.parse_result?.error || 'Parse failed'}
-                    </span>
-                  )}
-                </p>
-              </div>
-              
-              <div className="flex items-center space-x-2">
-                {selectedContent.type === 'generated_content' && (
-                  <>
-                    {isEditing ? (
-                      <>
-                        <button
-                          onClick={() => {
-                            setIsEditing(false)
-                            setHasChanges(false)
-                          }}
-                          className="px-3 py-2 text-gray-600 hover:text-gray-800 transition-colors"
-                          disabled={isSaving}
-                        >
-                          <Undo className="h-4 w-4" />
-                        </button>
-                        <button
-                          onClick={handleSaveContent}
-                          disabled={!hasChanges || isSaving}
-                          className="flex items-center space-x-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:bg-gray-400"
-                        >
-                          <Save className="h-4 w-4" />
-                          <span>{isSaving ? 'Saving...' : 'Save'}</span>
-                        </button>
-                      </>
-                    ) : (
-                      <button
-                        onClick={() => setIsEditing(true)}
-                        className="flex items-center space-x-2 px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-                      >
-                        <Edit3 className="h-4 w-4" />
-                        <span>Edit</span>
-                      </button>
-                    )}
-                  </>
-                )}
-                <button
-                  onClick={() => setSelectedContent(null)}
-                  className="p-2 text-gray-400 hover:text-gray-600 transition-colors"
-                >
-                  <X className="h-5 w-5" />
-                </button>
-              </div>
-            </div>
-            
-            {/* Modal Content */}
-            <div className="flex-1 overflow-y-auto">
-              {isEditing ? (
-                <div className="p-6">
-                  <textarea
-                    value={editedContent}
-                    onChange={(e) => handleContentChange(e.target.value)}
-                    className="w-full h-96 p-4 border border-gray-300 rounded-lg font-mono text-sm resize-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                    placeholder="Edit your content here..."
-                  />
-                  {hasChanges && (
-                    <p className="text-sm text-orange-600 mt-2">
-                      You have unsaved changes
-                    </p>
-                  )}
-                </div>
-              ) : (
-                <div className="p-6">
-                  {selectedContent.type === 'intelligence' ? (
-                    <div className="space-y-6">
-                      {/* Intelligence Source Information */}
-                      <div className="bg-gray-50 p-4 rounded-lg">
-                        <h3 className="font-semibold text-gray-900 mb-2">Source Information</h3>
-                        {selectedContent.source_url && (
-                          <div className="mb-2">
-                            <span className="text-sm text-gray-600">URL: </span>
-                            <a 
-                              href={selectedContent.source_url} 
-                              target="_blank" 
-                              rel="noopener noreferrer"
-                              className="text-blue-600 hover:text-blue-800 text-sm underline"
-                            >
-                              {selectedContent.source_url}
-                            </a>
-                          </div>
-                        )}
-                        <div className="grid grid-cols-2 gap-4 text-sm">
-                          <div>
-                            <span className="text-gray-600">Confidence: </span>
-                            <span className="font-medium">{Math.round(selectedContent.confidence_score * 100)}%</span>
-                          </div>
-                          <div>
-                            <span className="text-gray-600">Type: </span>
-                            <span className="font-medium">{formatContentType(selectedContent.content_type)}</span>
-                          </div>
-                          {selectedContent.is_amplified && (
-                            <>
-                              <div>
-                                <span className="text-gray-600">Amplified: </span>
-                                <span className="font-medium text-purple-600">Yes 🚀</span>
-                              </div>
-                              <div>
-                                <span className="text-gray-600">Boost: </span>
-                                <span className="font-medium text-green-600">+{Math.round(selectedContent.amplification_boost * 100)}%</span>
-                              </div>
-                            </>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Intelligence Data */}
-                      <div className="border border-gray-200 rounded-lg p-4">
-                        <h3 className="font-semibold text-gray-900 mb-3">Intelligence Data</h3>
-                        <pre className="whitespace-pre-wrap font-mono text-sm bg-gray-50 p-4 rounded border max-h-96 overflow-y-auto">
-                          {JSON.stringify(selectedContent.data, null, 2)}
-                        </pre>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="space-y-6">
-                      {/* Generated Content Information */}
-                      <div className="bg-gray-50 p-4 rounded-lg">
-                        <h3 className="font-semibold text-gray-900 mb-2">Content Information</h3>
-                        <div className="grid grid-cols-2 gap-4 text-sm">
-                          <div>
-                            <span className="text-gray-600">Type: </span>
-                            <span className="font-medium">{formatContentType(selectedContent.content_type)}</span>
-                          </div>
-                          <div>
-                            <span className="text-gray-600">Created: </span>
-                            <span className="font-medium">{new Date(selectedContent.created_at).toLocaleDateString()}</span>
-                          </div>
-                          {selectedContent.user_rating && (
-                            <div>
-                              <span className="text-gray-600">Rating: </span>
-                              <div className="inline-flex items-center">
-                                {[...Array(selectedContent.user_rating)].map((_, i) => (
-                                  <Star key={i} className="h-4 w-4 text-yellow-400 fill-current" />
-                                ))}
-                              </div>
-                            </div>
-                          )}
-                          <div>
-                            <span className="text-gray-600">Published: </span>
-                            <span className="font-medium">{selectedContent.is_published ? 'Yes' : 'No'}</span>
-                          </div>
-                          {selectedContent.is_amplified_content && (
-                            <div className="col-span-2">
-                              <span className="text-gray-600">Amplified Intelligence: </span>
-                              <span className="font-medium text-purple-600">Yes ✨</span>
-                            </div>
-                          )}
-                          <div className="col-span-2">
-                            <span className="text-gray-600">Content Status: </span>
-                            <span className={`font-medium ${selectedContent.has_valid_content ? 'text-green-600' : 'text-red-600'}`}>
-                              {selectedContent.has_valid_content ? '✅ Valid' : '❌ Parse Failed'}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Content Data - ENHANCED with actionable suggestions for empty content */}
-                      <div className="border border-gray-200 rounded-lg p-4">
-                        <h3 className="font-semibold text-gray-900 mb-3">Generated Content</h3>
-                        
-                        {selectedContent.has_valid_content && selectedContent.formatted_content?.length > 0 ? (
-                          <div className="space-y-4">
-                            {selectedContent.formatted_content.map((section: any, index: number) => (
-                              <div key={index} className="border border-gray-100 rounded-lg p-4 bg-gray-50">
-                                <h4 className="font-semibold text-gray-800 mb-3 text-lg">{section.title}</h4>
-                                <div className="bg-white p-3 rounded border">
-                                  <div className="whitespace-pre-wrap text-gray-700 leading-relaxed mb-3">
-                                    {section.content}
-                                  </div>
-                                  {section.metadata && Object.keys(section.metadata).length > 0 && (
-                                    <div className="border-t pt-3 mt-3">
-                                      <h5 className="font-medium text-gray-600 text-sm mb-2">Details</h5>
-                                      <div className="grid grid-cols-2 gap-2 text-sm">
-                                        {Object.entries(section.metadata).map(([key, value]) => (
-                                          <div key={key} className="flex flex-col">
-                                            <span className="text-gray-500 text-xs uppercase tracking-wide">{key.replace('_', ' ')}</span>
-                                            <span className="text-gray-800 font-medium">
-                                              {Array.isArray(value) ? value.join(', ') : String(value)}
-                                            </span>
-                                          </div>
-                                        ))}
-                                      </div>
-                                    </div>
-                                  )}
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        ) : (
-                          <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
-                            <div className="flex items-start space-x-3">
-                              <div className="flex-shrink-0">
-                                <div className="w-8 h-8 bg-amber-100 rounded-full flex items-center justify-center">
-                                  <span className="text-amber-600 text-lg">⚠️</span>
-                                </div>
-                              </div>
-                              <div className="flex-1">
-                                <h4 className="font-medium text-amber-800 mb-2">Content Not Available</h4>
-                                <p className="text-amber-700 text-sm mb-3">
-                                  {selectedContent.parse_result?.error || 'Content could not be loaded'}
-                                </p>
-                                
-                                {selectedContent.parse_result?.isEmpty && (
-                                  <div className="bg-amber-100 border border-amber-300 rounded p-3 mb-3">
-                                    <p className="text-amber-800 text-sm font-medium mb-2">💡 What happened?</p>
-                                    <p className="text-amber-700 text-sm mb-2">
-                                      The content_body field in the database is empty (length: {selectedContent.raw_content_body?.length || 0}). 
-                                      This usually means:
-                                    </p>
-                                    <ul className="text-amber-700 text-sm list-disc list-inside space-y-1">
-                                      <li>The AI content generation failed silently</li>
-                                      <li>The content was generated but not saved properly</li>
-                                      <li>There was a database write error during generation</li>
-                                    </ul>
-                                  </div>
-                                )}
-                                
-                                {selectedContent.parse_result?.suggestion && (
-                                  <div className="bg-blue-50 border border-blue-200 rounded p-3 mb-3">
-                                    <p className="text-blue-800 text-sm font-medium mb-1">🔧 Recommended Action:</p>
-                                    <p className="text-blue-700 text-sm">{selectedContent.parse_result.suggestion}</p>
-                                  </div>
-                                )}
-                                
-                                <div className="flex items-center space-x-3 mt-4">
-                                  <button
-                                    onClick={() => {
-                                      setSelectedContent(null)
-                                      goToGenerateMore()
-                                    }}
-                                    className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition-colors text-sm"
-                                  >
-                                    🔄 Regenerate Content
-                                  </button>
-                                  <button
-                                    onClick={handleRefresh}
-                                    className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors text-sm"
-                                  >
-                                    🔍 Refresh Data
-                                  </button>
-                                </div>
-                              </div>
-                            </div>
-                            
-                            <details className="mt-4">
-                              <summary className="cursor-pointer text-amber-600 hover:text-amber-800 text-sm font-medium">
-                                🔧 Show Technical Details
-                              </summary>
-                              <div className="mt-3 space-y-3">
-                                <div className="bg-amber-100 border border-amber-300 rounded p-3">
-                                  <p className="text-xs text-amber-600 mb-2">
-                                    Raw content_body (length: {selectedContent.raw_content_body?.length || 0}):
-                                  </p>
-                                  <pre className="text-xs text-amber-800 overflow-x-auto whitespace-pre-wrap max-h-20 overflow-y-auto bg-white p-2 rounded border">
-                                    {selectedContent.raw_content_body || '[Empty/null content_body field]'}
-                                  </pre>
-                                </div>
-                                <div className="bg-amber-100 border border-amber-300 rounded p-3">
-                                  <p className="text-xs text-amber-600 mb-2">Parse attempt result:</p>
-                                  <pre className="text-xs text-amber-800 overflow-x-auto whitespace-pre-wrap max-h-32 overflow-y-auto bg-white p-2 rounded border">
-                                    {JSON.stringify(selectedContent.parse_result, null, 2)}
-                                  </pre>
-                                </div>
-                              </div>
-                            </details>
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Metadata */}
-                      {selectedContent.content_metadata && Object.keys(selectedContent.content_metadata).length > 0 && (
-                        <div className="border border-gray-200 rounded-lg p-4">
-                          <h3 className="font-semibold text-gray-900 mb-3">Content Metadata</h3>
-                          <pre className="whitespace-pre-wrap font-mono text-sm bg-gray-50 p-4 rounded border max-h-60 overflow-y-auto">
-                            {JSON.stringify(selectedContent.content_metadata, null, 2)}
-                          </pre>
-                        </div>
-                      )}
-
-                      {/* Generation Settings */}
-                      {selectedContent.generation_settings && Object.keys(selectedContent.generation_settings).length > 0 && (
-                        <div className="border border-gray-200 rounded-lg p-4">
-                          <h3 className="font-semibold text-gray-900 mb-3">Generation Settings</h3>
-                          <pre className="whitespace-pre-wrap font-mono text-sm bg-gray-50 p-4 rounded border max-h-60 overflow-y-auto">
-                            {JSON.stringify(selectedContent.generation_settings, null, 2)}
-                          </pre>
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-
-            {/* Modal Footer */}
-            <div className="border-t border-gray-200 p-4 bg-gray-50">
-              <div className="flex items-center justify-between">
-                <div className="text-sm text-gray-600">
-                  {selectedContent.type === 'intelligence' 
-                    ? `Intelligence source with analysis data`
-                    : selectedContent.has_valid_content
-                      ? `Generated content item with ${selectedContent.formatted_content?.length || 0} sections`
-                      : `Content item (parsing failed: ${selectedContent.parse_result?.error || 'unknown error'})`
-                  }
-                </div>
-                <div className="flex items-center space-x-2">
-                  <button
-                    onClick={() => handleCopyContent(selectedContent)}
-                    className="flex items-center space-x-2 px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
-                  >
-                    <Copy className="h-4 w-4" />
-                    <span>Copy All</span>
-                  </button>
-                  <button
-                    onClick={() => handleDownloadContent(selectedContent)}
-                    className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-                  >
-                    <Download className="h-4 w-4" />
-                    <span>Download</span>
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Content Modal */}
+      <ContentViewEditModal
+        content={selectedContent}
+        isOpen={isContentModalOpen}
+        onClose={closeContentModal}
+        onSave={handleSaveContent}
+        onRefresh={handleRefresh}
+        formatContentType={formatContentType}
+      />
     </div>
   )
 }
