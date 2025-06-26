@@ -1,6 +1,6 @@
-// src/lib/api.ts - COMPLETE FIXED VERSION
+// src/lib/api.ts - COMPLETE UPDATED VERSION WITH CONTENT MANAGEMENT
 /**
- * Enhanced API client for CampaignForge with flexible workflow support
+ * Enhanced API client for CampaignForge with flexible workflow support and content management
  */
 
 const API_BASE_URL = 'https://campaign-backend-production-e2db.up.railway.app'
@@ -124,6 +124,91 @@ export interface GeneratedContent {
   }
   smart_url?: string
   performance_predictions: any
+}
+
+// ✅ NEW: Enhanced content types for content management
+export interface GeneratedContentItem {
+  id: string
+  content_type: string
+  content_title: string
+  content_body: string // JSON string containing the actual content
+  content_metadata: any
+  generation_settings: any
+  intelligence_used: any
+  performance_data?: any
+  user_rating?: number
+  is_published?: boolean
+  published_at?: string
+  created_at: string
+  updated_at?: string
+  // Amplification context
+  amplification_context?: {
+    generated_from_amplified_intelligence: boolean
+    amplification_metadata: any
+  }
+}
+
+export interface ContentListResponse {
+  campaign_id: string
+  total_content: number
+  content_items: GeneratedContentItem[]
+}
+
+export interface ContentDetailResponse {
+  id: string
+  campaign_id: string
+  content_type: string
+  content_title: string
+  content_body: string
+  parsed_content: any
+  content_metadata: any
+  generation_settings: any
+  intelligence_used: any
+  performance_data: any
+  user_rating?: number
+  is_published: boolean
+  published_at?: string
+  created_at: string
+  updated_at?: string
+  intelligence_source?: {
+    id: string
+    source_title: string
+    source_url?: string
+    confidence_score: number
+    source_type: string
+  }
+}
+
+export interface ContentStats {
+  campaign_id: string
+  total_content: number
+  published_content: number
+  unpublished_content: number
+  rated_content: number
+  average_rating: number
+  amplified_content: number
+  recent_content: number
+  content_by_type: Record<string, number>
+  performance_metrics: {
+    publication_rate: number
+    rating_rate: number
+    amplification_rate: number
+  }
+}
+
+export interface BulkActionResponse {
+  campaign_id: string
+  action: string
+  total_items: number
+  successful: number
+  failed: number
+  results: Array<{
+    id: string
+    action: string
+    success: boolean
+    error?: string
+    rating?: number
+  }>
 }
 
 export interface User {
@@ -339,14 +424,12 @@ class ApiClient {
     return this.handleResponse<Campaign>(response)
   }
 
-  // 🔧 FIXED: Complete getCampaigns method
   async getCampaigns(params?: {
     page?: number
     limit?: number
     status_filter?: string
     search?: string
   }): Promise<Campaign[]> {
-    // 🔧 FIX: Properly construct URL to avoid any potential issues
     const baseUrl = `${this.baseURL}/api/campaigns`
     
     // Build search params
@@ -356,7 +439,6 @@ class ApiClient {
     if (params?.status_filter) searchParams.set('status_filter', params.status_filter)
     if (params?.search) searchParams.set('search', params.search)
 
-    // 🔧 FIX: Use proper URL construction
     const fullUrl = searchParams.toString() 
       ? `${baseUrl}?${searchParams.toString()}`
       : baseUrl
@@ -422,7 +504,6 @@ class ApiClient {
     return this.handleResponse<Campaign>(response)
   }
 
-  // 🔧 FIXED: Add the missing getGeneratedContent method that the frontend expects
   async getGeneratedContent(campaignId: string): Promise<any[]> {
     console.log('🔍 getGeneratedContent called for campaign:', campaignId)
     
@@ -451,6 +532,115 @@ class ApiClient {
       // Return empty array instead of throwing to prevent infinite loops
       return []
     }
+  }
+
+  // ============================================================================
+  // ✅ NEW: CONTENT MANAGEMENT METHODS
+  // ============================================================================
+
+  async getContentList(campaignId: string, includeBody = false, contentType?: string): Promise<ContentListResponse> {
+    const params = new URLSearchParams()
+    if (includeBody) params.set('include_body', 'true')
+    if (contentType) params.set('content_type', contentType)
+    
+    const response = await fetch(`${this.baseURL}/api/campaigns/${campaignId}/content?${params}`, {
+      headers: this.getHeaders()
+    })
+    
+    return this.handleResponse<ContentListResponse>(response)
+  }
+
+  async getContentDetail(campaignId: string, contentId: string): Promise<ContentDetailResponse> {
+    const response = await fetch(`${this.baseURL}/api/campaigns/${campaignId}/content/${contentId}`, {
+      headers: this.getHeaders()
+    })
+    
+    return this.handleResponse<ContentDetailResponse>(response)
+  }
+
+  async updateContent(campaignId: string, contentId: string, updateData: any): Promise<{
+    id: string
+    message: string
+    updated_at: string
+  }> {
+    const response = await fetch(`${this.baseURL}/api/campaigns/${campaignId}/content/${contentId}`, {
+      method: 'PUT',
+      headers: this.getHeaders(),
+      body: JSON.stringify(updateData)
+    })
+    
+    return this.handleResponse(response)
+  }
+
+  async deleteContent(campaignId: string, contentId: string): Promise<{ message: string }> {
+    const response = await fetch(`${this.baseURL}/api/campaigns/${campaignId}/content/${contentId}`, {
+      method: 'DELETE',
+      headers: this.getHeaders()
+    })
+    
+    return this.handleResponse(response)
+  }
+
+  async rateContent(campaignId: string, contentId: string, rating: number): Promise<{
+    id: string
+    rating: number
+    message: string
+  }> {
+    const response = await fetch(`${this.baseURL}/api/campaigns/${campaignId}/content/${contentId}/rate`, {
+      method: 'POST',
+      headers: this.getHeaders(),
+      body: JSON.stringify({ rating })
+    })
+    
+    return this.handleResponse(response)
+  }
+
+  async publishContent(campaignId: string, contentId: string, publishedAt?: string): Promise<{
+    id: string
+    is_published: boolean
+    published_at: string
+    message: string
+  }> {
+    const response = await fetch(`${this.baseURL}/api/campaigns/${campaignId}/content/${contentId}/publish`, {
+      method: 'POST',
+      headers: this.getHeaders(),
+      body: JSON.stringify({ published_at: publishedAt || 'Manual' })
+    })
+    
+    return this.handleResponse(response)
+  }
+
+  async bulkContentAction(campaignId: string, contentIds: string[], action: string, params: any = {}): Promise<BulkActionResponse> {
+    const response = await fetch(`${this.baseURL}/api/campaigns/${campaignId}/content/bulk-action`, {
+      method: 'POST',
+      headers: this.getHeaders(),
+      body: JSON.stringify({ content_ids: contentIds, action, params })
+    })
+    
+    return this.handleResponse<BulkActionResponse>(response)
+  }
+
+  async getContentStats(campaignId: string): Promise<ContentStats> {
+    const response = await fetch(`${this.baseURL}/api/campaigns/${campaignId}/content/stats`, {
+      headers: this.getHeaders()
+    })
+    
+    return this.handleResponse<ContentStats>(response)
+  }
+
+  async duplicateContent(campaignId: string, contentId: string, title?: string): Promise<{
+    id: string
+    original_id: string
+    title: string
+    message: string
+  }> {
+    const response = await fetch(`${this.baseURL}/api/campaigns/${campaignId}/content/${contentId}/duplicate`, {
+      method: 'POST',
+      headers: this.getHeaders(),
+      body: JSON.stringify({ title })
+    })
+    
+    return this.handleResponse(response)
   }
 
   // ============================================================================
@@ -605,6 +795,13 @@ class ApiClient {
       total_intelligence_sources: number
       total_generated_content: number
       avg_confidence_score: number
+      amplification_summary?: {
+        sources_amplified: number
+        sources_available_for_amplification: number
+        total_scientific_enhancements: number
+        amplification_available: boolean
+        amplification_coverage: string
+      }
     }
   }> {
     const response = await fetch(`${this.baseURL}/api/intelligence/campaign/${campaignId}/intelligence`, {
@@ -731,7 +928,6 @@ class ApiClient {
     company_id: string
     generated_at: string
   }> {
-    // ✅ FIXED: Use the correct backend endpoint
     const response = await fetch(`${this.baseURL}/api/campaigns/dashboard/stats`, {
       headers: this.getHeaders()
     })
@@ -739,7 +935,6 @@ class ApiClient {
     return this.handleResponse(response)
   }
 
-  // ✅ NEW: Add method for campaign-specific stats if needed
   async getCampaignStats(): Promise<{
     total_campaigns: number
     active_campaigns: number
@@ -768,7 +963,6 @@ class ApiClient {
     campaigns_this_month: number
     usage_percentage: number
   }> {
-    // 🔧 FIXED: Call the correct dashboard endpoint that returns company stats
     const response = await fetch(`${this.baseURL}/api/dashboard/stats`, {
       headers: this.getHeaders()
     })
@@ -952,8 +1146,19 @@ export const useApi = () => {
     deleteCampaign: apiClient.deleteCampaign.bind(apiClient),
     duplicateCampaign: apiClient.duplicateCampaign.bind(apiClient),
     
-    // 🔧 FIXED: Add the missing method
+    // Legacy content method (for backward compatibility)
     getGeneratedContent: apiClient.getGeneratedContent.bind(apiClient),
+    
+    // ✅ NEW: Enhanced content management methods
+    getContentList: apiClient.getContentList.bind(apiClient),
+    getContentDetail: apiClient.getContentDetail.bind(apiClient),
+    updateContent: apiClient.updateContent.bind(apiClient),
+    deleteContent: apiClient.deleteContent.bind(apiClient),
+    rateContent: apiClient.rateContent.bind(apiClient),
+    publishContent: apiClient.publishContent.bind(apiClient),
+    bulkContentAction: apiClient.bulkContentAction.bind(apiClient),
+    getContentStats: apiClient.getContentStats.bind(apiClient),
+    duplicateContent: apiClient.duplicateContent.bind(apiClient),
     
     // Flexible workflow operations
     getWorkflowState: apiClient.getWorkflowState.bind(apiClient),
