@@ -1,10 +1,33 @@
-// src/app/campaigns/[id]/content/page.tsx - DEBUG VERSION
+// src/app/campaigns/[id]/content/page.tsx - CLEAN ERROR-FREE VERSION
 'use client'
 import React, { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
+import { 
+  ArrowLeft, 
+  Download, 
+  Edit3, 
+  Eye, 
+  Copy, 
+  Mail,
+  FileText,
+  Video,
+  Image,
+  Globe,
+  TrendingUp,
+  Search,
+  Plus,
+  X,
+  RefreshCw,
+  Save,
+  Undo,
+  ExternalLink,
+  Star,
+  Target,
+  Zap
+} from 'lucide-react'
 import { useApi } from '@/lib/api'
 
-export default function DebugCampaignContentPage() {
+export default function CleanCampaignContentPage() {
   const params = useParams()
   const router = useRouter()
   const api = useApi()
@@ -14,198 +37,814 @@ export default function DebugCampaignContentPage() {
   const [intelligenceData, setIntelligenceData] = useState<any>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [debugInfo, setDebugInfo] = useState<string[]>([])
+  const [selectedCategory, setSelectedCategory] = useState<string>('all')
+  const [searchTerm, setSearchTerm] = useState('')
+  const [selectedContent, setSelectedContent] = useState<any | null>(null)
+  const [isEditing, setIsEditing] = useState(false)
+  const [editedContent, setEditedContent] = useState('')
+  const [hasChanges, setHasChanges] = useState(false)
+  const [isSaving, setIsSaving] = useState(false)
+  const [isRefreshing, setIsRefreshing] = useState(false)
 
-  const addDebugInfo = (message: string) => {
-    console.log('🐛 DEBUG:', message)
-    setDebugInfo(prev => [...prev, `${new Date().toLocaleTimeString()}: ${message}`])
-  }
-
+  // Load data on mount
   useEffect(() => {
-    const loadData = async () => {
-      addDebugInfo('useEffect triggered')
-      addDebugInfo(`campaignId: ${campaignId}`)
-      
-      if (!campaignId) {
-        addDebugInfo('No campaignId, returning')
-        return
-      }
+    if (!campaignId) return
 
+    let isMounted = true
+
+    const loadData = async () => {
       try {
-        addDebugInfo('Starting API calls...')
-        setIsLoading(true)
-        setError(null)
+        console.log('🔄 Starting to load campaign data')
         
-        addDebugInfo('Calling getCampaign...')
-        const campaignData = await api.getCampaign(campaignId)
-        addDebugInfo(`Campaign loaded: ${campaignData?.title || 'undefined'}`)
-        setCampaign(campaignData)
+        const [campaignData, intelligence] = await Promise.all([
+          api.getCampaign(campaignId),
+          api.getCampaignIntelligence(campaignId)
+        ])
         
-        addDebugInfo('Calling getCampaignIntelligence...')
-        const intelligence = await api.getCampaignIntelligence(campaignId)
-        addDebugInfo(`Intelligence loaded - sources: ${intelligence?.intelligence_sources?.length || 0}, content: ${intelligence?.generated_content?.length || 0}`)
-        setIntelligenceData(intelligence)
+        console.log('✅ Data loaded successfully:', {
+          campaign: campaignData?.title,
+          sources: intelligence?.intelligence_sources?.length,
+          content: intelligence?.generated_content?.length
+        })
         
-        addDebugInfo('Setting isLoading to false')
-        setIsLoading(false)
-        addDebugInfo('Data loading completed successfully')
+        if (isMounted) {
+          setCampaign(campaignData)
+          setIntelligenceData(intelligence)
+          setIsLoading(false)
+        }
         
       } catch (err: any) {
-        addDebugInfo(`Error occurred: ${err.message}`)
         console.error('❌ Loading error:', err)
-        setError(err.message)
-        setIsLoading(false)
+        if (isMounted) {
+          setError(err.message || 'Failed to load content')
+          setIsLoading(false)
+        }
       }
     }
 
     loadData()
-  }, [api, campaignId]) // Simple dependency array
 
-  addDebugInfo(`Render - isLoading: ${isLoading}, campaign: ${!!campaign}, intelligenceData: ${!!intelligenceData}, error: ${error}`)
+    return () => {
+      isMounted = false
+    }
+  }, [campaignId, api])
+
+  // Navigation functions
+  const goBackToCampaign = () => {
+    router.push(`/campaigns/${campaignId}`)
+  }
+
+  const goToGenerateMore = () => {
+    router.push(`/campaigns/${campaignId}?step=4`)
+  }
+
+  // Refresh function
+  const handleRefresh = async () => {
+    setIsRefreshing(true)
+    setError(null)
+    
+    try {
+      const [campaignData, intelligence] = await Promise.all([
+        api.getCampaign(campaignId),
+        api.getCampaignIntelligence(campaignId)
+      ])
+      
+      setCampaign(campaignData)
+      setIntelligenceData(intelligence)
+      
+    } catch (err: any) {
+      setError(err.message || 'Failed to refresh content')
+    } finally {
+      setIsRefreshing(false)
+    }
+  }
+
+  // Get display content
+  const getDisplayContent = () => {
+    const displayItems: any[] = []
+    
+    // Add intelligence sources
+    intelligenceData?.intelligence_sources?.forEach((source: any) => {
+      displayItems.push({
+        id: source.id,
+        type: 'intelligence',
+        title: source.source_title || 'Intelligence Source',
+        content_type: 'intelligence_source',
+        created_at: source.created_at,
+        confidence_score: source.confidence_score,
+        source_url: source.source_url,
+        is_amplified: source.amplification_status?.is_amplified || false,
+        amplification_boost: source.amplification_status?.confidence_boost || 0,
+        data: {
+          offer_intelligence: source.offer_intelligence,
+          psychology_intelligence: source.psychology_intelligence,
+          content_intelligence: source.content_intelligence,
+          competitive_intelligence: source.competitive_intelligence,
+          brand_intelligence: source.brand_intelligence
+        }
+      })
+    })
+    
+    // Add generated content
+    intelligenceData?.generated_content?.forEach((content: any) => {
+      let parsedContent = {}
+      try {
+        parsedContent = JSON.parse(content.content_body || '{}')
+      } catch {
+        parsedContent = { raw_content: content.content_body }
+      }
+      
+      displayItems.push({
+        id: content.id,
+        type: 'generated_content',
+        title: content.content_title || 'Generated Content',
+        content_type: content.content_type,
+        created_at: content.created_at,
+        user_rating: content.user_rating,
+        is_published: content.is_published,
+        performance_data: content.performance_data,
+        parsed_content: parsedContent,
+        content_metadata: content.content_metadata,
+        generation_settings: content.generation_settings,
+        intelligence_used: content.intelligence_used,
+        is_amplified_content: content.amplification_context?.generated_from_amplified_intelligence || false,
+        amplification_metadata: content.amplification_context?.amplification_metadata || {}
+      })
+    })
+    
+    return displayItems
+  }
+
+  // Get filtered content
+  const getFilteredContent = () => {
+    const content = getDisplayContent()
+    
+    return content.filter(item => {
+      const matchesCategory = selectedCategory === 'all' || item.content_type === selectedCategory
+      const matchesSearch = searchTerm === '' || 
+        item.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        item.content_type.toLowerCase().includes(searchTerm.toLowerCase())
+      
+      return matchesCategory && matchesSearch
+    })
+  }
+
+  // Get content categories
+  const getContentCategories = () => {
+    const content = getDisplayContent()
+    const uniqueTypes = Array.from(new Set(content.map(c => c.content_type)))
+    const categories = ['all', ...uniqueTypes]
+    
+    return categories.map(cat => ({
+      value: cat,
+      label: cat === 'all' ? 'All Content' : cat.replace('_', ' ').replace(/\b\w/g, (l: string) => l.toUpperCase()),
+      count: cat === 'all' ? content.length : content.filter(c => c.content_type === cat).length
+    }))
+  }
+
+  // Helper functions
+  const getContentIcon = (type: string) => {
+    const icons: Record<string, any> = {
+      'intelligence_source': TrendingUp,
+      'email_sequence': Mail,
+      'social_media_posts': Image,
+      'social_posts': Image,
+      'ad_copy': Target,
+      'blog_post': FileText,
+      'landing_page': Globe,
+      'video_script': Video
+    }
+    return icons[type] || FileText
+  }
+
+  const getContentColor = (type: string) => {
+    const colors: Record<string, string> = {
+      'intelligence_source': 'bg-purple-100 text-purple-800 border-purple-200',
+      'email_sequence': 'bg-blue-100 text-blue-800 border-blue-200',
+      'social_media_posts': 'bg-pink-100 text-pink-800 border-pink-200',
+      'social_posts': 'bg-pink-100 text-pink-800 border-pink-200',
+      'ad_copy': 'bg-green-100 text-green-800 border-green-200',
+      'blog_post': 'bg-purple-100 text-purple-800 border-purple-200',
+      'landing_page': 'bg-cyan-100 text-cyan-800 border-cyan-200',
+      'video_script': 'bg-red-100 text-red-800 border-red-200'
+    }
+    return colors[type] || 'bg-gray-100 text-gray-800 border-gray-200'
+  }
+
+  const formatContentType = (type: string) => {
+    const formatted: Record<string, string> = {
+      'intelligence_source': 'Intelligence Source',
+      'email_sequence': 'Email Sequence',
+      'social_media_posts': 'Social Media Posts',
+      'social_posts': 'Social Media Posts',
+      'ad_copy': 'Ad Copy',
+      'blog_post': 'Blog Post',
+      'landing_page': 'Landing Page',
+      'video_script': 'Video Script'
+    }
+    return formatted[type] || type.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())
+  }
+
+  // Content actions
+  const handleCopyContent = async (content: any) => {
+    try {
+      let textContent = ''
+      
+      if (content.type === 'intelligence') {
+        textContent = `Intelligence Source: ${content.title}\n\n`
+        textContent += `Source URL: ${content.source_url || 'N/A'}\n`
+        textContent += `Confidence: ${Math.round(content.confidence_score * 100)}%\n`
+        if (content.is_amplified) {
+          textContent += `🚀 AMPLIFIED (+${Math.round(content.amplification_boost * 100)}%)\n`
+        }
+        textContent += `\n${JSON.stringify(content.data, null, 2)}`
+      } else {
+        textContent = `${content.title}\n\nType: ${formatContentType(content.content_type)}\n\n`
+        if (content.is_amplified_content) {
+          textContent += `🚀 Generated from AMPLIFIED Intelligence\n\n`
+        }
+        textContent += JSON.stringify(content.parsed_content, null, 2)
+      }
+      
+      await navigator.clipboard.writeText(textContent)
+      
+      // Show feedback
+      const button = document.getElementById(`copy-${content.id}`)
+      if (button) {
+        const originalText = button.innerHTML
+        button.innerHTML = '✓ Copied!'
+        setTimeout(() => {
+          button.innerHTML = originalText
+        }, 2000)
+      }
+    } catch (err) {
+      console.error('Failed to copy content:', err)
+    }
+  }
+
+  const handleDownloadContent = (content: any) => {
+    let textContent = ''
+    
+    if (content.type === 'intelligence') {
+      textContent = `Intelligence Source: ${content.title}\n`
+      textContent += `${'='.repeat(50)}\n\n`
+      textContent += `Source URL: ${content.source_url || 'N/A'}\n`
+      textContent += `Confidence Score: ${content.confidence_score || 'N/A'}\n`
+      textContent += `Amplified: ${content.is_amplified ? 'Yes' : 'No'}\n`
+      if (content.is_amplified) {
+        textContent += `Confidence Boost: +${Math.round(content.amplification_boost * 100)}%\n`
+      }
+      textContent += `\n${JSON.stringify(content.data, null, 2)}`
+    } else {
+      textContent = `${content.title}\n`
+      textContent += `${'='.repeat(50)}\n\n`
+      textContent += `Type: ${formatContentType(content.content_type)}\n`
+      textContent += `Created: ${new Date(content.created_at).toLocaleDateString()}\n`
+      textContent += `Amplified Intelligence: ${content.is_amplified_content ? 'Yes' : 'No'}\n\n`
+      textContent += JSON.stringify(content.parsed_content, null, 2)
+    }
+    
+    const blob = new Blob([textContent], { type: 'text/plain' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `${content.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.txt`
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
+  }
+
+  const openContentModal = (content: any) => {
+    setSelectedContent(content)
+    
+    if (content.type === 'intelligence') {
+      setEditedContent(JSON.stringify(content.data, null, 2))
+    } else {
+      setEditedContent(JSON.stringify(content.parsed_content, null, 2))
+    }
+    
+    setIsEditing(false)
+    setHasChanges(false)
+  }
+
+  const handleSaveContent = async () => {
+    if (!selectedContent || !hasChanges) return
+    
+    setIsSaving(true)
+    try {
+      // Simulate save
+      await new Promise(resolve => setTimeout(resolve, 1000))
+      
+      setHasChanges(false)
+      setIsEditing(false)
+      
+      // Refresh
+      await handleRefresh()
+      
+    } catch (error) {
+      console.error('Failed to save content:', error)
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
+  const handleContentChange = (newContent: string) => {
+    setEditedContent(newContent)
+    setHasChanges(true)
+  }
+
+  // Get data for rendering
+  const displayContent = getDisplayContent()
+  const filteredContent = getFilteredContent()
+  const contentCategories = getContentCategories()
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gray-50 p-8">
-        <div className="max-w-4xl mx-auto">
-          <div className="bg-white rounded-lg p-6 mb-6">
-            <div className="flex items-center space-x-3 mb-4">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
-              <h1 className="text-xl font-semibold">Loading enhanced campaign content...</h1>
-            </div>
-            
-            <div className="bg-gray-50 p-4 rounded-lg">
-              <h3 className="font-medium mb-2">Debug Information:</h3>
-              <div className="text-sm space-y-1 max-h-60 overflow-y-auto">
-                {debugInfo.map((info, index) => (
-                  <div key={index} className="text-gray-600">{info}</div>
-                ))}
-              </div>
-            </div>
-          </div>
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading enhanced campaign content...</p>
         </div>
       </div>
     )
   }
 
-  if (error) {
+  if (error || !campaign) {
     return (
-      <div className="min-h-screen bg-gray-50 p-8">
-        <div className="max-w-4xl mx-auto">
-          <div className="bg-white rounded-lg p-6">
-            <h1 className="text-xl font-semibold text-red-600 mb-4">Error Loading Content</h1>
-            <p className="text-gray-600 mb-4">{error}</p>
-            
-            <div className="bg-gray-50 p-4 rounded-lg">
-              <h3 className="font-medium mb-2">Debug Information:</h3>
-              <div className="text-sm space-y-1 max-h-60 overflow-y-auto">
-                {debugInfo.map((info, index) => (
-                  <div key={index} className="text-gray-600">{info}</div>
-                ))}
-              </div>
-            </div>
-            
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">Error Loading Content</h1>
+          <p className="text-gray-600 mb-4">{error}</p>
+          <div className="flex space-x-3 justify-center">
             <button
-              onClick={() => window.location.reload()}
-              className="mt-4 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
+              onClick={handleRefresh}
+              disabled={isRefreshing}
+              className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors disabled:bg-blue-400"
             >
-              Retry
+              {isRefreshing ? 'Retrying...' : 'Try Again'}
+            </button>
+            <button
+              onClick={() => router.push('/campaigns')}
+              className="bg-purple-600 text-white px-6 py-2 rounded-lg hover:bg-purple-700 transition-colors"
+            >
+              Back to Campaigns
             </button>
           </div>
         </div>
       </div>
     )
   }
-
-  if (!campaign) {
-    return (
-      <div className="min-h-screen bg-gray-50 p-8">
-        <div className="max-w-4xl mx-auto">
-          <div className="bg-white rounded-lg p-6">
-            <h1 className="text-xl font-semibold text-orange-600 mb-4">No Campaign Data</h1>
-            <p className="text-gray-600 mb-4">Campaign data is null but no error occurred.</p>
-            
-            <div className="bg-gray-50 p-4 rounded-lg">
-              <h3 className="font-medium mb-2">Debug Information:</h3>
-              <div className="text-sm space-y-1 max-h-60 overflow-y-auto">
-                {debugInfo.map((info, index) => (
-                  <div key={index} className="text-gray-600">{info}</div>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    )
-  }
-
-  // Success state
-  const displayContent: { id: any; type: string; title: any; content_type: any }[] = []
-  
-  // Add intelligence sources
-  intelligenceData?.intelligence_sources?.forEach((source: any) => {
-    displayContent.push({
-      id: source.id,
-      type: 'intelligence',
-      title: source.source_title || 'Intelligence Source',
-      content_type: 'intelligence_source'
-    })
-  })
-  
-  // Add generated content
-  intelligenceData?.generated_content?.forEach((content: any) => {
-    displayContent.push({
-      id: content.id,
-      type: 'generated_content',
-      title: content.content_title || 'Generated Content',
-      content_type: content.content_type
-    })
-  })
 
   return (
-    <div className="min-h-screen bg-gray-50 p-8">
-      <div className="max-w-4xl mx-auto">
-        <div className="bg-white rounded-lg p-6 mb-6">
-          <h1 className="text-2xl font-semibold text-green-600 mb-4">✅ Success!</h1>
-          <p className="text-gray-600 mb-4">Campaign: {campaign.title}</p>
-          <p className="text-gray-600 mb-4">Content items: {displayContent.length}</p>
-          
-          <div className="bg-gray-50 p-4 rounded-lg mb-4">
-            <h3 className="font-medium mb-2">Debug Information:</h3>
-            <div className="text-sm space-y-1 max-h-60 overflow-y-auto">
-              {debugInfo.map((info, index) => (
-                <div key={index} className="text-gray-600">{info}</div>
-              ))}
+    <div className="min-h-screen bg-gray-50">
+      {/* Header */}
+      <div className="bg-white border-b border-gray-200 sticky top-0 z-10">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between h-16">
+            <div className="flex items-center space-x-4">
+              <button
+                onClick={goBackToCampaign}
+                className="p-2 text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                <ArrowLeft className="h-5 w-5" />
+              </button>
+              <div>
+                <h1 className="text-xl font-semibold text-gray-900">Enhanced Content Library</h1>
+                <p className="text-sm text-gray-500">
+                  {campaign.title} • {filteredContent.length} items
+                  {intelligenceData?.summary?.amplification_summary?.sources_amplified && intelligenceData.summary.amplification_summary.sources_amplified > 0 && (
+                    <span className="ml-2 text-purple-600">
+                      🚀 {intelligenceData.summary.amplification_summary.sources_amplified} amplified
+                    </span>
+                  )}
+                </p>
+              </div>
             </div>
-          </div>
-          
-          <div className="bg-blue-50 p-4 rounded-lg">
-            <h3 className="font-medium mb-2">Content Items:</h3>
-            <div className="space-y-2">
-              {displayContent.map((item, index) => (
-                <div key={item.id} className="text-sm bg-white p-2 rounded border">
-                  <span className="font-medium">{index + 1}. {item.title}</span>
-                  <span className="text-gray-500 ml-2">({item.content_type})</span>
-                </div>
-              ))}
+            
+            <div className="flex items-center space-x-3">
+              <button
+                onClick={handleRefresh}
+                disabled={isRefreshing}
+                className="flex items-center space-x-2 px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:bg-blue-400"
+              >
+                <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+                <span>{isRefreshing ? 'Refreshing...' : 'Refresh'}</span>
+              </button>
+              <button
+                onClick={goToGenerateMore}
+                className="flex items-center space-x-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
+              >
+                <Plus className="h-4 w-4" />
+                <span>Generate More</span>
+              </button>
             </div>
-          </div>
-          
-          <div className="mt-6 flex space-x-3">
-            <button
-              onClick={() => router.push(`/campaigns/${campaignId}`)}
-              className="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700"
-            >
-              Back to Campaign
-            </button>
-            <button
-              onClick={() => window.location.reload()}
-              className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
-            >
-              Reload Page
-            </button>
           </div>
         </div>
       </div>
+
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Filters and Search */}
+        <div className="bg-white rounded-lg border border-gray-200 p-6 mb-8">
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between space-y-4 lg:space-y-0">
+            {/* Category Filter */}
+            <div className="flex flex-wrap gap-2">
+              {contentCategories.map(category => (
+                <button
+                  key={category.value}
+                  onClick={() => setSelectedCategory(category.value)}
+                  className={`px-4 py-2 rounded-lg border transition-colors ${
+                    selectedCategory === category.value
+                      ? 'bg-purple-100 border-purple-300 text-purple-800'
+                      : 'bg-gray-50 border-gray-200 text-gray-700 hover:bg-gray-100'
+                  }`}
+                >
+                  {category.label} ({category.count})
+                </button>
+              ))}
+            </div>
+
+            {/* Search */}
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Search content..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent w-full lg:w-64"
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Content Grid */}
+        {filteredContent.length === 0 ? (
+          <div className="bg-white rounded-lg border border-gray-200 p-12 text-center">
+            <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+            <h3 className="text-lg font-medium text-gray-900 mb-2">No Content Found</h3>
+            <p className="text-gray-600 mb-4">
+              {displayContent.length === 0 
+                ? "No content or intelligence sources have been created for this campaign yet."
+                : "No content matches your current filters."
+              }
+            </p>
+            <button
+              onClick={goToGenerateMore}
+              className="bg-purple-600 text-white px-6 py-2 rounded-lg hover:bg-purple-700 transition-colors"
+            >
+              Generate Content
+            </button>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {filteredContent.map((item) => {
+              const Icon = getContentIcon(item.content_type)
+              const colorClass = getContentColor(item.content_type)
+              
+              return (
+                <div key={item.id} className="bg-white rounded-lg border border-gray-200 p-6 hover:shadow-md transition-shadow">
+                  <div className="flex items-start justify-between mb-4">
+                    <div className="flex items-center space-x-3">
+                      <div className={`p-2 rounded-lg ${colorClass} relative`}>
+                        <Icon className="h-5 w-5" />
+                        {(item.is_amplified || item.is_amplified_content) && (
+                          <Zap className="h-3 w-3 text-purple-600 absolute -top-1 -right-1" />
+                        )}
+                      </div>
+                      <div>
+                        <h3 className="font-semibold text-gray-900 text-sm">
+                          {item.title}
+                          {(item.is_amplified || item.is_amplified_content) && (
+                            <span className="ml-1 text-purple-600">🚀</span>
+                          )}
+                        </h3>
+                        <p className="text-xs text-gray-500">
+                          {formatContentType(item.content_type)}
+                        </p>
+                      </div>
+                    </div>
+                    {item.confidence_score && (
+                      <span className="text-xs text-purple-600">
+                        {Math.round(item.confidence_score * 100)}%
+                        {item.is_amplified && item.amplification_boost && (
+                          <span className="text-green-600">
+                            (+{Math.round(item.amplification_boost * 100)}%)
+                          </span>
+                        )}
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Content Preview */}
+                  <div className="mb-4">
+                    <div className="text-sm text-gray-600 line-clamp-3">
+                      {item.type === 'intelligence' 
+                        ? `Intelligence source with ${Object.keys(item.data || {}).length} analysis types`
+                        : `Generated ${formatContentType(item.content_type)}`
+                      }
+                      {item.is_amplified_content && (
+                        <span className="block text-purple-600 text-xs mt-1">
+                          ✨ Enhanced with amplified intelligence
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Metadata */}
+                  <div className="flex items-center justify-between text-xs text-gray-500 mb-4">
+                    <span>Created {new Date(item.created_at).toLocaleDateString()}</span>
+                    <div className="flex items-center space-x-2">
+                      {item.user_rating && (
+                        <div className="flex items-center space-x-1">
+                          <Star className="h-3 w-3 text-yellow-400 fill-current" />
+                          <span>{item.user_rating}</span>
+                        </div>
+                      )}
+                      {item.is_published && (
+                        <span className="bg-green-100 text-green-800 px-2 py-1 rounded">
+                          Published
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Actions */}
+                  <div className="flex items-center space-x-2">
+                    <button
+                      onClick={() => openContentModal(item)}
+                      className="flex-1 flex items-center justify-center space-x-1 px-3 py-2 bg-purple-100 text-purple-700 rounded-lg hover:bg-purple-200 transition-colors text-sm"
+                    >
+                      <Eye className="h-4 w-4" />
+                      <span>View</span>
+                    </button>
+                    <button
+                      id={`copy-${item.id}`}
+                      onClick={() => handleCopyContent(item)}
+                      className="px-3 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
+                      title="Copy content"
+                    >
+                      <Copy className="h-4 w-4" />
+                    </button>
+                    <button
+                      onClick={() => handleDownloadContent(item)}
+                      className="px-3 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
+                      title="Download content"
+                    >
+                      <Download className="h-4 w-4" />
+                    </button>
+                    {item.source_url && (
+                      <button
+                        onClick={() => window.open(item.source_url, '_blank')}
+                        className="px-3 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
+                        title="Open source URL"
+                      >
+                        <ExternalLink className="h-4 w-4" />
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        )}
+      </div>
+
+      {/* Content Modal */}
+      {selectedContent && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg max-w-4xl w-full max-h-[80vh] overflow-hidden flex flex-col">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between p-6 border-b border-gray-200">
+              <div>
+                <h2 className="text-xl font-semibold text-gray-900 flex items-center">
+                  {selectedContent.title}
+                  {(selectedContent.is_amplified || selectedContent.is_amplified_content) && (
+                    <span className="ml-2 text-purple-600">🚀</span>
+                  )}
+                </h2>
+                <p className="text-sm text-gray-500">
+                  {formatContentType(selectedContent.content_type)}
+                  {selectedContent.confidence_score && (
+                    <span className="ml-2 text-purple-600">
+                      Confidence: {Math.round(selectedContent.confidence_score * 100)}%
+                    </span>
+                  )}
+                </p>
+              </div>
+              
+              <div className="flex items-center space-x-2">
+                {selectedContent.type === 'generated_content' && (
+                  <>
+                    {isEditing ? (
+                      <>
+                        <button
+                          onClick={() => {
+                            setIsEditing(false)
+                            setHasChanges(false)
+                          }}
+                          className="px-3 py-2 text-gray-600 hover:text-gray-800 transition-colors"
+                          disabled={isSaving}
+                        >
+                          <Undo className="h-4 w-4" />
+                        </button>
+                        <button
+                          onClick={handleSaveContent}
+                          disabled={!hasChanges || isSaving}
+                          className="flex items-center space-x-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:bg-gray-400"
+                        >
+                          <Save className="h-4 w-4" />
+                          <span>{isSaving ? 'Saving...' : 'Save'}</span>
+                        </button>
+                      </>
+                    ) : (
+                      <button
+                        onClick={() => setIsEditing(true)}
+                        className="flex items-center space-x-2 px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                      >
+                        <Edit3 className="h-4 w-4" />
+                        <span>Edit</span>
+                      </button>
+                    )}
+                  </>
+                )}
+                <button
+                  onClick={() => setSelectedContent(null)}
+                  className="p-2 text-gray-400 hover:text-gray-600 transition-colors"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+            </div>
+            
+            {/* Modal Content */}
+            <div className="flex-1 overflow-y-auto">
+              {isEditing ? (
+                <div className="p-6">
+                  <textarea
+                    value={editedContent}
+                    onChange={(e) => handleContentChange(e.target.value)}
+                    className="w-full h-96 p-4 border border-gray-300 rounded-lg font-mono text-sm resize-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    placeholder="Edit your content here..."
+                  />
+                  {hasChanges && (
+                    <p className="text-sm text-orange-600 mt-2">
+                      You have unsaved changes
+                    </p>
+                  )}
+                </div>
+              ) : (
+                <div className="p-6">
+                  {selectedContent.type === 'intelligence' ? (
+                    <div className="space-y-6">
+                      {/* Intelligence Source Information */}
+                      <div className="bg-gray-50 p-4 rounded-lg">
+                        <h3 className="font-semibold text-gray-900 mb-2">Source Information</h3>
+                        {selectedContent.source_url && (
+                          <div className="mb-2">
+                            <span className="text-sm text-gray-600">URL: </span>
+                            <a 
+                              href={selectedContent.source_url} 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              className="text-blue-600 hover:text-blue-800 text-sm underline"
+                            >
+                              {selectedContent.source_url}
+                            </a>
+                          </div>
+                        )}
+                        <div className="grid grid-cols-2 gap-4 text-sm">
+                          <div>
+                            <span className="text-gray-600">Confidence: </span>
+                            <span className="font-medium">{Math.round(selectedContent.confidence_score * 100)}%</span>
+                          </div>
+                          <div>
+                            <span className="text-gray-600">Type: </span>
+                            <span className="font-medium">{formatContentType(selectedContent.content_type)}</span>
+                          </div>
+                          {selectedContent.is_amplified && (
+                            <>
+                              <div>
+                                <span className="text-gray-600">Amplified: </span>
+                                <span className="font-medium text-purple-600">Yes 🚀</span>
+                              </div>
+                              <div>
+                                <span className="text-gray-600">Boost: </span>
+                                <span className="font-medium text-green-600">+{Math.round(selectedContent.amplification_boost * 100)}%</span>
+                              </div>
+                            </>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Intelligence Data */}
+                      <div className="border border-gray-200 rounded-lg p-4">
+                        <h3 className="font-semibold text-gray-900 mb-3">Intelligence Data</h3>
+                        <pre className="whitespace-pre-wrap font-mono text-sm bg-gray-50 p-4 rounded border max-h-96 overflow-y-auto">
+                          {JSON.stringify(selectedContent.data, null, 2)}
+                        </pre>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="space-y-6">
+                      {/* Generated Content Information */}
+                      <div className="bg-gray-50 p-4 rounded-lg">
+                        <h3 className="font-semibold text-gray-900 mb-2">Content Information</h3>
+                        <div className="grid grid-cols-2 gap-4 text-sm">
+                          <div>
+                            <span className="text-gray-600">Type: </span>
+                            <span className="font-medium">{formatContentType(selectedContent.content_type)}</span>
+                          </div>
+                          <div>
+                            <span className="text-gray-600">Created: </span>
+                            <span className="font-medium">{new Date(selectedContent.created_at).toLocaleDateString()}</span>
+                          </div>
+                          {selectedContent.user_rating && (
+                            <div>
+                              <span className="text-gray-600">Rating: </span>
+                              <div className="inline-flex items-center">
+                                {[...Array(selectedContent.user_rating)].map((_, i) => (
+                                  <Star key={i} className="h-4 w-4 text-yellow-400 fill-current" />
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                          <div>
+                            <span className="text-gray-600">Published: </span>
+                            <span className="font-medium">{selectedContent.is_published ? 'Yes' : 'No'}</span>
+                          </div>
+                          {selectedContent.is_amplified_content && (
+                            <div className="col-span-2">
+                              <span className="text-gray-600">Amplified Intelligence: </span>
+                              <span className="font-medium text-purple-600">Yes ✨</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Content Data */}
+                      <div className="border border-gray-200 rounded-lg p-4">
+                        <h3 className="font-semibold text-gray-900 mb-3">Generated Content</h3>
+                        <pre className="whitespace-pre-wrap font-mono text-sm bg-gray-50 p-4 rounded border max-h-96 overflow-y-auto">
+                          {JSON.stringify(selectedContent.parsed_content, null, 2)}
+                        </pre>
+                      </div>
+
+                      {/* Metadata */}
+                      {selectedContent.content_metadata && Object.keys(selectedContent.content_metadata).length > 0 && (
+                        <div className="border border-gray-200 rounded-lg p-4">
+                          <h3 className="font-semibold text-gray-900 mb-3">Content Metadata</h3>
+                          <pre className="whitespace-pre-wrap font-mono text-sm bg-gray-50 p-4 rounded border max-h-60 overflow-y-auto">
+                            {JSON.stringify(selectedContent.content_metadata, null, 2)}
+                          </pre>
+                        </div>
+                      )}
+
+                      {/* Generation Settings */}
+                      {selectedContent.generation_settings && Object.keys(selectedContent.generation_settings).length > 0 && (
+                        <div className="border border-gray-200 rounded-lg p-4">
+                          <h3 className="font-semibold text-gray-900 mb-3">Generation Settings</h3>
+                          <pre className="whitespace-pre-wrap font-mono text-sm bg-gray-50 p-4 rounded border max-h-60 overflow-y-auto">
+                            {JSON.stringify(selectedContent.generation_settings, null, 2)}
+                          </pre>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Modal Footer */}
+            <div className="border-t border-gray-200 p-4 bg-gray-50">
+              <div className="flex items-center justify-between">
+                <div className="text-sm text-gray-600">
+                  {selectedContent.type === 'intelligence' 
+                    ? `Intelligence source with analysis data`
+                    : `Generated content item`
+                  }
+                </div>
+                <div className="flex items-center space-x-2">
+                  <button
+                    onClick={() => handleCopyContent(selectedContent)}
+                    className="flex items-center space-x-2 px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
+                  >
+                    <Copy className="h-4 w-4" />
+                    <span>Copy All</span>
+                  </button>
+                  <button
+                    onClick={() => handleDownloadContent(selectedContent)}
+                    className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                  >
+                    <Download className="h-4 w-4" />
+                    <span>Download</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
