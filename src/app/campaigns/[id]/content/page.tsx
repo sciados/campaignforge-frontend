@@ -56,20 +56,41 @@ export default function FixedCampaignContentPage() {
       try {
         console.log('🔄 Starting to load campaign data')
         
-        const [campaignData, intelligence] = await Promise.all([
+        // ✅ FIXED: Use the content-specific endpoint with includeBody=true
+        const [campaignData, intelligence, contentData] = await Promise.all([
           api.getCampaign(campaignId),
-          api.getCampaignIntelligence(campaignId)
+          api.getCampaignIntelligence(campaignId),
+          api.getContentList(campaignId, true) // ✅ NEW: Get content with body included
         ])
         
         console.log('✅ Data loaded successfully:', {
           campaign: campaignData?.title,
           sources: intelligence?.intelligence_sources?.length,
-          content: intelligence?.generated_content?.length
+          content_from_intelligence: intelligence?.generated_content?.length,
+          content_from_content_api: contentData?.content_items?.length
+        })
+        
+        // ✅ ENHANCED: Merge content from both sources, prioritizing the content API with bodies
+        const enhancedIntelligence = {
+          ...intelligence,
+          generated_content: contentData?.content_items || intelligence?.generated_content || []
+        }
+        
+        console.log('🔍 Enhanced intelligence content preview:', {
+          total_items: enhancedIntelligence.generated_content.length,
+          items_with_body: enhancedIntelligence.generated_content.filter((item: any) => 
+            item.content_body && item.content_body.length > 0
+          ).length,
+          sample_body_lengths: enhancedIntelligence.generated_content.slice(0, 3).map((item: any) => ({
+            title: item.content_title,
+            body_length: item.content_body?.length || 0,
+            body_preview: item.content_body?.substring?.(0, 50) || 'empty'
+          }))
         })
         
         if (isMounted) {
           setCampaign(campaignData)
-          setIntelligenceData(intelligence)
+          setIntelligenceData(enhancedIntelligence)
           setIsLoading(false)
         }
         
@@ -104,13 +125,20 @@ export default function FixedCampaignContentPage() {
     setError(null)
     
     try {
-      const [campaignData, intelligence] = await Promise.all([
+      // ✅ FIXED: Use content endpoint with body included for refresh too
+      const [campaignData, intelligence, contentData] = await Promise.all([
         api.getCampaign(campaignId),
-        api.getCampaignIntelligence(campaignId)
+        api.getCampaignIntelligence(campaignId),
+        api.getContentList(campaignId, true)
       ])
       
+      const enhancedIntelligence = {
+        ...intelligence,
+        generated_content: contentData?.content_items || intelligence?.generated_content || []
+      }
+      
       setCampaign(campaignData)
-      setIntelligenceData(intelligence)
+      setIntelligenceData(enhancedIntelligence)
       
     } catch (err: any) {
       setError(err.message || 'Failed to refresh content')
@@ -119,7 +147,7 @@ export default function FixedCampaignContentPage() {
     }
   }
 
-  // ✅ FIXED: Ultra-robust content parsing with multiple fallback strategies
+  // ✅ FIXED: Ultra-robust content parsing with specific empty content handling
   const parseContentBody = (contentBody: any, contentType: string) => {
     console.log('🔍 Parsing content body:', {
       type: typeof contentBody,
@@ -134,13 +162,25 @@ export default function FixedCampaignContentPage() {
     // Handle null/undefined
     if (!contentBody || contentBody === null || contentBody === undefined) {
       console.warn('⚠️ Content body is null or undefined')
-      return { success: false, error: 'No content data', data: null }
+      return { 
+        success: false, 
+        error: 'Content was not generated or saved', 
+        data: null,
+        isEmpty: true,
+        suggestion: 'Try regenerating this content'
+      }
     }
 
-    // Handle empty string
+    // Handle empty string - this is the main issue you're seeing
     if (contentBody === '' || contentBody.trim() === '') {
-      console.warn('⚠️ Content body is empty string')
-      return { success: false, error: 'Empty content', data: null }
+      console.warn('⚠️ Content body is empty string - content_body field is empty in database')
+      return { 
+        success: false, 
+        error: 'Content body is empty in database', 
+        data: null,
+        isEmpty: true,
+        suggestion: 'The content generation may have failed. Try regenerating this content.'
+      }
     }
 
     // Handle already parsed object
@@ -156,7 +196,13 @@ export default function FixedCampaignContentPage() {
       // Check for empty JSON
       if (trimmed === '{}' || trimmed === '[]' || trimmed === 'null') {
         console.warn('⚠️ Content body is empty JSON')
-        return { success: false, error: 'Empty JSON content', data: null }
+        return { 
+          success: false, 
+          error: 'Content generated as empty JSON', 
+          data: null,
+          isEmpty: true,
+          suggestion: 'The AI may have generated empty content. Try regenerating with different parameters.'
+        }
       }
 
       // Try to parse as JSON
@@ -166,7 +212,13 @@ export default function FixedCampaignContentPage() {
         // Validate parsed content has actual data
         if (!parsed || (typeof parsed === 'object' && Object.keys(parsed).length === 0)) {
           console.warn('⚠️ Parsed content is empty object')
-          return { success: false, error: 'Parsed content is empty', data: parsed }
+          return { 
+            success: false, 
+            error: 'Generated content is empty', 
+            data: parsed,
+            isEmpty: true,
+            suggestion: 'The AI generated an empty response. Try regenerating with more specific prompts.'
+          }
         }
 
         console.log('✅ Successfully parsed JSON content')
@@ -188,15 +240,25 @@ export default function FixedCampaignContentPage() {
           }
         }
         
-        return { success: false, error: 'Invalid content format', data: null }
+        return { 
+          success: false, 
+          error: 'Invalid content format', 
+          data: null,
+          suggestion: 'Content appears corrupted. Try regenerating.'
+        }
       }
     }
 
     console.warn('⚠️ Unhandled content body type:', typeof contentBody)
-    return { success: false, error: 'Unknown content format', data: contentBody }
+    return { 
+      success: false, 
+      error: 'Unknown content format', 
+      data: contentBody,
+      suggestion: 'Unexpected data format. Contact support if this persists.'
+    }
   }
 
-  // ✅ ENHANCED: Get display content with ULTRA-ROBUST parsing
+  // ✅ ENHANCED: Add detailed API debugging to track where data is lost
   const getDisplayContent = () => {
     const displayItems: any[] = []
     
@@ -222,19 +284,48 @@ export default function FixedCampaignContentPage() {
       })
     })
     
-    // ✅ ENHANCED: Add generated content with ULTRA-ROBUST parsing
-    intelligenceData?.generated_content?.forEach((content: any) => {
-      console.log('🔄 Processing content item:', {
+    // ✅ ENHANCED: Add generated content with DETAILED API debugging
+    intelligenceData?.generated_content?.forEach((content: any, index: number) => {
+      console.log(`🔍 [API DEBUG] Processing content item ${index + 1}:`, {
         id: content.id,
         title: content.content_title,
         type: content.content_type,
-        hasBody: !!content.content_body,
-        bodyType: typeof content.content_body,
-        bodyLength: content.content_body?.length || 0
+        api_response_keys: Object.keys(content),
+        content_body_from_api: {
+          exists: 'content_body' in content,
+          type: typeof content.content_body,
+          is_null: content.content_body === null,
+          is_undefined: content.content_body === undefined,
+          is_empty_string: content.content_body === '',
+          length: content.content_body?.length || 0,
+          first_100_chars: content.content_body?.substring?.(0, 100) || '[no preview]'
+        },
+        raw_api_content_body: content.content_body // Log the EXACT value from API
       })
+      
+      // Additional debugging for this specific email sequence
+      if (content.content_title?.includes('HEPATOBURN') || content.content_type === 'email_sequence') {
+        console.log('🎯 [HEPATOBURN EMAIL DEBUG] Detailed analysis:', {
+          title: content.content_title,
+          content_body_exact_value: content.content_body,
+          content_body_stringified: JSON.stringify(content.content_body),
+          all_content_properties: Object.entries(content).map(([key, value]) => ({
+            key,
+            type: typeof value,
+            hasValue: value !== null && value !== undefined && value !== ''
+          }))
+        })
+      }
       
       // Parse the content body using robust parser
       const parseResult = parseContentBody(content.content_body, content.content_type)
+      
+      console.log(`📊 [PARSE RESULT] ${content.content_title}:`, {
+        parse_success: parseResult.success,
+        parse_error: parseResult.error,
+        has_data: !!parseResult.data,
+        data_preview: parseResult.data ? (typeof parseResult.data === 'object' ? Object.keys(parseResult.data) : 'not object') : 'no data'
+      })
       
       let formattedContent: any[] = []
       let previewText = 'Generated content'
@@ -248,20 +339,23 @@ export default function FixedCampaignContentPage() {
           previewText = getContentPreview(formattedContent, content.content_type, parseResult.data)
           editableText = createEditableText(parseResult.data, content.content_type)
           
-          console.log('✅ Successfully processed content:', {
+          console.log(`✅ [FORMAT SUCCESS] ${content.content_title}:`, {
             type: content.content_type,
-            title: content.content_title,
             sectionsCount: formattedContent.length,
             preview: previewText,
-            editableLength: editableText.length
+            editableLength: editableText.length,
+            formatted_preview: formattedContent.slice(0, 2).map(section => ({
+              title: section.title,
+              contentLength: section.content?.length || 0
+            }))
           })
         } catch (formatError) {
-          console.error('❌ Error formatting content:', formatError)
+          console.error('❌ [FORMAT ERROR]:', formatError)
           hasValidContent = false
           previewText = 'Content formatting error'
         }
       } else {
-        console.warn('⚠️ Content parsing failed:', parseResult.error)
+        console.warn(`⚠️ [PARSE FAILED] ${content.content_title}:`, parseResult)
         previewText = parseResult.error || 'Content not available'
         editableText = content.content_body || 'No content'
       }
@@ -283,12 +377,24 @@ export default function FixedCampaignContentPage() {
         has_valid_content: hasValidContent,
         editable_text: editableText,
         raw_content_body: content.content_body,
+        api_debug_info: { // ✅ NEW: Store API debug info
+          received_from_api: content.content_body,
+          api_response_type: typeof content.content_body,
+          api_keys: Object.keys(content)
+        },
         content_metadata: content.content_metadata,
         generation_settings: content.generation_settings,
         intelligence_used: content.intelligence_used,
         is_amplified_content: content.amplification_context?.generated_from_amplified_intelligence || false,
         amplification_metadata: content.amplification_context?.amplification_metadata || {}
       })
+    })
+    
+    console.log('📋 [FINAL SUMMARY] Display content processed:', {
+      total_items: displayItems.length,
+      generated_content_items: displayItems.filter(item => item.type === 'generated_content').length,
+      items_with_valid_content: displayItems.filter(item => item.has_valid_content).length,
+      items_with_parse_failures: displayItems.filter(item => !item.has_valid_content && item.type === 'generated_content').length
     })
     
     return displayItems
@@ -1069,8 +1175,8 @@ export default function FixedCampaignContentPage() {
                         </span>
                       )}
                       {!item.has_valid_content && item.type === 'generated_content' && (
-                        <span className="block text-red-600 text-xs mt-1">
-                          ⚠️ {item.parse_result?.error || 'Content not available'}
+                        <span className="block text-amber-600 text-xs mt-1">
+                          ⚠️ {item.parse_result?.isEmpty ? 'Content not generated - click to regenerate' : (item.parse_result?.error || 'Content not available')}
                         </span>
                       )}
                     </div>
@@ -1318,7 +1424,7 @@ export default function FixedCampaignContentPage() {
                         </div>
                       </div>
 
-                      {/* Content Data - ENHANCED with better error handling */}
+                      {/* Content Data - ENHANCED with actionable suggestions for empty content */}
                       <div className="border border-gray-200 rounded-lg p-4">
                         <h3 className="font-semibold text-gray-900 mb-3">Generated Content</h3>
                         
@@ -1351,26 +1457,81 @@ export default function FixedCampaignContentPage() {
                             ))}
                           </div>
                         ) : (
-                          <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-                            <h4 className="font-medium text-red-800 mb-2">❌ Content Parsing Failed</h4>
-                            <p className="text-red-700 text-sm mb-3">
-                              {selectedContent.parse_result?.error || 'Unable to parse content. Check the raw data below:'}
-                            </p>
-                            <div className="bg-red-100 border border-red-300 rounded p-3">
-                              <p className="text-xs text-red-600 mb-2">
-                                Raw content_body (length: {selectedContent.raw_content_body?.length || 0}):
-                              </p>
-                              <pre className="text-xs text-red-800 overflow-x-auto whitespace-pre-wrap max-h-32 overflow-y-auto">
-                                {selectedContent.raw_content_body || 'No raw content'}
-                              </pre>
+                          <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+                            <div className="flex items-start space-x-3">
+                              <div className="flex-shrink-0">
+                                <div className="w-8 h-8 bg-amber-100 rounded-full flex items-center justify-center">
+                                  <span className="text-amber-600 text-lg">⚠️</span>
+                                </div>
+                              </div>
+                              <div className="flex-1">
+                                <h4 className="font-medium text-amber-800 mb-2">Content Not Available</h4>
+                                <p className="text-amber-700 text-sm mb-3">
+                                  {selectedContent.parse_result?.error || 'Content could not be loaded'}
+                                </p>
+                                
+                                {selectedContent.parse_result?.isEmpty && (
+                                  <div className="bg-amber-100 border border-amber-300 rounded p-3 mb-3">
+                                    <p className="text-amber-800 text-sm font-medium mb-2">💡 What happened?</p>
+                                    <p className="text-amber-700 text-sm mb-2">
+                                      The content_body field in the database is empty (length: {selectedContent.raw_content_body?.length || 0}). 
+                                      This usually means:
+                                    </p>
+                                    <ul className="text-amber-700 text-sm list-disc list-inside space-y-1">
+                                      <li>The AI content generation failed silently</li>
+                                      <li>The content was generated but not saved properly</li>
+                                      <li>There was a database write error during generation</li>
+                                    </ul>
+                                  </div>
+                                )}
+                                
+                                {selectedContent.parse_result?.suggestion && (
+                                  <div className="bg-blue-50 border border-blue-200 rounded p-3 mb-3">
+                                    <p className="text-blue-800 text-sm font-medium mb-1">🔧 Recommended Action:</p>
+                                    <p className="text-blue-700 text-sm">{selectedContent.parse_result.suggestion}</p>
+                                  </div>
+                                )}
+                                
+                                <div className="flex items-center space-x-3 mt-4">
+                                  <button
+                                    onClick={() => {
+                                      setSelectedContent(null)
+                                      goToGenerateMore()
+                                    }}
+                                    className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition-colors text-sm"
+                                  >
+                                    🔄 Regenerate Content
+                                  </button>
+                                  <button
+                                    onClick={handleRefresh}
+                                    className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors text-sm"
+                                  >
+                                    🔍 Refresh Data
+                                  </button>
+                                </div>
+                              </div>
                             </div>
-                            <details className="mt-3">
-                              <summary className="cursor-pointer text-red-600 hover:text-red-800 text-sm">
-                                Show parse attempt result
+                            
+                            <details className="mt-4">
+                              <summary className="cursor-pointer text-amber-600 hover:text-amber-800 text-sm font-medium">
+                                🔧 Show Technical Details
                               </summary>
-                              <pre className="mt-2 bg-red-100 p-2 rounded border text-red-800 overflow-x-auto text-xs">
-                                {JSON.stringify(selectedContent.parse_result, null, 2)}
-                              </pre>
+                              <div className="mt-3 space-y-3">
+                                <div className="bg-amber-100 border border-amber-300 rounded p-3">
+                                  <p className="text-xs text-amber-600 mb-2">
+                                    Raw content_body (length: {selectedContent.raw_content_body?.length || 0}):
+                                  </p>
+                                  <pre className="text-xs text-amber-800 overflow-x-auto whitespace-pre-wrap max-h-20 overflow-y-auto bg-white p-2 rounded border">
+                                    {selectedContent.raw_content_body || '[Empty/null content_body field]'}
+                                  </pre>
+                                </div>
+                                <div className="bg-amber-100 border border-amber-300 rounded p-3">
+                                  <p className="text-xs text-amber-600 mb-2">Parse attempt result:</p>
+                                  <pre className="text-xs text-amber-800 overflow-x-auto whitespace-pre-wrap max-h-32 overflow-y-auto bg-white p-2 rounded border">
+                                    {JSON.stringify(selectedContent.parse_result, null, 2)}
+                                  </pre>
+                                </div>
+                              </div>
                             </details>
                           </div>
                         )}
