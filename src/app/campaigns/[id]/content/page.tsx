@@ -145,72 +145,81 @@ export default function CleanCampaignContentPage() {
       })
     })
     
-    // ✅ ENHANCED: Add generated content with proper parsing
-    intelligenceData?.generated_content?.forEach((content: any) => {
-      // Enhanced content parsing
-      let parsedContent = {}
-      let formattedContent: any[] = []
-      let previewText = 'Generated content'
-      let hasValidContent = false
-      
-      try {
-        // Parse the JSON content_body
-        if (content.content_body && content.content_body !== '{}') {
-          parsedContent = JSON.parse(content.content_body)
-          hasValidContent = true
+      // ✅ ENHANCED: Add generated content with FIXED parsing
+      intelligenceData?.generated_content?.forEach((content: any) => {
+        // DEBUG: Log the actual content_body we're receiving
+        console.log('🔍 Processing content:', {
+          id: content.id,
+          title: content.content_title,
+          type: content.content_type,
+          body_length: content.content_body?.length || 0,
+          body_preview: content.content_body?.substring(0, 100) || 'empty'
+        })
+        
+        let parsedContent = {}
+        let formattedContent: any[] = []
+        let previewText = 'Generated content'
+        let hasValidContent = false
+        let editableText = ''
+        
+        try {
+          // More robust content parsing
+          const bodyText = content.content_body || ''
           
-          // Format content based on type
-          formattedContent = formatContentForDisplay(parsedContent, content.content_type)
-          previewText = getContentPreview(formattedContent, content.content_type)
-          
-          console.log('✅ Processed content:', {
-            type: content.content_type,
-            title: content.content_title,
-            hasContent: hasValidContent,
-            sectionsCount: formattedContent.length,
-            preview: previewText
-          })
-        } else {
-          console.warn('⚠️ Empty content body for:', content.content_title)
-          parsedContent = { error: 'Empty content body' }
-          formattedContent = [{
-            type: 'error',
-            title: 'No Content Available',
-            content: 'This content appears to be empty',
-            metadata: {}
-          }]
+          if (bodyText && bodyText.trim() && bodyText !== '{}' && bodyText !== 'null') {
+            parsedContent = JSON.parse(bodyText)
+            
+            // Check if parsed content has actual data
+            if (parsedContent && typeof parsedContent === 'object' && Object.keys(parsedContent).length > 0) {
+              hasValidContent = true
+              
+              // Format content and create editable text
+              formattedContent = formatContentForDisplay(parsedContent, content.content_type)
+              previewText = getContentPreview(formattedContent, content.content_type)
+              editableText = createEditableText(parsedContent, content.content_type)
+              
+              console.log('✅ Successfully processed content:', {
+                type: content.content_type,
+                title: content.content_title,
+                sectionsCount: formattedContent.length,
+                preview: previewText,
+                editableLength: editableText.length
+              })
+            } else {
+              console.warn('⚠️ Parsed content is empty object for:', content.content_title)
+            }
+          } else {
+            console.warn('⚠️ Empty or invalid content body for:', content.content_title)
+          }
+        } catch (error) {
+          console.error('❌ Failed to parse content:', error, 'Raw:', content.content_body)
+          parsedContent = { error: 'Parse failed', raw: content.content_body }
+          editableText = content.content_body || 'No content'
         }
-      } catch (error) {
-        console.error('❌ Failed to parse content:', error)
-        parsedContent = { raw_content: content.content_body, error: 'Failed to parse' }
-        formattedContent = [{
-          type: 'error',
-          title: 'Content Parse Error',
-          content: content.content_body || 'No content',
-          metadata: { error: String(error) }
-        }]
-      }
-      
-      displayItems.push({
-        id: content.id,
-        type: 'generated_content',
-        title: content.content_title || 'Generated Content',
-        content_type: content.content_type,
-        created_at: content.created_at,
-        user_rating: content.user_rating,
-        is_published: content.is_published,
-        performance_data: content.performance_data,
-        parsed_content: parsedContent,
-        formatted_content: formattedContent,
-        preview_text: previewText,
-        has_valid_content: hasValidContent,
-        content_metadata: content.content_metadata,
-        generation_settings: content.generation_settings,
-        intelligence_used: content.intelligence_used,
-        is_amplified_content: content.amplification_context?.generated_from_amplified_intelligence || false,
-        amplification_metadata: content.amplification_context?.amplification_metadata || {}
+        
+        // Always add the item, even if empty, so user can see the issue
+        displayItems.push({
+          id: content.id,
+          type: 'generated_content',
+          title: content.content_title || 'Generated Content',
+          content_type: content.content_type,
+          created_at: content.created_at,
+          user_rating: content.user_rating,
+          is_published: content.is_published,
+          performance_data: content.performance_data,
+          parsed_content: parsedContent,
+          formatted_content: formattedContent,
+          preview_text: previewText,
+          has_valid_content: hasValidContent,
+          editable_text: editableText, // ✅ NEW: Formatted text for editing
+          raw_content_body: content.content_body, // Keep original for debugging
+          content_metadata: content.content_metadata,
+          generation_settings: content.generation_settings,
+          intelligence_used: content.intelligence_used,
+          is_amplified_content: content.amplification_context?.generated_from_amplified_intelligence || false,
+          amplification_metadata: content.amplification_context?.amplification_metadata || {}
+        })
       })
-    })
     
     return displayItems
   }
@@ -349,6 +358,138 @@ export default function CleanCampaignContentPage() {
       content: JSON.stringify(content, null, 2),
       metadata: {}
     }]
+  }
+
+  // ✅ NEW: Create editable text format from parsed content
+  const createEditableText = (parsedContent: any, contentType: string): string => {
+    try {
+      switch (contentType) {
+        case 'email_sequence':
+          if (parsedContent.emails && Array.isArray(parsedContent.emails)) {
+            let text = `EMAIL SEQUENCE: ${parsedContent.sequence_title || 'Untitled Sequence'}\n`
+            text += `Total Emails: ${parsedContent.emails.length}\n`
+            if (parsedContent.email_focus) {
+              text += `Focus: ${parsedContent.email_focus}\n`
+            }
+            text += '\n' + '='.repeat(50) + '\n\n'
+            
+            parsedContent.emails.forEach((email: any, index: number) => {
+              text += `EMAIL ${email.email_number || index + 1}\n`
+              text += `-`.repeat(20) + '\n'
+              text += `Subject: ${email.subject || 'No Subject'}\n`
+              if (email.send_delay) text += `Send Delay: ${email.send_delay}\n`
+              if (email.strategic_angle) text += `Strategy: ${email.strategic_angle}\n`
+              if (email.angle_name) text += `Angle: ${email.angle_name}\n`
+              text += '\nContent:\n'
+              text += email.body || 'No content'
+              text += '\n\n' + '='.repeat(50) + '\n\n'
+            })
+            
+            return text
+          }
+          break
+          
+        case 'social_media_posts':
+        case 'social_posts':
+          if (parsedContent.posts && Array.isArray(parsedContent.posts)) {
+            let text = `SOCIAL MEDIA POSTS\n`
+            text += `Total Posts: ${parsedContent.posts.length}\n\n`
+            text += '='.repeat(50) + '\n\n'
+            
+            parsedContent.posts.forEach((post: any, index: number) => {
+              text += `POST ${post.post_number || index + 1}\n`
+              text += `-`.repeat(15) + '\n'
+              if (post.platform) text += `Platform: ${post.platform}\n`
+              text += '\nContent:\n'
+              text += post.content || post.text || 'No content'
+              if (post.hashtags && post.hashtags.length > 0) {
+                text += '\n\nHashtags: ' + post.hashtags.join(' ')
+              }
+              text += '\n\n' + '='.repeat(50) + '\n\n'
+            })
+            
+            return text
+          }
+          break
+          
+        case 'ad_copy':
+          if (parsedContent.ads && Array.isArray(parsedContent.ads)) {
+            let text = `AD COPY VARIATIONS\n`
+            text += `Total Ads: ${parsedContent.ads.length}\n\n`
+            text += '='.repeat(50) + '\n\n'
+            
+            parsedContent.ads.forEach((ad: any, index: number) => {
+              text += `AD ${ad.ad_number || index + 1}\n`
+              text += `-`.repeat(10) + '\n'
+              if (ad.platform) text += `Platform: ${ad.platform}\n`
+              text += `Headline: ${ad.headline || 'No Headline'}\n\n`
+              text += `Body:\n${ad.body || ad.content || 'No content'}\n\n`
+              text += `Call-to-Action: ${ad.cta || 'No CTA'}\n`
+              text += '\n' + '='.repeat(50) + '\n\n'
+            })
+            
+            return text
+          }
+          break
+          
+        case 'video_script':
+          if (parsedContent.script_text) {
+            let text = `VIDEO SCRIPT\n`
+            text += `Title: ${parsedContent.title || 'Untitled'}\n`
+            if (parsedContent.duration) text += `Duration: ${parsedContent.duration}\n`
+            if (parsedContent.tone) text += `Tone: ${parsedContent.tone}\n`
+            text += '\n' + '='.repeat(50) + '\n\n'
+            text += parsedContent.script_text
+            return text
+          }
+          break
+          
+        case 'blog_post':
+          if (parsedContent.title && (parsedContent.content || parsedContent.body)) {
+            let text = `BLOG POST\n`
+            text += `Title: ${parsedContent.title}\n`
+            if (parsedContent.word_count) text += `Word Count: ${parsedContent.word_count}\n`
+            if (parsedContent.tone) text += `Tone: ${parsedContent.tone}\n`
+            text += '\n' + '='.repeat(50) + '\n\n'
+            text += parsedContent.content || parsedContent.body
+            return text
+          }
+          break
+          
+        case 'landing_page':
+          if (parsedContent.html_code) {
+            let text = `LANDING PAGE\n`
+            text += `Title: ${parsedContent.title || 'Untitled'}\n`
+            if (parsedContent.page_type) text += `Type: ${parsedContent.page_type}\n`
+            text += '\n' + '='.repeat(50) + '\n\n'
+            text += 'HTML CODE:\n'
+            text += parsedContent.html_code
+            return text
+          }
+          break
+          
+        default:
+          // Auto-detect and format
+          if (parsedContent.emails && Array.isArray(parsedContent.emails)) {
+            return createEditableText(parsedContent, 'email_sequence')
+          }
+          if (parsedContent.posts && Array.isArray(parsedContent.posts)) {
+            return createEditableText(parsedContent, 'social_media_posts')
+          }
+          if (parsedContent.ads && Array.isArray(parsedContent.ads)) {
+            return createEditableText(parsedContent, 'ad_copy')
+          }
+          
+          return JSON.stringify(parsedContent, null, 2)
+      }
+      
+      // Fallback
+      return JSON.stringify(parsedContent, null, 2)
+      
+    } catch (error) {
+      console.error('Error creating editable text:', error)
+      return JSON.stringify(parsedContent, null, 2)
+    }
   }
 
   const getContentPreview = (formattedContent: any[], contentType: string) => {
@@ -536,7 +677,8 @@ export default function CleanCampaignContentPage() {
     if (content.type === 'intelligence') {
       setEditedContent(JSON.stringify(content.data, null, 2))
     } else {
-      setEditedContent(JSON.stringify(content.parsed_content, null, 2))
+      // ✅ Use the formatted editable text instead of raw JSON
+      setEditedContent(content.editable_text || content.raw_content_body || 'No content available')
     }
     
     setIsEditing(false)
@@ -1011,40 +1153,48 @@ export default function CleanCampaignContentPage() {
                         {selectedContent.has_valid_content && selectedContent.formatted_content ? (
                           <div className="space-y-4">
                             {selectedContent.formatted_content.map((section: any, index: number) => (
-                              <div key={index} className="border border-gray-100 rounded-lg p-3">
-                                <h4 className="font-medium text-gray-800 mb-2">{section.title}</h4>
-                                <div className="whitespace-pre-wrap text-gray-700 text-sm leading-relaxed mb-2">
-                                  {section.content}
-                                </div>
-                                {section.metadata && Object.keys(section.metadata).length > 0 && (
-                                  <div className="bg-gray-50 p-2 rounded border mt-2">
-                                    <h5 className="font-medium text-gray-600 text-xs mb-1">Details</h5>
-                                    <div className="text-xs space-y-1">
-                                      {Object.entries(section.metadata).map(([key, value]) => (
-                                        <div key={key} className="flex">
-                                          <span className="text-gray-500 w-20 flex-shrink-0">{key}:</span>
-                                          <span className="text-gray-700">
-                                            {Array.isArray(value) ? value.join(', ') : String(value)}
-                                          </span>
-                                        </div>
-                                      ))}
-                                    </div>
+                              <div key={index} className="border border-gray-100 rounded-lg p-4 bg-gray-50">
+                                <h4 className="font-semibold text-gray-800 mb-3 text-lg">{section.title}</h4>
+                                <div className="bg-white p-3 rounded border">
+                                  <div className="whitespace-pre-wrap text-gray-700 leading-relaxed mb-3">
+                                    {section.content}
                                   </div>
-                                )}
+                                  {section.metadata && Object.keys(section.metadata).length > 0 && (
+                                    <div className="border-t pt-3 mt-3">
+                                      <h5 className="font-medium text-gray-600 text-sm mb-2">Details</h5>
+                                      <div className="grid grid-cols-2 gap-2 text-sm">
+                                        {Object.entries(section.metadata).map(([key, value]) => (
+                                          <div key={key} className="flex flex-col">
+                                            <span className="text-gray-500 text-xs uppercase tracking-wide">{key.replace('_', ' ')}</span>
+                                            <span className="text-gray-800 font-medium">
+                                              {Array.isArray(value) ? value.join(', ') : String(value)}
+                                            </span>
+                                          </div>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
                               </div>
                             ))}
                           </div>
                         ) : (
                           <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-                            <h4 className="font-medium text-yellow-800 mb-2">Content Not Available</h4>
-                            <p className="text-yellow-700 text-sm mb-2">
-                              This content appears to be empty or couldn not be parsed properly.
+                            <h4 className="font-medium text-yellow-800 mb-2">⚠️ Content Debug Information</h4>
+                            <p className="text-yellow-700 text-sm mb-3">
+                              This content couldn not be parsed. Check the raw data below:
                             </p>
-                            <details className="text-xs">
-                              <summary className="cursor-pointer text-yellow-600 hover:text-yellow-800">
-                                Show raw data
+                            <div className="bg-yellow-100 border border-yellow-300 rounded p-3">
+                              <p className="text-xs text-yellow-600 mb-2">Raw content_body length: {selectedContent.raw_content_body?.length || 0}</p>
+                              <pre className="text-xs text-yellow-800 overflow-x-auto whitespace-pre-wrap">
+                                {selectedContent.raw_content_body || 'No raw content'}
+                              </pre>
+                            </div>
+                            <details className="mt-3">
+                              <summary className="cursor-pointer text-yellow-600 hover:text-yellow-800 text-sm">
+                                Show parsed data
                               </summary>
-                              <pre className="mt-2 bg-yellow-100 p-2 rounded border text-yellow-800 overflow-x-auto">
+                              <pre className="mt-2 bg-yellow-100 p-2 rounded border text-yellow-800 overflow-x-auto text-xs">
                                 {JSON.stringify(selectedContent.parsed_content, null, 2)}
                               </pre>
                             </details>
