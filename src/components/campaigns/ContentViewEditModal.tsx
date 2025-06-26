@@ -1,6 +1,6 @@
 // src/components/ContentViewEditModal.tsx
 'use client'
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { 
   X, 
   Edit3, 
@@ -14,6 +14,72 @@ import {
   Zap,
   RefreshCw
 } from 'lucide-react'
+
+interface ContentViewEditModalProps {
+  content: any
+  isOpen: boolean
+  onClose: () => void
+  onSave: (contentId: string, newContent: string) => Promise<void>
+  onRefresh: () => void
+  formatContentType: (type: string) => string
+}
+
+// ✅ NEW: Auto-expanding textarea component
+const AutoExpandingTextarea = ({ 
+  value, 
+  onChange, 
+  placeholder, 
+  className = "",
+  minRows = 3 
+}: {
+  value: string
+  onChange: (value: string) => void
+  placeholder?: string
+  className?: string
+  minRows?: number
+}) => {
+  const textareaRef = useRef<HTMLTextAreaElement>(null)
+
+  const adjustHeight = React.useCallback(() => {
+    const textarea = textareaRef.current
+    if (textarea) {
+      // Reset height to auto to get the correct scrollHeight
+      textarea.style.height = 'auto'
+      
+      // Calculate minimum height based on minRows
+      const lineHeight = parseInt(getComputedStyle(textarea).lineHeight)
+      const minHeight = lineHeight * minRows
+      
+      // Set height to max of content height or minimum height
+      const newHeight = Math.max(textarea.scrollHeight, minHeight)
+      textarea.style.height = `${newHeight}px`
+    }
+  }, [minRows])
+
+  useEffect(() => {
+    adjustHeight()
+  }, [value, adjustHeight])
+
+  useEffect(() => {
+    // Adjust height on mount
+    adjustHeight()
+  }, [adjustHeight])
+
+  return (
+    <textarea
+      ref={textareaRef}
+      value={value}
+      onChange={(e) => {
+        onChange(e.target.value)
+        // Adjust height on every change
+        setTimeout(adjustHeight, 0)
+      }}
+      placeholder={placeholder}
+      className={`resize-none overflow-hidden ${className}`}
+      style={{ minHeight: `${minRows * 1.5}rem` }}
+    />
+  )
+}
 
 interface ContentViewEditModalProps {
   content: any
@@ -88,14 +154,77 @@ export default function ContentViewEditModal({
     
     setIsSaving(true)
     try {
-      // For now, use the global edited content
-      // In a real implementation, you'd merge individual edits back into the structured format
-      await onSave(content.id, editedContent)
+      // ✅ ENHANCED: Properly merge individual edits back into the content structure
+      let contentToSave = editedContent
+
+      // If we have individual edits, merge them back into the structured format
+      if (Object.keys(individualEdits).length > 0 && content.parsed_content) {
+        console.log('🔄 Merging individual edits back into structured content')
+        
+        const updatedContent = { ...content.parsed_content }
+        
+        // Handle different content types
+        if (content.content_type === 'email_sequence' && updatedContent.emails) {
+          Object.entries(individualEdits).forEach(([index, newContent]) => {
+            const emailIndex = parseInt(index)
+            if (updatedContent.emails[emailIndex]) {
+              updatedContent.emails[emailIndex].body = newContent
+            }
+          })
+          contentToSave = JSON.stringify(updatedContent)
+        } else if ((content.content_type === 'social_media_posts' || content.content_type === 'social_posts') && updatedContent.posts) {
+          Object.entries(individualEdits).forEach(([index, newContent]) => {
+            const postIndex = parseInt(index)
+            if (updatedContent.posts[postIndex]) {
+              updatedContent.posts[postIndex].content = newContent
+            }
+          })
+          contentToSave = JSON.stringify(updatedContent)
+        } else if (content.content_type === 'ad_copy' && updatedContent.ads) {
+          Object.entries(individualEdits).forEach(([index, newContent]) => {
+            const adIndex = parseInt(index)
+            if (updatedContent.ads[adIndex]) {
+              // For ads, we need to parse the markdown-style content back
+              const lines = newContent.split('\n').filter(line => line.trim())
+              for (let i = 0; i < lines.length; i++) {
+                if (lines[i].startsWith('**') && lines[i].endsWith('**')) {
+                  updatedContent.ads[adIndex].headline = lines[i].replace(/\*\*/g, '')
+                } else if (lines[i].startsWith('*CTA:')) {
+                  updatedContent.ads[adIndex].cta = lines[i].replace('*CTA: ', '').replace('*', '')
+                } else if (!lines[i].includes(':') && lines[i].length > 20) {
+                  updatedContent.ads[adIndex].body = lines[i]
+                }
+              }
+            }
+          })
+          contentToSave = JSON.stringify(updatedContent)
+        }
+        
+        console.log('✅ Merged content structure:', {
+          original_edits: Object.keys(individualEdits).length,
+          merged_content_length: contentToSave.length
+        })
+      }
+
+      console.log('💾 Saving content:', {
+        contentId: content.id,
+        contentType: content.content_type,
+        hasIndividualEdits: Object.keys(individualEdits).length > 0,
+        contentLength: contentToSave.length,
+        preview: contentToSave.substring(0, 100)
+      })
+
+      await onSave(content.id, contentToSave)
+      
       setHasChanges(false)
       setIsEditing(false)
       setIndividualEdits({})
+      
+      console.log('✅ Content saved successfully')
+      
     } catch (error) {
-      console.error('Failed to save content:', error)
+      console.error('❌ Failed to save content:', error)
+      // TODO: Show error toast to user
     } finally {
       setIsSaving(false)
     }
@@ -166,11 +295,12 @@ export default function ContentViewEditModal({
         {/* Single Item Content */}
         <div className="bg-white border border-gray-200 rounded-lg p-4">
           {isEditing ? (
-            <textarea
+            <AutoExpandingTextarea
               value={editContent}
-              onChange={(e) => handleIndividualEdit(0, e.target.value)}
-              className="w-full h-64 p-3 border border-gray-300 rounded-lg resize-none focus:ring-2 focus:ring-purple-500 focus:border-transparent font-mono text-sm"
+              onChange={(newContent) => handleIndividualEdit(0, newContent)}
               placeholder="Edit your content here..."
+              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent font-mono text-sm"
+              minRows={8}
             />
           ) : (
             <div className="whitespace-pre-wrap text-gray-700 leading-relaxed">
@@ -267,11 +397,12 @@ export default function ContentViewEditModal({
                             </button>
                           )}
                         </div>
-                        <textarea
+                        <AutoExpandingTextarea
                           value={editContent}
-                          onChange={(e) => handleIndividualEdit(index, e.target.value)}
-                          className="w-full h-32 p-3 border border-gray-300 rounded-lg resize-none focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm"
+                          onChange={(newContent) => handleIndividualEdit(index, newContent)}
                           placeholder="Edit this section..."
+                          className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm"
+                          minRows={4}
                         />
                       </div>
                     ) : (
@@ -477,10 +608,12 @@ export default function ContentViewEditModal({
               <div className="border border-gray-200 rounded-lg p-4">
                 <h3 className="font-semibold text-gray-900 mb-3">Intelligence Data</h3>
                 {isEditing ? (
-                  <textarea
+                  <AutoExpandingTextarea
                     value={editedContent}
-                    onChange={(e) => handleGlobalEdit(e.target.value)}
-                    className="w-full h-96 p-4 border border-gray-300 rounded-lg font-mono text-sm resize-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    onChange={(newContent) => handleGlobalEdit(newContent)}
+                    placeholder="Edit intelligence data..."
+                    className="w-full p-4 border border-gray-300 rounded-lg font-mono text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    minRows={15}
                   />
                 ) : (
                   <pre className="whitespace-pre-wrap font-mono text-sm bg-gray-50 p-4 rounded border max-h-96 overflow-y-auto">

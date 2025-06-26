@@ -944,17 +944,30 @@ export default function FixedCampaignContentPage() {
   }
 
   const handleSaveContent = async (contentId: string, newContent: string) => {
-    // TODO: Implement actual save logic
-    // This would parse the edited content back into the appropriate format
-    // and call your API to update the content
+    console.log('🔄 Starting content save process:', {
+      contentId,
+      contentLength: newContent.length,
+      contentPreview: newContent.substring(0, 100)
+    })
     
-    console.log('Saving content:', { contentId, newContent })
-    
-    // Simulate save
-    await new Promise(resolve => setTimeout(resolve, 1000))
-    
-    // Refresh content after save
-    await handleRefresh()
+    try {
+      // ✅ ENHANCED: Use the actual API to update content
+      const updateResult = await api.updateContent(campaignId, contentId, {
+        content_body: newContent
+      })
+      
+      console.log('✅ Content update API response:', updateResult)
+      
+      // Refresh content after successful save
+      console.log('🔄 Refreshing content after save...')
+      await handleRefresh()
+      
+      console.log('✅ Content saved and refreshed successfully')
+      
+    } catch (error) {
+      console.error('❌ Failed to save content:', error)
+      throw error // Re-throw so the modal can handle the error
+    }
   }
 
   // Get data for rendering
