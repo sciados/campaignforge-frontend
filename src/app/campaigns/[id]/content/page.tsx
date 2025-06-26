@@ -119,7 +119,7 @@ export default function CleanCampaignContentPage() {
     }
   }
 
-  // Get display content
+  // ✅ ENHANCED: Get display content with proper parsing
   const getDisplayContent = () => {
     const displayItems: any[] = []
     
@@ -145,13 +145,50 @@ export default function CleanCampaignContentPage() {
       })
     })
     
-    // Add generated content
+    // ✅ ENHANCED: Add generated content with proper parsing
     intelligenceData?.generated_content?.forEach((content: any) => {
+      // Enhanced content parsing
       let parsedContent = {}
+      let formattedContent: any[] = []
+      let previewText = 'Generated content'
+      let hasValidContent = false
+      
       try {
-        parsedContent = JSON.parse(content.content_body || '{}')
-      } catch {
-        parsedContent = { raw_content: content.content_body }
+        // Parse the JSON content_body
+        if (content.content_body && content.content_body !== '{}') {
+          parsedContent = JSON.parse(content.content_body)
+          hasValidContent = true
+          
+          // Format content based on type
+          formattedContent = formatContentForDisplay(parsedContent, content.content_type)
+          previewText = getContentPreview(formattedContent, content.content_type)
+          
+          console.log('✅ Processed content:', {
+            type: content.content_type,
+            title: content.content_title,
+            hasContent: hasValidContent,
+            sectionsCount: formattedContent.length,
+            preview: previewText
+          })
+        } else {
+          console.warn('⚠️ Empty content body for:', content.content_title)
+          parsedContent = { error: 'Empty content body' }
+          formattedContent = [{
+            type: 'error',
+            title: 'No Content Available',
+            content: 'This content appears to be empty',
+            metadata: {}
+          }]
+        }
+      } catch (error) {
+        console.error('❌ Failed to parse content:', error)
+        parsedContent = { raw_content: content.content_body, error: 'Failed to parse' }
+        formattedContent = [{
+          type: 'error',
+          title: 'Content Parse Error',
+          content: content.content_body || 'No content',
+          metadata: { error: String(error) }
+        }]
       }
       
       displayItems.push({
@@ -164,6 +201,9 @@ export default function CleanCampaignContentPage() {
         is_published: content.is_published,
         performance_data: content.performance_data,
         parsed_content: parsedContent,
+        formatted_content: formattedContent,
+        preview_text: previewText,
+        has_valid_content: hasValidContent,
         content_metadata: content.content_metadata,
         generation_settings: content.generation_settings,
         intelligence_used: content.intelligence_used,
@@ -173,6 +213,181 @@ export default function CleanCampaignContentPage() {
     })
     
     return displayItems
+  }
+
+  // ✅ ENHANCED: Content formatting functions
+  const formatContentForDisplay = (content: any, contentType: string) => {
+    if (!content || content.error) {
+      return [{
+        type: 'error',
+        title: 'Content Not Available',
+        content: content?.error || 'No content available',
+        metadata: {}
+      }]
+    }
+
+    switch (contentType) {
+      case 'email_sequence':
+        if (content.emails && Array.isArray(content.emails)) {
+          return content.emails.map((email: any, index: number) => ({
+            type: 'email',
+            title: `Email ${email.email_number || index + 1}: ${email.subject || 'No Subject'}`,
+            content: email.body || 'No content',
+            metadata: {
+              subject: email.subject,
+              send_delay: email.send_delay,
+              strategic_angle: email.strategic_angle,
+              angle_name: email.angle_name,
+              affiliate_focus: email.affiliate_focus,
+              email_number: email.email_number || index + 1
+            }
+          }))
+        }
+        break
+
+      case 'social_media_posts':
+      case 'social_posts':
+        if (content.posts && Array.isArray(content.posts)) {
+          return content.posts.map((post: any, index: number) => ({
+            type: 'social_post',
+            title: `${post.platform || 'Social'} Post ${post.post_number || index + 1}`,
+            content: post.content || post.text || 'No content',
+            metadata: {
+              platform: post.platform,
+              hashtags: post.hashtags,
+              character_count: post.character_count,
+              post_number: post.post_number
+            }
+          }))
+        }
+        break
+
+      case 'ad_copy':
+        if (content.ads && Array.isArray(content.ads)) {
+          return content.ads.map((ad: any, index: number) => ({
+            type: 'ad',
+            title: `${ad.platform || 'Ad'} Copy ${ad.ad_number || index + 1}`,
+            content: `**${ad.headline || 'No Headline'}**\n\n${ad.body || ad.content || 'No content'}\n\n*CTA: ${ad.cta || 'No CTA'}*`,
+            metadata: {
+              platform: ad.platform,
+              headline: ad.headline,
+              body: ad.body || ad.content,
+              cta: ad.cta,
+              ad_number: ad.ad_number
+            }
+          }))
+        }
+        break
+
+      case 'video_script':
+        if (content.script_text) {
+          return [{
+            type: 'video_script',
+            title: content.title || 'Video Script',
+            content: content.script_text,
+            metadata: {
+              duration: content.duration,
+              tone: content.tone
+            }
+          }]
+        }
+        break
+
+      case 'blog_post':
+        if (content.title && (content.content || content.body)) {
+          return [{
+            type: 'blog_post',
+            title: content.title,
+            content: content.content || content.body,
+            metadata: {
+              word_count: content.word_count,
+              tone: content.tone,
+              topic: content.topic
+            }
+          }]
+        }
+        break
+
+      case 'landing_page':
+        if (content.html_code) {
+          return [{
+            type: 'landing_page',
+            title: content.title || 'Landing Page',
+            content: content.html_code,
+            metadata: {
+              page_type: content.page_type,
+              code_lines: content.code_lines
+            }
+          }]
+        }
+        break
+
+      default:
+        // Auto-detect content structure
+        if (content.emails && Array.isArray(content.emails)) {
+          return formatContentForDisplay(content, 'email_sequence')
+        }
+        if (content.posts && Array.isArray(content.posts)) {
+          return formatContentForDisplay(content, 'social_media_posts')
+        }
+        if (content.ads && Array.isArray(content.ads)) {
+          return formatContentForDisplay(content, 'ad_copy')
+        }
+        
+        return [{
+          type: 'generic',
+          title: `Generated ${contentType}`,
+          content: JSON.stringify(content, null, 2),
+          metadata: {}
+        }]
+    }
+
+    // Fallback
+    return [{
+      type: 'generic',
+      title: `Generated ${contentType}`,
+      content: JSON.stringify(content, null, 2),
+      metadata: {}
+    }]
+  }
+
+  const getContentPreview = (formattedContent: any[], contentType: string) => {
+    if (!formattedContent || formattedContent.length === 0) {
+      return 'No content available'
+    }
+
+    const firstItem = formattedContent[0]
+    
+    switch (contentType) {
+      case 'email_sequence':
+        if (formattedContent.length > 1) {
+          return `${formattedContent.length} emails in sequence`
+        }
+        return firstItem.metadata?.subject || firstItem.title
+        
+      case 'social_media_posts':
+      case 'social_posts':
+        return `${formattedContent.length} social posts`
+        
+      case 'ad_copy':
+        return `${formattedContent.length} ad variations`
+        
+      case 'video_script':
+        return firstItem.metadata?.duration ? 
+          `Video script (${firstItem.metadata.duration})` : 
+          'Video script'
+          
+      case 'blog_post':
+        return firstItem.metadata?.word_count ? 
+          `Blog post (${firstItem.metadata.word_count} words)` : 
+          'Blog post'
+          
+      case 'landing_page':
+        return 'Landing page HTML'
+        
+      default:
+        return `${formattedContent.length} section${formattedContent.length !== 1 ? 's' : ''}`
+    }
   }
 
   // Get filtered content
@@ -541,11 +756,18 @@ export default function CleanCampaignContentPage() {
                     <div className="text-sm text-gray-600 line-clamp-3">
                       {item.type === 'intelligence' 
                         ? `Intelligence source with ${Object.keys(item.data || {}).length} analysis types`
-                        : `Generated ${formatContentType(item.content_type)}`
+                        : item.has_valid_content
+                          ? item.preview_text
+                          : 'Content not available'
                       }
                       {item.is_amplified_content && (
                         <span className="block text-purple-600 text-xs mt-1">
                           ✨ Enhanced with amplified intelligence
+                        </span>
+                      )}
+                      {!item.has_valid_content && item.type === 'generated_content' && (
+                        <span className="block text-orange-600 text-xs mt-1">
+                          ⚠️ Content may be empty or corrupted
                         </span>
                       )}
                     </div>
@@ -785,9 +1007,49 @@ export default function CleanCampaignContentPage() {
                       {/* Content Data */}
                       <div className="border border-gray-200 rounded-lg p-4">
                         <h3 className="font-semibold text-gray-900 mb-3">Generated Content</h3>
-                        <pre className="whitespace-pre-wrap font-mono text-sm bg-gray-50 p-4 rounded border max-h-96 overflow-y-auto">
-                          {JSON.stringify(selectedContent.parsed_content, null, 2)}
-                        </pre>
+                        
+                        {selectedContent.has_valid_content && selectedContent.formatted_content ? (
+                          <div className="space-y-4">
+                            {selectedContent.formatted_content.map((section: any, index: number) => (
+                              <div key={index} className="border border-gray-100 rounded-lg p-3">
+                                <h4 className="font-medium text-gray-800 mb-2">{section.title}</h4>
+                                <div className="whitespace-pre-wrap text-gray-700 text-sm leading-relaxed mb-2">
+                                  {section.content}
+                                </div>
+                                {section.metadata && Object.keys(section.metadata).length > 0 && (
+                                  <div className="bg-gray-50 p-2 rounded border mt-2">
+                                    <h5 className="font-medium text-gray-600 text-xs mb-1">Details</h5>
+                                    <div className="text-xs space-y-1">
+                                      {Object.entries(section.metadata).map(([key, value]) => (
+                                        <div key={key} className="flex">
+                                          <span className="text-gray-500 w-20 flex-shrink-0">{key}:</span>
+                                          <span className="text-gray-700">
+                                            {Array.isArray(value) ? value.join(', ') : String(value)}
+                                          </span>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                            <h4 className="font-medium text-yellow-800 mb-2">Content Not Available</h4>
+                            <p className="text-yellow-700 text-sm mb-2">
+                              This content appears to be empty or couldn not be parsed properly.
+                            </p>
+                            <details className="text-xs">
+                              <summary className="cursor-pointer text-yellow-600 hover:text-yellow-800">
+                                Show raw data
+                              </summary>
+                              <pre className="mt-2 bg-yellow-100 p-2 rounded border text-yellow-800 overflow-x-auto">
+                                {JSON.stringify(selectedContent.parsed_content, null, 2)}
+                              </pre>
+                            </details>
+                          </div>
+                        )}
                       </div>
 
                       {/* Metadata */}
