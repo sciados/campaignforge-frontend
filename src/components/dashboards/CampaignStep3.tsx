@@ -55,7 +55,7 @@ const CONTENT_TYPES = [
     estimatedTime: '2-3 minutes'
   },
   {
-    id: 'social_posts',
+    id: 'SOCIAL_POSTS',
     name: 'Social Media Posts',
     icon: MessageSquare,
     description: '10+ social media posts',
@@ -548,7 +548,7 @@ export default function CampaignStep3({ campaignId }: CampaignStep3Props) {
                 )}
 
                 {/* Social Posts Display */}
-                {generatedContent.content_type === 'social_posts' && (
+                {generatedContent.content_type === 'SOCIAL_POSTS' && (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {generatedContent.generated_content.content?.map((post: any, index: number) => (
                       <div key={index} className="border border-gray-200 rounded-lg p-4">
@@ -579,7 +579,7 @@ export default function CampaignStep3({ campaignId }: CampaignStep3Props) {
                 )}
 
                 {/* Generic Content Display */}
-                {!['email_sequence', 'social_posts'].includes(generatedContent.content_type) && (
+                {!['email_sequence', 'SOCIAL_POSTS'].includes(generatedContent.content_type) && (
                   <div className="border border-gray-200 rounded-lg p-4">
                     <h5 className="font-medium text-gray-900 mb-3">Generated Content</h5>
                     <div className="whitespace-pre-wrap text-sm text-gray-700 leading-relaxed">

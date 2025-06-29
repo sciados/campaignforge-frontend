@@ -455,7 +455,7 @@ export default function FixedCampaignContentPage() {
         break
 
       case 'social_media_posts':
-      case 'social_posts':
+      case 'SOCIAL_POSTS':
         const posts = content.posts || content.social_posts || content.content || []
         
         if (Array.isArray(posts) && posts.length > 0) {
@@ -525,10 +525,10 @@ export default function FixedCampaignContentPage() {
         }
         break
 
-      case 'landing_page':
+      case 'LANDING_PAGE':
         if (content.html_code || content.html || content.code) {
           return [{
-            type: 'landing_page',
+            type: 'LANDING_PAGE',
             title: content.title || 'Landing Page',
             content: content.html_code || content.html || content.code,
             metadata: {
@@ -610,7 +610,7 @@ export default function FixedCampaignContentPage() {
         return firstItem.metadata?.subject || firstItem.title
         
       case 'social_media_posts':
-      case 'social_posts':
+      case 'SOCIAL_POSTS':
         const platforms = Array.from(new Set(formattedContent.map(item => item.metadata?.platform).filter(Boolean)))
         return `${formattedContent.length} posts${platforms.length > 0 ? ` (${platforms.join(', ')})` : ''}`
         
@@ -628,7 +628,7 @@ export default function FixedCampaignContentPage() {
           `Blog post (${firstItem.metadata.word_count} words)` : 
           firstItem.title || 'Blog post'
           
-      case 'landing_page':
+      case 'LANDING_PAGE':
         return 'Landing page HTML'
         
       default:
@@ -678,7 +678,7 @@ export default function FixedCampaignContentPage() {
           break
           
         case 'social_media_posts':
-        case 'social_posts':
+        case 'SOCIAL_POSTS':
           const posts = parsedContent.posts || parsedContent.social_posts || []
           
           if (Array.isArray(posts) && posts.length > 0) {
@@ -754,7 +754,7 @@ export default function FixedCampaignContentPage() {
           }
           break
           
-        case 'landing_page':
+        case 'LANDING_PAGE':
           const htmlContent = parsedContent.html_code || parsedContent.html || parsedContent.code
           
           if (htmlContent) {
@@ -828,7 +828,7 @@ export default function FixedCampaignContentPage() {
       'social_posts': Image,
       'ad_copy': Target,
       'blog_post': FileText,
-      'landing_page': Globe,
+      'LANDING_PAGE': Globe,
       'video_script': Video
     }
     return icons[type] || FileText
@@ -842,7 +842,7 @@ export default function FixedCampaignContentPage() {
       'social_posts': 'bg-pink-100 text-pink-800 border-pink-200',
       'ad_copy': 'bg-green-100 text-green-800 border-green-200',
       'blog_post': 'bg-purple-100 text-purple-800 border-purple-200',
-      'landing_page': 'bg-cyan-100 text-cyan-800 border-cyan-200',
+      'LANDING_PAGE': 'bg-cyan-100 text-cyan-800 border-cyan-200',
       'video_script': 'bg-red-100 text-red-800 border-red-200'
     }
     return colors[type] || 'bg-gray-100 text-gray-800 border-gray-200'
@@ -853,10 +853,10 @@ export default function FixedCampaignContentPage() {
       'intelligence_source': 'Intelligence Source',
       'email_sequence': 'Email Sequence',
       'social_media_posts': 'Social Media Posts',
-      'social_posts': 'Social Media Posts',
+      'SOCIAL_POSTS': 'Social Media Posts',
       'ad_copy': 'Ad Copy',
       'blog_post': 'Blog Post',
-      'landing_page': 'Landing Page',
+      'LANDING_PAGE': 'Landing Page',
       'video_script': 'Video Script'
     }
     return formatted[type] || type.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())

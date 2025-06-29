@@ -172,7 +172,7 @@ export default function ContentViewEditModal({
             }
           })
           contentToSave = JSON.stringify(updatedContent)
-        } else if ((content.content_type === 'social_media_posts' || content.content_type === 'social_posts') && updatedContent.posts) {
+        } else if ((content.content_type === 'social_media_posts' || content.content_type === 'SOCIAL_POSTS') && updatedContent.posts) {
           Object.entries(individualEdits).forEach(([index, newContent]) => {
             const postIndex = parseInt(index)
             if (updatedContent.posts[postIndex]) {

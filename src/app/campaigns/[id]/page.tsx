@@ -1291,10 +1291,10 @@ function ContentGenerationStep({
   const getContentTitle = (type: string) => {
     const titles: Record<string, string> = {
       'email_sequence': 'Email Marketing Sequence',
-      'social_posts': 'Social Media Posts',
+      'SOCIAL_POSTS': 'Social Media Posts',
       'ad_copy': 'Advertisement Copy',
       'blog_post': 'Blog Post',
-      'landing_page': 'Landing Page Copy',
+      'LANDING_PAGE': 'Landing Page Copy',
       'video_script': 'Video Script'
     }
     return titles[type] || 'Generated Content'
@@ -1345,7 +1345,7 @@ function ContentGenerationStep({
                 icon: '📧'
               },
               { 
-                type: 'social_posts', 
+                type: 'SOCIAL_POSTS', 
                 title: 'Social Media Posts', 
                 description: 'Platform-specific content',
                 icon: '📱'
@@ -1363,7 +1363,7 @@ function ContentGenerationStep({
                 icon: '📝'
               },
               { 
-                type: 'landing_page', 
+                type: 'LANDING_PAGE', 
                 title: 'Landing Page', 
                 description: 'Conversion-focused page',
                 icon: '🎯'

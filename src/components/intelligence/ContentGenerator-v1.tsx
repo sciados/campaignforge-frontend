@@ -55,7 +55,7 @@ const CONTENT_TYPES = [
     color: 'bg-blue-500'
   },
   {
-    id: 'social_posts',
+    id: 'SOCIAL_POSTS',
     name: 'Social Media Posts',
     icon: MessageSquare,
     description: '10+ social media posts',
@@ -79,7 +79,7 @@ const CONTENT_TYPES = [
     color: 'bg-purple-500'
   },
   {
-    id: 'landing_page',
+    id: 'LANDING_PAGE',
     name: 'Landing Page',
     icon: Globe,
     description: 'Conversion-optimized page',
@@ -480,7 +480,7 @@ export default function ContentGenerator({ campaignId, intelligenceSources }: Co
             )}
 
             {/* Social Posts Display */}
-            {generatedContent.content_type === 'social_posts' && (
+            {generatedContent.content_type === 'SOCIAL_POSTS' && (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {generatedContent.generated_content.content?.map((post: any, index: number) => (
                   <div key={index} className="border border-gray-200 rounded-lg p-4">
@@ -557,7 +557,7 @@ export default function ContentGenerator({ campaignId, intelligenceSources }: Co
             )}
 
             {/* Landing Page Display */}
-            {generatedContent.content_type === 'landing_page' && (
+            {generatedContent.content_type === 'LANDING_PAGE' && (
               <div className="space-y-4">
                 <div className="border border-gray-200 rounded-lg p-4">
                   <h5 className="font-medium text-gray-900 mb-3">Landing Page Sections</h5>
@@ -595,7 +595,7 @@ export default function ContentGenerator({ campaignId, intelligenceSources }: Co
             )}
 
             {/* Generic Content Display */}
-            {!['email_sequence', 'social_posts', 'ad_copy', 'blog_post', 'landing_page', 'video_script'].includes(generatedContent.content_type) && (
+            {!['email_sequence', 'SOCIAL_POSTS', 'ad_copy', 'blog_post', 'LANDING_PAGE', 'video_script'].includes(generatedContent.content_type) && (
               <div className="border border-gray-200 rounded-lg p-4">
                 <h5 className="font-medium text-gray-900 mb-3">Generated Content</h5>
                 <div className="whitespace-pre-wrap text-sm text-gray-700 leading-relaxed">
