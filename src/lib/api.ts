@@ -742,7 +742,7 @@ class ApiClient {
     competitive_opportunities: any[]
     campaign_suggestions: string[]
   }> {
-    const response = await fetch(`${this.baseURL}/api/intelligence/analyze-url`, {
+    const response = await fetch(`${this.baseURL}/api/intelligence/analysis/url`, {
       method: 'POST',
       headers: this.getHeaders(),
       body: JSON.stringify(data)
@@ -778,7 +778,7 @@ class ApiClient {
     preferences?: Record<string, any>
     campaign_id: string
   }): Promise<GeneratedContent> {
-    const response = await fetch(`${this.baseURL}/api/intelligence/generate-content`, {
+    const response = await fetch(`${this.baseURL}/api/intelligence/content/generate`, {
       method: 'POST',
       headers: this.getHeaders(),
       body: JSON.stringify(data)
@@ -804,7 +804,7 @@ class ApiClient {
       }
     }
   }> {
-    const response = await fetch(`${this.baseURL}/api/intelligence/campaign/${campaignId}/intelligence`, {
+    const response = await fetch(`${this.baseURL}/api/intelligence/management/${campaignId}/intelligence`, {
       headers: this.getHeaders()
     })
     
