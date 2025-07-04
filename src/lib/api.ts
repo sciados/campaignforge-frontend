@@ -804,8 +804,8 @@ class ApiClient {
       }
     }
   }> {
-    const response = await fetch(`${this.baseURL}/api/intelligence/management/${campaignId}/intelligence`, {
-      headers: this.getHeaders()
+    const response = await fetch(`${this.baseURL}/api/campaigns/${campaignId}/intelligence`, {
+    headers: this.getHeaders()
     })
     
     return this.handleResponse(response)
