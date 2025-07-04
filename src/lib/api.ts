@@ -1,6 +1,6 @@
-// src/lib/api.ts - COMPLETE UPDATED VERSION WITH CONTENT MANAGEMENT
+// src/lib/api.ts - COMPLETE UPDATED VERSION WITH STABILITY AI IMAGE GENERATION
 /**
- * Enhanced API client for CampaignForge with flexible workflow support and content management
+ * Enhanced API client for CampaignForge with flexible workflow support, content management, and ultra-cheap AI image generation
  */
 
 const API_BASE_URL = 'https://campaign-backend-production-e2db.up.railway.app'
@@ -1094,6 +1094,72 @@ class ApiClient {
     
     return this.handleResponse(response)
   }
+
+  // ============================================================================
+  // ✅ STABILITY AI IMAGE GENERATION METHODS
+  // ============================================================================
+
+  async generateSingleImage(data: {
+    campaign_id: string
+    prompt: string
+    platform?: string
+    style?: string
+  }): Promise<any> {
+    const response = await fetch(`${this.baseURL}/api/intelligence/stability/generate-single-image`, {
+      method: 'POST',
+      headers: this.getHeaders(),
+      body: JSON.stringify(data)
+    })
+    
+    return this.handleResponse(response)
+  }
+
+  async generateCampaignWithImages(data: {
+    campaign_id: string
+    platforms?: string[]
+    content_count?: number
+    image_style?: string
+    generate_images?: boolean
+  }): Promise<any> {
+    const response = await fetch(`${this.baseURL}/api/intelligence/stability/generate-campaign-with-images`, {
+      method: 'POST',
+      headers: this.getHeaders(),
+      body: JSON.stringify(data)
+    })
+    
+    return this.handleResponse(response)
+  }
+
+  async testStabilityConnection(): Promise<any> {
+    const response = await fetch(`${this.baseURL}/api/intelligence/stability/test-connection`, {
+      headers: this.getHeaders()
+    })
+    
+    return this.handleResponse(response)
+  }
+
+  async calculateImageCosts(params: {
+    platforms?: string
+    posts_per_platform?: number
+  }): Promise<any> {
+    const searchParams = new URLSearchParams()
+    if (params.platforms) searchParams.set('platforms', params.platforms)
+    if (params.posts_per_platform) searchParams.set('posts_per_platform', params.posts_per_platform.toString())
+    
+    const response = await fetch(`${this.baseURL}/api/intelligence/stability/cost-calculator?${searchParams}`, {
+      headers: this.getHeaders()
+    })
+    
+    return this.handleResponse(response)
+  }
+
+  async downloadCampaignPackage(campaignId: string): Promise<any> {
+    const response = await fetch(`${this.baseURL}/api/intelligence/stability/${campaignId}/download-package`, {
+      headers: this.getHeaders()
+    })
+    
+    return this.handleResponse(response)
+  }
 }
 
 // ============================================================================
@@ -1194,6 +1260,13 @@ export const useApi = () => {
     updateUserStatus: apiClient.updateUserStatus.bind(apiClient),
     updateUserRole: apiClient.updateUserRole.bind(apiClient),
     updateCompanySubscription: apiClient.updateCompanySubscription.bind(apiClient),
+    
+    // ✅ NEW: Stability AI image generation methods
+    generateSingleImage: apiClient.generateSingleImage.bind(apiClient),
+    generateCampaignWithImages: apiClient.generateCampaignWithImages.bind(apiClient),
+    testStabilityConnection: apiClient.testStabilityConnection.bind(apiClient),
+    calculateImageCosts: apiClient.calculateImageCosts.bind(apiClient),
+    downloadCampaignPackage: apiClient.downloadCampaignPackage.bind(apiClient),
     
     // Token management
     setAuthToken: apiClient.setAuthToken.bind(apiClient),
