@@ -63,6 +63,12 @@ export default function FixedCampaignDetailPage() {
   const params = useParams()
   const router = useRouter()
   const api = useApi()
+
+  // ✅ ADD THESE DEBUG LINES RIGHT HERE:
+  console.log('🔍 API object:', api)
+  console.log('🔍 Available methods:', Object.keys(api))
+  console.log('🔍 generateSingleImage type:', typeof api.generateSingleImage)
+  console.log('🔍 generateCampaignWithImages type:', typeof api.generateCampaignWithImages)
   
   // 🔧 FIX 1: Use refs to prevent infinite loops
   const isInitializedRef = useRef(false)
@@ -1221,6 +1227,7 @@ function ContentGenerationStep({
 
   // ✅ NEW: Image generation functions
   const handleGenerateImages = async (type: 'single' | 'campaign') => {
+        
     setIsGenerating(true)
     
     try {
