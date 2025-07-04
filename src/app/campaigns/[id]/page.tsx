@@ -1510,7 +1510,15 @@ function ContentGenerationStep({
                 title: 'AI Image', 
                 description: 'Single marketing image ($0.004)',
                 icon: '🖼️',
-                action: () => handleGenerateImages('single'),
+                action: () => {
+                // ✅ ADD THIS DEBUG RIGHT HERE:
+                console.log('🔍 Button clicked, api object:', api)
+                console.log('🔍 generateSingleImage type:', typeof api.generateSingleImage)
+                console.log('🔍 Available methods:', Object.keys(api))
+    
+                // Then call the function:
+                handleGenerateImages('single')
+                },
                 isNew: true,
                 cost: '$0.004'
               },
