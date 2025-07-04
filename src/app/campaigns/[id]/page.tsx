@@ -1136,6 +1136,9 @@ function IntelligenceAnalysisStep({
 }
 
 // Content Generation Component
+// Updated ContentGenerationStep component with image generation
+// This replaces your existing ContentGenerationStep function
+
 function ContentGenerationStep({ 
   campaignId, 
   workflowMode, 
@@ -1158,7 +1161,8 @@ function ContentGenerationStep({
   const [isGenerating, setIsGenerating] = useState(false)
   const [generatedContent, setGeneratedContent] = useState<any[]>([])
   const [isLoadingExisting, setIsLoadingExisting] = useState(true)
-
+  const [showImageOptions, setShowImageOptions] = useState(false)
+  
   // 🔧 FIX: Use useRef to prevent infinite loops
   const hasLoadedContentRef = useRef(false)
   
@@ -1168,29 +1172,22 @@ function ContentGenerationStep({
     [api]
   )
 
-  // 🔧 FIX: Load existing content only once using ref guard
+  // Load existing content (unchanged from your original)
   useEffect(() => {
     const loadExistingContent = async () => {
-      // ✅ CRITICAL: Only load once
       if (!campaignId || hasLoadedContentRef.current) {
-        console.log('⏸️ Skipping content load - already loaded or no campaignId')
         return
       }
 
       try {
         setIsLoadingExisting(true)
-        hasLoadedContentRef.current = true // Mark as loaded immediately
-        
-        console.log('🔍 Loading existing generated content for campaign:', campaignId)
+        hasLoadedContentRef.current = true
         
         const intelligence = await stableGetCampaignIntelligence(campaignId)
-        console.log('📊 Intelligence response:', intelligence)
         
         if (intelligence?.generated_content && Array.isArray(intelligence.generated_content)) {
-          console.log('✅ Found existing generated content:', intelligence.generated_content.length, 'items')
           setGeneratedContent(intelligence.generated_content)
         } else {
-          console.log('⚠️ No existing generated content found')
           setGeneratedContent([])
         }
         
@@ -1202,13 +1199,12 @@ function ContentGenerationStep({
       }
     }
     
-    // Only run if we have a campaignId and haven't loaded yet
     if (campaignId && !hasLoadedContentRef.current) {
       loadExistingContent()
     }
-  }, [campaignId, stableGetCampaignIntelligence]) // ✅ Stable dependencies only
+  }, [campaignId, stableGetCampaignIntelligence])
 
-  // 🔧 FIX: Manual refresh function that bypasses the ref guard
+  // Manual refresh function
   const refreshGeneratedContent = useCallback(async () => {
     try {
       console.log('🔄 Manual refresh of generated content')
@@ -1223,7 +1219,99 @@ function ContentGenerationStep({
     }
   }, [campaignId, stableGetCampaignIntelligence])
 
-  // Real content generation function (unchanged)
+  // ✅ NEW: Image generation functions
+  const handleGenerateImages = async (type: 'single' | 'campaign') => {
+    setIsGenerating(true)
+    
+    try {
+      console.log('🎯 Starting image generation:', type)
+      
+      if (intelligenceData.length === 0) {
+        throw new Error('No intelligence sources available. Please add sources in Step 2 first.')
+      }
+      
+      let response: any
+      
+      if (type === 'single') {
+        // Generate a single image
+        response = await api.generateSingleImage({
+          campaign_id: campaignId,
+          prompt: `Professional marketing image for ${campaign?.title || 'product'}, high quality, social media optimized`,
+          platform: 'instagram',
+          style: 'health'
+        })
+      } else {
+        // Generate full campaign with images
+        response = await api.generateCampaignWithImages({
+          campaign_id: campaignId,
+          platforms: ['instagram', 'facebook', 'tiktok'],
+          content_count: 3,
+          image_style: 'health',
+          generate_images: true
+        })
+      }
+      
+      console.log('✅ Image generation SUCCESS:', response)
+      
+      if (response.success) {
+        // Create content entry for the UI
+        const newContent = {
+          id: response.content_id || Date.now().toString(),
+          type: type === 'single' ? 'ai_image' : 'social_media_campaign_with_images',
+          title: type === 'single' ? 'AI Generated Image' : 'Social Media Campaign with Images',
+          generated_at: new Date(),
+          status: 'generated',
+          content: response,
+          metadata: {
+            cost: response.total_cost || response.cost,
+            savings: response.cost_savings_vs_dalle,
+            images_count: response.images_generated || 1,
+            platform: response.platform
+          },
+          preview: response.message || 'Images generated successfully with ultra-cheap AI'
+        }
+        
+        // Update local state
+        setGeneratedContent(prev => [...prev, newContent])
+        onContentGenerated(newContent)
+        
+        // Show success message with cost savings
+        const costInfo = type === 'single' 
+          ? `Cost: $${response.cost?.toFixed(3) || '0.004'} (vs $0.040 DALL-E)`
+          : `Total: $${response.total_cost?.toFixed(3)} • Saved: ${response.cost_savings_vs_dalle}`
+        
+        alert(`✅ ${response.message}\n💰 ${costInfo}`)
+        
+        console.log('✅ Images successfully added to UI')
+        
+      } else {
+        throw new Error(response.error || 'Image generation failed')
+      }
+      
+    } catch (error) {
+      console.error('❌ Image generation failed:', error)
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred'
+      alert(`Image generation failed: ${errorMessage}`)
+    } finally {
+      setIsGenerating(false)
+    }
+  }
+
+  // Test Stability AI connection
+  const handleTestConnection = async () => {
+    try {
+      const result = await api.testStabilityConnection()
+      if (result.integration_ready) {
+        alert('✅ Stability AI is ready! Ultra-cheap image generation available.')
+      } else {
+        alert('❌ Stability AI setup needed. Check your STABILITY_API_KEY.')
+      }
+    } catch (error) {
+      alert('❌ Connection test failed. Please check your setup.')
+    }
+  }
+
+  // Original content generation function (unchanged)
   const handleGenerateContent = async (contentType: string) => {
     setIsGenerating(true)
     
@@ -1273,7 +1361,6 @@ function ContentGenerationStep({
         })()
       }
       
-      // ✅ Update local state immediately
       setGeneratedContent(prev => [...prev, newContent])
       onContentGenerated(newContent)
       
@@ -1305,14 +1392,25 @@ function ContentGenerationStep({
       <div className="flex items-center justify-between">
         <h2 className="text-2xl font-bold text-gray-900">Generate Content</h2>
         
-        {/* 🔧 FIX: Add manual refresh button */}
-        <button
-          onClick={refreshGeneratedContent}
-          className="flex items-center space-x-2 px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-        >
-          <RefreshCw className="h-4 w-4" />
-          <span>Refresh Content</span>
-        </button>
+        <div className="flex space-x-2">
+          {/* Test Stability AI button */}
+          <button
+            onClick={handleTestConnection}
+            className="flex items-center space-x-2 px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm"
+          >
+            <span>🧪</span>
+            <span>Test Image AI</span>
+          </button>
+          
+          {/* Manual refresh button */}
+          <button
+            onClick={refreshGeneratedContent}
+            className="flex items-center space-x-2 px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            <RefreshCw className="h-4 w-4" />
+            <span>Refresh Content</span>
+          </button>
+        </div>
       </div>
       
       {intelligenceCount === 0 ? (
@@ -1335,55 +1433,122 @@ function ContentGenerationStep({
             </p>
           </div>
 
-          {/* Content Type Grid - unchanged */}
+          {/* ✅ NEW: Cost benefits callout */}
+          <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
+            <h3 className="text-lg font-medium text-purple-900 mb-2">🎯 Ultra-Cheap AI Images Available!</h3>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+              <div className="text-center">
+                <div className="text-2xl font-bold text-purple-600">$0.004</div>
+                <div className="text-purple-700">Per image (Stability AI)</div>
+              </div>
+              <div className="text-center">
+                <div className="text-2xl font-bold text-red-600">$0.040</div>
+                <div className="text-purple-700">Per image (DALL-E)</div>
+              </div>
+              <div className="text-center">
+                <div className="text-2xl font-bold text-green-600">90%</div>
+                <div className="text-purple-700">Cost savings</div>
+              </div>
+            </div>
+          </div>
+
+          {/* ✅ UPDATED: Content Type Grid with Image Generation */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {[
               { 
                 type: 'email_sequence', 
                 title: 'Email Sequence', 
                 description: 'Multi-part email campaign',
-                icon: '📧'
+                icon: '📧',
+                action: () => handleGenerateContent('email_sequence')
               },
               { 
                 type: 'SOCIAL_POSTS', 
                 title: 'Social Media Posts', 
                 description: 'Platform-specific content',
-                icon: '📱'
+                icon: '📱',
+                action: () => handleGenerateContent('SOCIAL_POSTS')
               },
               { 
                 type: 'ad_copy', 
                 title: 'Ad Copy', 
                 description: 'Paid advertising content',
-                icon: '📢'
+                icon: '📢',
+                action: () => handleGenerateContent('ad_copy')
               },
               { 
                 type: 'blog_post', 
                 title: 'Blog Post', 
                 description: 'Long-form content',
-                icon: '📝'
+                icon: '📝',
+                action: () => handleGenerateContent('blog_post')
               },
               { 
                 type: 'LANDING_PAGE', 
                 title: 'Landing Page', 
                 description: 'Conversion-focused page',
-                icon: '🎯'
+                icon: '🎯',
+                action: () => handleGenerateContent('LANDING_PAGE')
               },
               { 
                 type: 'video_script', 
                 title: 'Video Script', 
                 description: 'Video content outline',
-                icon: '🎬'
+                icon: '🎬',
+                action: () => handleGenerateContent('video_script')
+              },
+              // ✅ NEW: AI Image Generation Options
+              { 
+                type: 'ai_image_single', 
+                title: 'AI Image', 
+                description: 'Single marketing image ($0.004)',
+                icon: '🖼️',
+                action: () => handleGenerateImages('single'),
+                isNew: true,
+                cost: '$0.004'
+              },
+              { 
+                type: 'social_campaign_images', 
+                title: 'Social Campaign + Images', 
+                description: 'Posts + AI images (9 total)',
+                icon: '📸',
+                action: () => handleGenerateImages('campaign'),
+                isNew: true,
+                featured: true,
+                cost: '~$0.036'
               }
             ].map((contentType) => (
               <button
                 key={contentType.type}
-                onClick={() => handleGenerateContent(contentType.type)}
+                onClick={contentType.action}
                 disabled={isGenerating}
-                className="p-4 bg-white border border-gray-200 rounded-lg hover:border-purple-300 hover:bg-purple-50 transition-all text-left disabled:opacity-50 disabled:cursor-not-allowed"
+                className={`p-4 bg-white border rounded-lg hover:border-purple-300 hover:bg-purple-50 transition-all text-left disabled:opacity-50 disabled:cursor-not-allowed relative ${
+                  contentType.featured ? 'border-purple-300 bg-purple-50 ring-2 ring-purple-200' : 'border-gray-200'
+                }`}
               >
+                {contentType.isNew && (
+                  <span className="absolute -top-2 -right-2 bg-green-500 text-white text-xs px-2 py-1 rounded-full">
+                    NEW
+                  </span>
+                )}
+                {contentType.featured && (
+                  <span className="absolute -top-2 -left-2 bg-purple-500 text-white text-xs px-2 py-1 rounded-full">
+                    ⭐ ULTRA-CHEAP
+                  </span>
+                )}
                 <div className="text-2xl mb-2">{contentType.icon}</div>
                 <h4 className="font-medium text-gray-900">{contentType.title}</h4>
                 <p className="text-sm text-gray-600 mt-1">{contentType.description}</p>
+                {contentType.cost && (
+                  <p className="text-xs text-purple-600 mt-1 font-medium">
+                    {contentType.cost} • Stability AI
+                  </p>
+                )}
+                {contentType.type.includes('image') && (
+                  <p className="text-xs text-green-600 mt-1">
+                    90% cheaper than DALL-E
+                  </p>
+                )}
                 {isGenerating && (
                   <div className="mt-2 flex items-center text-purple-600">
                     <Loader2 className="h-4 w-4 animate-spin mr-2" />
@@ -1394,7 +1559,7 @@ function ContentGenerationStep({
             ))}
           </div>
 
-          {/* 🔧 FIX: Show loading state properly */}
+          {/* Loading state */}
           {isLoadingExisting && (
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
               <div className="flex items-center space-x-2">
@@ -1404,7 +1569,7 @@ function ContentGenerationStep({
             </div>
           )}
 
-          {/* Generated Content - unchanged */}
+          {/* ✅ UPDATED: Generated Content Display */}
           {generatedContent.length > 0 && !isLoadingExisting && (
             <div className="space-y-4">
               <h3 className="text-lg font-medium text-gray-900">
@@ -1429,13 +1594,31 @@ function ContentGenerationStep({
                               Smart URL
                             </span>
                           )}
+                          {/* ✅ NEW: Show cost and savings for AI images */}
+                          {content.type?.includes('image') && content.metadata?.cost && (
+                            <span className="px-2 py-1 bg-purple-100 text-purple-800 rounded-full text-xs font-medium">
+                              ${content.metadata.cost.toFixed(3)} saved
+                            </span>
+                          )}
                         </div>
                         <p className="text-sm text-gray-600 mb-2">
                           Generated {new Date(content.generated_at).toLocaleString()}
+                          {/* ✅ NEW: Show image count and platform info */}
+                          {content.metadata?.images_count && (
+                            <span className="ml-2 text-purple-600">
+                              • {content.metadata.images_count} images • {content.metadata.platform || 'Multiple platforms'}
+                            </span>
+                          )}
                         </p>
                         {content.preview && (
                           <p className="text-sm text-gray-700 bg-white p-2 rounded border">
                             {content.preview}
+                          </p>
+                        )}
+                        {/* ✅ NEW: Show cost savings info for image content */}
+                        {content.metadata?.savings && (
+                          <p className="text-sm text-green-700 mt-1 font-medium">
+                            💰 Saved {content.metadata.savings} vs DALL-E
                           </p>
                         )}
                       </div>
@@ -1457,19 +1640,67 @@ function ContentGenerationStep({
                             Track
                           </button>
                         )}
+                        {/* ✅ NEW: Download images button for image content */}
+                        {content.type?.includes('image') && (
+                          <button 
+                            onClick={async () => {
+                              try {
+                                const packageData = await api.downloadCampaignPackage(campaignId)
+                                alert(`📦 Package ready: ${packageData.total_images} images, ${packageData.total_content_pieces} content pieces`)
+                              } catch (error) {
+                                console.error('Download failed:', error)
+                                alert('Download failed. Please try again.')
+                              }
+                            }}
+                            className="px-3 py-1 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm"
+                          >
+                            📦 Download
+                          </button>
+                        )}
                       </div>
                     </div>
                   </div>
                 ))}
               </div>
 
-              {/* Campaign Complete Message - unchanged */}
+              {/* ✅ UPDATED: Campaign Complete Message with Image Info */}
               <div className="bg-green-50 border border-green-200 rounded-lg p-6 text-center">
                 <CheckCircle className="h-12 w-12 text-green-600 mx-auto mb-4" />
                 <h3 className="text-lg font-medium text-green-900 mb-2">🎉 Campaign Complete!</h3>
                 <p className="text-green-700 mb-4">
-                  You have successfully created a complete marketing campaign with AI-generated content.
+                  You have successfully created a complete marketing campaign with AI-generated content
+                  {generatedContent.some(c => c.type?.includes('image')) && (
+                    <span className="block text-purple-700 font-medium mt-1">
+                      Including ultra-cheap AI images with 90% cost savings!
+                    </span>
+                  )}
                 </p>
+                
+                {/* ✅ NEW: Show total cost savings if images were generated */}
+                {generatedContent.some(c => c.type?.includes('image')) && (
+                  <div className="bg-purple-100 border border-purple-200 rounded-lg p-4 mb-4">
+                    <h4 className="text-purple-900 font-medium mb-2">💰 Cost Savings Summary</h4>
+                    <div className="grid grid-cols-3 gap-4 text-sm">
+                      <div>
+                        <div className="text-lg font-bold text-purple-600">
+                          {generatedContent.reduce((acc, c) => acc + (c.metadata?.images_count || 0), 0)}
+                        </div>
+                        <div className="text-purple-700">Images Generated</div>
+                      </div>
+                      <div>
+                        <div className="text-lg font-bold text-green-600">
+                          ${generatedContent.reduce((acc, c) => acc + (c.metadata?.cost || 0), 0).toFixed(3)}
+                        </div>
+                        <div className="text-purple-700">Total Cost</div>
+                      </div>
+                      <div>
+                        <div className="text-lg font-bold text-green-600">90%</div>
+                        <div className="text-purple-700">Savings vs DALL-E</div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+                
                 <div className="flex justify-center space-x-4">
                   <button 
                     onClick={() => router.push(`/campaigns/${campaignId}/content`)}
@@ -1478,22 +1709,43 @@ function ContentGenerationStep({
                     View All Content
                   </button>
                   <button 
-                    onClick={() => {
-                      const content = `Campaign: ${campaign?.title}\n\nGenerated Content Summary\n\nThis feature can be enhanced to include actual generated content when available.`
-                      
-                      const blob = new Blob([content], { type: 'text/plain' })
-                      const url = URL.createObjectURL(blob)
-                      const a = document.createElement('a')
-                      a.href = url
-                      a.download = `${campaign?.title?.replace(/[^a-z0-9]/gi, '_').toLowerCase() || 'campaign'}_content.txt`
-                      document.body.appendChild(a)
-                      a.click()
-                      document.body.removeChild(a)
-                      URL.revokeObjectURL(url)
+                    onClick={async () => {
+                      try {
+                        const packageData = await api.downloadCampaignPackage(campaignId)
+                        
+                        const content = `Campaign: ${campaign?.title}\n\nGenerated Content Summary:\n- ${packageData.total_content_pieces} content pieces\n- ${packageData.total_images} AI images\n\nCost Savings: 90% vs traditional AI image generation\n\nThis package includes all your generated content and ultra-cheap AI images.`
+                        
+                        const blob = new Blob([content], { type: 'text/plain' })
+                        const url = URL.createObjectURL(blob)
+                        const a = document.createElement('a')
+                        a.href = url
+                        a.download = `${campaign?.title?.replace(/[^a-z0-9]/gi, '_').toLowerCase() || 'campaign'}_content_package.txt`
+                        document.body.appendChild(a)
+                        a.click()
+                        document.body.removeChild(a)
+                        URL.revokeObjectURL(url)
+                        
+                        alert(`✅ Package downloaded: ${packageData.total_images} images, ${packageData.total_content_pieces} content pieces`)
+                      } catch (error) {
+                        console.error('Download failed:', error)
+                        
+                        // Fallback download
+                        const content = `Campaign: ${campaign?.title}\n\nGenerated Content Summary\n\nThis feature can be enhanced to include actual generated content when available.`
+                        
+                        const blob = new Blob([content], { type: 'text/plain' })
+                        const url = URL.createObjectURL(blob)
+                        const a = document.createElement('a')
+                        a.href = url
+                        a.download = `${campaign?.title?.replace(/[^a-z0-9]/gi, '_').toLowerCase() || 'campaign'}_content.txt`
+                        document.body.appendChild(a)
+                        a.click()
+                        document.body.removeChild(a)
+                        URL.revokeObjectURL(url)
+                      }
                     }}
                     className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
                   >
-                    Download All Content
+                    📦 Download All Content
                   </button>
                   <button 
                     onClick={() => router.push('/campaigns')}
