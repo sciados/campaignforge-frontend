@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { Eye, EyeOff, Mail, Lock, User, Building, Sparkles } from 'lucide-react'
+import { Eye, EyeOff, ArrowRight, Check } from 'lucide-react'
 
 // Force this page to never be statically rendered
 export const dynamic = 'force-dynamic'
@@ -34,11 +34,8 @@ export default function RegisterPage() {
 
   if (!mounted) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-purple-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading registration...</p>
-        </div>
+      <div className="min-h-screen flex items-center justify-center bg-white">
+        <div className="w-6 h-6 border-2 border-black border-t-transparent rounded-full animate-spin"></div>
       </div>
     )
   }
@@ -68,15 +65,13 @@ export default function RegisterPage() {
     try {
       const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://campaign-backend-production-e2db.up.railway.app'
       
-      // ✅ FIXED: Prepare user data in correct format for backend
       const userData = {
         email: formData.email,
         password: formData.password,
         full_name: `${formData.firstName} ${formData.lastName}`,
-        company_name: formData.company || 'Default Company'  // Backend requires company_name
+        company_name: formData.company || 'Default Company'
       }
 
-      // ✅ FIXED: Use correct API endpoint with /api prefix
       const response = await fetch(`${API_BASE_URL}/api/auth/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -89,7 +84,6 @@ export default function RegisterPage() {
           localStorage.setItem('authToken', data.access_token)
         }
         
-        // Redirect to dashboard
         router.push('/dashboard')
       } else {
         const errorData = await response.json()
@@ -113,47 +107,82 @@ export default function RegisterPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-blue-50 to-indigo-100 flex items-center justify-center p-4">
-      <div className="w-full max-w-md mx-auto">
-        <div className="bg-white rounded-2xl shadow-xl p-8">
-          <div className="text-center mb-8">
-            <div className="bg-gradient-to-r from-purple-600 to-blue-600 w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4">
-              <Sparkles className="h-8 w-8 text-white" />
+    <div className="min-h-screen bg-white flex">
+      {/* Left side - Hero */}
+      <div className="hidden lg:flex lg:w-1/2 bg-gray-50 flex-col justify-center px-12">
+        <div className="max-w-lg">
+          <div className="w-12 h-12 bg-black rounded-2xl flex items-center justify-center mb-8">
+            <span className="text-white text-xl font-medium">C</span>
+          </div>
+          <h1 className="text-4xl font-light text-black mb-6 leading-tight">
+            Start creating with
+            <br />
+            <span className="font-semibold">CampaignForge.</span>
+          </h1>
+          <p className="text-lg text-gray-600 leading-relaxed mb-8">
+            Join thousands of marketers transforming content into complete campaigns with AI.
+          </p>
+          
+          {/* Benefits */}
+          <div className="space-y-4">
+            {[
+              'Process any content type',
+              'AI-powered campaign generation',
+              'Complete marketing workflows'
+            ].map((benefit, index) => (
+              <div key={index} className="flex items-center space-x-3">
+                <div className="w-5 h-5 bg-black rounded-full flex items-center justify-center">
+                  <Check className="w-3 h-3 text-white" />
+                </div>
+                <span className="text-gray-700">{benefit}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Right side - Form */}
+      <div className="w-full lg:w-1/2 flex items-center justify-center px-6 py-12">
+        <div className="w-full max-w-md">
+          <div className="text-center mb-8 lg:hidden">
+            <div className="w-12 h-12 bg-black rounded-2xl flex items-center justify-center mx-auto mb-4">
+              <span className="text-white text-xl font-medium">C</span>
             </div>
-            <h2 className="text-2xl font-bold text-gray-900">Create Account</h2>
-            <p className="text-gray-600 mt-2">Start your campaign creation journey</p>
+            <h2 className="text-2xl font-light text-black">Create Account</h2>
+          </div>
+
+          <div className="hidden lg:block mb-8">
+            <h2 className="text-3xl font-light text-black mb-2">Create account</h2>
+            <p className="text-gray-600">Get started with your free account</p>
           </div>
 
           {error && (
-            <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+            <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl">
               <p className="text-red-600 text-sm">{error}</p>
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-5">
             {/* Name Fields */}
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label htmlFor="firstName" className="block text-sm font-medium text-gray-700 mb-1">
-                  First Name
+                <label htmlFor="firstName" className="block text-sm font-medium text-black mb-2">
+                  First name
                 </label>
-                <div className="relative">
-                  <User className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
-                  <input
-                    id="firstName"
-                    name="firstName"
-                    type="text"
-                    required
-                    value={formData.firstName}
-                    onChange={handleChange}
-                    className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-colors"
-                    placeholder="John"
-                  />
-                </div>
+                <input
+                  id="firstName"
+                  name="firstName"
+                  type="text"
+                  required
+                  value={formData.firstName}
+                  onChange={handleChange}
+                  className="w-full px-4 py-3 bg-gray-100 border-none rounded-lg text-sm focus:outline-none focus:bg-white focus:ring-2 focus:ring-blue-500/20 transition-all"
+                  placeholder="John"
+                />
               </div>
               <div>
-                <label htmlFor="lastName" className="block text-sm font-medium text-gray-700 mb-1">
-                  Last Name
+                <label htmlFor="lastName" className="block text-sm font-medium text-black mb-2">
+                  Last name
                 </label>
                 <input
                   id="lastName"
@@ -162,7 +191,7 @@ export default function RegisterPage() {
                   required
                   value={formData.lastName}
                   onChange={handleChange}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-colors"
+                  className="w-full px-4 py-3 bg-gray-100 border-none rounded-lg text-sm focus:outline-none focus:bg-white focus:ring-2 focus:ring-blue-500/20 transition-all"
                   placeholder="Doe"
                 />
               </div>
@@ -170,51 +199,44 @@ export default function RegisterPage() {
 
             {/* Email */}
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
-                Email Address
+              <label htmlFor="email" className="block text-sm font-medium text-black mb-2">
+                Email
               </label>
-              <div className="relative">
-                <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
-                <input
-                  id="email"
-                  name="email"
-                  type="email"
-                  required
-                  value={formData.email}
-                  onChange={handleChange}
-                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-colors"
-                  placeholder="john@company.com"
-                />
-              </div>
+              <input
+                id="email"
+                name="email"
+                type="email"
+                required
+                value={formData.email}
+                onChange={handleChange}
+                className="w-full px-4 py-3 bg-gray-100 border-none rounded-lg text-sm focus:outline-none focus:bg-white focus:ring-2 focus:ring-blue-500/20 transition-all"
+                placeholder="john@company.com"
+              />
             </div>
 
             {/* Company */}
             <div>
-              <label htmlFor="company" className="block text-sm font-medium text-gray-700 mb-1">
-                Company Name
+              <label htmlFor="company" className="block text-sm font-medium text-black mb-2">
+                Company
               </label>
-              <div className="relative">
-                <Building className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
-                <input
-                  id="company"
-                  name="company"
-                  type="text"
-                  required
-                  value={formData.company}
-                  onChange={handleChange}
-                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-colors"
-                  placeholder="Your Company Name"
-                />
-              </div>
+              <input
+                id="company"
+                name="company"
+                type="text"
+                required
+                value={formData.company}
+                onChange={handleChange}
+                className="w-full px-4 py-3 bg-gray-100 border-none rounded-lg text-sm focus:outline-none focus:bg-white focus:ring-2 focus:ring-blue-500/20 transition-all"
+                placeholder="Your company name"
+              />
             </div>
 
             {/* Password */}
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
+              <label htmlFor="password" className="block text-sm font-medium text-black mb-2">
                 Password
               </label>
               <div className="relative">
-                <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
                 <input
                   id="password"
                   name="password"
@@ -222,13 +244,13 @@ export default function RegisterPage() {
                   required
                   value={formData.password}
                   onChange={handleChange}
-                  className="w-full pl-10 pr-12 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-colors"
+                  className="w-full px-4 py-3 bg-gray-100 border-none rounded-lg text-sm focus:outline-none focus:bg-white focus:ring-2 focus:ring-blue-500/20 transition-all pr-12"
                   placeholder="8+ characters"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-black transition-colors"
                 >
                   {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                 </button>
@@ -237,11 +259,10 @@ export default function RegisterPage() {
 
             {/* Confirm Password */}
             <div>
-              <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-1">
-                Confirm Password
+              <label htmlFor="confirmPassword" className="block text-sm font-medium text-black mb-2">
+                Confirm password
               </label>
               <div className="relative">
-                <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
                 <input
                   id="confirmPassword"
                   name="confirmPassword"
@@ -249,13 +270,13 @@ export default function RegisterPage() {
                   required
                   value={formData.confirmPassword}
                   onChange={handleChange}
-                  className="w-full pl-10 pr-12 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-colors"
+                  className="w-full px-4 py-3 bg-gray-100 border-none rounded-lg text-sm focus:outline-none focus:bg-white focus:ring-2 focus:ring-blue-500/20 transition-all pr-12"
                   placeholder="Confirm password"
                 />
                 <button
                   type="button"
                   onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-black transition-colors"
                 >
                   {showConfirmPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                 </button>
@@ -263,7 +284,7 @@ export default function RegisterPage() {
             </div>
 
             {/* Terms Agreement */}
-            <div className="flex items-start">
+            <div className="flex items-start space-x-3">
               <input
                 id="agreeToTerms"
                 name="agreeToTerms"
@@ -271,15 +292,15 @@ export default function RegisterPage() {
                 required
                 checked={formData.agreeToTerms}
                 onChange={handleChange}
-                className="h-4 w-4 text-purple-600 focus:ring-purple-500 border-gray-300 rounded mt-1"
+                className="h-4 w-4 text-black focus:ring-black border-gray-300 rounded mt-1"
               />
-              <label htmlFor="agreeToTerms" className="ml-3 block text-sm text-gray-700">
+              <label htmlFor="agreeToTerms" className="text-sm text-gray-600 leading-relaxed">
                 I agree to the{' '}
-                <a href="#" className="text-purple-600 hover:text-purple-500">
+                <a href="#" className="text-black hover:text-gray-700 transition-colors">
                   Terms of Service
                 </a>{' '}
                 and{' '}
-                <a href="#" className="text-purple-600 hover:text-purple-500">
+                <a href="#" className="text-black hover:text-gray-700 transition-colors">
                   Privacy Policy
                 </a>
               </label>
@@ -288,26 +309,36 @@ export default function RegisterPage() {
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full bg-gradient-to-r from-purple-600 to-blue-600 text-white py-3 px-4 rounded-lg font-medium hover:from-purple-700 hover:to-blue-700 focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full bg-black text-white py-3 px-4 rounded-lg font-medium hover:bg-gray-900 focus:ring-2 focus:ring-black/20 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
             >
               {isLoading ? (
-                <div className="flex items-center justify-center">
-                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
-                  Creating Account...
-                </div>
+                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
               ) : (
-                'Create Free Account'
+                <>
+                  <span>Create Account</span>
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </>
               )}
             </button>
           </form>
 
-          <div className="mt-6 text-center">
+          <div className="mt-8 text-center">
             <p className="text-gray-600">
               Already have an account?{' '}
-              <Link href="/login" className="text-purple-600 hover:text-purple-500 font-medium">
+              <Link href="/login" className="text-black font-medium hover:text-gray-700 transition-colors">
                 Sign in
               </Link>
             </p>
+          </div>
+
+          <div className="mt-8 pt-8 border-t border-gray-200">
+            <div className="flex items-center justify-center space-x-4 text-sm text-gray-500">
+              <a href="#" className="hover:text-black transition-colors">Privacy</a>
+              <span>•</span>
+              <a href="#" className="hover:text-black transition-colors">Terms</a>
+              <span>•</span>
+              <a href="#" className="hover:text-black transition-colors">Support</a>
+            </div>
           </div>
         </div>
       </div>

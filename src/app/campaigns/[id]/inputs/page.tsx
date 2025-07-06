@@ -1,5 +1,8 @@
+// src/app/campaigns/[id]/inputs/page.tsx - Apple Design System
 import React from 'react'
 import { notFound } from 'next/navigation'
+import { ArrowLeft, Database, Upload, Link2, FileText, Video, Globe } from 'lucide-react'
+import Link from 'next/link'
 
 interface InputsPageProps {
   params: {
@@ -7,7 +10,7 @@ interface InputsPageProps {
   }
 }
 
-export default function InputsPage({ params }: InputsPageProps) {
+export default function AppleInputsPage({ params }: InputsPageProps) {
   const { id } = params
 
   if (!id) {
@@ -15,21 +18,94 @@ export default function InputsPage({ params }: InputsPageProps) {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
-      <div className="max-w-7xl mx-auto">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">Input Sources</h1>
-          <p className="text-gray-600 mt-2">
-            Manage intelligence sources for campaign {id}
+    <div className="min-h-screen bg-apple-light">
+      {/* Apple-style Header */}
+      <div className="bg-white border-b border-gray-200 sticky top-0 z-10">
+        <div className="max-w-7xl mx-auto px-6 lg:px-8">
+          <div className="flex items-center justify-between h-16">
+            <div className="flex items-center space-x-4">
+              <Link 
+                href={`/campaigns/${id}`}
+                className="w-8 h-8 flex items-center justify-center text-apple-gray hover:text-black transition-colors rounded-lg hover:bg-gray-100"
+              >
+                <ArrowLeft className="h-5 w-5" />
+              </Link>
+              <div>
+                <h1 className="text-xl font-semibold text-black">Input Sources</h1>
+                <p className="text-sm text-apple-gray font-medium">
+                  Manage intelligence sources for analysis
+                </p>
+              </div>
+            </div>
+            
+            <div className="flex items-center space-x-3">
+              <button className="flex items-center space-x-2 px-4 py-2 bg-black text-white rounded-lg hover:bg-gray-900 transition-colors font-medium">
+                <Upload className="h-4 w-4" />
+                <span>Add Sources</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="max-w-7xl mx-auto px-6 lg:px-8 py-8">
+        {/* Coming Soon Hero */}
+        <div className="bg-white rounded-2xl border border-gray-200 p-12 text-center shadow-sm mb-8">
+          <div className="w-20 h-20 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-6">
+            <Database className="h-10 w-10 text-apple-gray" />
+          </div>
+          <h2 className="text-3xl font-light text-black mb-4">Source Management</h2>
+          <p className="text-apple-gray max-w-2xl mx-auto leading-relaxed mb-8">
+            Advanced input source management features are coming soon. This will include URL analysis, 
+            file uploads, batch processing capabilities, and intelligent source categorization.
           </p>
+          
+          {/* Preview Source Types */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-8">
+            <div className="bg-gray-50 rounded-xl p-6">
+              <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center mx-auto mb-4">
+                <Link2 className="h-6 w-6 text-blue-600" />
+              </div>
+              <h3 className="text-lg font-medium text-black mb-2">URL Analysis</h3>
+              <p className="text-sm text-apple-gray">
+                Analyze competitor websites, sales pages, and landing pages for intelligence extraction
+              </p>
+            </div>
+            
+            <div className="bg-gray-50 rounded-xl p-6">
+              <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center mx-auto mb-4">
+                <FileText className="h-6 w-6 text-green-600" />
+              </div>
+              <h3 className="text-lg font-medium text-black mb-2">Document Upload</h3>
+              <p className="text-sm text-apple-gray">
+                Upload PDFs, Word documents, presentations, and other files for content analysis
+              </p>
+            </div>
+            
+            <div className="bg-gray-50 rounded-xl p-6">
+              <div className="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center mx-auto mb-4">
+                <Video className="h-6 w-6 text-purple-600" />
+              </div>
+              <h3 className="text-lg font-medium text-black mb-2">Media Processing</h3>
+              <p className="text-sm text-apple-gray">
+                Process video content, audio files, and multimedia sources for comprehensive analysis
+              </p>
+            </div>
+          </div>
         </div>
 
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <h2 className="text-xl font-semibold text-gray-900 mb-4">Source Management</h2>
-          <p className="text-gray-600">
-            Input source management features coming soon. This will include URL analysis, 
-            file uploads, and batch processing capabilities.
+        {/* Action Card */}
+        <div className="bg-black rounded-2xl p-8 text-center">
+          <h3 className="text-xl font-medium text-white mb-3">Ready to Add Sources?</h3>
+          <p className="text-gray-300 mb-6">
+            Return to the main campaign page to add and manage your intelligence sources.
           </p>
+          <Link 
+            href={`/campaigns/${id}?step=2`}
+            className="inline-flex items-center space-x-2 px-6 py-3 bg-white text-black rounded-lg hover:bg-gray-100 transition-colors font-medium"
+          >
+            <span>Go to Sources</span>
+          </Link>
         </div>
       </div>
     </div>

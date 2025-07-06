@@ -1,4 +1,3 @@
-// src/components/ContentViewEditModal.tsx
 'use client'
 import React, { useState, useEffect, useRef } from 'react'
 import { 
@@ -24,7 +23,7 @@ interface ContentViewEditModalProps {
   formatContentType: (type: string) => string
 }
 
-// ✅ NEW: Auto-expanding textarea component
+// Auto-expanding textarea component
 const AutoExpandingTextarea = ({ 
   value, 
   onChange, 
@@ -43,14 +42,9 @@ const AutoExpandingTextarea = ({
   const adjustHeight = React.useCallback(() => {
     const textarea = textareaRef.current
     if (textarea) {
-      // Reset height to auto to get the correct scrollHeight
       textarea.style.height = 'auto'
-      
-      // Calculate minimum height based on minRows
       const lineHeight = parseInt(getComputedStyle(textarea).lineHeight)
       const minHeight = lineHeight * minRows
-      
-      // Set height to max of content height or minimum height
       const newHeight = Math.max(textarea.scrollHeight, minHeight)
       textarea.style.height = `${newHeight}px`
     }
@@ -61,7 +55,6 @@ const AutoExpandingTextarea = ({
   }, [value, adjustHeight])
 
   useEffect(() => {
-    // Adjust height on mount
     adjustHeight()
   }, [adjustHeight])
 
@@ -71,7 +64,6 @@ const AutoExpandingTextarea = ({
       value={value}
       onChange={(e) => {
         onChange(e.target.value)
-        // Adjust height on every change
         setTimeout(adjustHeight, 0)
       }}
       placeholder={placeholder}
@@ -79,15 +71,6 @@ const AutoExpandingTextarea = ({
       style={{ minHeight: `${minRows * 1.5}rem` }}
     />
   )
-}
-
-interface ContentViewEditModalProps {
-  content: any
-  isOpen: boolean
-  onClose: () => void
-  onSave: (contentId: string, newContent: string) => Promise<void>
-  onRefresh: () => void
-  formatContentType: (type: string) => string
 }
 
 export default function ContentViewEditModal({
@@ -154,10 +137,9 @@ export default function ContentViewEditModal({
     
     setIsSaving(true)
     try {
-      // ✅ ENHANCED: Properly merge individual edits back into the content structure
       let contentToSave = editedContent
 
-      // If we have individual edits, merge them back into the structured format
+      // If we have individual edits, merge them back into the content structure
       if (Object.keys(individualEdits).length > 0 && content.parsed_content) {
         console.log('🔄 Merging individual edits back into structured content')
         
@@ -272,15 +254,15 @@ export default function ContentViewEditModal({
     const editContent = individualEdits[0] || item.content
     
     return (
-      <div className="space-y-4">
+      <div className="space-y-6">
         {/* Single Item Header */}
-        <div className="bg-gray-50 p-4 rounded-lg">
-          <h4 className="font-semibold text-gray-800 text-lg mb-2">{item.title}</h4>
+        <div className="bg-gray-50 rounded-lg p-6">
+          <h4 className="font-medium text-black text-lg mb-3">{item.title}</h4>
           {item.metadata && Object.keys(item.metadata).length > 0 && (
-            <div className="grid grid-cols-2 gap-2 text-sm">
+            <div className="grid grid-cols-2 gap-4 text-sm">
               {Object.entries(item.metadata).map(([key, value]) => (
-                <div key={key} className="flex flex-col">
-                  <span className="text-gray-500 text-xs uppercase tracking-wide">
+                <div key={key}>
+                  <span className="text-gray-500 text-xs uppercase tracking-wide block mb-1">
                     {key.replace('_', ' ')}
                   </span>
                   <span className="text-gray-700 font-medium">
@@ -293,13 +275,13 @@ export default function ContentViewEditModal({
         </div>
 
         {/* Single Item Content */}
-        <div className="bg-white border border-gray-200 rounded-lg p-4">
+        <div className="bg-white border border-gray-200 rounded-lg p-6">
           {isEditing ? (
             <AutoExpandingTextarea
               value={editContent}
               onChange={(newContent) => handleIndividualEdit(0, newContent)}
               placeholder="Edit your content here..."
-              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent font-mono text-sm"
+              className="w-full p-4 bg-gray-100 border-none rounded-lg focus:outline-none focus:bg-white focus:ring-2 focus:ring-blue-500/20 transition-all font-mono text-sm"
               minRows={8}
             />
           ) : (
@@ -314,9 +296,10 @@ export default function ContentViewEditModal({
 
   const renderAccordionView = () => {
     return (
-      <div className="space-y-3">
-        <div className="text-sm text-gray-600 mb-4">
-          {content.formatted_content.length} items • Click to expand and edit individual sections
+      <div className="space-y-4">
+        <div className="text-sm text-gray-600 mb-6 bg-gray-50 rounded-lg p-4">
+          <span className="font-medium">{content.formatted_content.length} items</span>
+          <span className="ml-2">• Click to expand and edit individual sections</span>
         </div>
         
         {content.formatted_content.map((item: any, index: number) => {
@@ -328,19 +311,19 @@ export default function ContentViewEditModal({
               {/* Accordion Header */}
               <button
                 onClick={() => toggleItemExpansion(index)}
-                className="w-full px-4 py-3 bg-gray-50 hover:bg-gray-100 transition-colors flex items-center justify-between text-left"
+                className="w-full px-6 py-4 bg-gray-50 hover:bg-gray-100 transition-colors flex items-center justify-between text-left"
               >
                 <div className="flex-1">
-                  <h4 className="font-semibold text-gray-800">{item.title}</h4>
+                  <h4 className="font-medium text-black">{item.title}</h4>
                   {item.metadata?.preview && (
                     <p className="text-sm text-gray-600 mt-1 line-clamp-1">
                       {item.metadata.preview}
                     </p>
                   )}
                 </div>
-                <div className="flex items-center space-x-2">
+                <div className="flex items-center space-x-3">
                   {individualEdits[index] && (
-                    <span className="text-xs bg-orange-100 text-orange-700 px-2 py-1 rounded">
+                    <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full font-medium">
                       Edited
                     </span>
                   )}
@@ -357,11 +340,11 @@ export default function ContentViewEditModal({
                 <div className="border-t border-gray-200">
                   {/* Metadata */}
                   {item.metadata && Object.keys(item.metadata).length > 0 && (
-                    <div className="px-4 py-3 bg-gray-25 border-b border-gray-100">
-                      <div className="grid grid-cols-2 gap-2 text-sm">
+                    <div className="px-6 py-4 bg-gray-25 border-b border-gray-100">
+                      <div className="grid grid-cols-2 gap-4 text-sm">
                         {Object.entries(item.metadata).map(([key, value]) => (
-                          <div key={key} className="flex flex-col">
-                            <span className="text-gray-500 text-xs uppercase tracking-wide">
+                          <div key={key}>
+                            <span className="text-gray-500 text-xs uppercase tracking-wide block mb-1">
                               {key.replace('_', ' ')}
                             </span>
                             <span className="text-gray-700 font-medium">
@@ -374,11 +357,11 @@ export default function ContentViewEditModal({
                   )}
 
                   {/* Content */}
-                  <div className="p-4">
+                  <div className="p-6">
                     {isEditing ? (
                       <div className="space-y-3">
                         <div className="flex items-center justify-between">
-                          <label className="text-sm font-medium text-gray-700">
+                          <label className="text-sm font-medium text-black">
                             Edit Content:
                           </label>
                           {individualEdits[index] && (
@@ -391,7 +374,7 @@ export default function ContentViewEditModal({
                                   setHasChanges(false)
                                 }
                               }}
-                              className="text-xs text-gray-500 hover:text-gray-700"
+                              className="text-xs text-gray-500 hover:text-gray-700 font-medium"
                             >
                               Reset
                             </button>
@@ -401,7 +384,7 @@ export default function ContentViewEditModal({
                           value={editContent}
                           onChange={(newContent) => handleIndividualEdit(index, newContent)}
                           placeholder="Edit this section..."
-                          className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm"
+                          className="w-full p-4 bg-gray-100 border-none rounded-lg focus:outline-none focus:bg-white focus:ring-2 focus:ring-blue-500/20 transition-all text-sm"
                           minRows={4}
                         />
                       </div>
@@ -421,39 +404,39 @@ export default function ContentViewEditModal({
   }
 
   const renderErrorView = () => (
-    <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
-      <div className="flex items-start space-x-3">
+    <div className="bg-amber-50 border border-amber-200 rounded-lg p-6">
+      <div className="flex items-start space-x-4">
         <div className="flex-shrink-0">
-          <div className="w-8 h-8 bg-amber-100 rounded-full flex items-center justify-center">
+          <div className="w-10 h-10 bg-amber-100 rounded-lg flex items-center justify-center">
             <span className="text-amber-600 text-lg">⚠️</span>
           </div>
         </div>
         <div className="flex-1">
           <h4 className="font-medium text-amber-800 mb-2">Content Not Available</h4>
-          <p className="text-amber-700 text-sm mb-3">
+          <p className="text-amber-700 text-sm mb-4">
             {content.parse_result?.error || 'Content could not be loaded'}
           </p>
           
           {content.parse_result?.isEmpty && (
-            <div className="bg-blue-50 border border-blue-200 rounded p-3 mb-3">
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
               <p className="text-blue-800 text-sm font-medium mb-1">🔧 Recommended Action:</p>
               <p className="text-blue-700 text-sm">{content.parse_result.suggestion}</p>
             </div>
           )}
           
-          <div className="flex items-center space-x-3 mt-4">
+          <div className="flex items-center space-x-3">
             <button
               onClick={() => {
                 onClose()
                 // TODO: Navigate to generate more content
               }}
-              className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition-colors text-sm"
+              className="bg-black text-white px-4 py-2 rounded-lg hover:bg-gray-900 transition-colors text-sm font-medium"
             >
               🔄 Regenerate Content
             </button>
             <button
               onClick={onRefresh}
-              className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors text-sm"
+              className="bg-gray-100 text-black px-4 py-2 rounded-lg hover:bg-gray-200 transition-colors text-sm font-medium"
             >
               🔍 Refresh Data
             </button>
@@ -464,21 +447,21 @@ export default function ContentViewEditModal({
   )
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-lg max-w-5xl w-full max-h-[85vh] overflow-hidden flex flex-col">
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+      <div className="bg-white rounded-2xl max-w-5xl w-full max-h-[85vh] overflow-hidden flex flex-col shadow-sm">
         {/* Modal Header */}
-        <div className="flex items-center justify-between p-6 border-b border-gray-200">
+        <div className="flex items-center justify-between p-8 border-b border-gray-200">
           <div>
-            <h2 className="text-xl font-semibold text-gray-900 flex items-center">
+            <h2 className="text-2xl font-light text-black flex items-center">
               {content.title}
               {(content.is_amplified || content.is_amplified_content) && (
-                <span className="ml-2 text-purple-600">🚀</span>
+                <span className="ml-2 text-blue-600">🚀</span>
               )}
             </h2>
-            <p className="text-sm text-gray-500">
+            <p className="text-sm text-gray-600 mt-1">
               {formatContentType(content.content_type)}
               {content.confidence_score && (
-                <span className="ml-2 text-purple-600">
+                <span className="ml-2 text-blue-600">
                   Confidence: {Math.round(content.confidence_score * 100)}%
                 </span>
               )}
@@ -490,7 +473,7 @@ export default function ContentViewEditModal({
             </p>
           </div>
           
-          <div className="flex items-center space-x-2">
+          <div className="flex items-center space-x-3">
             {content.type === 'generated_content' && hasValidContent && (
               <>
                 {isEditing ? (
@@ -501,7 +484,7 @@ export default function ContentViewEditModal({
                         setHasChanges(false)
                         setIndividualEdits({})
                       }}
-                      className="px-3 py-2 text-gray-600 hover:text-gray-800 transition-colors"
+                      className="p-2 text-gray-600 hover:text-gray-800 transition-colors"
                       disabled={isSaving}
                     >
                       <Undo className="h-4 w-4" />
@@ -509,7 +492,7 @@ export default function ContentViewEditModal({
                     <button
                       onClick={handleSave}
                       disabled={!hasChanges || isSaving}
-                      className="flex items-center space-x-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:bg-gray-400"
+                      className="flex items-center space-x-2 px-4 py-2 bg-black text-white rounded-lg hover:bg-gray-900 transition-colors disabled:opacity-50 font-medium"
                     >
                       <Save className="h-4 w-4" />
                       <span>{isSaving ? 'Saving...' : 'Save'}</span>
@@ -518,7 +501,7 @@ export default function ContentViewEditModal({
                 ) : (
                   <button
                     onClick={() => setIsEditing(true)}
-                    className="flex items-center space-x-2 px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                    className="flex items-center space-x-2 px-4 py-2 bg-gray-100 text-black rounded-lg hover:bg-gray-200 transition-colors font-medium"
                   >
                     <Edit3 className="h-4 w-4" />
                     <span>Edit</span>
@@ -536,9 +519,9 @@ export default function ContentViewEditModal({
         </div>
 
         {/* Content Information Bar */}
-        <div className="px-6 py-3 bg-gray-50 border-b border-gray-200">
+        <div className="px-8 py-4 bg-gray-50 border-b border-gray-200">
           <div className="flex items-center justify-between text-sm">
-            <div className="flex items-center space-x-4">
+            <div className="flex items-center space-x-6">
               <span className="text-gray-600">
                 Created: {new Date(content.created_at).toLocaleDateString()}
               </span>
@@ -549,12 +532,12 @@ export default function ContentViewEditModal({
                 </div>
               )}
               {content.is_published && (
-                <span className="bg-green-100 text-green-800 px-2 py-1 rounded text-xs">
+                <span className="bg-green-100 text-green-800 px-2 py-1 rounded-full text-xs font-medium">
                   Published
                 </span>
               )}
               {content.is_amplified_content && (
-                <span className="bg-purple-100 text-purple-800 px-2 py-1 rounded text-xs flex items-center">
+                <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-xs flex items-center font-medium">
                   <Zap className="h-3 w-3 mr-1" />
                   Amplified
                 </span>
@@ -562,7 +545,7 @@ export default function ContentViewEditModal({
             </div>
             
             {hasChanges && (
-              <span className="text-orange-600 text-sm font-medium">
+              <span className="text-blue-600 text-sm font-medium">
                 {Object.keys(individualEdits).length > 0 
                   ? `${Object.keys(individualEdits).length} section(s) edited`
                   : 'Unsaved changes'
@@ -573,14 +556,14 @@ export default function ContentViewEditModal({
         </div>
         
         {/* Modal Content */}
-        <div className="flex-1 overflow-y-auto p-6">
+        <div className="flex-1 overflow-y-auto p-8">
           {content.type === 'intelligence' ? (
             <div className="space-y-6">
               {/* Intelligence Source Information */}
-              <div className="bg-gray-50 p-4 rounded-lg">
-                <h3 className="font-semibold text-gray-900 mb-2">Source Information</h3>
+              <div className="bg-gray-50 rounded-lg p-6">
+                <h3 className="font-medium text-black mb-4">Source Information</h3>
                 {content.source_url && (
-                  <div className="mb-2">
+                  <div className="mb-3">
                     <span className="text-sm text-gray-600">URL: </span>
                     <a 
                       href={content.source_url} 
@@ -605,18 +588,18 @@ export default function ContentViewEditModal({
               </div>
 
               {/* Intelligence Data */}
-              <div className="border border-gray-200 rounded-lg p-4">
-                <h3 className="font-semibold text-gray-900 mb-3">Intelligence Data</h3>
+              <div className="border border-gray-200 rounded-lg p-6">
+                <h3 className="font-medium text-black mb-4">Intelligence Data</h3>
                 {isEditing ? (
                   <AutoExpandingTextarea
                     value={editedContent}
                     onChange={(newContent) => handleGlobalEdit(newContent)}
                     placeholder="Edit intelligence data..."
-                    className="w-full p-4 border border-gray-300 rounded-lg font-mono text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    className="w-full p-4 bg-gray-100 border-none rounded-lg font-mono text-sm focus:outline-none focus:bg-white focus:ring-2 focus:ring-blue-500/20 transition-all"
                     minRows={15}
                   />
                 ) : (
-                  <pre className="whitespace-pre-wrap font-mono text-sm bg-gray-50 p-4 rounded border max-h-96 overflow-y-auto">
+                  <pre className="whitespace-pre-wrap font-mono text-sm bg-gray-50 p-6 rounded-lg max-h-96 overflow-y-auto">
                     {JSON.stringify(content.data, null, 2)}
                   </pre>
                 )}
@@ -630,7 +613,7 @@ export default function ContentViewEditModal({
         </div>
 
         {/* Modal Footer */}
-        <div className="border-t border-gray-200 p-4 bg-gray-50">
+        <div className="border-t border-gray-200 p-6 bg-gray-50">
           <div className="flex items-center justify-between">
             <div className="text-sm text-gray-600">
               {content.type === 'intelligence' 
@@ -640,17 +623,17 @@ export default function ContentViewEditModal({
                   : `Content item (${content.parse_result?.error || 'parsing failed'})`
               }
             </div>
-            <div className="flex items-center space-x-2">
+            <div className="flex items-center space-x-3">
               <button
                 onClick={handleCopy}
-                className="flex items-center space-x-2 px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
+                className="flex items-center space-x-2 px-4 py-2 bg-gray-100 text-black rounded-lg hover:bg-gray-200 transition-colors font-medium"
               >
                 <Copy className="h-4 w-4" />
                 <span>Copy All</span>
               </button>
               <button
                 onClick={handleDownload}
-                className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                className="flex items-center space-x-2 px-4 py-2 bg-black text-white rounded-lg hover:bg-gray-900 transition-colors font-medium"
               >
                 <Download className="h-4 w-4" />
                 <span>Download</span>

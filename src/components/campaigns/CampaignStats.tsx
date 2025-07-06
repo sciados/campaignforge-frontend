@@ -1,14 +1,14 @@
+// src/components/campaigns/CampaignStats.tsx - Apple Design System
 import React from 'react'
 import { Target, Play, Zap, BarChart3, TrendingUp } from 'lucide-react'
-import { Campaign, User } from '@/lib/api' // Import types from API client
+import { Campaign, User } from '@/lib/api'
 
 interface CampaignStatsProps {
   campaigns: Campaign[]
   user?: User | null
 }
 
-export default function CampaignStats({ campaigns, user }: CampaignStatsProps) {
-  // Ensure campaigns is always an array
+export default function AppleCampaignStats({ campaigns, user }: CampaignStatsProps) {
   const safeCampaigns = campaigns || []
   
   // Calculate stats from campaigns
@@ -40,8 +40,8 @@ export default function CampaignStats({ campaigns, user }: CampaignStatsProps) {
       title: 'Total Campaigns',
       value: totalCampaigns,
       icon: Target,
-      iconBg: 'bg-purple-100',
-      iconColor: 'text-purple-600',
+      iconBg: 'bg-blue-100',
+      iconColor: 'text-blue-600',
       change: `+${campaignsThisMonth}`,
       changeLabel: 'this month',
       changePositive: true
@@ -60,8 +60,8 @@ export default function CampaignStats({ campaigns, user }: CampaignStatsProps) {
       title: 'Intelligence Sources',
       value: totalIntelligenceSources,
       icon: Zap,
-      iconBg: 'bg-blue-100',
-      iconColor: 'text-blue-600',
+      iconBg: 'bg-purple-100',
+      iconColor: 'text-purple-600',
       change: `${(avgConfidenceScore * 100).toFixed(0)}%`,
       changeLabel: 'avg confidence',
       changePositive: null
@@ -83,19 +83,19 @@ export default function CampaignStats({ campaigns, user }: CampaignStatsProps) {
       {stats.map((stat, index) => {
         const Icon = stat.icon
         return (
-          <div key={index} className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
+          <div key={index} className="bg-white rounded-2xl shadow-sm p-6 border border-gray-200 hover:shadow-lg transition-all">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">{stat.title}</p>
-                <p className="text-3xl font-bold text-gray-900">{stat.value}</p>
+                <p className="text-sm font-medium text-apple-gray mb-1">{stat.title}</p>
+                <p className="text-3xl font-light text-black">{stat.value}</p>
               </div>
-              <div className={`${stat.iconBg} p-3 rounded-lg`}>
+              <div className={`${stat.iconBg} w-12 h-12 rounded-xl flex items-center justify-center`}>
                 <Icon className={`h-6 w-6 ${stat.iconColor}`} />
               </div>
             </div>
             <div className="mt-4 flex items-center text-sm">
               {stat.changePositive !== null && (
-                <TrendingUp className={`w-4 h-4 mr-1 ${
+                <TrendingUp className={`w-4 h-4 mr-2 ${
                   stat.changePositive ? 'text-green-500' : 'text-red-500'
                 }`} />
               )}
@@ -105,7 +105,7 @@ export default function CampaignStats({ campaigns, user }: CampaignStatsProps) {
               }`}>
                 {stat.change}
               </span>
-              <span className="text-gray-500 ml-1">{stat.changeLabel}</span>
+              <span className="text-apple-gray ml-2">{stat.changeLabel}</span>
             </div>
           </div>
         )

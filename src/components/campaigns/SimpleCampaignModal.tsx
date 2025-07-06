@@ -88,45 +88,45 @@ export default function SimpleCampaignModal({
   }
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-xl shadow-xl max-w-lg w-full max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+      <div className="bg-white rounded-2xl shadow-sm max-w-lg w-full max-h-[90vh] overflow-y-auto">
         {/* Header */}
-        <div className="p-6 border-b border-gray-200">
-          <div className="flex items-center justify-between">
+        <div className="p-8 border-b border-gray-200">
+          <div className="flex items-start justify-between">
             <div>
-              <h3 className="text-xl font-semibold text-gray-900">Create New Campaign</h3>
-              <p className="text-sm text-gray-600 mt-1">
-                Start with campaign basics, add content sources later
+              <h3 className="text-2xl font-light text-black">Create Campaign</h3>
+              <p className="text-gray-600 mt-1 font-light">
+                Start with the basics, add content sources later
               </p>
             </div>
             <button 
               onClick={onClose}
-              className="text-gray-400 hover:text-gray-600 transition-colors"
+              className="text-gray-400 hover:text-gray-600 transition-colors p-1"
             >
-              <X className="w-6 h-6" />
+              <X className="w-5 h-5" />
             </button>
           </div>
         </div>
         
         {/* Content */}
-        <div className="p-6 space-y-6">
+        <div className="p-8 space-y-6">
           {/* Error Display */}
           {error && (
             <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-              <p className="text-red-700 text-sm">{error}</p>
+              <p className="text-red-700 text-sm font-medium">{error}</p>
             </div>
           )}
 
           {/* Campaign Title */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Campaign Title *
+            <label className="block text-sm font-medium text-black mb-3">
+              Campaign Title
             </label>
             <input
               type="text"
               value={formData.title}
               onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
-              className="w-full px-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+              className="w-full px-4 py-3 bg-gray-100 border-none rounded-lg focus:outline-none focus:bg-white focus:ring-2 focus:ring-blue-500/20 transition-all"
               placeholder="Enter campaign title..."
               disabled={isCreating}
               onKeyPress={(e) => handleKeyPress(e, handleSubmit)}
@@ -135,14 +135,14 @@ export default function SimpleCampaignModal({
 
           {/* Campaign Description */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Campaign Description *
+            <label className="block text-sm font-medium text-black mb-3">
+              Campaign Description
             </label>
             <textarea
               value={formData.description}
               onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-              rows={3}
-              className="w-full px-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+              rows={4}
+              className="w-full px-4 py-3 bg-gray-100 border-none rounded-lg focus:outline-none focus:bg-white focus:ring-2 focus:ring-blue-500/20 transition-all resize-none"
               placeholder="Describe your campaign goals and objectives..."
               disabled={isCreating}
             />
@@ -150,8 +150,9 @@ export default function SimpleCampaignModal({
 
           {/* Keywords */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Keywords (Optional)
+            <label className="block text-sm font-medium text-black mb-3">
+              Keywords
+              <span className="text-gray-500 font-light ml-1">(Optional)</span>
             </label>
             <div className="space-y-3">
               <div className="flex space-x-2">
@@ -160,7 +161,7 @@ export default function SimpleCampaignModal({
                   value={keywordInput}
                   onChange={(e) => setKeywordInput(e.target.value)}
                   onKeyPress={(e) => handleKeyPress(e, handleAddKeyword)}
-                  className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  className="flex-1 px-4 py-2 bg-gray-100 border-none rounded-lg focus:outline-none focus:bg-white focus:ring-2 focus:ring-blue-500/20 transition-all"
                   placeholder="Add keywords..."
                   disabled={isCreating}
                 />
@@ -168,7 +169,7 @@ export default function SimpleCampaignModal({
                   type="button"
                   onClick={handleAddKeyword}
                   disabled={!keywordInput.trim() || isCreating}
-                  className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="px-4 py-2 bg-black text-white rounded-lg hover:bg-gray-900 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium"
                 >
                   Add
                 </button>
@@ -179,7 +180,7 @@ export default function SimpleCampaignModal({
                   {formData.keywords.map((keyword) => (
                     <span
                       key={keyword}
-                      className="inline-flex items-center px-3 py-1 bg-purple-100 text-purple-800 rounded-full text-sm"
+                      className="inline-flex items-center px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-sm"
                     >
                       <Hash className="w-3 h-3 mr-1" />
                       {keyword}
@@ -187,7 +188,7 @@ export default function SimpleCampaignModal({
                         type="button"
                         onClick={() => handleRemoveKeyword(keyword)}
                         disabled={isCreating}
-                        className="ml-2 text-purple-600 hover:text-purple-800 disabled:opacity-50"
+                        className="ml-2 text-gray-500 hover:text-gray-700 disabled:opacity-50 transition-colors"
                       >
                         ×
                       </button>
@@ -200,28 +201,29 @@ export default function SimpleCampaignModal({
 
           {/* Target Audience */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Target Audience (Optional)
+            <label className="block text-sm font-medium text-black mb-3">
+              Target Audience
+              <span className="text-gray-500 font-light ml-1">(Optional)</span>
             </label>
             <input
               type="text"
               value={formData.target_audience}
               onChange={(e) => setFormData(prev => ({ ...prev, target_audience: e.target.value }))}
-              className="w-full px-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+              className="w-full px-4 py-3 bg-gray-100 border-none rounded-lg focus:outline-none focus:bg-white focus:ring-2 focus:ring-blue-500/20 transition-all"
               placeholder="e.g., Small business owners, Marketing professionals..."
               disabled={isCreating}
             />
           </div>
 
           {/* Next Steps Preview */}
-          <div className="bg-gradient-to-r from-purple-50 to-blue-50 rounded-lg p-4">
-            <h4 className="font-medium text-gray-900 mb-2 flex items-center">
-              <Sparkles className="h-4 w-4 mr-2 text-purple-600" />
-              What is Next?
+          <div className="bg-gray-50 rounded-lg p-6">
+            <h4 className="font-medium text-black mb-4 flex items-center">
+              <Sparkles className="h-4 w-4 mr-2 text-gray-600" />
+              What happens next?
             </h4>
-            <div className="space-y-2 text-sm text-gray-700">
+            <div className="space-y-3 text-sm text-gray-600">
               <div className="flex items-center">
-                <div className="w-6 h-6 bg-purple-600 text-white rounded-full flex items-center justify-center text-xs font-medium mr-3">
+                <div className="w-6 h-6 bg-black text-white rounded-full flex items-center justify-center text-xs font-medium mr-3">
                   1
                 </div>
                 <span>Campaign created</span>
@@ -246,40 +248,41 @@ export default function SimpleCampaignModal({
               </div>
             </div>
           </div>
-
-          {/* Submit Button */}
-          <button
-            onClick={handleSubmit}
-            disabled={isCreating || !formData.title.trim() || !formData.description.trim()}
-            className="w-full bg-gradient-to-r from-purple-600 to-blue-600 text-white py-3 px-6 rounded-lg font-medium hover:from-purple-700 hover:to-blue-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
-          >
-            {isCreating ? (
-              <>
-                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
-                Creating Campaign...
-              </>
-            ) : (
-              <>
-                Create Campaign
-                <ArrowRight className="w-4 h-4 ml-2" />
-              </>
-            )}
-          </button>
         </div>
 
         {/* Footer */}
-        <div className="p-6 border-t border-gray-200 bg-gray-50 rounded-b-xl">
-          <div className="flex items-center justify-between">
-            <div className="text-xs text-gray-500">
-              💡 You can add input sources immediately after creation or return later
-            </div>
+        <div className="p-8 pt-0">
+          <div className="flex space-x-3">
             <button 
               onClick={onClose}
               disabled={isCreating}
-              className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800 transition-colors disabled:opacity-50"
+              className="flex-1 py-3 px-6 bg-gray-100 text-black rounded-lg font-medium hover:bg-gray-200 transition-colors disabled:opacity-50"
             >
               Cancel
             </button>
+            <button
+              onClick={handleSubmit}
+              disabled={isCreating || !formData.title.trim() || !formData.description.trim()}
+              className="flex-1 bg-black text-white py-3 px-6 rounded-lg font-medium hover:bg-gray-900 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+            >
+              {isCreating ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
+                  Creating...
+                </>
+              ) : (
+                <>
+                  Create Campaign
+                  <ArrowRight className="w-4 h-4 ml-2" />
+                </>
+              )}
+            </button>
+          </div>
+          
+          <div className="mt-4 text-center">
+            <p className="text-xs text-gray-500">
+              💡 You can add input sources immediately after creation
+            </p>
           </div>
         </div>
       </div>
