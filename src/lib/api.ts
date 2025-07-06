@@ -229,6 +229,30 @@ export interface User {
   }
 }
 
+//  ============================================================================
+// CLICKBANK API FOR LISTINGS
+//  =============================================================================
+import { ClickBankProduct, ClickBankCategory } from "@/lib/types/inputSource"; // adjust path if needed
+
+// 🧠 Fetch Top 10 ClickBank Products by Category
+export async function fetchClickBankProducts(type: ClickBankCategory): Promise<ClickBankProduct[]> {
+  try {
+    const res = await fetch(
+      `${process.env.NEXT_PUBLIC_BACKEND_URL}/intelligence/clickbank/top-products?type=${type}`
+    );
+
+    if (!res.ok) {
+      throw new Error(`Failed to fetch ClickBank products (${res.status})`);
+    }
+
+    const data = await res.json();
+    return data.filter((p: any) => p.salespage_url && p.title);
+  } catch (err) {
+    console.error("ClickBank API error:", err);
+    return [];
+  }
+}
+
 // ============================================================================
 // ERROR CLASSES
 // ============================================================================
