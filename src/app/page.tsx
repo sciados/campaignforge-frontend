@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Sparkles } from 'lucide-react'
 
 export const dynamic = 'force-dynamic'
 
@@ -13,11 +12,9 @@ export default function HomePage() {
   useEffect(() => {
     setMounted(true)
     
-    // Check authentication after mount
     if (typeof window !== 'undefined') {
       const token = localStorage.getItem('authToken')
       if (token) {
-        // Simple token check - redirect to dashboard for now
         router.push('/dashboard')
       }
     }
@@ -25,69 +22,132 @@ export default function HomePage() {
 
   if (!mounted) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-purple-600"></div>
+      <div className="min-h-screen flex items-center justify-center bg-white">
+        <div className="w-6 h-6 border-2 border-black border-t-transparent rounded-full animate-spin"></div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-blue-50 to-indigo-100">
-      {/* Header */}
-      <header className="bg-white/80 backdrop-blur-md border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-4">
-            <div className="flex items-center">
-              <div className="bg-gradient-to-r from-purple-600 to-blue-600 w-10 h-10 rounded-xl flex items-center justify-center">
-                <Sparkles className="h-6 w-6 text-white" />
+    <div className="min-h-screen bg-white">
+      {/* Navigation */}
+      <nav className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-gray-200">
+        <div className="max-w-6xl mx-auto px-6">
+          <div className="flex items-center justify-between h-16">
+            <div className="flex items-center space-x-2">
+              <div className="w-8 h-8 bg-black rounded-lg flex items-center justify-center">
+                <span className="text-white text-lg font-medium">C</span>
               </div>
-              <span className="ml-3 text-xl font-bold text-gray-900">CampaignForge</span>
+              <span className="text-xl font-semibold text-black">CampaignForge</span>
             </div>
-            <div className="flex items-center space-x-4">
+            
+            <div className="flex items-center space-x-6">
               <button 
                 onClick={() => router.push('/login')}
-                className="text-gray-600 hover:text-gray-900 font-medium"
+                className="text-gray-600 font-medium hover:text-black transition-colors"
               >
                 Sign In
               </button>
               <button 
                 onClick={() => router.push('/register')}
-                className="bg-gradient-to-r from-purple-600 to-blue-600 text-white px-6 py-2 rounded-lg font-medium hover:from-purple-700 hover:to-blue-700 transition-all"
+                className="bg-black text-white px-6 py-2 rounded-lg font-medium hover:bg-gray-900 transition-colors"
               >
-                Start Free
+                Get Started
               </button>
             </div>
           </div>
         </div>
-      </header>
+      </nav>
 
       {/* Hero Section */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 pb-16 text-center">
-        <h1 className="text-5xl lg:text-7xl font-bold text-gray-900 mb-6">
-          Transform Any Content Into
-          <span className="block text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-blue-600">
-            Complete Campaigns
-          </span>
-        </h1>
-        <p className="text-xl lg:text-2xl text-gray-600 mb-12 max-w-4xl mx-auto">
-          Process videos from 8+ platforms, documents, and web content. Generate AI-powered images, videos, and complete marketing campaigns automatically.
-        </p>
-        
-        <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-          <button 
-            onClick={() => router.push('/register')}
-            className="bg-gradient-to-r from-purple-600 to-blue-600 text-white px-8 py-4 rounded-xl font-semibold text-lg hover:from-purple-700 hover:to-blue-700 transition-all"
-          >
-            Start Creating Free
-          </button>
-          <button 
-            onClick={() => router.push('/login')}
-            className="border-2 border-gray-300 text-gray-700 px-8 py-4 rounded-xl font-semibold text-lg hover:border-gray-400 hover:bg-white transition-all"
-          >
-            Sign In
-          </button>
+      <main className="relative">
+        <div className="max-w-4xl mx-auto px-6 pt-20 pb-32 text-center">
+          <h1 className="text-6xl font-light text-black mb-6 leading-tight">
+            Transform content into
+            <br />
+            <span className="font-semibold">complete campaigns.</span>
+          </h1>
+          
+          <p className="text-xl text-gray-600 mb-12 max-w-2xl mx-auto leading-relaxed">
+            Process any content source and generate comprehensive marketing campaigns 
+            with AI-powered intelligence.
+          </p>
+          
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <button 
+              onClick={() => router.push('/register')}
+              className="bg-black text-white px-8 py-4 rounded-xl font-medium text-lg hover:bg-gray-900 transition-all"
+            >
+              Start Creating
+            </button>
+            <button 
+              onClick={() => router.push('/login')}
+              className="bg-gray-100 text-black px-8 py-4 rounded-xl font-medium text-lg hover:bg-gray-200 transition-all"
+            >
+              Sign In
+            </button>
+          </div>
         </div>
-      </section>
+
+        {/* Features Grid */}
+        <div className="max-w-6xl mx-auto px-6 pb-32">
+          <div className="grid md:grid-cols-3 gap-8">
+            <div className="text-center p-8">
+              <div className="w-16 h-16 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-6">
+                <svg className="w-8 h-8 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+              </div>
+              <h3 className="text-2xl font-semibold text-black mb-4">Any Source</h3>
+              <p className="text-gray-600 leading-relaxed">
+                Upload videos, documents, URLs, or text. Our AI processes any content type intelligently.
+              </p>
+            </div>
+
+            <div className="text-center p-8">
+              <div className="w-16 h-16 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-6">
+                <svg className="w-8 h-8 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                </svg>
+              </div>
+              <h3 className="text-2xl font-semibold text-black mb-4">AI Intelligence</h3>
+              <p className="text-gray-600 leading-relaxed">
+                Extract marketing insights, key messages, and audience data automatically from your content.
+              </p>
+            </div>
+
+            <div className="text-center p-8">
+              <div className="w-16 h-16 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-6">
+                <svg className="w-8 h-8 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                </svg>
+              </div>
+              <h3 className="text-2xl font-semibold text-black mb-4">Complete Campaigns</h3>
+              <p className="text-gray-600 leading-relaxed">
+                Generate emails, social posts, ads, landing pages, and videos in a unified campaign.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* CTA Section */}
+        <div className="bg-gray-50 py-32">
+          <div className="max-w-4xl mx-auto px-6 text-center">
+            <h2 className="text-4xl font-light text-black mb-6">
+              Ready to transform your content?
+            </h2>
+            <p className="text-xl text-gray-600 mb-8">
+              Join thousands of marketers creating smarter campaigns.
+            </p>
+            <button 
+              onClick={() => router.push('/register')}
+              className="bg-black text-white px-8 py-4 rounded-xl font-medium text-lg hover:bg-gray-900 transition-all"
+            >
+              Start Free Trial
+            </button>
+          </div>
+        </div>
+      </main>
     </div>
   )
 }

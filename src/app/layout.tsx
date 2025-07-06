@@ -1,9 +1,13 @@
 'use client'
 
-import './globals.css'
 import { Inter } from 'next/font/google'
+import './globals.css'
 
-const inter = Inter({ subsets: ['latin'] })
+const inter = Inter({ 
+  subsets: ['latin'],
+  weight: ['300', '400', '500', '600'],
+  variable: '--font-inter'
+})
 
 export default function RootLayout({
   children,
@@ -11,12 +15,14 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en">
+    <html lang="en" className={inter.variable}>
       <head>
-        <title>CampaignForge AI</title>
-        <meta name="description" content="Multimedia Campaign Creation Platform" />
+        <title>CampaignForge</title>
+        <meta name="description" content="Intelligent Campaign Creation Platform" />
       </head>
-      <body className={inter.className}>{children}</body>
+      <body className="font-inter antialiased bg-white text-black">
+        {children}
+      </body>
     </html>
   )
 }
