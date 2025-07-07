@@ -184,24 +184,24 @@ export default function IntelligenceAnalyzer({ campaignId, onAnalysisComplete }:
   }
 
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-      <div className="mb-6">
-        <h2 className="text-2xl font-bold text-gray-900 flex items-center">
-          <Brain className="h-6 w-6 mr-2 text-purple-600" />
+    <div className="bg-white rounded-2xl border border-gray-200 p-8 shadow-sm">
+      <div className="mb-8">
+        <h2 className="text-2xl font-light text-black flex items-center">
+          <Brain className="h-6 w-6 mr-3 text-black" />
           Intelligence Analyzer
         </h2>
-        <p className="text-gray-600 mt-1">
+        <p className="text-gray-600 mt-2">
           Analyze competitor content to extract marketing intelligence and opportunities
         </p>
       </div>
 
       {/* Tab Navigation */}
-      <div className="flex space-x-1 bg-gray-100 rounded-lg p-1 mb-6">
+      <div className="flex space-x-2 bg-gray-100 rounded-xl p-2 mb-8">
         <button
           onClick={() => setActiveTab('url')}
-          className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
+          className={`flex-1 py-3 px-4 rounded-lg text-sm font-medium transition-colors ${
             activeTab === 'url'
-              ? 'bg-white text-purple-600 shadow-sm'
+              ? 'bg-white text-black shadow-sm'
               : 'text-gray-600 hover:text-gray-900'
           }`}
         >
@@ -210,9 +210,9 @@ export default function IntelligenceAnalyzer({ campaignId, onAnalysisComplete }:
         </button>
         <button
           onClick={() => setActiveTab('document')}
-          className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
+          className={`flex-1 py-3 px-4 rounded-lg text-sm font-medium transition-colors ${
             activeTab === 'document'
-              ? 'bg-white text-purple-600 shadow-sm'
+              ? 'bg-white text-black shadow-sm'
               : 'text-gray-600 hover:text-gray-900'
           }`}
         >
@@ -222,9 +222,9 @@ export default function IntelligenceAnalyzer({ campaignId, onAnalysisComplete }:
         {analysisResult && (
           <button
             onClick={() => setActiveTab('results')}
-            className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
+            className={`flex-1 py-3 px-4 rounded-lg text-sm font-medium transition-colors ${
               activeTab === 'results'
-                ? 'bg-white text-purple-600 shadow-sm'
+                ? 'bg-white text-black shadow-sm'
                 : 'text-gray-600 hover:text-gray-900'
             }`}
           >
@@ -236,10 +236,10 @@ export default function IntelligenceAnalyzer({ campaignId, onAnalysisComplete }:
 
       {/* Messages */}
       {error && (
-        <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+        <div className="mb-8 p-6 bg-red-50 border border-red-200 rounded-2xl">
           <div className="flex items-center justify-between">
             <div className="flex items-center">
-              <AlertCircle className="h-5 w-5 text-red-500 mr-2" />
+              <AlertCircle className="h-5 w-5 text-red-500 mr-3" />
               <p className="text-red-700">{error}</p>
             </div>
             <button onClick={clearMessages} className="text-red-500 hover:text-red-700">
@@ -250,10 +250,10 @@ export default function IntelligenceAnalyzer({ campaignId, onAnalysisComplete }:
       )}
 
       {successMessage && (
-        <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg">
+        <div className="mb-8 p-6 bg-green-50 border border-green-200 rounded-2xl">
           <div className="flex items-center justify-between">
             <div className="flex items-center">
-              <CheckCircle className="h-5 w-5 text-green-500 mr-2" />
+              <CheckCircle className="h-5 w-5 text-green-500 mr-3" />
               <p className="text-green-700">{successMessage}</p>
             </div>
             <button onClick={clearMessages} className="text-green-500 hover:text-green-700">
@@ -265,15 +265,15 @@ export default function IntelligenceAnalyzer({ campaignId, onAnalysisComplete }:
 
       {/* URL Analysis Tab */}
       {activeTab === 'url' && (
-        <div className="space-y-4">
+        <div className="space-y-6">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-black mb-3">
               Analysis Type
             </label>
             <select
               value={analysisType}
               onChange={(e) => setAnalysisType(e.target.value)}
-              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+              className="w-full px-4 py-3 bg-gray-100 border-none rounded-lg focus:outline-none focus:bg-white focus:ring-2 focus:ring-blue-500/20 transition-all"
               disabled={isAnalyzing}
             >
               <option value="sales_page">Sales Page Analysis</option>
@@ -283,26 +283,26 @@ export default function IntelligenceAnalyzer({ campaignId, onAnalysisComplete }:
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-black mb-3">
               URL to Analyze
             </label>
-            <div className="flex space-x-3">
+            <div className="flex space-x-4">
               <input
                 type="url"
                 value={url}
                 onChange={(e) => setUrl(e.target.value)}
                 placeholder="https://competitor-sales-page.com"
-                className="flex-1 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                className="flex-1 px-4 py-3 bg-gray-100 border-none rounded-lg focus:outline-none focus:bg-white focus:ring-2 focus:ring-blue-500/20 transition-all"
                 disabled={isAnalyzing}
                 onKeyPress={(e) => e.key === 'Enter' && !isAnalyzing && analyzeUrl()}
               />
               <button
                 onClick={analyzeUrl}
                 disabled={isAnalyzing || !url.trim()}
-                className="px-6 py-3 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg font-medium hover:from-purple-700 hover:to-blue-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
+                className="px-8 py-3 bg-black text-white rounded-lg font-medium hover:bg-gray-900 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
               >
                 {isAnalyzing ? (
-                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
                 ) : (
                   <Zap className="h-4 w-4 mr-2" />
                 )}
@@ -311,23 +311,23 @@ export default function IntelligenceAnalyzer({ campaignId, onAnalysisComplete }:
             </div>
           </div>
 
-          <div className="bg-gray-50 rounded-lg p-4">
-            <h3 className="font-medium text-gray-900 mb-2">What we will analyze:</h3>
-            <ul className="text-sm text-gray-600 space-y-1">
+          <div className="bg-gray-50 rounded-2xl p-6">
+            <h3 className="font-medium text-black mb-4">What we will analyze:</h3>
+            <ul className="text-sm text-gray-600 space-y-3">
               <li className="flex items-center">
-                <CheckCircle className="h-4 w-4 text-green-500 mr-2" />
+                <CheckCircle className="h-4 w-4 text-black mr-3 flex-shrink-0" />
                 Offer structure and pricing strategies
               </li>
               <li className="flex items-center">
-                <CheckCircle className="h-4 w-4 text-green-500 mr-2" />
+                <CheckCircle className="h-4 w-4 text-black mr-3 flex-shrink-0" />
                 Psychology and persuasion techniques
               </li>
               <li className="flex items-center">
-                <CheckCircle className="h-4 w-4 text-green-500 mr-2" />
+                <CheckCircle className="h-4 w-4 text-black mr-3 flex-shrink-0" />
                 Competitive gaps and opportunities
               </li>
               <li className="flex items-center">
-                <CheckCircle className="h-4 w-4 text-green-500 mr-2" />
+                <CheckCircle className="h-4 w-4 text-black mr-3 flex-shrink-0" />
                 Content strategy insights
               </li>
             </ul>
@@ -337,11 +337,11 @@ export default function IntelligenceAnalyzer({ campaignId, onAnalysisComplete }:
 
       {/* Document Upload Tab */}
       {activeTab === 'document' && (
-        <div className="space-y-4">
+        <div className="space-y-6">
           <div
-            className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
+            className={`border-2 border-dashed rounded-2xl p-12 text-center transition-colors ${
               dragActive
-                ? 'border-purple-400 bg-purple-50'
+                ? 'border-gray-400 bg-gray-50'
                 : 'border-gray-300 hover:border-gray-400'
             }`}
             onDragEnter={handleDrag}
@@ -350,31 +350,31 @@ export default function IntelligenceAnalyzer({ campaignId, onAnalysisComplete }:
             onDrop={handleDrop}
           >
             {uploadedFile ? (
-              <div className="space-y-2">
-                <CheckCircle className="h-12 w-12 text-green-500 mx-auto" />
-                <p className="text-lg font-medium text-gray-900">{uploadedFile.name}</p>
+              <div className="space-y-4">
+                <CheckCircle className="h-12 w-12 text-black mx-auto" />
+                <p className="text-lg font-medium text-black">{uploadedFile.name}</p>
                 <p className="text-sm text-gray-500">
                   {(uploadedFile.size / 1024 / 1024).toFixed(2)} MB
                 </p>
                 {isAnalyzing && (
-                  <div className="mt-4">
+                  <div className="mt-6">
                     <div className="w-full bg-gray-200 rounded-full h-2">
                       <div 
-                        className="bg-purple-600 h-2 rounded-full transition-all duration-300"
+                        className="bg-black h-2 rounded-full transition-all duration-300"
                         style={{ width: `${uploadProgress}%` }}
                       ></div>
                     </div>
-                    <p className="text-sm text-gray-600 mt-2">Processing... {uploadProgress}%</p>
+                    <p className="text-sm text-gray-600 mt-3">Processing... {uploadProgress}%</p>
                   </div>
                 )}
               </div>
             ) : (
-              <div className="space-y-4">
+              <div className="space-y-6">
                 <Upload className="h-12 w-12 text-gray-400 mx-auto" />
                 <div>
-                  <p className="text-lg font-medium text-gray-900">
+                  <p className="text-lg font-medium text-black">
                     Drop your document here, or{' '}
-                    <label className="text-purple-600 hover:text-purple-700 cursor-pointer">
+                    <label className="text-black hover:text-gray-600 cursor-pointer underline">
                       browse
                       <input
                         type="file"
@@ -385,7 +385,7 @@ export default function IntelligenceAnalyzer({ campaignId, onAnalysisComplete }:
                       />
                     </label>
                   </p>
-                  <p className="text-sm text-gray-500 mt-2">
+                  <p className="text-sm text-gray-500 mt-3">
                     Supports: PDF, Word, PowerPoint, Excel, CSV, Text files
                   </p>
                 </div>
@@ -393,22 +393,22 @@ export default function IntelligenceAnalyzer({ campaignId, onAnalysisComplete }:
             )}
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div className="bg-blue-50 rounded-lg p-4">
-              <FileText className="h-6 w-6 text-blue-600 mb-2" />
-              <h3 className="font-medium text-blue-900">Research Documents</h3>
-              <p className="text-sm text-blue-700">Market reports, whitepapers, case studies</p>
+          <div className="grid grid-cols-2 gap-6">
+            <div className="bg-gray-50 rounded-2xl p-6">
+              <FileText className="h-6 w-6 text-black mb-3" />
+              <h3 className="font-medium text-black">Research Documents</h3>
+              <p className="text-sm text-gray-600">Market reports, whitepapers, case studies</p>
             </div>
-            <div className="bg-green-50 rounded-lg p-4">
-              <TrendingUp className="h-6 w-6 text-green-600 mb-2" />
-              <h3 className="font-medium text-green-900">Competitor Materials</h3>
-              <p className="text-sm text-green-700">Sales decks, product guides, presentations</p>
+            <div className="bg-gray-50 rounded-2xl p-6">
+              <TrendingUp className="h-6 w-6 text-black mb-3" />
+              <h3 className="font-medium text-black">Competitor Materials</h3>
+              <p className="text-sm text-gray-600">Sales decks, product guides, presentations</p>
             </div>
           </div>
 
           {isAnalyzing && (
-            <div className="flex items-center justify-center py-8">
-              <Loader2 className="h-8 w-8 animate-spin text-purple-600 mr-3" />
+            <div className="flex items-center justify-center py-12">
+              <div className="w-8 h-8 border-2 border-black border-t-transparent rounded-full animate-spin mr-4" />
               <p className="text-lg text-gray-600">Processing your document...</p>
             </div>
           )}
@@ -417,13 +417,13 @@ export default function IntelligenceAnalyzer({ campaignId, onAnalysisComplete }:
 
       {/* Results Tab */}
       {activeTab === 'results' && analysisResult && (
-        <div className="space-y-6">
+        <div className="space-y-8">
           {/* Header with New Analysis Button */}
           <div className="flex items-center justify-between">
-            <h3 className="text-xl font-semibold text-gray-900">Analysis Results</h3>
+            <h3 className="text-xl font-medium text-black">Analysis Results</h3>
             <button
               onClick={startNewAnalysis}
-              className="flex items-center px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+              className="flex items-center px-6 py-3 bg-gray-100 text-black rounded-lg hover:bg-gray-200 transition-colors font-medium"
             >
               <Plus className="h-4 w-4 mr-2" />
               New Analysis
@@ -431,14 +431,14 @@ export default function IntelligenceAnalyzer({ campaignId, onAnalysisComplete }:
           </div>
 
           {/* Confidence Score */}
-          <div className="bg-gradient-to-r from-purple-50 to-blue-50 rounded-lg p-4">
+          <div className="bg-gray-50 rounded-2xl p-6">
             <div className="flex items-center justify-between">
               <div>
-                <h3 className="font-medium text-gray-900">Analysis Confidence</h3>
+                <h3 className="font-medium text-black">Analysis Confidence</h3>
                 <p className="text-sm text-gray-600">Quality of extracted intelligence</p>
               </div>
               <div className="text-right">
-                <div className="text-2xl font-bold text-purple-600">
+                <div className="text-2xl font-semibold text-black">
                   {Math.round(analysisResult.confidence_score * 100)}%
                 </div>
                 <div className="text-sm text-gray-500">
@@ -451,10 +451,10 @@ export default function IntelligenceAnalyzer({ campaignId, onAnalysisComplete }:
 
           {/* Source Information */}
           {(analysisResult.source_title || analysisResult.source_url) && (
-            <div className="bg-gray-50 rounded-lg p-4">
-              <h3 className="font-medium text-gray-900 mb-2">Analysis Source</h3>
+            <div className="bg-gray-50 rounded-2xl p-6">
+              <h3 className="font-medium text-black mb-3">Analysis Source</h3>
               <div className="flex items-center text-sm text-gray-600">
-                <Globe className="h-4 w-4 mr-2" />
+                <Globe className="h-4 w-4 mr-3" />
                 <span>{analysisResult.source_title || analysisResult.source_url}</span>
               </div>
             </div>
@@ -463,15 +463,15 @@ export default function IntelligenceAnalyzer({ campaignId, onAnalysisComplete }:
           {/* Intelligence Sections */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Offer Intelligence */}
-            <div className="bg-white border border-gray-200 rounded-lg p-4">
-              <div className="flex items-center mb-3">
-                <Target className="h-5 w-5 text-green-600 mr-2" />
-                <h3 className="font-medium text-gray-900">Offer Intelligence</h3>
+            <div className="bg-white border border-gray-200 rounded-2xl p-6">
+              <div className="flex items-center mb-4">
+                <Target className="h-5 w-5 text-black mr-3" />
+                <h3 className="font-medium text-black">Offer Intelligence</h3>
               </div>
-              <div className="space-y-2 text-sm">
+              <div className="space-y-3 text-sm">
                 {analysisResult.offer_intelligence?.products?.slice(0, 3).map((product: string, index: number) => (
                   <div key={index} className="flex items-start">
-                    <div className="w-2 h-2 bg-green-400 rounded-full mt-2 mr-2 flex-shrink-0"></div>
+                    <div className="w-2 h-2 bg-black rounded-full mt-2 mr-3 flex-shrink-0"></div>
                     <span className="text-gray-700">{product}</span>
                   </div>
                 ))}
@@ -482,15 +482,15 @@ export default function IntelligenceAnalyzer({ campaignId, onAnalysisComplete }:
             </div>
 
             {/* Psychology Intelligence */}
-            <div className="bg-white border border-gray-200 rounded-lg p-4">
-              <div className="flex items-center mb-3">
-                <Brain className="h-5 w-5 text-purple-600 mr-2" />
-                <h3 className="font-medium text-gray-900">Psychology Triggers</h3>
+            <div className="bg-white border border-gray-200 rounded-2xl p-6">
+              <div className="flex items-center mb-4">
+                <Brain className="h-5 w-5 text-black mr-3" />
+                <h3 className="font-medium text-black">Psychology Triggers</h3>
               </div>
-              <div className="space-y-2 text-sm">
+              <div className="space-y-3 text-sm">
                 {analysisResult.psychology_intelligence?.emotional_triggers?.slice(0, 3).map((trigger: string, index: number) => (
                   <div key={index} className="flex items-start">
-                    <div className="w-2 h-2 bg-purple-400 rounded-full mt-2 mr-2 flex-shrink-0"></div>
+                    <div className="w-2 h-2 bg-black rounded-full mt-2 mr-3 flex-shrink-0"></div>
                     <span className="text-gray-700">{trigger}</span>
                   </div>
                 ))}
@@ -501,15 +501,15 @@ export default function IntelligenceAnalyzer({ campaignId, onAnalysisComplete }:
             </div>
 
             {/* Competitive Opportunities */}
-            <div className="bg-white border border-gray-200 rounded-lg p-4">
-              <div className="flex items-center mb-3">
-                <Eye className="h-5 w-5 text-blue-600 mr-2" />
-                <h3 className="font-medium text-gray-900">Opportunities</h3>
+            <div className="bg-white border border-gray-200 rounded-2xl p-6">
+              <div className="flex items-center mb-4">
+                <Eye className="h-5 w-5 text-black mr-3" />
+                <h3 className="font-medium text-black">Opportunities</h3>
               </div>
-              <div className="space-y-2 text-sm">
+              <div className="space-y-3 text-sm">
                 {analysisResult.competitive_opportunities?.slice(0, 3).map((opportunity: any, index: number) => (
                   <div key={index} className="flex items-start">
-                    <div className="w-2 h-2 bg-blue-400 rounded-full mt-2 mr-2 flex-shrink-0"></div>
+                    <div className="w-2 h-2 bg-black rounded-full mt-2 mr-3 flex-shrink-0"></div>
                     <span className="text-gray-700">
                       {typeof opportunity === 'string' ? opportunity : opportunity.description || 'Opportunity identified'}
                     </span>
@@ -522,15 +522,15 @@ export default function IntelligenceAnalyzer({ campaignId, onAnalysisComplete }:
             </div>
 
             {/* Campaign Suggestions */}
-            <div className="bg-white border border-gray-200 rounded-lg p-4">
-              <div className="flex items-center mb-3">
-                <Lightbulb className="h-5 w-5 text-yellow-600 mr-2" />
-                <h3 className="font-medium text-gray-900">Campaign Ideas</h3>
+            <div className="bg-white border border-gray-200 rounded-2xl p-6">
+              <div className="flex items-center mb-4">
+                <Lightbulb className="h-5 w-5 text-black mr-3" />
+                <h3 className="font-medium text-black">Campaign Ideas</h3>
               </div>
-              <div className="space-y-2 text-sm">
+              <div className="space-y-3 text-sm">
                 {analysisResult.campaign_suggestions?.slice(0, 3).map((suggestion: string, index: number) => (
                   <div key={index} className="flex items-start">
-                    <div className="w-2 h-2 bg-yellow-400 rounded-full mt-2 mr-2 flex-shrink-0"></div>
+                    <div className="w-2 h-2 bg-black rounded-full mt-2 mr-3 flex-shrink-0"></div>
                     <span className="text-gray-700">{suggestion}</span>
                   </div>
                 ))}
@@ -542,13 +542,13 @@ export default function IntelligenceAnalyzer({ campaignId, onAnalysisComplete }:
           </div>
 
           {/* Action Buttons */}
-          <div className="flex space-x-3 pt-4 border-t border-gray-200">
+          <div className="flex space-x-4 pt-6 border-t border-gray-200">
             <button 
               onClick={() => {
                 // Content generator will automatically show when analysis is complete
                 // This is handled by the parent component
               }}
-              className="flex-1 bg-gradient-to-r from-purple-600 to-blue-600 text-white py-3 px-4 rounded-lg font-medium hover:from-purple-700 hover:to-blue-700 transition-all"
+              className="flex-1 bg-black text-white py-4 px-6 rounded-lg font-medium hover:bg-gray-900 transition-colors"
             >
               Proceed to Content Generation
             </button>
@@ -557,7 +557,7 @@ export default function IntelligenceAnalyzer({ campaignId, onAnalysisComplete }:
                 console.log('Saving analysis:', analysisResult)
                 // Implement save functionality
               }}
-              className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-50 transition-colors"
+              className="px-8 py-4 bg-gray-100 text-black rounded-lg font-medium hover:bg-gray-200 transition-colors"
             >
               Save Analysis
             </button>

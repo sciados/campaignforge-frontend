@@ -1,4 +1,4 @@
-// src/components/intelligence/ContentGenerator.tsx
+// frontend/src/components/ContentGenerator.tsx
 import React, { useState, useCallback } from 'react'
 import { 
   Wand2, 
@@ -17,11 +17,8 @@ import {
   Loader2,
   CheckCircle,
   Lightbulb,
-  AlertCircle,
-  Plus,
-  Sparkles
+  AlertCircle
 } from 'lucide-react'
-import { useApi } from '@/lib/api'
 
 interface IntelligenceSource {
   id: string
@@ -55,8 +52,7 @@ const CONTENT_TYPES = [
     icon: Mail,
     description: 'Multi-email nurture sequence',
     credits: 3,
-    color: 'bg-blue-500',
-    estimatedTime: '2-3 minutes'
+    color: 'bg-gray-100'
   },
   {
     id: 'SOCIAL_POSTS',
@@ -64,8 +60,7 @@ const CONTENT_TYPES = [
     icon: MessageSquare,
     description: '10+ social media posts',
     credits: 2,
-    color: 'bg-green-500',
-    estimatedTime: '1-2 minutes'
+    color: 'bg-gray-100'
   },
   {
     id: 'ad_copy',
@@ -73,8 +68,7 @@ const CONTENT_TYPES = [
     icon: Megaphone,
     description: 'Multiple ad variations',
     credits: 2,
-    color: 'bg-red-500',
-    estimatedTime: '1-2 minutes'
+    color: 'bg-gray-100'
   },
   {
     id: 'blog_post',
@@ -82,8 +76,7 @@ const CONTENT_TYPES = [
     icon: FileText,
     description: 'SEO-optimized article',
     credits: 4,
-    color: 'bg-purple-500',
-    estimatedTime: '3-4 minutes'
+    color: 'bg-gray-100'
   },
   {
     id: 'LANDING_PAGE',
@@ -91,8 +84,7 @@ const CONTENT_TYPES = [
     icon: Globe,
     description: 'Conversion-optimized page',
     credits: 5,
-    color: 'bg-orange-500',
-    estimatedTime: '4-5 minutes'
+    color: 'bg-gray-100'
   },
   {
     id: 'video_script',
@@ -100,21 +92,17 @@ const CONTENT_TYPES = [
     icon: Video,
     description: 'Engaging video content',
     credits: 3,
-    color: 'bg-indigo-500',
-    estimatedTime: '2-3 minutes'
+    color: 'bg-gray-100'
   }
 ]
 
 export default function ContentGenerator({ campaignId, intelligenceSources }: ContentGeneratorProps) {
-  const api = useApi()
-  
   const [selectedContentType, setSelectedContentType] = useState<string | null>(null)
   const [selectedIntelligence, setSelectedIntelligence] = useState<string>('')
   const [isGenerating, setIsGenerating] = useState(false)
   const [generatedContent, setGeneratedContent] = useState<GeneratedContent | null>(null)
   const [showPreferences, setShowPreferences] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [successMessage, setSuccessMessage] = useState<string | null>(null)
   
   // Content preferences state
   const [preferences, setPreferences] = useState({
@@ -125,33 +113,34 @@ export default function ContentGenerator({ campaignId, intelligenceSources }: Co
     platform: 'general'
   })
 
-  // Auto-select first intelligence source on load
-  React.useEffect(() => {
-    if (intelligenceSources.length > 0 && !selectedIntelligence) {
-      setSelectedIntelligence(intelligenceSources[0].id)
-    }
-  }, [intelligenceSources, selectedIntelligence])
-
   const generateContent = useCallback(async () => {
-    if (!selectedContentType || !selectedIntelligence) {
-      setError('Please select both content type and intelligence source')
-      return
-    }
+    if (!selectedContentType || !selectedIntelligence) return
     
     setIsGenerating(true)
     setError(null)
-    setSuccessMessage(null)
     
     try {
-      const result = await api.generateContent({
-        intelligence_id: selectedIntelligence,
-        content_type: selectedContentType,
-        preferences: preferences,
-        campaign_id: campaignId
+      const response = await fetch('/intelligence/generate-content', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
+        },
+        body: JSON.stringify({
+          intelligence_id: selectedIntelligence,
+          content_type: selectedContentType,
+          preferences: preferences,
+          campaign_id: campaignId
+        })
       })
       
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.detail || 'Content generation failed')
+      }
+      
+      const result = await response.json()
       setGeneratedContent(result)
-      setSuccessMessage('Content generated successfully!')
       
     } catch (error) {
       console.error('Content generation error:', error)
@@ -159,16 +148,15 @@ export default function ContentGenerator({ campaignId, intelligenceSources }: Co
     } finally {
       setIsGenerating(false)
     }
-  }, [selectedContentType, selectedIntelligence, preferences, campaignId, api])
+  }, [selectedContentType, selectedIntelligence, preferences, campaignId])
 
   const copyToClipboard = useCallback(async (text: string) => {
     try {
       await navigator.clipboard.writeText(text)
-      setSuccessMessage('Content copied to clipboard!')
-      setTimeout(() => setSuccessMessage(null), 3000)
+      // Show success toast - you can implement toast notification here
+      console.log('Content copied to clipboard')
     } catch (error) {
       console.error('Failed to copy:', error)
-      setError('Failed to copy to clipboard')
     }
   }, [])
 
@@ -184,22 +172,11 @@ export default function ContentGenerator({ campaignId, intelligenceSources }: Co
     URL.revokeObjectURL(url)
   }, [])
 
-  const clearMessages = () => {
-    setError(null)
-    setSuccessMessage(null)
-  }
-
-  const resetGenerator = () => {
-    setGeneratedContent(null)
-    setSelectedContentType(null)
-    clearMessages()
-  }
-
   if (intelligenceSources.length === 0) {
     return (
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8 text-center">
-        <Wand2 className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-        <h3 className="text-lg font-medium text-gray-900 mb-2">No Intelligence Sources</h3>
+      <div className="bg-white rounded-2xl border border-gray-200 p-12 text-center shadow-sm">
+        <Wand2 className="h-12 w-12 text-gray-300 mx-auto mb-4" />
+        <h3 className="text-lg font-medium text-black mb-2">No Intelligence Sources</h3>
         <p className="text-gray-600">
           Analyze competitor content first to generate intelligence-driven marketing materials.
         </p>
@@ -208,50 +185,39 @@ export default function ContentGenerator({ campaignId, intelligenceSources }: Co
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       {/* Header */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+      <div className="bg-white rounded-2xl border border-gray-200 p-8 shadow-sm">
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-2xl font-bold text-gray-900 flex items-center">
-              <Wand2 className="h-6 w-6 mr-2 text-purple-600" />
+            <h2 className="text-2xl font-light text-black flex items-center">
+              <Wand2 className="h-6 w-6 mr-3 text-black" />
               Content Generator
             </h2>
-            <p className="text-gray-600 mt-1">
+            <p className="text-gray-600 mt-2">
               Generate marketing content using competitive intelligence
             </p>
           </div>
-          <div className="flex items-center space-x-3">
-            <button
-              onClick={() => setShowPreferences(!showPreferences)}
-              className="flex items-center px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-            >
-              <Settings className="h-4 w-4 mr-2" />
-              Preferences
-            </button>
-            {generatedContent && (
-              <button
-                onClick={resetGenerator}
-                className="flex items-center px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                New Content
-              </button>
-            )}
-          </div>
+          <button
+            onClick={() => setShowPreferences(!showPreferences)}
+            className="flex items-center px-6 py-3 bg-gray-100 text-black rounded-lg hover:bg-gray-200 transition-colors font-medium"
+          >
+            <Settings className="h-4 w-4 mr-2" />
+            Preferences
+          </button>
         </div>
 
         {/* Preferences Panel */}
         {showPreferences && (
-          <div className="mt-6 pt-6 border-t border-gray-200">
-            <h3 className="font-medium text-gray-900 mb-4">Content Preferences</h3>
+          <div className="mt-8 pt-8 border-t border-gray-200">
+            <h3 className="font-medium text-black mb-6">Content Preferences</h3>
             <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Tone</label>
+                <label className="block text-sm font-medium text-black mb-3">Tone</label>
                 <select
                   value={preferences.tone}
                   onChange={(e) => setPreferences({...preferences, tone: e.target.value})}
-                  className="w-full p-2 border border-gray-300 rounded-md text-sm"
+                  className="w-full px-4 py-3 bg-gray-100 border-none rounded-lg focus:outline-none focus:bg-white focus:ring-2 focus:ring-blue-500/20 transition-all text-sm"
                 >
                   <option value="professional">Professional</option>
                   <option value="conversational">Conversational</option>
@@ -261,11 +227,11 @@ export default function ContentGenerator({ campaignId, intelligenceSources }: Co
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Length</label>
+                <label className="block text-sm font-medium text-black mb-3">Length</label>
                 <select
                   value={preferences.length}
                   onChange={(e) => setPreferences({...preferences, length: e.target.value})}
-                  className="w-full p-2 border border-gray-300 rounded-md text-sm"
+                  className="w-full px-4 py-3 bg-gray-100 border-none rounded-lg focus:outline-none focus:bg-white focus:ring-2 focus:ring-blue-500/20 transition-all text-sm"
                 >
                   <option value="short">Short</option>
                   <option value="medium">Medium</option>
@@ -273,11 +239,11 @@ export default function ContentGenerator({ campaignId, intelligenceSources }: Co
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Audience</label>
+                <label className="block text-sm font-medium text-black mb-3">Audience</label>
                 <select
                   value={preferences.audience}
                   onChange={(e) => setPreferences({...preferences, audience: e.target.value})}
-                  className="w-full p-2 border border-gray-300 rounded-md text-sm"
+                  className="w-full px-4 py-3 bg-gray-100 border-none rounded-lg focus:outline-none focus:bg-white focus:ring-2 focus:ring-blue-500/20 transition-all text-sm"
                 >
                   <option value="general">General</option>
                   <option value="beginners">Beginners</option>
@@ -286,11 +252,11 @@ export default function ContentGenerator({ campaignId, intelligenceSources }: Co
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Style</label>
+                <label className="block text-sm font-medium text-black mb-3">Style</label>
                 <select
                   value={preferences.style}
                   onChange={(e) => setPreferences({...preferences, style: e.target.value})}
-                  className="w-full p-2 border border-gray-300 rounded-md text-sm"
+                  className="w-full px-4 py-3 bg-gray-100 border-none rounded-lg focus:outline-none focus:bg-white focus:ring-2 focus:ring-blue-500/20 transition-all text-sm"
                 >
                   <option value="engaging">Engaging</option>
                   <option value="informative">Informative</option>
@@ -299,11 +265,11 @@ export default function ContentGenerator({ campaignId, intelligenceSources }: Co
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Platform</label>
+                <label className="block text-sm font-medium text-black mb-3">Platform</label>
                 <select
                   value={preferences.platform}
                   onChange={(e) => setPreferences({...preferences, platform: e.target.value})}
-                  className="w-full p-2 border border-gray-300 rounded-md text-sm"
+                  className="w-full px-4 py-3 bg-gray-100 border-none rounded-lg focus:outline-none focus:bg-white focus:ring-2 focus:ring-blue-500/20 transition-all text-sm"
                 >
                   <option value="general">General</option>
                   <option value="facebook">Facebook</option>
@@ -317,96 +283,77 @@ export default function ContentGenerator({ campaignId, intelligenceSources }: Co
         )}
       </div>
 
-      {/* Messages */}
+      {/* Error Display */}
       {error && (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center">
-              <AlertCircle className="h-5 w-5 text-red-500 mr-2" />
-              <p className="text-red-700">{error}</p>
-            </div>
-            <button onClick={clearMessages} className="text-red-500 hover:text-red-700">
-              <CheckCircle className="h-4 w-4" />
-            </button>
-          </div>
-        </div>
-      )}
-
-      {successMessage && (
-        <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center">
-              <CheckCircle className="h-5 w-5 text-green-500 mr-2" />
-              <p className="text-green-700">{successMessage}</p>
-            </div>
-            <button onClick={clearMessages} className="text-green-500 hover:text-green-700">
-              <CheckCircle className="h-4 w-4" />
-            </button>
+        <div className="bg-red-50 border border-red-200 rounded-2xl p-6">
+          <div className="flex items-center">
+            <AlertCircle className="h-5 w-5 text-red-500 mr-3" />
+            <p className="text-red-700">{error}</p>
           </div>
         </div>
       )}
 
       {/* Intelligence Source Selection */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-        <h3 className="font-medium text-gray-900 mb-4">Select Intelligence Source</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="bg-white rounded-2xl border border-gray-200 p-8 shadow-sm">
+        <h3 className="font-medium text-black mb-6">Select Intelligence Source</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {intelligenceSources.map((source) => (
-            <div
+            <button
               key={source.id}
               onClick={() => setSelectedIntelligence(source.id)}
-              className={`p-4 border-2 rounded-lg cursor-pointer transition-all ${
+              className={`p-6 border-2 rounded-2xl text-left transition-all ${
                 selectedIntelligence === source.id
-                  ? 'border-purple-500 bg-purple-50'
-                  : 'border-gray-200 hover:border-gray-300'
+                  ? 'border-gray-300 bg-gray-50'
+                  : 'border-gray-200 hover:border-gray-300 hover:shadow-sm'
               }`}
             >
-              <div className="flex items-center justify-between mb-2">
-                <h4 className="font-medium text-gray-900 truncate">{source.source_title}</h4>
+              <div className="flex items-center justify-between mb-3">
+                <h4 className="font-medium text-black truncate">{source.source_title}</h4>
                 <div className="flex items-center">
-                  <Star className="h-4 w-4 text-yellow-500 mr-1" />
+                  <Star className="h-4 w-4 text-black mr-1" />
                   <span className="text-sm font-medium text-gray-600">
                     {Math.round(source.confidence_score * 100)}%
                   </span>
                 </div>
               </div>
               <p className="text-sm text-gray-600 capitalize">{source.source_type.replace('_', ' ')}</p>
-            </div>
+            </button>
           ))}
         </div>
       </div>
 
       {/* Content Type Selection */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-        <h3 className="font-medium text-gray-900 mb-4">Choose Content Type</h3>
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+      <div className="bg-white rounded-2xl border border-gray-200 p-8 shadow-sm">
+        <h3 className="font-medium text-black mb-6">Choose Content Type</h3>
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
           {CONTENT_TYPES.map((contentType) => {
             const IconComponent = contentType.icon
             return (
-              <div
+              <button
                 key={contentType.id}
                 onClick={() => setSelectedContentType(contentType.id)}
-                className={`p-4 border-2 rounded-lg cursor-pointer transition-all ${
+                className={`p-6 border-2 rounded-2xl text-left transition-all ${
                   selectedContentType === contentType.id
-                    ? 'border-purple-500 bg-purple-50'
-                    : 'border-gray-200 hover:border-gray-300'
+                    ? 'border-gray-300 bg-gray-50'
+                    : 'border-gray-200 hover:border-gray-300 hover:shadow-sm'
                 }`}
               >
-                <div className="flex items-center mb-3">
-                  <div className={`p-2 rounded-lg ${contentType.color} text-white mr-3`}>
-                    <IconComponent className="h-5 w-5" />
+                <div className="flex items-center mb-4">
+                  <div className={`p-3 rounded-xl ${contentType.color} mr-4`}>
+                    <IconComponent className="h-6 w-6 text-black" />
                   </div>
                   <div className="flex-1">
-                    <h4 className="font-medium text-gray-900">{contentType.name}</h4>
+                    <h4 className="font-medium text-black">{contentType.name}</h4>
                     <p className="text-sm text-gray-600">{contentType.description}</p>
                   </div>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-xs text-gray-500">{contentType.credits} credits • {contentType.estimatedTime}</span>
+                  <span className="text-xs text-gray-500">{contentType.credits} credits</span>
                   {selectedContentType === contentType.id && (
-                    <CheckCircle className="h-4 w-4 text-purple-600" />
+                    <CheckCircle className="h-4 w-4 text-black" />
                   )}
                 </div>
-              </div>
+              </button>
             )
           })}
         </div>
@@ -417,12 +364,12 @@ export default function ContentGenerator({ campaignId, intelligenceSources }: Co
         <button
           onClick={generateContent}
           disabled={!selectedContentType || !selectedIntelligence || isGenerating}
-          className="px-8 py-4 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg font-medium hover:from-purple-700 hover:to-blue-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center text-lg"
+          className="px-12 py-4 bg-black text-white rounded-lg font-medium hover:bg-gray-900 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center text-lg"
         >
           {isGenerating ? (
-            <Loader2 className="h-5 w-5 animate-spin mr-2" />
+            <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-3" />
           ) : (
-            <Wand2 className="h-5 w-5 mr-2" />
+            <Wand2 className="h-5 w-5 mr-3" />
           )}
           {isGenerating ? 'Generating Content...' : 'Generate Content'}
         </button>
@@ -430,25 +377,24 @@ export default function ContentGenerator({ campaignId, intelligenceSources }: Co
 
       {/* Generated Content Display */}
       {generatedContent && (
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <div className="flex items-center justify-between mb-6">
-            <h3 className="text-xl font-bold text-gray-900 flex items-center">
-              <Sparkles className="h-5 w-5 mr-2 text-purple-600" />
+        <div className="bg-white rounded-2xl border border-gray-200 p-8 shadow-sm">
+          <div className="flex items-center justify-between mb-8">
+            <h3 className="text-xl font-medium text-black">
               {generatedContent.generated_content?.title || 'Generated Content'}
             </h3>
-            <div className="flex space-x-2">
+            <div className="flex space-x-3">
               <button
                 onClick={() => copyToClipboard(JSON.stringify(generatedContent.generated_content, null, 2))}
-                className="flex items-center px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-sm"
+                className="flex items-center px-4 py-3 bg-gray-100 text-black rounded-lg hover:bg-gray-200 transition-colors text-sm font-medium"
               >
-                <Copy className="h-4 w-4 mr-1" />
+                <Copy className="h-4 w-4 mr-2" />
                 Copy
               </button>
               <button
                 onClick={() => downloadContent(generatedContent.generated_content, `${generatedContent.content_type}.json`)}
-                className="flex items-center px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-sm"
+                className="flex items-center px-4 py-3 bg-gray-100 text-black rounded-lg hover:bg-gray-200 transition-colors text-sm font-medium"
               >
-                <Download className="h-4 w-4 mr-1" />
+                <Download className="h-4 w-4 mr-2" />
                 Download
               </button>
             </div>
@@ -456,17 +402,17 @@ export default function ContentGenerator({ campaignId, intelligenceSources }: Co
 
           {/* Performance Predictions */}
           {generatedContent.performance_predictions && (
-            <div className="bg-gradient-to-r from-green-50 to-blue-50 rounded-lg p-4 mb-6">
-              <div className="flex items-center mb-3">
-                <TrendingUp className="h-5 w-5 text-green-600 mr-2" />
-                <h4 className="font-medium text-gray-900">Performance Predictions</h4>
+            <div className="bg-gray-50 rounded-2xl p-6 mb-8">
+              <div className="flex items-center mb-4">
+                <TrendingUp className="h-5 w-5 text-black mr-3" />
+                <h4 className="font-medium text-black">Performance Predictions</h4>
               </div>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
                 {Object.entries(generatedContent.performance_predictions).map(([key, value]) => {
                   if (key === 'optimization_suggestions' || key === 'success_factors') return null
                   return (
                     <div key={key} className="text-center">
-                      <div className="text-lg font-bold text-gray-900">
+                      <div className="text-lg font-semibold text-black">
                         {typeof value === 'number' 
                           ? `${Math.round(value * 100)}%` 
                           : String(value)}
@@ -483,21 +429,21 @@ export default function ContentGenerator({ campaignId, intelligenceSources }: Co
 
           {/* Smart URL */}
           {generatedContent.smart_url && (
-            <div className="bg-blue-50 rounded-lg p-4 mb-6">
-              <div className="flex items-center mb-2">
-                <Globe className="h-5 w-5 text-blue-600 mr-2" />
-                <h4 className="font-medium text-gray-900">Smart Tracking URL</h4>
+            <div className="bg-gray-50 rounded-2xl p-6 mb-8">
+              <div className="flex items-center mb-4">
+                <Globe className="h-5 w-5 text-black mr-3" />
+                <h4 className="font-medium text-black">Smart Tracking URL</h4>
               </div>
-              <div className="flex items-center space-x-2">
+              <div className="flex items-center space-x-3">
                 <input
                   type="text"
                   value={generatedContent.smart_url}
                   readOnly
-                  className="flex-1 p-2 bg-white border border-gray-300 rounded-md text-sm"
+                  className="flex-1 px-4 py-3 bg-white border border-gray-200 rounded-lg text-sm"
                 />
                 <button
                   onClick={() => copyToClipboard(generatedContent.smart_url || '')}
-                  className="px-3 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors text-sm"
+                  className="px-6 py-3 bg-black text-white rounded-lg hover:bg-gray-900 transition-colors text-sm font-medium"
                 >
                   Copy URL
                 </button>
@@ -506,24 +452,24 @@ export default function ContentGenerator({ campaignId, intelligenceSources }: Co
           )}
 
           {/* Content Display */}
-          <div className="space-y-4">
+          <div className="space-y-6">
             {/* Email Sequence Display */}
             {generatedContent.content_type === 'email_sequence' && (
-              <div className="space-y-4">
+              <div className="space-y-6">
                 {generatedContent.generated_content.content?.map((email: any, index: number) => (
-                  <div key={index} className="border border-gray-200 rounded-lg p-4">
-                    <div className="flex items-center justify-between mb-3">
-                      <h5 className="font-medium text-gray-900">Email #{email.email_number || index + 1}</h5>
+                  <div key={index} className="border border-gray-200 rounded-2xl p-6">
+                    <div className="flex items-center justify-between mb-4">
+                      <h5 className="font-medium text-black">Email #{email.email_number || index + 1}</h5>
                       <button
                         onClick={() => copyToClipboard(`Subject: ${email.subject || 'No subject'}\n\n${email.body || 'No content'}`)}
-                        className="text-sm text-purple-600 hover:text-purple-700"
+                        className="text-sm text-black hover:text-gray-600 font-medium"
                       >
                         Copy Email
                       </button>
                     </div>
-                    <div className="bg-gray-50 rounded-md p-3 mb-3">
-                      <strong className="text-sm text-gray-700">Subject: </strong>
-                      <span className="text-sm">{email.subject || 'No subject'}</span>
+                    <div className="bg-gray-50 rounded-xl p-4 mb-4">
+                      <strong className="text-sm text-black">Subject: </strong>
+                      <span className="text-sm text-gray-700">{email.subject || 'No subject'}</span>
                     </div>
                     <div className="whitespace-pre-wrap text-sm text-gray-700 leading-relaxed">
                       {email.body || 'No content available'}
@@ -535,25 +481,25 @@ export default function ContentGenerator({ campaignId, intelligenceSources }: Co
 
             {/* Social Posts Display */}
             {generatedContent.content_type === 'SOCIAL_POSTS' && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {generatedContent.generated_content.content?.map((post: any, index: number) => (
-                  <div key={index} className="border border-gray-200 rounded-lg p-4">
-                    <div className="flex items-center justify-between mb-3">
-                      <h5 className="font-medium text-gray-900">Post #{index + 1}</h5>
+                  <div key={index} className="border border-gray-200 rounded-2xl p-6">
+                    <div className="flex items-center justify-between mb-4">
+                      <h5 className="font-medium text-black">Post #{index + 1}</h5>
                       <button
                         onClick={() => copyToClipboard(post.text || '')}
-                        className="text-sm text-purple-600 hover:text-purple-700"
+                        className="text-sm text-black hover:text-gray-600 font-medium"
                       >
                         Copy
                       </button>
                     </div>
-                    <div className="whitespace-pre-wrap text-sm text-gray-700 mb-3">
+                    <div className="whitespace-pre-wrap text-sm text-gray-700 mb-4">
                       {post.text || 'No content available'}
                     </div>
                     {post.hashtags && post.hashtags.length > 0 && (
-                      <div className="flex flex-wrap gap-1">
+                      <div className="flex flex-wrap gap-2">
                         {post.hashtags.map((hashtag: string, idx: number) => (
-                          <span key={idx} className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded">
+                          <span key={idx} className="text-xs bg-gray-100 text-gray-700 px-3 py-1 rounded-full">
                             {hashtag}
                           </span>
                         ))}
@@ -566,19 +512,19 @@ export default function ContentGenerator({ campaignId, intelligenceSources }: Co
 
             {/* Ad Copy Display */}
             {generatedContent.content_type === 'ad_copy' && (
-              <div className="space-y-6">
+              <div className="space-y-8">
                 {Object.entries(generatedContent.generated_content.content || {}).map(([section, items]) => (
-                  <div key={section} className="border border-gray-200 rounded-lg p-4">
-                    <h5 className="font-medium text-gray-900 mb-3 capitalize">
+                  <div key={section} className="border border-gray-200 rounded-2xl p-6">
+                    <h5 className="font-medium text-black mb-4 capitalize">
                       {section.replace(/_/g, ' ')}
                     </h5>
-                    <div className="space-y-2">
+                    <div className="space-y-3">
                       {Array.isArray(items) && items.map((item: string, index: number) => (
-                        <div key={index} className="flex items-center justify-between bg-gray-50 rounded-md p-3">
+                        <div key={index} className="flex items-center justify-between bg-gray-50 rounded-xl p-4">
                           <span className="text-sm text-gray-700">{item}</span>
                           <button
                             onClick={() => copyToClipboard(item)}
-                            className="text-xs text-purple-600 hover:text-purple-700"
+                            className="text-xs text-black hover:text-gray-600 font-medium"
                           >
                             Copy
                           </button>
@@ -592,16 +538,16 @@ export default function ContentGenerator({ campaignId, intelligenceSources }: Co
 
             {/* Blog Post Display */}
             {generatedContent.content_type === 'blog_post' && (
-              <div className="space-y-4">
-                <div className="border border-gray-200 rounded-lg p-4">
-                  <h5 className="font-medium text-gray-900 mb-3">Blog Post Content</h5>
+              <div className="space-y-6">
+                <div className="border border-gray-200 rounded-2xl p-8">
+                  <h5 className="font-medium text-black mb-6">Blog Post Content</h5>
                   <div className="prose max-w-none">
-                    <h1 className="text-2xl font-bold mb-4">
+                    <h1 className="text-2xl font-semibold mb-6 text-black">
                       {generatedContent.generated_content.content?.headline || 'Blog Post Title'}
                     </h1>
                     {generatedContent.generated_content.content?.sections?.map((section: any, index: number) => (
-                      <div key={index} className="mb-6">
-                        <h2 className="text-xl font-semibold mb-2">{section.title || `Section ${index + 1}`}</h2>
+                      <div key={index} className="mb-8">
+                        <h2 className="text-xl font-medium mb-3 text-black">{section.title || `Section ${index + 1}`}</h2>
                         <div className="whitespace-pre-wrap text-gray-700">{section.content || 'No content available'}</div>
                       </div>
                     ))}
@@ -612,23 +558,23 @@ export default function ContentGenerator({ campaignId, intelligenceSources }: Co
 
             {/* Landing Page Display */}
             {generatedContent.content_type === 'LANDING_PAGE' && (
-              <div className="space-y-4">
-                <div className="border border-gray-200 rounded-lg p-4">
-                  <h5 className="font-medium text-gray-900 mb-3">Landing Page Sections</h5>
-                  <div className="space-y-4">
-                    <div className="bg-blue-50 rounded-md p-4">
-                      <h3 className="text-xl font-bold text-gray-900">
+              <div className="space-y-6">
+                <div className="border border-gray-200 rounded-2xl p-8">
+                  <h5 className="font-medium text-black mb-6">Landing Page Sections</h5>
+                  <div className="space-y-6">
+                    <div className="bg-gray-50 rounded-2xl p-6">
+                      <h3 className="text-xl font-semibold text-black">
                         {generatedContent.generated_content.content?.headline || 'Landing Page Headline'}
                       </h3>
                       {generatedContent.generated_content.content?.subheadline && (
-                        <p className="text-gray-600 mt-2">
+                        <p className="text-gray-600 mt-3">
                           {generatedContent.generated_content.content.subheadline}
                         </p>
                       )}
                     </div>
                     {generatedContent.generated_content.content?.sections?.map((section: string, index: number) => (
-                      <div key={index} className="bg-gray-50 rounded-md p-3">
-                        <h4 className="font-medium text-gray-900">{section}</h4>
+                      <div key={index} className="bg-gray-50 rounded-xl p-4">
+                        <h4 className="font-medium text-black">{section}</h4>
                       </div>
                     ))}
                   </div>
@@ -638,8 +584,8 @@ export default function ContentGenerator({ campaignId, intelligenceSources }: Co
 
             {/* Video Script Display */}
             {generatedContent.content_type === 'video_script' && (
-              <div className="border border-gray-200 rounded-lg p-4">
-                <h5 className="font-medium text-gray-900 mb-3">Video Script</h5>
+              <div className="border border-gray-200 rounded-2xl p-8">
+                <h5 className="font-medium text-black mb-6">Video Script</h5>
                 <div className="whitespace-pre-wrap text-sm text-gray-700 leading-relaxed">
                   {generatedContent.generated_content.content?.script || 
                    generatedContent.generated_content.content ||
@@ -650,8 +596,8 @@ export default function ContentGenerator({ campaignId, intelligenceSources }: Co
 
             {/* Generic Content Display */}
             {!['email_sequence', 'SOCIAL_POSTS', 'ad_copy', 'blog_post', 'LANDING_PAGE', 'video_script'].includes(generatedContent.content_type) && (
-              <div className="border border-gray-200 rounded-lg p-4">
-                <h5 className="font-medium text-gray-900 mb-3">Generated Content</h5>
+              <div className="border border-gray-200 rounded-2xl p-8">
+                <h5 className="font-medium text-black mb-6">Generated Content</h5>
                 <div className="whitespace-pre-wrap text-sm text-gray-700 leading-relaxed">
                   {typeof generatedContent.generated_content.content === 'string' 
                     ? generatedContent.generated_content.content
@@ -664,21 +610,53 @@ export default function ContentGenerator({ campaignId, intelligenceSources }: Co
 
           {/* Usage Tips */}
           {generatedContent.generated_content.usage_tips && generatedContent.generated_content.usage_tips.length > 0 && (
-            <div className="mt-6 bg-yellow-50 rounded-lg p-4">
-              <div className="flex items-center mb-3">
-                <Lightbulb className="h-5 w-5 text-yellow-600 mr-2" />
-                <h4 className="font-medium text-gray-900">Usage Tips</h4>
+            <div className="mt-8 bg-gray-50 rounded-2xl p-6">
+              <div className="flex items-center mb-4">
+                <Lightbulb className="h-5 w-5 text-black mr-3" />
+                <h4 className="font-medium text-black">Usage Tips</h4>
               </div>
               <ul className="space-y-2">
                 {generatedContent.generated_content.usage_tips.map((tip: string, index: number) => (
-                  <li key={index} className="flex items-start text-sm text-gray-700">
-                    <div className="w-2 h-2 bg-yellow-400 rounded-full mt-2 mr-2 flex-shrink-0"></div>
-                    <span>{tip}</span>
+                  <li key={index} className="text-sm text-gray-700 flex items-start">
+                    <span className="text-black mr-3">•</span>
+                    {tip}
                   </li>
                 ))}
               </ul>
             </div>
           )}
+
+          {/* Action Buttons */}
+          <div className="mt-8 flex space-x-4 pt-6 border-t border-gray-200">
+            <button 
+              onClick={() => {
+                // Save content to campaign
+                console.log('Saving content to campaign:', generatedContent)
+              }}
+              className="flex-1 bg-black text-white py-4 px-6 rounded-lg font-medium hover:bg-gray-900 transition-colors"
+            >
+              Save to Campaign
+            </button>
+            <button 
+              onClick={() => {
+                // Generate more variations with same settings
+                generateContent()
+              }}
+              className="flex-1 bg-gray-100 text-black py-4 px-6 rounded-lg font-medium hover:bg-gray-200 transition-colors"
+            >
+              Generate More Variations
+            </button>
+            <button 
+              onClick={() => {
+                // Preview content in new window or modal
+                console.log('Previewing content:', generatedContent)
+              }}
+              className="px-8 py-4 bg-gray-100 text-black rounded-lg font-medium hover:bg-gray-200 transition-colors flex items-center"
+            >
+              <Eye className="h-4 w-4 mr-2" />
+              Preview
+            </button>
+          </div>
         </div>
       )}
     </div>

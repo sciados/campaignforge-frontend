@@ -229,29 +229,51 @@ export interface User {
   }
 }
 
-//  ============================================================================
-// CLICKBANK API FOR LISTINGS
-//  =============================================================================
-import { ClickBankProduct, ClickBankCategory } from "@/lib/types/inputSource"; // adjust path if needed
-
-// 🧠 Fetch Top 10 ClickBank Products by Category
-export async function fetchClickBankProducts(type: ClickBankCategory): Promise<ClickBankProduct[]> {
-  try {
-    const res = await fetch(
-      `${process.env.NEXT_PUBLIC_BACKEND_URL}/intelligence/clickbank/top-products?type=${type}`
-    );
-
-    if (!res.ok) {
-      throw new Error(`Failed to fetch ClickBank products (${res.status})`);
-    }
-
-    const data = await res.json();
-    return data.filter((p: any) => p.salespage_url && p.title);
-  } catch (err) {
-    console.error("ClickBank API error:", err);
-    return [];
-  }
+// ✅ NEW: ClickBank Types (add to your existing types section)
+export interface ClickBankProduct {
+  id: string
+  title: string
+  vendor: string
+  description: string
+  gravity: number
+  commission_rate: number
+  salespage_url: string
+  product_id?: string
+  vendor_id?: string
+  category: string
+  analysis_status: 'pending' | 'processing' | 'completed' | 'failed'
+  analysis_score?: number
+  key_insights: string[]
+  recommended_angles: string[]
+  is_analyzed: boolean
+  created_at: string
 }
+
+export interface ClickBankCategory {
+  id: string
+  name: string
+  description: string
+}
+
+export interface ClickBankAnalysis {
+  product_id: string
+  analysis_status: string
+  confidence_score?: number
+  key_insights: string[]
+  recommended_angles: string[]
+  target_audience?: any
+  analysis_data?: any
+  last_analyzed?: string
+}
+
+export interface ClickBankFavorite {
+  product_id: string
+  notes?: string
+  added_at: string
+}
+
+
+
 
 // ============================================================================
 // ERROR CLASSES
@@ -357,6 +379,142 @@ class ApiClient {
       localStorage.removeItem('authToken')
     }
   }
+
+  // Get available ClickBank categories
+async getClickBankCategories(): Promise<ClickBankCategory[]> {
+  const response = await fetch(`${this.baseURL}/api/intelligence/clickbank/categories`, {
+    headers: this.getHeaders()
+  })
+  
+  return this.handleResponse(response)
+}
+
+// Get ClickBank products (using existing endpoint structure)
+async fetchClickBankProducts(category: string): Promise<ClickBankProduct[]> {
+  const response = await fetch(`${this.baseURL}/api/intelligence/clickbank/top-products?type=${category}`, {
+    headers: this.getHeaders()
+  })
+  
+  return this.handleResponse(response)
+}
+
+// Get ClickBank products by category (enhanced endpoint)
+async getClickBankProductsByCategory(
+  category: string, 
+  analyzedOnly: boolean = false, 
+  limit: number = 20
+): Promise<ClickBankProduct[]> {
+  const params = new URLSearchParams()
+  if (analyzedOnly) params.set('analyzed_only', 'true')
+  params.set('limit', limit.toString())
+  
+  const response = await fetch(`${this.baseURL}/api/intelligence/clickbank/products/${category}?${params}`, {
+    headers: this.getHeaders()
+  })
+  
+  return this.handleResponse(response)
+}
+
+// Analyze a ClickBank product
+async analyzeClickBankProduct(productId: string): Promise<{
+  product_id: string
+  analysis_status: string
+  message: string
+  estimated_completion?: string
+}> {
+  const response = await fetch(`${this.baseURL}/api/intelligence/clickbank/products/${productId}/analyze`, {
+    method: 'POST',
+    headers: this.getHeaders()
+  })
+  
+  return this.handleResponse(response)
+}
+
+// Get ClickBank product analysis results
+async getClickBankProductAnalysis(productId: string): Promise<ClickBankAnalysis> {
+  const response = await fetch(`${this.baseURL}/api/intelligence/clickbank/products/${productId}/analysis`, {
+    headers: this.getHeaders()
+  })
+  
+  return this.handleResponse(response)
+}
+
+// Add product to favorites
+async addClickBankFavorite(productId: string, notes?: string): Promise<{message: string}> {
+  const response = await fetch(`${this.baseURL}/api/intelligence/clickbank/favorites/${productId}`, {
+    method: 'POST',
+    headers: this.getHeaders(),
+    body: JSON.stringify({ notes })
+  })
+  
+  return this.handleResponse(response)
+}
+
+// Remove product from favorites
+async removeClickBankFavorite(productId: string): Promise<{message: string}> {
+  const response = await fetch(`${this.baseURL}/api/intelligence/clickbank/favorites/${productId}`, {
+    method: 'DELETE',
+    headers: this.getHeaders()
+  })
+  
+  return this.handleResponse(response)
+}
+
+// Get user's favorite products
+async getClickBankFavorites(): Promise<ClickBankFavorite[]> {
+  const response = await fetch(`${this.baseURL}/api/intelligence/clickbank/favorites`, {
+    headers: this.getHeaders()
+  })
+  
+  return this.handleResponse(response)
+}
+
+// Test ClickBank API connection
+async testClickBankConnection(): Promise<{
+  status: string
+  message?: string
+  api_key_configured: boolean
+  api_key_length: number
+  base_url?: string
+  response_preview?: any
+}> {
+  const response = await fetch(`${this.baseURL}/api/intelligence/clickbank/test-connection`, {
+    headers: this.getHeaders()
+  })
+  
+  return this.handleResponse(response)
+}
+
+// Enhanced campaign creation with ClickBank integration
+async createCampaignFromClickBank(campaignData: {
+  title: string
+  description: string
+  clickbank_product_id: string
+  selected_angles: string[]
+  tone: string
+  style: string
+  settings: any
+}): Promise<Campaign> {
+  // Enhanced campaign creation with ClickBank context
+  const enhancedData = {
+    ...campaignData,
+    campaign_type: 'universal',
+    settings: {
+      ...campaignData.settings,
+      clickbank_integration: true,
+      auto_analyze_product: true,
+      clickbank_product_id: campaignData.clickbank_product_id
+    }
+  }
+  
+  const response = await fetch(`${this.baseURL}/api/campaigns`, {
+    method: 'POST',
+    headers: this.getHeaders(),
+    body: JSON.stringify(enhancedData)
+  })
+  
+  return this.handleResponse<Campaign>(response)
+}
 
   // ============================================================================
   // AUTHENTICATION METHODS
@@ -1294,6 +1452,18 @@ export const useApi = () => {
     
     // Token management
     setAuthToken: apiClient.setAuthToken.bind(apiClient),
-    clearAuthToken: apiClient.clearAuthToken.bind(apiClient)
+    clearAuthToken: apiClient.clearAuthToken.bind(apiClient),
+
+   // ClickBank marketplace methods
+    getClickBankCategories: apiClient.getClickBankCategories.bind(apiClient),
+    fetchClickBankProducts: apiClient.fetchClickBankProducts.bind(apiClient),
+    getClickBankProductsByCategory: apiClient.getClickBankProductsByCategory.bind(apiClient),
+    analyzeClickBankProduct: apiClient.analyzeClickBankProduct.bind(apiClient),
+    getClickBankProductAnalysis: apiClient.getClickBankProductAnalysis.bind(apiClient),
+    addClickBankFavorite: apiClient.addClickBankFavorite.bind(apiClient),
+    removeClickBankFavorite: apiClient.removeClickBankFavorite.bind(apiClient),
+    getClickBankFavorites: apiClient.getClickBankFavorites.bind(apiClient),
+    testClickBankConnection: apiClient.testClickBankConnection.bind(apiClient),
+    createCampaignFromClickBank: apiClient.createCampaignFromClickBank.bind(apiClient)
   }
 }
