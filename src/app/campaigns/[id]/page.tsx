@@ -64,8 +64,8 @@ export default function AppleCampaignDetailPage() {
 
   console.log('🔍 API object:', api)
   console.log('🔍 Available methods:', Object.keys(api))
-  console.log('🔍 generateSingleImage type:', typeof api.generateSingleImage)
-  console.log('🔍 generateCampaignWithImages type:', typeof api.generateCampaignWithImages)
+  // console.log('🔍 generateSingleImage type:', typeof api.generateSingleImage)
+  // console.log('🔍 generateCampaignWithImages type:', typeof api.generateCampaignWithImages)
   
   const isInitializedRef = useRef(false)
   const isLoadingRef = useRef(false)
