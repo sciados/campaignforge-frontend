@@ -229,6 +229,53 @@ export interface User {
   }
 }
 
+// ✅ NEW: Live ClickBank scraping methods
+export interface LiveClickBankResponse {
+  category: string
+  products_requested: number
+  products_found: number
+  products: ClickBankProduct[]
+  scraping_metadata: {
+    scraped_at: string
+    scraping_time_seconds: number
+    data_source: string
+    marketplace_url: string
+    is_live_data: boolean
+  }
+  success: boolean
+}
+
+export interface AllCategoriesResponse {
+  categories_scraped: string[]
+  products_per_category: number
+  total_products_found: number
+  results: Record<string, any[]>
+  scraping_metadata: {
+    scraped_at: string
+    total_scraping_time_seconds: number
+    data_source: string
+    is_live_data: boolean
+  }
+  success: boolean
+}
+
+export interface URLValidationResponse {
+  url: string
+  status_code: number
+  is_accessible: boolean
+  response_time_ms?: number
+  content_length: number
+  page_title?: string
+  has_order_button?: boolean
+  has_clickbank_links?: boolean
+  is_likely_clickbank_product?: boolean
+  total_links?: number
+  total_images?: number
+  has_video?: boolean
+  validated_at: string
+  error?: string
+}
+
 // ✅ NEW: ClickBank Types (add to your existing types section)
 export interface ClickBankProduct {
   id: string
@@ -380,18 +427,153 @@ class ApiClient {
     }
   }
 
-  // Get available ClickBank categories
-async getClickBankCategories(): Promise<ClickBankCategory[]> {
-  const response = await fetch(`${this.baseURL}/api/intelligence/clickbank/categories`, {
+// Get live ClickBank products from marketplace
+async getLiveClickBankProducts(
+  category: string, 
+  limit: number = 10
+): Promise<LiveClickBankResponse> {
+  console.log(`🔍 Scraping live ClickBank products: ${category} (limit: ${limit})`)
+  
+  const response = await fetch(`${this.baseURL}/api/intelligence/clickbank/live-products/${category}?limit=${limit}`, {
+    headers: this.getHeaders()
+  })
+  
+  const result = await this.handleResponse<LiveClickBankResponse>(response)
+  console.log(`✅ Live scraping complete: ${result.products_found} products in ${result.scraping_metadata.scraping_time_seconds}s`)
+  
+  return result
+}
+
+// Get live products from all categories
+async getAllCategoriesLive(
+  productsPerCategory: number = 5
+): Promise<AllCategoriesResponse> {
+  console.log(`🔍 Scraping all ClickBank categories (${productsPerCategory} products each)`)
+  
+  const response = await fetch(`${this.baseURL}/api/intelligence/clickbank/live-all-categories?products_per_category=${productsPerCategory}`, {
+    headers: this.getHeaders()
+  })
+  
+  const result = await this.handleResponse<AllCategoriesResponse>(response)
+  console.log(`✅ All categories scraped: ${result.total_products_found} total products`)
+  
+  return result
+}
+
+// Validate a sales page URL
+async validateSalesPageURL(url: string): Promise<URLValidationResponse> {
+  const response = await fetch(`${this.baseURL}/api/intelligence/clickbank/validate-sales-url?url=${encodeURIComponent(url)}`, {
+    headers: this.getHeaders()
+  })
+  
+  return this.handleResponse<URLValidationResponse>(response)
+}
+
+// Get scraping status and capabilities
+async getScrapingStatus(): Promise<{
+  scraper_status: string
+  supported_categories: string[]
+  category_urls: Record<string, string>
+  max_products_per_request: number
+  features: string[]
+  limitations: string[]
+  last_updated: string
+}> {
+  const response = await fetch(`${this.baseURL}/api/intelligence/clickbank/scraping-status`, {
     headers: this.getHeaders()
   })
   
   return this.handleResponse(response)
 }
 
-// Get ClickBank products (using existing endpoint structure)
-async fetchClickBankProducts(category: string): Promise<ClickBankProduct[]> {
-  const response = await fetch(`${this.baseURL}/api/intelligence/clickbank/top-products?type=${category}`, {
+// ✅ UPDATED: Enhanced fetchClickBankProducts with live scraping
+async fetchClickBankProducts(category: string, useLiveData: boolean = true): Promise<ClickBankProduct[]> {
+  if (useLiveData) {
+    console.log(`🚀 Using live scraping for category: ${category}`)
+    
+    try {
+      const result = await this.getLiveClickBankProducts(category, 10)
+      return result.products
+    } catch (error) {
+      console.error('❌ Live scraping failed, falling back to API:', error)
+      // Fallback to regular API
+      return this.fetchClickBankProductsLegacy(category)
+    }
+  } else {
+    return this.fetchClickBankProductsLegacy(category)
+  }
+}
+
+// Legacy method (keep as fallback)
+private async fetchClickBankProductsLegacy(category: string): Promise<ClickBankProduct[]> {
+  const response = await fetch(`${this.baseURL}/api/intelligence/clickbank/top-products?type=${category}&use_live_data=false`, {
+    headers: this.getHeaders()
+  })
+  
+  return this.handleResponse(response)
+}
+
+// ✅ BATCH: Get fresh data for multiple categories
+async refreshAllCategories(): Promise<Record<string, ClickBankProduct[]>> {
+  console.log('🔄 Refreshing all ClickBank categories with live data...')
+  
+  const result = await this.getAllCategoriesLive(8) // 8 products per category
+  
+  // Transform the response to match your frontend expectations
+  const categorizedProducts: Record<string, ClickBankProduct[]> = {}
+  
+  for (const [category, products] of Object.entries(result.results)) {
+    categorizedProducts[category] = products.map((product: any, index: number) => ({
+      id: `live_${product.product_id}_${category}_${index}`,
+      title: product.title,
+      vendor: product.vendor,
+      description: product.description,
+      gravity: product.gravity,
+      commission_rate: product.commission_rate,
+      salespage_url: product.salespage_url,
+      product_id: product.product_id,
+      vendor_id: product.vendor_id,
+      category: category,
+      analysis_status: 'pending' as const,
+      analysis_score: undefined,
+      key_insights: [],
+      recommended_angles: [],
+      is_analyzed: false,
+      created_at: product.scraped_at
+    }))
+  }
+  
+  console.log(`✅ Refreshed ${Object.keys(categorizedProducts).length} categories with ${result.total_products_found} total products`)
+  
+  return categorizedProducts
+}
+
+// ✅ VALIDATION: Batch validate multiple URLs
+async validateMultipleURLs(urls: string[]): Promise<URLValidationResponse[]> {
+  console.log(`🔍 Validating ${urls.length} URLs...`)
+  
+  const validationPromises = urls.map(url => this.validateSalesPageURL(url))
+  const results = await Promise.allSettled(validationPromises)
+  
+  return results.map((result, index) => {
+    if (result.status === 'fulfilled') {
+      return result.value
+    } else {
+      return {
+        url: urls[index],
+        status_code: 0,
+        is_accessible: false,
+        content_length: 0,
+        validated_at: new Date().toISOString(),
+        error: result.reason?.message || 'Validation failed'
+      }
+    }
+  })
+}
+
+  // Get available ClickBank categories
+async getClickBankCategories(): Promise<ClickBankCategory[]> {
+  const response = await fetch(`${this.baseURL}/api/intelligence/clickbank/categories`, {
     headers: this.getHeaders()
   })
   
@@ -1455,8 +1637,7 @@ export const useApi = () => {
     clearAuthToken: apiClient.clearAuthToken.bind(apiClient),
 
    // ClickBank marketplace methods
-    getClickBankCategories: apiClient.getClickBankCategories.bind(apiClient),
-    fetchClickBankProducts: apiClient.fetchClickBankProducts.bind(apiClient),
+    getClickBankCategories: apiClient.getClickBankCategories.bind(apiClient),    
     getClickBankProductsByCategory: apiClient.getClickBankProductsByCategory.bind(apiClient),
     analyzeClickBankProduct: apiClient.analyzeClickBankProduct.bind(apiClient),
     getClickBankProductAnalysis: apiClient.getClickBankProductAnalysis.bind(apiClient),
@@ -1464,6 +1645,17 @@ export const useApi = () => {
     removeClickBankFavorite: apiClient.removeClickBankFavorite.bind(apiClient),
     getClickBankFavorites: apiClient.getClickBankFavorites.bind(apiClient),
     testClickBankConnection: apiClient.testClickBankConnection.bind(apiClient),
-    createCampaignFromClickBank: apiClient.createCampaignFromClickBank.bind(apiClient)
+    createCampaignFromClickBank: apiClient.createCampaignFromClickBank.bind(apiClient),
+
+    // ✅ NEW: Live ClickBank scraping methods
+    getLiveClickBankProducts: apiClient.getLiveClickBankProducts.bind(apiClient),
+    getAllCategoriesLive: apiClient.getAllCategoriesLive.bind(apiClient),
+    validateSalesPageURL: apiClient.validateSalesPageURL.bind(apiClient),
+    getScrapingStatus: apiClient.getScrapingStatus.bind(apiClient),
+    refreshAllCategories: apiClient.refreshAllCategories.bind(apiClient),
+    validateMultipleURLs: apiClient.validateMultipleURLs.bind(apiClient),
+    
+    // ✅ UPDATED: Enhanced ClickBank methods
+    fetchClickBankProducts: apiClient.fetchClickBankProducts.bind(apiClient)
   }
 }

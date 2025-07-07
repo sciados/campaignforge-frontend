@@ -1,12 +1,20 @@
-// src/app/marketplace/page.tsx
-// Automatic Clickbank Listings
+// Enhanced marketplace page with live ClickBank scraping
+// Replace your existing marketplace page.tsx with this
+
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { useApi } from '@/lib/api'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Sparkles, TrendingUp, ShoppingBag, Star, ChevronDown, ChevronRight, TrendingUp as TrendingUpIcon, DollarSign, Users, Lightbulb, X, Target, Palette, Type, ArrowRight } from 'lucide-react'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Badge } from '@/components/ui/badge'
+import { 
+  Sparkles, TrendingUp, ShoppingBag, Star, ChevronDown, ChevronRight, 
+  DollarSign, Users, Lightbulb, X, Target, Palette, Type, ArrowRight,
+  RefreshCw, Zap, AlertCircle, CheckCircle, Clock, ExternalLink
+} from 'lucide-react'
 import { useRouter } from 'next/navigation'
 
 // ============================================================================
@@ -30,6 +38,8 @@ interface ClickBankProduct {
   recommended_angles: string[]
   is_analyzed: boolean
   created_at: string
+  data_source?: string
+  is_real_product?: boolean
 }
 
 interface Category {
@@ -40,22 +50,106 @@ interface Category {
   isTrending?: boolean
 }
 
+interface ScrapingStatus {
+  category: string
+  status: 'idle' | 'scraping' | 'completed' | 'error'
+  products_found: number
+  scraping_time: number
+  error_message?: string
+}
+
+interface CampaignCreationData {
+  title: string
+  description: string
+  tone: string
+  style: string
+  target_audience: string
+  clickbank_product_id: string
+  selected_angles: string[]
+  settings: Record<string, any>
+}
+
 // ============================================================================
 // COMPONENTS
 // ============================================================================
+
+function LiveScrapingBanner({
+  onRefreshAll,
+  isRefreshing,
+  lastRefresh
+}: {
+  onRefreshAll: () => void
+  isRefreshing: boolean
+  lastRefresh?: string
+}) {
+  return (
+    <Card className="bg-gradient-to-r from-green-50 to-blue-50 border-green-200">
+      <CardContent className="p-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-3">
+            <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center">
+              {isRefreshing ? (
+                <RefreshCw className="w-5 h-5 text-green-600 animate-spin" />
+              ) : (
+                <Zap className="w-5 h-5 text-green-600" />
+              )}
+            </div>
+            <div>
+              <h3 className="text-sm font-semibold text-green-900">
+                {isRefreshing ? 'Scraping Live Data...' : 'Live ClickBank Data'}
+              </h3>
+              <p className="text-xs text-green-700">
+                {isRefreshing 
+                  ? 'Fetching top performers from ClickBank marketplace...'
+                  : lastRefresh 
+                    ? `Last updated: ${new Date(lastRefresh).toLocaleTimeString()}`
+                    : 'Real-time product data with actual sales page URLs'
+                }
+              </p>
+            </div>
+          </div>
+          
+          <Button
+            onClick={onRefreshAll}
+            disabled={isRefreshing}
+            variant="outline"
+            size="sm"
+            className="bg-white hover:bg-green-50"
+          >
+            {isRefreshing ? (
+              <>
+                <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                Scraping...
+              </>
+            ) : (
+              <>
+                <RefreshCw className="w-4 h-4 mr-2" />
+                Refresh All
+              </>
+            )}
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
+  )
+}
 
 function CategoryGrid({
   categories,
   selectedCategory,
   onCategorySelect,
+  scrapingStatuses,
+  onRefreshCategory
 }: {
   categories: Category[]
   selectedCategory?: string
   onCategorySelect: (categoryId: string) => void
+  scrapingStatuses: Record<string, ScrapingStatus>
+  onRefreshCategory: (categoryId: string) => void
 }) {
   const CATEGORY_ICONS = {
     new: <Sparkles className="w-6 h-6" />,
-    top: <TrendingUpIcon className="w-6 h-6" />,
+    top: <TrendingUp className="w-6 h-6" />,
     health: <Users className="w-6 h-6" />,
     ebusiness: <Lightbulb className="w-6 h-6" />,
     selfhelp: <Target className="w-6 h-6" />,
@@ -79,6 +173,7 @@ function CategoryGrid({
         const isSelected = selectedCategory === category.id
         const icon = CATEGORY_ICONS[category.id as keyof typeof CATEGORY_ICONS]
         const colorClass = CATEGORY_COLORS[category.id as keyof typeof CATEGORY_COLORS]
+        const status = scrapingStatuses[category.id]
         
         return (
           <Card
@@ -88,7 +183,22 @@ function CategoryGrid({
             }`}
             onClick={() => onCategorySelect(category.id)}
           >
-            <CardHeader className="text-center">
+            <CardHeader className="text-center relative">
+              {/* Scraping Status Indicator */}
+              {status && (
+                <div className="absolute top-2 right-2">
+                  {status.status === 'scraping' && (
+                    <RefreshCw className="w-4 h-4 text-blue-500 animate-spin" />
+                  )}
+                  {status.status === 'completed' && (
+                    <CheckCircle className="w-4 h-4 text-green-500" />
+                  )}
+                  {status.status === 'error' && (
+                    <AlertCircle className="w-4 h-4 text-red-500" />
+                  )}
+                </div>
+              )}
+              
               <div className={`w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br ${colorClass} flex items-center justify-center text-white shadow-lg`}>
                 {icon}
               </div>
@@ -101,19 +211,49 @@ function CategoryGrid({
                 {category.description}
               </p>
               
-              <div className="flex items-center justify-center space-x-2">
+              <div className="flex items-center justify-center space-x-2 mb-3">
+                {status && status.products_found > 0 && (
+                  <Badge variant="info">
+                    {status.products_found} live products
+                  </Badge>
+                )}
+                
                 {category.isNew && (
-                  <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                  <Badge variant="purple">
                     New
-                  </span>
+                  </Badge>
                 )}
                 
                 {category.isTrending && (
-                  <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                  <Badge variant="destructive">
                     Trending
-                  </span>
+                  </Badge>
                 )}
               </div>
+              
+              {/* Refresh Button */}
+              <Button
+                onClick={(e) => {
+                  e.stopPropagation()
+                  onRefreshCategory(category.id)
+                }}
+                disabled={status?.status === 'scraping'}
+                variant="ghost"
+                size="sm"
+                className="text-xs"
+              >
+                {status?.status === 'scraping' ? (
+                  <>
+                    <RefreshCw className="w-3 h-3 mr-1 animate-spin" />
+                    Scraping...
+                  </>
+                ) : (
+                  <>
+                    <RefreshCw className="w-3 h-3 mr-1" />
+                    Refresh
+                  </>
+                )}
+              </Button>
             </CardHeader>
           </Card>
         )
@@ -127,6 +267,7 @@ function ProductAccordion({
   onCreateCampaign,
   onToggleFavorite,
   onAnalyzeProduct,
+  onValidateURL,
   userFavorites,
   isLoading = false
 }: {
@@ -134,10 +275,12 @@ function ProductAccordion({
   onCreateCampaign: (product: ClickBankProduct) => void
   onToggleFavorite: (productId: string) => void
   onAnalyzeProduct: (productId: string) => void
+  onValidateURL: (url: string) => void
   userFavorites: string[]
   isLoading?: boolean
 }) {
   const [expandedProducts, setExpandedProducts] = useState<Set<string>>(new Set())
+  const [validatingURLs, setValidatingURLs] = useState<Set<string>>(new Set())
 
   const toggleExpanded = (productId: string) => {
     const newExpanded = new Set(expandedProducts)
@@ -156,10 +299,27 @@ function ProductAccordion({
     return "⚡ New"
   }
 
+  const handleValidateURL = async (product: ClickBankProduct) => {
+    setValidatingURLs(prev => {
+      const newSet = new Set(prev)
+      newSet.add(product.id)
+      return newSet
+    })
+    try {
+      await onValidateURL(product.salespage_url)
+    } finally {
+      setValidatingURLs(prev => {
+        const newSet = new Set(prev)
+        newSet.delete(product.id)
+        return newSet
+      })
+    }
+  }
+
   if (isLoading) {
     return (
       <div className="space-y-4">
-        {[...Array(5)].map((_, i) => (
+        {[...Array(8)].map((_, i) => (
           <Card key={i} className="p-6">
             <div className="animate-pulse">
               <div className="flex items-center justify-between">
@@ -176,11 +336,30 @@ function ProductAccordion({
     )
   }
 
+  if (products.length === 0) {
+    return (
+      <Card className="p-12">
+        <div className="text-center">
+          <div className="w-16 h-16 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+            <Star className="w-8 h-8 text-gray-400" />
+          </div>
+          <h3 className="text-lg font-semibold text-black mb-2">No products found</h3>
+          <p className="text-gray-600 mb-6">Click refresh to scrape fresh products from ClickBank marketplace.</p>
+          <Button variant="outline" onClick={() => window.location.reload()}>
+            <RefreshCw className="w-4 h-4 mr-2" />
+            Refresh Products
+          </Button>
+        </div>
+      </Card>
+    )
+  }
+
   return (
     <div className="space-y-4">
       {products.map((product) => {
         const isExpanded = expandedProducts.has(product.id)
         const isFavorited = userFavorites.includes(product.id)
+        const isValidating = validatingURLs.has(product.id)
         
         return (
           <Card key={product.id} className="overflow-hidden transition-all duration-200 hover:shadow-md">
@@ -203,17 +382,25 @@ function ProductAccordion({
                       <h3 className="text-lg font-semibold text-black truncate">{product.title}</h3>
                       <span className="text-sm text-gray-500">by {product.vendor}</span>
                       
+                      {/* Live Data Badge */}
+                      {product.data_source === 'live_scraping' && (
+                        <Badge variant="success">
+                          <Zap className="w-3 h-3 mr-1" />
+                          Live
+                        </Badge>
+                      )}
+                      
                       {product.is_analyzed && (
-                        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                        <Badge variant="info">
                           <Lightbulb className="w-3 h-3 mr-1" />
                           Analyzed
-                        </span>
+                        </Badge>
                       )}
                     </div>
                     
                     <div className="flex items-center space-x-4 mt-2">
                       <div className="flex items-center space-x-1 text-sm text-gray-600">
-                        <TrendingUpIcon className="w-4 h-4" />
+                        <TrendingUp className="w-4 h-4" />
                         <span>{formatGravity(product.gravity)}</span>
                         <span className="text-gray-400">({product.gravity})</span>
                       </div>
@@ -256,15 +443,35 @@ function ProductAccordion({
                       {product.description || 'No description available'}
                     </p>
                     
-                    <div className="flex items-center space-x-4">
+                    <div className="flex items-center space-x-4 mb-4">
                       <a
                         href={product.salespage_url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-blue-600 hover:text-blue-700 text-sm font-medium"
+                        className="inline-flex items-center text-blue-600 hover:text-blue-700 text-sm font-medium"
                       >
-                        View Sales Page →
+                        <ExternalLink className="w-4 h-4 mr-1" />
+                        View Sales Page
                       </a>
+                      
+                      <Button
+                        onClick={() => handleValidateURL(product)}
+                        disabled={isValidating}
+                        variant="outline"
+                        size="sm"
+                      >
+                        {isValidating ? (
+                          <>
+                            <RefreshCw className="w-3 h-3 mr-1 animate-spin" />
+                            Validating...
+                          </>
+                        ) : (
+                          <>
+                            <CheckCircle className="w-3 h-3 mr-1" />
+                            Validate URL
+                          </>
+                        )}
+                      </Button>
                       
                       {!product.is_analyzed && (
                         <Button
@@ -275,6 +482,18 @@ function ProductAccordion({
                           Analyze Product
                         </Button>
                       )}
+                    </div>
+                    
+                    {/* Live Data Metadata */}
+                    <div className="text-xs text-gray-500 bg-white p-2 rounded border">
+                      <div className="flex items-center space-x-2 mb-1">
+                        <Clock className="w-3 h-3" />
+                        <span>Scraped: {new Date(product.created_at).toLocaleString()}</span>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <Zap className="w-3 h-3" />
+                        <span>Source: Live ClickBank Marketplace</span>
+                      </div>
                     </div>
                   </div>
                   
@@ -302,12 +521,9 @@ function ProductAccordion({
                             <h5 className="text-xs font-medium text-gray-700 mb-2">Campaign Angles:</h5>
                             <div className="flex flex-wrap gap-2">
                               {product.recommended_angles.slice(0, 3).map((angle, idx) => (
-                                <span
-                                  key={idx}
-                                  className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800"
-                                >
+                                <Badge key={idx} variant="info">
                                   {angle}
-                                </span>
+                                </Badge>
                               ))}
                             </div>
                           </div>
@@ -334,7 +550,7 @@ function ProductAccordion({
                       <div className="text-center py-8">
                         <Lightbulb className="w-8 h-8 text-gray-300 mx-auto mb-2" />
                         <p className="text-sm text-gray-500">No analysis available yet</p>
-                        <p className="text-xs text-gray-400 mt-1">Click &quot;Analyze Product&quot; to extract insights</p>
+                        <p className="text-xs text-gray-400 mt-1">Click &quot;Analyze Product&quot; to extract insights from this live product</p>
                       </div>
                     )}
                   </div>
@@ -348,256 +564,188 @@ function ProductAccordion({
   )
 }
 
-function ClickBankCampaignCreator({
+function CampaignCreatorModal({
+  product,
   isOpen,
   onClose,
-  product,
-  onCreateCampaign
+  onCreate
 }: {
+  product: ClickBankProduct
   isOpen: boolean
   onClose: () => void
-  product: ClickBankProduct | null
-  onCreateCampaign: (campaignData: any) => void
+  onCreate: (campaignData: CampaignCreationData) => void
 }) {
-  const [campaignTitle, setCampaignTitle] = useState('')
-  const [campaignDescription, setCampaignDescription] = useState('')
-  const [selectedAngles, setSelectedAngles] = useState<string[]>([])
-  const [selectedTone, setSelectedTone] = useState('conversational')
-  const [selectedStyle, setSelectedStyle] = useState('modern')
-
-  React.useEffect(() => {
-    if (product) {
-      setCampaignTitle(`${product.title} Campaign`)
-      setCampaignDescription(`Promote ${product.title} by ${product.vendor} using AI-generated marketing content.`)
-      setSelectedAngles(product.recommended_angles.slice(0, 3))
+  const [formData, setFormData] = useState<CampaignCreationData>({
+    title: `${product.title} Campaign`,
+    description: `Marketing campaign for ${product.title} by ${product.vendor}`,
+    tone: 'professional',
+    style: 'persuasive',
+    target_audience: '',
+    clickbank_product_id: product.product_id || product.id,
+    selected_angles: [],
+    settings: {
+      clickbank_integration: true,
+      product_url: product.salespage_url,
+      commission_rate: product.commission_rate
     }
-  }, [product])
+  })
 
-  if (!isOpen || !product) return null
+  const [isCreating, setIsCreating] = useState(false)
 
-  const handleCreate = () => {
-    const campaignData = {
-      title: campaignTitle,
-      description: campaignDescription,
-      keywords: selectedAngles,
-      tone: selectedTone,
-      style: selectedStyle,
-      campaign_type: 'universal',
-      settings: {
-        clickbank_integration: true,
-        clickbank_product_id: product.id,
-        source_url: product.salespage_url,
-        selected_angles: selectedAngles,
-        product_vendor: product.vendor
-      }
-    }
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setIsCreating(true)
     
-    onCreateCampaign(campaignData)
+    try {
+      await onCreate(formData)
+    } catch (error) {
+      console.error('Failed to create campaign:', error)
+    } finally {
+      setIsCreating(false)
+    }
   }
 
-  const toggleAngle = (angle: string) => {
-    setSelectedAngles(prev => 
-      prev.includes(angle) 
-        ? prev.filter(a => a !== angle)
-        : [...prev, angle]
-    )
+  const handleChange = (field: keyof CampaignCreationData, value: any) => {
+    setFormData(prev => ({
+      ...prev,
+      [field]: value
+    }))
   }
 
-  const tones = [
-    { id: 'conversational', name: 'Conversational', description: 'Friendly and approachable' },
-    { id: 'professional', name: 'Professional', description: 'Formal and authoritative' },
-    { id: 'casual', name: 'Casual', description: 'Relaxed and informal' },
-    { id: 'persuasive', name: 'Persuasive', description: 'Compelling and action-oriented' }
-  ]
-
-  const styles = [
-    { id: 'modern', name: 'Modern', description: 'Clean and contemporary' },
-    { id: 'classic', name: 'Classic', description: 'Timeless and traditional' },
-    { id: 'bold', name: 'Bold', description: 'Strong and impactful' },
-    { id: 'minimalist', name: 'Minimalist', description: 'Simple and focused' }
-  ]
+  if (!isOpen) return null
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-        <div className="p-6 border-b border-gray-200">
-          <div className="flex items-center justify-between">
+      <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+        <div className="p-6">
+          <div className="flex items-center justify-between mb-6">
             <div>
               <h3 className="text-2xl font-light text-black">Create Campaign</h3>
-              <p className="text-gray-600 mt-1">From ClickBank product: {product.title}</p>
+              <p className="text-gray-600">From live ClickBank product: {product.title}</p>
             </div>
-            <button 
+            <button
               onClick={onClose}
-              className="w-8 h-8 flex items-center justify-center text-gray-400 hover:text-black transition-colors rounded-lg hover:bg-gray-100"
+              className="p-2 text-gray-400 hover:text-gray-600 transition-colors"
             >
               <X className="w-5 h-5" />
             </button>
           </div>
-        </div>
-
-        <div className="p-6 space-y-8">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <Type className="w-5 h-5" />
-                <span>Campaign Details</span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
+          
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div>
+              <Label htmlFor="title">Campaign Title</Label>
+              <Input
+                id="title"
+                value={formData.title}
+                onChange={(e) => handleChange('title', e.target.value)}
+                placeholder="Enter campaign title"
+                required
+              />
+            </div>
+            
+            <div>
+              <Label htmlFor="description">Description</Label>
+              <Input
+                id="description"
+                value={formData.description}
+                onChange={(e) => handleChange('description', e.target.value)}
+                placeholder="Describe your campaign goals"
+                required
+              />
+            </div>
+            
+            <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Campaign Title
-                </label>
-                <input
-                  type="text"
-                  value={campaignTitle}
-                  onChange={(e) => setCampaignTitle(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="Enter campaign title..."
-                />
+                <Label htmlFor="tone">Tone</Label>
+                <select
+                  id="tone"
+                  value={formData.tone}
+                  onChange={(e) => handleChange('tone', e.target.value)}
+                  className="flex h-12 w-full rounded-lg border-none bg-gray-100 px-4 py-3 text-sm"
+                >
+                  <option value="professional">Professional</option>
+                  <option value="casual">Casual</option>
+                  <option value="urgent">Urgent</option>
+                  <option value="friendly">Friendly</option>
+                  <option value="authoritative">Authoritative</option>
+                </select>
               </div>
               
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Campaign Description
-                </label>
-                <textarea
-                  value={campaignDescription}
-                  onChange={(e) => setCampaignDescription(e.target.value)}
-                  rows={3}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="Describe your campaign goals..."
-                />
+                <Label htmlFor="style">Style</Label>
+                <select
+                  id="style"
+                  value={formData.style}
+                  onChange={(e) => handleChange('style', e.target.value)}
+                  className="flex h-12 w-full rounded-lg border-none bg-gray-100 px-4 py-3 text-sm"
+                >
+                  <option value="persuasive">Persuasive</option>
+                  <option value="educational">Educational</option>
+                  <option value="emotional">Emotional</option>
+                  <option value="logical">Logical</option>
+                  <option value="story-driven">Story-driven</option>
+                </select>
               </div>
-            </CardContent>
-          </Card>
-
-          {product.recommended_angles.length > 0 && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center space-x-2">
-                  <Lightbulb className="w-5 h-5" />
-                  <span>Recommended Campaign Angles</span>
-                </CardTitle>
-                <p className="text-sm text-gray-600">Select angles to focus your campaign messaging</p>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  {product.recommended_angles.map((angle, idx) => (
-                    <button
-                      key={idx}
-                      onClick={() => toggleAngle(angle)}
-                      className={`p-3 text-left border rounded-lg transition-all ${
-                        selectedAngles.includes(angle)
-                          ? 'border-blue-500 bg-blue-50 text-blue-900'
-                          : 'border-gray-200 hover:border-gray-300 text-gray-700'
-                      }`}
-                    >
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm font-medium">{angle}</span>
-                        {selectedAngles.includes(angle) && (
-                          <div className="w-4 h-4 bg-blue-500 rounded-full flex items-center justify-center">
-                            <div className="w-2 h-2 bg-white rounded-full"></div>
-                          </div>
-                        )}
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center space-x-2">
-                  <Target className="w-5 h-5" />
-                  <span>Campaign Tone</span>
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-2">
-                  {tones.map((tone) => (
-                    <button
-                      key={tone.id}
-                      onClick={() => setSelectedTone(tone.id)}
-                      className={`w-full p-3 text-left border rounded-lg transition-all ${
-                        selectedTone === tone.id
-                          ? 'border-blue-500 bg-blue-50'
-                          : 'border-gray-200 hover:border-gray-300'
-                      }`}
-                    >
-                      <div className="font-medium text-sm">{tone.name}</div>
-                      <div className="text-xs text-gray-500">{tone.description}</div>
-                    </button>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center space-x-2">
-                  <Palette className="w-5 h-5" />
-                  <span>Campaign Style</span>
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-2">
-                  {styles.map((style) => (
-                    <button
-                      key={style.id}
-                      onClick={() => setSelectedStyle(style.id)}
-                      className={`w-full p-3 text-left border rounded-lg transition-all ${
-                        selectedStyle === style.id
-                          ? 'border-blue-500 bg-blue-50'
-                          : 'border-gray-200 hover:border-gray-300'
-                      }`}
-                    >
-                      <div className="font-medium text-sm">{style.name}</div>
-                      <div className="text-xs text-gray-500">{style.description}</div>
-                    </button>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
-          {product.key_insights.length > 0 && (
-            <Card>
-              <CardHeader>
-                <CardTitle>Product Insights</CardTitle>
-                <p className="text-sm text-gray-600">AI-extracted insights that will inform your content</p>
-              </CardHeader>
-              <CardContent>
-                <ul className="space-y-2">
-                  {product.key_insights.slice(0, 4).map((insight, idx) => (
-                    <li key={idx} className="flex items-start space-x-2">
-                      <span className="text-green-500 mt-1">•</span>
-                      <span className="text-sm text-gray-700">{insight}</span>
-                    </li>
-                  ))}
-                </ul>
-              </CardContent>
-            </Card>
-          )}
-        </div>
-
-        <div className="px-6 py-4 border-t border-gray-200 bg-gray-50 rounded-b-2xl">
-          <div className="flex items-center justify-between">
-            <div className="text-sm text-gray-600">
-              💡 Campaign will be pre-populated with ClickBank product intelligence
             </div>
-            <div className="flex items-center space-x-3">
-              <Button variant="outline" onClick={onClose}>
+            
+            <div>
+              <Label htmlFor="target_audience">Target Audience</Label>
+              <Input
+                id="target_audience"
+                value={formData.target_audience}
+                onChange={(e) => handleChange('target_audience', e.target.value)}
+                placeholder="e.g., Health-conscious adults 30-50"
+              />
+            </div>
+            
+            {/* Product Information Display */}
+            <div className="bg-gray-50 p-4 rounded-lg">
+              <h4 className="text-sm font-medium text-gray-900 mb-3">ClickBank Product Details</h4>
+              <div className="space-y-2 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Gravity Score:</span>
+                  <span className="font-medium">{product.gravity}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Commission Rate:</span>
+                  <span className="font-medium">{product.commission_rate}%</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Vendor:</span>
+                  <span className="font-medium">{product.vendor}</span>
+                </div>
+              </div>
+            </div>
+            
+            <div className="flex space-x-3 pt-4">
+              <Button
+                type="button"
+                onClick={onClose}
+                variant="outline"
+                className="flex-1"
+                disabled={isCreating}
+              >
                 Cancel
               </Button>
-              <Button onClick={handleCreate} disabled={!campaignTitle.trim()}>
-                Create Campaign
+              <Button
+                type="submit"
+                className="flex-1"
+                disabled={isCreating}
+              >
+                {isCreating ? (
+                  <>
+                    <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                    Creating...
+                  </>
+                ) : (
+                  <>
+                    <ArrowRight className="w-4 h-4 mr-2" />
+                    Create Campaign
+                  </>
+                )}
               </Button>
             </div>
-          </div>
+          </form>
         </div>
       </div>
     </div>
@@ -608,73 +756,219 @@ function ClickBankCampaignCreator({
 // MAIN MARKETPLACE PAGE
 // ============================================================================
 
-export default function MarketplacePage() {
+export default function EnhancedMarketplacePage() {
   const router = useRouter()
   const api = useApi()
   
-  const [categories, setCategories] = useState<Category[]>([])
-  const [newProducts, setNewProducts] = useState<ClickBankProduct[]>([])
-  const [isLoading, setIsLoading] = useState(true)
+  const [categories] = useState<Category[]>([
+    { id: 'new', name: 'New Products', description: 'Latest ClickBank releases', isNew: true },
+    { id: 'top', name: 'Top Performers', description: 'Highest gravity products', isTrending: true },
+    { id: 'health', name: 'Health & Fitness', description: 'Health and wellness products' },
+    { id: 'ebusiness', name: 'E-Business & Marketing', description: 'Online business tools' },
+    { id: 'selfhelp', name: 'Self-Help', description: 'Personal development' },
+    { id: 'business', name: 'Business & Investing', description: 'Business and investment' },
+    { id: 'green', name: 'Green Products', description: 'Environmental products' }
+  ])
+  
+  const [liveProducts, setLiveProducts] = useState<ClickBankProduct[]>([])
+  const [isLoading, setIsLoading] = useState(false)
   const [userFavorites, setUserFavorites] = useState<string[]>([])
   const [selectedProduct, setSelectedProduct] = useState<ClickBankProduct | null>(null)
   const [showCampaignCreator, setShowCampaignCreator] = useState(false)
+  const [scrapingStatuses, setScrapingStatuses] = useState<Record<string, ScrapingStatus>>({})
+  const [lastRefresh, setLastRefresh] = useState<string>()
+  const [isRefreshingAll, setIsRefreshingAll] = useState(false)
 
-  const loadInitialData = async () => {
+  const updateScrapingStatus = useCallback((
+    category: string, 
+    status: ScrapingStatus['status'], 
+    products_found: number = 0,
+    scraping_time: number = 0,
+    error_message?: string
+  ) => {
+    setScrapingStatuses(prev => ({
+      ...prev,
+      [category]: {
+        category,
+        status,
+        products_found,
+        scraping_time,
+        error_message
+      }
+    }))
+  }, [])
+
+  const loadLiveProducts = useCallback(async (category: string = 'top') => {
     try {
       setIsLoading(true)
+      updateScrapingStatus(category, 'scraping', 0)
       
-      // Load new products
-      const newProductsData = await api.fetchClickBankProducts('new').catch(() => [])
+      const startTime = Date.now()
+      const result = await api.getLiveClickBankProducts(category, 10)
+      const endTime = Date.now()
       
-      setCategories([
-        { id: 'new', name: 'New Products', description: 'Latest ClickBank releases', isNew: true },
-        { id: 'top', name: 'Top Performers', description: 'Highest gravity products', isTrending: true },
-        { id: 'health', name: 'Health & Fitness', description: 'Health and wellness products' },
-        { id: 'ebusiness', name: 'E-Business & Marketing', description: 'Online business tools' },
-        { id: 'selfhelp', name: 'Self-Help', description: 'Personal development' },
-        { id: 'business', name: 'Business & Investing', description: 'Business and investment' },
-        { id: 'green', name: 'Green Products', description: 'Environmental products' }
-      ])
-      
-      setNewProducts(newProductsData.slice(0, 10))
+      setLiveProducts(result.products)
+      updateScrapingStatus(category, 'completed', result.products_found, (endTime - startTime) / 1000)
+      setLastRefresh(new Date().toISOString())
       
     } catch (error) {
-      console.error('Error loading marketplace data:', error)
+      console.error('Error loading live products:', error)
+      updateScrapingStatus(category, 'error', 0, 0, error instanceof Error ? error.message : 'Scraping failed')
+      setLiveProducts([])
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [api, updateScrapingStatus])
+
+  const refreshAllCategories = useCallback(async () => {
+    try {
+      setIsRefreshingAll(true)
+      
+      // Mark all categories as scraping
+      categories.forEach(cat => {
+        updateScrapingStatus(cat.id, 'scraping', 0)
+      })
+      
+      const result = await api.getAllCategoriesLive(8)
+      
+      // Update status for all categories
+      categories.forEach(cat => {
+        const categoryProducts = result.results[cat.id] || []
+        updateScrapingStatus(cat.id, 'completed', categoryProducts.length)
+      })
+      
+      setLastRefresh(new Date().toISOString())
+      
+      // Show top products
+      if (result.results.top && result.results.top.length > 0) {
+        // Transform the scraped data to match our ClickBankProduct interface
+        const transformedProducts = result.results.top.slice(0, 10).map((product: any, index: number) => ({
+          id: `live_${product.product_id}_top_${index}`,
+          title: product.title,
+          vendor: product.vendor,
+          description: product.description,
+          gravity: product.gravity,
+          commission_rate: product.commission_rate,
+          salespage_url: product.salespage_url,
+          product_id: product.product_id,
+          vendor_id: product.vendor_id,
+          category: 'top',
+          analysis_status: 'pending' as const,
+          analysis_score: undefined,
+          key_insights: [],
+          recommended_angles: [],
+          is_analyzed: false,
+          created_at: product.scraped_at,
+          data_source: 'live_scraping',
+          is_real_product: true
+        }))
+        setLiveProducts(transformedProducts)
+      }
+      
+    } catch (error) {
+      console.error('Error refreshing all categories:', error)
+      categories.forEach(cat => {
+        updateScrapingStatus(cat.id, 'error', 0, 0, 'Refresh failed')
+      })
+    } finally {
+      setIsRefreshingAll(false)
+    }
+  }, [api, categories, updateScrapingStatus])
+
+  const refreshCategory = useCallback(async (categoryId: string) => {
+    await loadLiveProducts(categoryId)
+  }, [loadLiveProducts])
 
   useEffect(() => {
-    loadInitialData()
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+    loadLiveProducts('top')
+  }, [loadLiveProducts])
 
-  const handleCategorySelect = (categoryId: string) => {
-    router.push(`/marketplace/${categoryId}`)
-  }
+  const handleCategorySelect = useCallback((categoryId: string) => {
+    // Load products for this category
+    loadLiveProducts(categoryId)
+  }, [loadLiveProducts])
 
-  const handleCreateCampaign = (product: ClickBankProduct) => {
+  const handleCreateCampaign = useCallback((product: ClickBankProduct) => {
     setSelectedProduct(product)
     setShowCampaignCreator(true)
-  }
+  }, [])
 
-  const handleCampaignCreate = async (campaignData: any) => {
+  const handleCampaignCreate = useCallback(async (campaignData: CampaignCreationData) => {
     try {
-      const campaign = await api.createCampaign(campaignData)
+      // Use the standard createCampaign method with ClickBank context
+      const campaign = await api.createCampaign({
+        title: campaignData.title,
+        description: campaignData.description,
+        target_audience: campaignData.target_audience,
+        campaign_type: 'universal',
+        tone: campaignData.tone,
+        style: campaignData.style,
+        settings: {
+          ...campaignData.settings,
+          clickbank_integration: true,
+          clickbank_product_id: campaignData.clickbank_product_id,
+          auto_analyze_product: true
+        }
+      })
+      
       setShowCampaignCreator(false)
+      setSelectedProduct(null)
       router.push(`/campaigns/${campaign.id}`)
     } catch (error) {
       console.error('Error creating campaign:', error)
+      // Handle error - you might want to show a toast notification here
     }
-  }
+  }, [api, router])
 
-  const handleToggleFavorite = async (productId: string) => {
-    console.log('Toggle favorite:', productId)
-  }
+  const handleToggleFavorite = useCallback(async (productId: string) => {
+    try {
+      const isFavorited = userFavorites.includes(productId)
+      
+      if (isFavorited) {
+        // Remove from favorites
+        setUserFavorites(prev => prev.filter(id => id !== productId))
+        // If you have a backend endpoint for favorites, call it here
+        // await api.removeClickBankFavorite(productId)
+      } else {
+        // Add to favorites
+        setUserFavorites(prev => [...prev, productId])
+        // If you have a backend endpoint for favorites, call it here
+        // await api.addClickBankFavorite(productId)
+      }
+    } catch (error) {
+      console.error('Error toggling favorite:', error)
+    }
+  }, [userFavorites])
 
-  const handleAnalyzeProduct = async (productId: string) => {
-    console.log('Analyze product:', productId)
-  }
+  const handleAnalyzeProduct = useCallback(async (productId: string) => {
+    try {
+      // This would call your product analysis endpoint if available
+      console.log('Analyze product:', productId)
+      // await api.analyzeClickBankProduct(productId)
+      
+      // For now, just show a message
+      alert('Product analysis feature coming soon!')
+    } catch (error) {
+      console.error('Error analyzing product:', error)
+    }
+  }, [])
+
+  const handleValidateURL = useCallback(async (url: string) => {
+    try {
+      const validation = await api.validateSalesPageURL(url)
+      console.log('URL validation result:', validation)
+      
+      // You could show a toast notification here with the results
+      if (validation.is_accessible) {
+        alert(`✅ URL is valid and accessible!\nPage Title: ${validation.page_title || 'N/A'}\nStatus: ${validation.status_code}`)
+      } else {
+        alert(`❌ URL validation failed!\nStatus: ${validation.status_code}\nError: ${validation.error || 'Unknown error'}`)
+      }
+    } catch (error) {
+      console.error('URL validation failed:', error)
+      alert('❌ URL validation failed due to network error')
+    }
+  }, [api])
 
   return (
     <div className="space-y-8">
@@ -682,39 +976,58 @@ export default function MarketplacePage() {
       <Card className="bg-gradient-to-r from-blue-600 to-purple-600 text-white border-0">
         <CardHeader className="text-center py-12">
           <CardTitle className="text-3xl font-light mb-4">
-            Discover High-Converting Products
+            Live ClickBank Marketplace
           </CardTitle>
           <p className="text-blue-100 text-lg max-w-2xl mx-auto">
-            Browse curated ClickBank products, get AI-powered insights, and create campaigns that convert
+            Real-time scraping of top-performing ClickBank products with actual sales page URLs
           </p>
         </CardHeader>
       </Card>
 
-      {/* New Products Section */}
+      {/* Live Scraping Banner */}
+      <LiveScrapingBanner
+        onRefreshAll={refreshAllCategories}
+        isRefreshing={isRefreshingAll}
+        lastRefresh={lastRefresh}
+      />
+
+      {/* Latest Live Products Section */}
       <div>
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center space-x-3">
-            <div className="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center">
-              <Sparkles className="w-5 h-5 text-purple-600" />
+            <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center">
+              <Zap className="w-5 h-5 text-green-600" />
             </div>
             <div>
-              <h2 className="text-2xl font-semibold text-black">Latest Products</h2>
-              <p className="text-gray-600">Fresh opportunities to explore</p>
+              <h2 className="text-2xl font-semibold text-black">Live Top Performers</h2>
+              <p className="text-gray-600">Scraped directly from ClickBank marketplace</p>
             </div>
           </div>
           <Button
             variant="outline"
-            onClick={() => router.push('/marketplace/new')}
+            onClick={() => loadLiveProducts('top')}
+            disabled={isLoading}
           >
-            View All New Products
+            {isLoading ? (
+              <>
+                <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                Scraping...
+              </>
+            ) : (
+              <>
+                <RefreshCw className="w-4 h-4 mr-2" />
+                Refresh Top Products
+              </>
+            )}
           </Button>
         </div>
         
         <ProductAccordion
-          products={newProducts}
+          products={liveProducts}
           onCreateCampaign={handleCreateCampaign}
           onToggleFavorite={handleToggleFavorite}
           onAnalyzeProduct={handleAnalyzeProduct}
+          onValidateURL={handleValidateURL}
           userFavorites={userFavorites}
           isLoading={isLoading}
         />
@@ -727,24 +1040,31 @@ export default function MarketplacePage() {
             <TrendingUp className="w-5 h-5 text-blue-600" />
           </div>
           <div>
-            <h2 className="text-2xl font-semibold text-black">Browse by Category</h2>
-            <p className="text-gray-600">Find products in your preferred niches</p>
+            <h2 className="text-2xl font-semibold text-black">Browse Live Categories</h2>
+            <p className="text-gray-600">Each category is scraped in real-time from ClickBank</p>
           </div>
         </div>
         
         <CategoryGrid
           categories={categories}
           onCategorySelect={handleCategorySelect}
+          scrapingStatuses={scrapingStatuses}
+          onRefreshCategory={refreshCategory}
         />
       </div>
 
       {/* Campaign Creator Modal */}
-      <ClickBankCampaignCreator
-        isOpen={showCampaignCreator}
-        onClose={() => setShowCampaignCreator(false)}
-        product={selectedProduct}
-        onCreateCampaign={handleCampaignCreate}
-      />
+      {selectedProduct && (
+        <CampaignCreatorModal
+          product={selectedProduct}
+          isOpen={showCampaignCreator}
+          onClose={() => {
+            setShowCampaignCreator(false)
+            setSelectedProduct(null)
+          }}
+          onCreate={handleCampaignCreate}
+        />
+      )}
     </div>
   )
 }
