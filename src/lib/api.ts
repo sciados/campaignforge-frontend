@@ -1,12 +1,10 @@
-// src/lib/api.ts - COMPLETE UPDATED VERSION WITH STABILITY AI IMAGE GENERATION
+// src/lib/api.ts - CLEAN AND PROPERLY ORGANIZED VERSION
 /**
- * Enhanced API client for CampaignForge with flexible workflow support, content management, and ultra-cheap AI image generation
+ * Enhanced API client for CampaignForge with PostgreSQL ClickBank integration
  */
 
 const API_BASE_URL = 'https://campaign-backend-production-e2db.up.railway.app'
-// const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://campaign-backend-production-e2db.up.railway.app'
 
-// Add this right after the API_BASE_URL declaration
 console.log('🔍 Environment check:')
 console.log('- process.env.NEXT_PUBLIC_API_URL:', process.env.NEXT_PUBLIC_API_URL)
 console.log('- API_BASE_URL being used:', API_BASE_URL)
@@ -126,12 +124,11 @@ export interface GeneratedContent {
   performance_predictions: any
 }
 
-// ✅ NEW: Enhanced content types for content management
 export interface GeneratedContentItem {
   id: string
   content_type: string
   content_title: string
-  content_body: string // JSON string containing the actual content
+  content_body: string
   content_metadata: any
   generation_settings: any
   intelligence_used: any
@@ -141,7 +138,6 @@ export interface GeneratedContentItem {
   published_at?: string
   created_at: string
   updated_at?: string
-  // Amplification context
   amplification_context?: {
     generated_from_amplified_intelligence: boolean
     amplification_metadata: any
@@ -229,9 +225,48 @@ export interface User {
   }
 }
 
-// ✅ NEW: Live ClickBank scraping methods
+// ✅ CLICKBANK TYPES FOR POSTGRESQL INTEGRATION
+export interface ClickBankProduct {
+  id: string
+  title: string
+  vendor: string
+  description: string
+  gravity: number
+  commission_rate: number
+  salespage_url: string
+  product_id?: string
+  vendor_id?: string
+  category: string
+  analysis_status: 'pending' | 'processing' | 'completed' | 'failed'
+  analysis_score?: number
+  key_insights: string[]
+  recommended_angles: string[]
+  is_analyzed: boolean
+  created_at: string
+  data_source?: string
+  is_real_product?: boolean
+  // PostgreSQL enhanced fields
+  category_priority?: number
+  target_audience?: string
+  commission_range?: string
+}
+
+export interface ClickBankCategory {
+  id: string
+  name: string
+  primary_url: string
+  backup_urls_count: number
+  priority_level: number
+  target_audience: string
+  commission_range: string
+  validation_status: string
+  last_validated_at?: string
+  is_active: boolean
+}
+
 export interface LiveClickBankResponse {
   category: string
+  category_name: string
   products_requested: number
   products_found: number
   products: ClickBankProduct[]
@@ -239,24 +274,52 @@ export interface LiveClickBankResponse {
     scraped_at: string
     scraping_time_seconds: number
     data_source: string
-    marketplace_url: string
+    primary_url: string
+    backup_urls: string[]
+    priority_level: number
+    target_audience: string
+    commission_range: string
+    validation_status: string
     is_live_data: boolean
+    environment: string
   }
   success: boolean
 }
 
 export interface AllCategoriesResponse {
   categories_scraped: string[]
+  total_categories_attempted: number
   products_per_category: number
   total_products_found: number
-  results: Record<string, any[]>
+  priority_filter?: number
+  results: Record<string, {
+    category_name: string
+    priority_level: number
+    target_audience: string
+    commission_range: string
+    products: any[]
+    products_found: number
+  }>
   scraping_metadata: {
     scraped_at: string
     total_scraping_time_seconds: number
     data_source: string
     is_live_data: boolean
+    environment: string
   }
   success: boolean
+}
+
+export interface PostgreSQLCategoriesResponse {
+  categories: ClickBankCategory[]
+  total_categories: number
+  data_source: string
+  active_categories: number
+  priority_breakdown: {
+    high_priority: number
+    medium_priority: number
+    low_priority: number
+  }
 }
 
 export interface URLValidationResponse {
@@ -276,32 +339,6 @@ export interface URLValidationResponse {
   error?: string
 }
 
-// ✅ NEW: ClickBank Types (add to your existing types section)
-export interface ClickBankProduct {
-  id: string
-  title: string
-  vendor: string
-  description: string
-  gravity: number
-  commission_rate: number
-  salespage_url: string
-  product_id?: string
-  vendor_id?: string
-  category: string
-  analysis_status: 'pending' | 'processing' | 'completed' | 'failed'
-  analysis_score?: number
-  key_insights: string[]
-  recommended_angles: string[]
-  is_analyzed: boolean
-  created_at: string
-}
-
-export interface ClickBankCategory {
-  id: string
-  name: string
-  description: string
-}
-
 export interface ClickBankAnalysis {
   product_id: string
   analysis_status: string
@@ -318,9 +355,6 @@ export interface ClickBankFavorite {
   notes?: string
   added_at: string
 }
-
-
-
 
 // ============================================================================
 // ERROR CLASSES
@@ -427,404 +461,6 @@ class ApiClient {
     }
   }
 
-// Get live ClickBank products from marketplace
-async getLiveClickBankProducts(
-  category: string, 
-  limit: number = 10
-): Promise<LiveClickBankResponse> {
-  console.log(`🔍 Scraping live ClickBank products: ${category} (limit: ${limit})`)
-  
-  const response = await fetch(`${this.baseURL}/api/intelligence/clickbank/live-products/${category}?limit=${limit}`, {
-    headers: this.getHeaders()
-  })
-  
-  const result = await this.handleResponse<LiveClickBankResponse>(response)
-  console.log(`✅ Live scraping complete: ${result.products_found} products in ${result.scraping_metadata.scraping_time_seconds}s`)
-  
-  return result
-}
-
-// Get live products from all categories
-async getAllCategoriesLive(
-  productsPerCategory: number = 5
-): Promise<AllCategoriesResponse> {
-  console.log(`🔍 Scraping all ClickBank categories (${productsPerCategory} products each)`)
-  
-  const response = await fetch(`${this.baseURL}/api/intelligence/clickbank/live-all-categories?products_per_category=${productsPerCategory}`, {
-    headers: this.getHeaders()
-  })
-  
-  const result = await this.handleResponse<AllCategoriesResponse>(response)
-  console.log(`✅ All categories scraped: ${result.total_products_found} total products`)
-  
-  return result
-}
-
-// Validate a sales page URL
-async validateSalesPageURL(url: string): Promise<URLValidationResponse> {
-  const response = await fetch(`${this.baseURL}/api/intelligence/clickbank/validate-sales-url?url=${encodeURIComponent(url)}`, {
-    headers: this.getHeaders()
-  })
-  
-  return this.handleResponse<URLValidationResponse>(response)
-}
-
-// ✅ NEW: Enhanced methods that work with your PostgreSQL table
-async getLiveClickBankProductsEnhanced(
-  category: string, 
-  limit: number = 10
-): Promise<LiveClickBankResponse> {
-  console.log(`🔍 Scraping live ClickBank products with PostgreSQL: ${category} (limit: ${limit})`)
-  
-  const response = await fetch(`${this.baseURL}/api/intelligence/clickbank/live-products/${category}?limit=${limit}`, {
-    headers: this.getHeaders()
-  })
-  
-  const result = await this.handleResponse<LiveClickBankResponse>(response)
-  console.log(`✅ PostgreSQL scraping complete: ${result.products_found} products`)
-  
-  return result
-}
-
-// Get categories from PostgreSQL with priority info
-async getClickBankCategoriesFromDB(): Promise<{
-  categories: Array<{
-    last_validated_at: any
-    id: string
-    name: string
-    primary_url: string
-    backup_urls_count: number
-    priority_level: number
-    target_audience: string
-    commission_range: string
-    validation_status: string
-    is_active: boolean
-  }>
-  total_categories: number
-  data_source: string
-  priority_breakdown: {
-    high_priority: number
-    medium_priority: number
-    low_priority: number
-  }
-}> {
-  const response = await fetch(`${this.baseURL}/api/intelligence/clickbank/categories`, {
-    headers: this.getHeaders()
-  })
-  
-  return this.handleResponse(response)
-}
-
-// Get products from multiple high-priority categories
-async getAllCategoriesLiveWithPriority(
-  productsPerCategory: number = 5,
-  priorityFilter?: number
-): Promise<{
-  categories_scraped: string[]
-  total_categories_attempted: number
-  products_per_category: number
-  total_products_found: number
-  priority_filter?: number
-  results: Record<string, {
-    category_name: string
-    priority_level: number
-    target_audience: string
-    commission_range: string
-    products: any[]
-    products_found: number
-  }>
-  success: boolean
-}> {
-  const params = new URLSearchParams()
-  params.set('products_per_category', productsPerCategory.toString())
-  if (priorityFilter) params.set('priority_filter', priorityFilter.toString())
-  
-  const response = await fetch(`${this.baseURL}/api/intelligence/clickbank/all-live-categories?${params}`, {
-    headers: this.getHeaders()
-  })
-  
-  return this.handleResponse(response)
-}
-
-// Validate category URLs
-async validateClickBankCategory(category: string): Promise<{
-  category: string
-  category_name: string
-  total_urls_tested: number
-  working_urls: number
-  test_results: Array<{
-    url: string
-    status_code: number
-    is_working: boolean
-    has_products: boolean
-  }>
-  validation_status: string
-  recommendation: string
-}> {
-  const response = await fetch(`${this.baseURL}/api/intelligence/clickbank/validate-category/${category}`, {
-    method: 'POST',
-    headers: this.getHeaders()
-  })
-  
-  return this.handleResponse(response)
-}
-
-// Get enhanced scraping status
-async getClickBankScrapingStatusEnhanced(): Promise<{
-  scraper_status: string
-  environment: string
-  database_connection: string
-  category_stats: {
-    total_categories: number
-    active_categories: number
-    high_priority_categories: number
-  }
-  supported_categories: string[]
-  features: string[]
-  data_quality: {
-    uses_real_database_urls: boolean
-    keyword_based_searches: boolean
-    target_audience_aware: boolean
-    commission_range_realistic: boolean
-  }
-}> {
-  const response = await fetch(`${this.baseURL}/api/intelligence/clickbank/scraping-status`, {
-    headers: this.getHeaders()
-  })
-  
-  return this.handleResponse(response)
-}
-
-
-// Get scraping status and capabilities
-async getScrapingStatus(): Promise<{
-  scraper_status: string
-  supported_categories: string[]
-  category_urls: Record<string, string>
-  max_products_per_request: number
-  features: string[]
-  limitations: string[]
-  last_updated: string
-}> {
-  const response = await fetch(`${this.baseURL}/api/intelligence/clickbank/scraping-status`, {
-    headers: this.getHeaders()
-  })
-  
-  return this.handleResponse(response)
-}
-
-// ✅ UPDATED: Enhanced fetchClickBankProducts with live scraping
-async fetchClickBankProducts(category: string, useLiveData: boolean = true): Promise<ClickBankProduct[]> {
-  if (useLiveData) {
-    console.log(`🚀 Using live scraping for category: ${category}`)
-    
-    try {
-      const result = await this.getLiveClickBankProducts(category, 10)
-      return result.products
-    } catch (error) {
-      console.error('❌ Live scraping failed, falling back to API:', error)
-      // Fallback to regular API
-      return this.fetchClickBankProductsLegacy(category)
-    }
-  } else {
-    return this.fetchClickBankProductsLegacy(category)
-  }
-}
-
-// Legacy method (keep as fallback)
-private async fetchClickBankProductsLegacy(category: string): Promise<ClickBankProduct[]> {
-  const response = await fetch(`${this.baseURL}/api/intelligence/clickbank/top-products?type=${category}&use_live_data=false`, {
-    headers: this.getHeaders()
-  })
-  
-  return this.handleResponse(response)
-}
-
-// ✅ BATCH: Get fresh data for multiple categories
-async refreshAllCategories(): Promise<Record<string, ClickBankProduct[]>> {
-  console.log('🔄 Refreshing all ClickBank categories with live data...')
-  
-  const result = await this.getAllCategoriesLive(8) // 8 products per category
-  
-  // Transform the response to match your frontend expectations
-  const categorizedProducts: Record<string, ClickBankProduct[]> = {}
-  
-  for (const [category, products] of Object.entries(result.results)) {
-    categorizedProducts[category] = products.map((product: any, index: number) => ({
-      id: `live_${product.product_id}_${category}_${index}`,
-      title: product.title,
-      vendor: product.vendor,
-      description: product.description,
-      gravity: product.gravity,
-      commission_rate: product.commission_rate,
-      salespage_url: product.salespage_url,
-      product_id: product.product_id,
-      vendor_id: product.vendor_id,
-      category: category,
-      analysis_status: 'pending' as const,
-      analysis_score: undefined,
-      key_insights: [],
-      recommended_angles: [],
-      is_analyzed: false,
-      created_at: product.scraped_at
-    }))
-  }
-  
-  console.log(`✅ Refreshed ${Object.keys(categorizedProducts).length} categories with ${result.total_products_found} total products`)
-  
-  return categorizedProducts
-}
-
-// ✅ VALIDATION: Batch validate multiple URLs
-async validateMultipleURLs(urls: string[]): Promise<URLValidationResponse[]> {
-  console.log(`🔍 Validating ${urls.length} URLs...`)
-  
-  const validationPromises = urls.map(url => this.validateSalesPageURL(url))
-  const results = await Promise.allSettled(validationPromises)
-  
-  return results.map((result, index) => {
-    if (result.status === 'fulfilled') {
-      return result.value
-    } else {
-      return {
-        url: urls[index],
-        status_code: 0,
-        is_accessible: false,
-        content_length: 0,
-        validated_at: new Date().toISOString(),
-        error: result.reason?.message || 'Validation failed'
-      }
-    }
-  })
-}
-
-  // Get available ClickBank categories
-async getClickBankCategories(): Promise<ClickBankCategory[]> {
-  const response = await fetch(`${this.baseURL}/api/intelligence/clickbank/categories`, {
-    headers: this.getHeaders()
-  })
-  
-  return this.handleResponse(response)
-}
-
-// Get ClickBank products by category (enhanced endpoint)
-async getClickBankProductsByCategory(
-  category: string, 
-  analyzedOnly: boolean = false, 
-  limit: number = 20
-): Promise<ClickBankProduct[]> {
-  const params = new URLSearchParams()
-  if (analyzedOnly) params.set('analyzed_only', 'true')
-  params.set('limit', limit.toString())
-  
-  const response = await fetch(`${this.baseURL}/api/intelligence/clickbank/products/${category}?${params}`, {
-    headers: this.getHeaders()
-  })
-  
-  return this.handleResponse(response)
-}
-
-// Analyze a ClickBank product
-async analyzeClickBankProduct(productId: string): Promise<{
-  product_id: string
-  analysis_status: string
-  message: string
-  estimated_completion?: string
-}> {
-  const response = await fetch(`${this.baseURL}/api/intelligence/clickbank/products/${productId}/analyze`, {
-    method: 'POST',
-    headers: this.getHeaders()
-  })
-  
-  return this.handleResponse(response)
-}
-
-// Get ClickBank product analysis results
-async getClickBankProductAnalysis(productId: string): Promise<ClickBankAnalysis> {
-  const response = await fetch(`${this.baseURL}/api/intelligence/clickbank/products/${productId}/analysis`, {
-    headers: this.getHeaders()
-  })
-  
-  return this.handleResponse(response)
-}
-
-// Add product to favorites
-async addClickBankFavorite(productId: string, notes?: string): Promise<{message: string}> {
-  const response = await fetch(`${this.baseURL}/api/intelligence/clickbank/favorites/${productId}`, {
-    method: 'POST',
-    headers: this.getHeaders(),
-    body: JSON.stringify({ notes })
-  })
-  
-  return this.handleResponse(response)
-}
-
-// Remove product from favorites
-async removeClickBankFavorite(productId: string): Promise<{message: string}> {
-  const response = await fetch(`${this.baseURL}/api/intelligence/clickbank/favorites/${productId}`, {
-    method: 'DELETE',
-    headers: this.getHeaders()
-  })
-  
-  return this.handleResponse(response)
-}
-
-// Get user's favorite products
-async getClickBankFavorites(): Promise<ClickBankFavorite[]> {
-  const response = await fetch(`${this.baseURL}/api/intelligence/clickbank/favorites`, {
-    headers: this.getHeaders()
-  })
-  
-  return this.handleResponse(response)
-}
-
-// Test ClickBank API connection
-async testClickBankConnection(): Promise<{
-  status: string
-  message?: string
-  api_key_configured: boolean
-  api_key_length: number
-  base_url?: string
-  response_preview?: any
-}> {
-  const response = await fetch(`${this.baseURL}/api/intelligence/clickbank/test-connection`, {
-    headers: this.getHeaders()
-  })
-  
-  return this.handleResponse(response)
-}
-
-// Enhanced campaign creation with ClickBank integration
-async createCampaignFromClickBank(campaignData: {
-  title: string
-  description: string
-  clickbank_product_id: string
-  selected_angles: string[]
-  tone: string
-  style: string
-  settings: any
-}): Promise<Campaign> {
-  // Enhanced campaign creation with ClickBank context
-  const enhancedData = {
-    ...campaignData,
-    campaign_type: 'universal',
-    settings: {
-      ...campaignData.settings,
-      clickbank_integration: true,
-      auto_analyze_product: true,
-      clickbank_product_id: campaignData.clickbank_product_id
-    }
-  }
-  
-  const response = await fetch(`${this.baseURL}/api/campaigns`, {
-    method: 'POST',
-    headers: this.getHeaders(),
-    body: JSON.stringify(enhancedData)
-  })
-  
-  return this.handleResponse<Campaign>(response)
-}
-
   // ============================================================================
   // AUTHENTICATION METHODS
   // ============================================================================
@@ -888,7 +524,7 @@ async createCampaignFromClickBank(campaignData: {
   }
 
   // ============================================================================
-  // ENHANCED CAMPAIGN METHODS
+  // CAMPAIGN METHODS
   // ============================================================================
 
   async createCampaign(campaignData: {
@@ -923,7 +559,6 @@ async createCampaignFromClickBank(campaignData: {
   }): Promise<Campaign[]> {
     const baseUrl = `${this.baseURL}/api/campaigns`
     
-    // Build search params
     const searchParams = new URLSearchParams()
     if (params?.page) searchParams.set('page', params.page.toString())
     if (params?.limit) searchParams.set('limit', params.limit.toString())
@@ -1020,13 +655,12 @@ async createCampaignFromClickBank(campaignData: {
       
     } catch (error) {
       console.error('❌ getGeneratedContent error:', error)
-      // Return empty array instead of throwing to prevent infinite loops
       return []
     }
   }
 
   // ============================================================================
-  // ✅ NEW: CONTENT MANAGEMENT METHODS
+  // CONTENT MANAGEMENT METHODS
   // ============================================================================
 
   async getContentList(campaignId: string, includeBody = false, contentType?: string): Promise<ContentListResponse> {
@@ -1135,7 +769,7 @@ async createCampaignFromClickBank(campaignData: {
   }
 
   // ============================================================================
-  // FLEXIBLE WORKFLOW METHODS
+  // WORKFLOW METHODS
   // ============================================================================
 
   async getWorkflowState(campaignId: string): Promise<WorkflowState> {
@@ -1303,107 +937,395 @@ async createCampaignFromClickBank(campaignData: {
   }
 
   // ============================================================================
-  // ENHANCED INTELLIGENCE METHODS
+  // ✅ POSTGRESQL CLICKBANK METHODS (PROPERLY ORGANIZED)
   // ============================================================================
 
-  async analyzeSalesPageEnhanced(data: {
-    url: string
-    campaign_id: string
-    analysis_depth?: 'basic' | 'comprehensive' | 'competitive'
-    include_vsl_detection?: boolean
-    custom_analysis_points?: string[]
-  }): Promise<any> {
-    const response = await fetch(`${this.baseURL}/api/intelligence/analyze-sales-page-enhanced`, {
+  // Primary PostgreSQL ClickBank methods
+  async getLiveClickBankProductsEnhanced(
+    category: string, 
+    limit: number = 10
+  ): Promise<LiveClickBankResponse> {
+    console.log(`🔍 Scraping live ClickBank products with PostgreSQL: ${category} (limit: ${limit})`)
+    
+    const response = await fetch(`${this.baseURL}/api/intelligence/clickbank/live-products/${category}?limit=${limit}`, {
+      headers: this.getHeaders()
+    })
+    
+    const result = await this.handleResponse<LiveClickBankResponse>(response)
+    console.log(`✅ PostgreSQL scraping complete: ${result.products_found} products`)
+    
+    return result
+  }
+
+  async getClickBankCategoriesFromDB(): Promise<PostgreSQLCategoriesResponse> {
+    console.log('🔍 Loading ClickBank categories from PostgreSQL...')
+    
+    const response = await fetch(`${this.baseURL}/api/intelligence/clickbank/categories`, {
+      headers: this.getHeaders()
+    })
+    
+    const result = await this.handleResponse<PostgreSQLCategoriesResponse>(response)
+    console.log(`✅ Loaded ${result.total_categories} categories from PostgreSQL`)
+    
+    return result
+  }
+
+  async getAllCategoriesLiveWithPriority(
+    productsPerCategory: number = 5,
+    priorityFilter?: number
+  ): Promise<AllCategoriesResponse> {
+    console.log(`🔍 Scraping multiple ClickBank categories (${productsPerCategory} products each, priority >= ${priorityFilter || 'any'})`)
+    
+    const params = new URLSearchParams()
+    params.set('products_per_category', productsPerCategory.toString())
+    if (priorityFilter) params.set('priority_filter', priorityFilter.toString())
+    
+    const response = await fetch(`${this.baseURL}/api/intelligence/clickbank/all-live-categories?${params}`, {
+      headers: this.getHeaders()
+    })
+    
+    const result = await this.handleResponse<AllCategoriesResponse>(response)
+    console.log(`✅ Bulk scraping complete: ${result.total_products_found} total products from ${result.categories_scraped.length} categories`)
+    
+    return result
+  }
+
+  async validateClickBankCategory(category: string): Promise<{
+    category: string
+    category_name: string
+    total_urls_tested: number
+    working_urls: number
+    test_results: Array<{
+      url: string
+      status_code: number
+      is_working: boolean
+      has_products: boolean
+    }>
+    validation_status: string
+    recommendation: string
+    tested_at: string
+  }> {
+    console.log(`🔍 Validating URLs for category: ${category}`)
+    
+    const response = await fetch(`${this.baseURL}/api/intelligence/clickbank/validate-category/${category}`, {
       method: 'POST',
-      headers: this.getHeaders(),
-      body: JSON.stringify({
-        ...data,
-        analysis_depth: data.analysis_depth || 'comprehensive',
-        include_vsl_detection: data.include_vsl_detection ?? true
-      })
+      headers: this.getHeaders()
+    })
+    
+    const result = await this.handleResponse<{
+      category: string
+      category_name: string
+      total_urls_tested: number
+      working_urls: number
+      test_results: Array<{
+        url: string
+        status_code: number
+        is_working: boolean
+        has_products: boolean
+      }>
+      validation_status: string
+      recommendation: string
+      tested_at: string
+    }>(response)
+    console.log(`✅ URL validation complete for ${category}: ${result.working_urls}/${result.total_urls_tested} URLs working`)
+    
+    return result
+  }
+
+  async getClickBankScrapingStatusEnhanced(): Promise<{
+    scraper_status: string
+    environment: string
+    database_connection: string
+    category_stats: {
+      total_categories: number
+      active_categories: number
+      high_priority_categories: number
+      categories_with_backup_urls: number
+    }
+    supported_categories: string[]
+    features: string[]
+    data_quality: {
+      uses_real_database_urls: boolean
+      keyword_based_searches: boolean
+      target_audience_aware: boolean
+      commission_range_realistic: boolean
+    }
+    last_updated: string
+  }> {
+    const response = await fetch(`${this.baseURL}/api/intelligence/clickbank/scraping-status`, {
+      headers: this.getHeaders()
+    })
+    
+    return this.handleResponse<{
+      scraper_status: string
+      environment: string
+      database_connection: string
+      category_stats: {
+        total_categories: number
+        active_categories: number
+        high_priority_categories: number
+        categories_with_backup_urls: number
+      }
+      supported_categories: string[]
+      features: string[]
+      data_quality: {
+        uses_real_database_urls: boolean
+        keyword_based_searches: boolean
+        target_audience_aware: boolean
+        commission_range_realistic: boolean
+      }
+      last_updated: string
+    }>(response)
+  }
+
+  async testClickBankConnectionEnhanced(): Promise<{
+    environment: string
+    database_categories_loaded: number
+    test_results: Record<string, {
+      category_name: string
+      priority_level: number
+      target_audience: string
+      commission_range: string
+      url_tests: Array<{
+        url: string
+        status_code: number
+        is_working: boolean
+      }>
+      has_working_url: boolean
+      validation_status: string
+    }>
+    overall_status: string
+    database_connection: string
+  }> {
+    console.log('🔍 Testing ClickBank connection with PostgreSQL categories...')
+    
+    const response = await fetch(`${this.baseURL}/api/intelligence/clickbank/test-connection`, {
+      headers: this.getHeaders()
+    })
+    
+    const result = await this.handleResponse<{
+      environment: string
+      database_categories_loaded: number
+      test_results: Record<string, {
+        category_name: string
+        priority_level: number
+        target_audience: string
+        commission_range: string
+        url_tests: Array<{
+          url: string
+          status_code: number
+          is_working: boolean
+        }>
+        has_working_url: boolean
+        validation_status: string
+      }>
+      overall_status: string
+      database_connection: string
+    }>(response)
+    console.log(`✅ Connection test complete: ${result.overall_status}`)
+    
+    return result
+  }
+
+  // Convenience methods that use PostgreSQL integration
+  async fetchClickBankProducts(category: string, useLiveData: boolean = true): Promise<ClickBankProduct[]> {
+    if (useLiveData) {
+      console.log(`🚀 Using PostgreSQL live scraping for category: ${category}`)
+      
+      try {
+        const result = await this.getLiveClickBankProductsEnhanced(category, 10)
+        return result.products
+      } catch (error) {
+        console.error('❌ PostgreSQL live scraping failed, falling back to legacy API:', error)
+        return this.fetchClickBankProductsLegacy(category)
+      }
+    } else {
+      return this.fetchClickBankProductsLegacy(category)
+    }
+  }
+
+  async getClickBankCategories(): Promise<ClickBankCategory[]> {
+    const result = await this.getClickBankCategoriesFromDB()
+    return result.categories
+  }
+
+  async refreshAllCategories(): Promise<Record<string, ClickBankProduct[]>> {
+    console.log('🔄 Refreshing all ClickBank categories with PostgreSQL live data...')
+    
+    const result = await this.getAllCategoriesLiveWithPriority(8, 8) // 8 products from categories with priority >= 8
+    
+    // Transform the response to match your frontend expectations
+    const categorizedProducts: Record<string, ClickBankProduct[]> = {}
+    
+    for (const [category, categoryData] of Object.entries(result.results)) {
+      if (categoryData.products) {
+        categorizedProducts[category] = categoryData.products.map((product: any, index: number) => ({
+          id: `live_${product.product_id}_${category}_${index}`,
+          title: product.title,
+          vendor: product.vendor,
+          description: product.description,
+          gravity: product.gravity,
+          commission_rate: product.commission_rate,
+          salespage_url: product.salespage_url,
+          product_id: product.product_id,
+          vendor_id: product.vendor_id,
+          category: category,
+          analysis_status: 'pending' as const,
+          analysis_score: undefined,
+          key_insights: [],
+          recommended_angles: [],
+          is_analyzed: false,
+          created_at: product.scraped_at,
+          data_source: 'postgresql_scraping',
+          is_real_product: product.is_live_data,
+          // PostgreSQL enhanced fields
+          category_priority: categoryData.priority_level,
+          target_audience: categoryData.target_audience,
+          commission_range: categoryData.commission_range
+        }))
+      }
+    }
+    
+    console.log(`✅ Refreshed ${Object.keys(categorizedProducts).length} categories with ${result.total_products_found} total products`)
+    
+    return categorizedProducts
+  }
+
+  async validateSalesPageURL(url: string): Promise<URLValidationResponse> {
+    const response = await fetch(`${this.baseURL}/api/intelligence/clickbank/validate-sales-url?url=${encodeURIComponent(url)}`, {
+      headers: this.getHeaders()
+    })
+    
+    return this.handleResponse<URLValidationResponse>(response)
+  }
+
+  async validateMultipleURLs(urls: string[]): Promise<URLValidationResponse[]> {
+    console.log(`🔍 Validating ${urls.length} URLs...`)
+    
+    const validationPromises = urls.map(url => this.validateSalesPageURL(url))
+    const results = await Promise.allSettled(validationPromises)
+    
+    return results.map((result, index) => {
+      if (result.status === 'fulfilled') {
+        return result.value
+      } else {
+        return {
+          url: urls[index],
+          status_code: 0,
+          is_accessible: false,
+          content_length: 0,
+          validated_at: new Date().toISOString(),
+          error: result.reason?.message || 'Validation failed'
+        }
+      }
+    })
+  }
+
+  // Legacy ClickBank methods (for backward compatibility)
+  private async fetchClickBankProductsLegacy(category: string): Promise<ClickBankProduct[]> {
+    const response = await fetch(`${this.baseURL}/api/intelligence/clickbank/top-products?type=${category}&use_live_data=false`, {
+      headers: this.getHeaders()
     })
     
     return this.handleResponse(response)
   }
 
-  async detectAndAnalyzeVSL(data: {
-    url: string
-    campaign_id: string
-    extract_transcript?: boolean
-    analyze_psychological_hooks?: boolean
-  }): Promise<any> {
-    const response = await fetch(`${this.baseURL}/api/intelligence/vsl-analysis`, {
-      method: 'POST',
-      headers: this.getHeaders(),
-      body: JSON.stringify({
-        ...data,
-        extract_transcript: data.extract_transcript ?? true,
-        analyze_psychological_hooks: data.analyze_psychological_hooks ?? true
-      })
+  async getClickBankProductsByCategory(
+    category: string, 
+    analyzedOnly: boolean = false, 
+    limit: number = 20
+  ): Promise<ClickBankProduct[]> {
+    const params = new URLSearchParams()
+    if (analyzedOnly) params.set('analyzed_only', 'true')
+    params.set('limit', limit.toString())
+    
+    const response = await fetch(`${this.baseURL}/api/intelligence/clickbank/products/${category}?${params}`, {
+      headers: this.getHeaders()
     })
     
     return this.handleResponse(response)
   }
 
-  async generateCampaignAngles(data: {
-    campaign_id: string
-    intelligence_sources: string[]
-    target_audience?: string
-    industry?: string
-    tone_preferences?: string[]
-    unique_value_props?: string[]
-    avoid_angles?: string[]
-  }): Promise<any> {
-    const response = await fetch(`${this.baseURL}/api/intelligence/generate-campaign-angles`, {
+  async analyzeClickBankProduct(productId: string): Promise<{
+    product_id: string
+    analysis_status: string
+    message: string
+    estimated_completion?: string
+  }> {
+    const response = await fetch(`${this.baseURL}/api/intelligence/clickbank/products/${productId}/analyze`, {
       method: 'POST',
-      headers: this.getHeaders(),
-      body: JSON.stringify(data)
+      headers: this.getHeaders()
     })
     
     return this.handleResponse(response)
   }
 
-  async consolidateMultiSourceIntelligence(campaignId: string, options?: {
-    weight_by_confidence?: boolean
-    include_conflicting_insights?: boolean
-    generate_unified_strategy?: boolean
-  }): Promise<any> {
-    const response = await fetch(`${this.baseURL}/api/intelligence/consolidate/${campaignId}`, {
-      method: 'POST',
-      headers: this.getHeaders(),
-      body: JSON.stringify(options || {})
+  async getClickBankProductAnalysis(productId: string): Promise<ClickBankAnalysis> {
+    const response = await fetch(`${this.baseURL}/api/intelligence/clickbank/products/${productId}/analysis`, {
+      headers: this.getHeaders()
     })
     
     return this.handleResponse(response)
   }
 
-  async batchAnalyzeCompetitors(data: {
-    urls: string[]
-    campaign_id: string
-    analysis_type?: 'quick' | 'detailed'
-    compare_results?: boolean
-  }): Promise<any> {
-    const response = await fetch(`${this.baseURL}/api/intelligence/batch-analyze`, {
+  async addClickBankFavorite(productId: string, notes?: string): Promise<{message: string}> {
+    const response = await fetch(`${this.baseURL}/api/intelligence/clickbank/favorites/${productId}`, {
       method: 'POST',
       headers: this.getHeaders(),
-      body: JSON.stringify(data)
+      body: JSON.stringify({ notes })
     })
     
     return this.handleResponse(response)
   }
 
-  async validateAndPreAnalyzeURL(url: string): Promise<any> {
-    const response = await fetch(`${this.baseURL}/api/intelligence/validate-url`, {
-      method: 'POST',
-      headers: this.getHeaders(),
-      body: JSON.stringify({ url })
+  async removeClickBankFavorite(productId: string): Promise<{message: string}> {
+    const response = await fetch(`${this.baseURL}/api/intelligence/clickbank/favorites/${productId}`, {
+      method: 'DELETE',
+      headers: this.getHeaders()
     })
     
     return this.handleResponse(response)
+  }
+
+  async getClickBankFavorites(): Promise<ClickBankFavorite[]> {
+    const response = await fetch(`${this.baseURL}/api/intelligence/clickbank/favorites`, {
+      headers: this.getHeaders()
+    })
+    
+    return this.handleResponse(response)
+  }
+
+  async createCampaignFromClickBank(campaignData: {
+    title: string
+    description: string
+    clickbank_product_id: string
+    selected_angles: string[]
+    tone: string
+    style: string
+    settings: any
+  }): Promise<Campaign> {
+    const enhancedData = {
+      ...campaignData,
+      campaign_type: 'universal',
+      settings: {
+        ...campaignData.settings,
+        clickbank_integration: true,
+        auto_analyze_product: true,
+        clickbank_product_id: campaignData.clickbank_product_id
+      }
+    }
+    
+    const response = await fetch(`${this.baseURL}/api/campaigns`, {
+      method: 'POST',
+      headers: this.getHeaders(),
+      body: JSON.stringify(enhancedData)
+    })
+    
+    return this.handleResponse<Campaign>(response)
   }
 
   // ============================================================================
-  // DASHBOARD METHODS - FIXED TO MATCH BACKEND
+  // DASHBOARD METHODS
   // ============================================================================
 
   async getDashboardStats(): Promise<{
@@ -1482,225 +1404,58 @@ async createCampaignFromClickBank(campaignData: {
   }
 
   // ============================================================================
-  // ADMIN METHODS
+  // AFFILIATE METHODS
   // ============================================================================
-
-  async getAdminStats(): Promise<{
-    total_users: number
-    total_companies: number
-    total_campaigns: number
-    monthly_recurring_revenue: number
-    subscription_breakdown: Record<string, number>
-  }> {
-    const response = await fetch(`${this.baseURL}/api/admin/stats`, {
-      headers: this.getHeaders()
-    })
-    
-    return this.handleResponse(response)
-  }
-
-  async getAdminUsers(params?: {
-    page?: number
-    limit?: number
-    search?: string
-    subscription_tier?: string
-    is_active?: boolean
-  }): Promise<{
-    users: any[]
-    total: number
-    page: number
-    limit: number
-    pages: number
-  }> {
-    const searchParams = new URLSearchParams()
-    if (params?.page) searchParams.set('page', params.page.toString())
-    if (params?.limit) searchParams.set('limit', params.limit.toString())
-    if (params?.search) searchParams.set('search', params.search)
-    if (params?.subscription_tier) searchParams.set('subscription_tier', params.subscription_tier)
-    if (params?.is_active !== undefined) searchParams.set('is_active', params.is_active.toString())
-
-    const response = await fetch(`${this.baseURL}/api/admin/users?${searchParams}`, {
-      headers: this.getHeaders()
-    })
-    
-    return this.handleResponse(response)
-  }
-
-  async getAdminCompanies(params?: {
-    page?: number
-    limit?: number
-    search?: string
-    subscription_tier?: string
-  }): Promise<{
-    companies: any[]
-    total: number
-    page: number
-    limit: number
-    pages: number
-  }> {
-    const searchParams = new URLSearchParams()
-    if (params?.page) searchParams.set('page', params.page.toString())
-    if (params?.limit) searchParams.set('limit', params.limit.toString())
-    if (params?.search) searchParams.set('search', params.search)
-    if (params?.subscription_tier) searchParams.set('subscription_tier', params.subscription_tier)
-
-    const response = await fetch(`${this.baseURL}/api/admin/companies?${searchParams}`, {
-      headers: this.getHeaders()
-    })
-    
-    return this.handleResponse(response)
-  }
-
-  async updateUserStatus(userId: string, isActive: boolean): Promise<{ message: string }> {
-    const response = await fetch(`${this.baseURL}/api/admin/users/${userId}`, {
-      method: 'PUT',
-      headers: this.getHeaders(),
-      body: JSON.stringify({ is_active: isActive })
-    })
-    
-    return this.handleResponse(response)
-  }
-
-  async updateUserRole(userId: string, newRole: string): Promise<{ message: string }> {
-    const response = await fetch(`${this.baseURL}/api/admin/users/${userId}/role`, {
-      method: 'PUT',
-      headers: this.getHeaders(),
-      body: JSON.stringify({ new_role: newRole })
-    })
-    
-    return this.handleResponse(response)
-  }
-
-  async updateCompanySubscription(companyId: string, data: {
-    subscription_tier?: string
-    monthly_credits_limit?: number
-    subscription_status?: string
-    reset_monthly_credits?: boolean
-  }): Promise<{ message: string }> {
-    const response = await fetch(`${this.baseURL}/api/admin/companies/${companyId}/subscription`, {
-      method: 'PUT',
-      headers: this.getHeaders(),
-      body: JSON.stringify(data)
-    })
-    
-    return this.handleResponse(response)
-  }
-
-  // ============================================================================
-  // ✅ STABILITY AI IMAGE GENERATION METHODS
-  // ============================================================================
-
-  async generateSingleImage(data: {
-    campaign_id: string
-    prompt: string
-    platform?: string
-    style?: string
-  }): Promise<any> {
-    const response = await fetch(`${this.baseURL}/api/intelligence/stability/generate-single-image`, {
-      method: 'POST',
-      headers: this.getHeaders(),
-      body: JSON.stringify(data)
-    })
-    
-    return this.handleResponse(response)
-  }
-
-  async generateCampaignWithImages(data: {
-    campaign_id: string
-    platforms?: string[]
-    content_count?: number
-    image_style?: string
-    generate_images?: boolean
-  }): Promise<any> {
-    const response = await fetch(`${this.baseURL}/api/intelligence/stability/generate-campaign-with-images`, {
-      method: 'POST',
-      headers: this.getHeaders(),
-      body: JSON.stringify(data)
-    })
-    
-    return this.handleResponse(response)
-  }
-
-  async testStabilityConnection(): Promise<any> {
-    const response = await fetch(`${this.baseURL}/api/intelligence/stability/test-connection`, {
-      headers: this.getHeaders()
-    })
-    
-    return this.handleResponse(response)
-  }
-
-  async calculateImageCosts(params: {
-    platforms?: string
-    posts_per_platform?: number
-  }): Promise<any> {
-    const searchParams = new URLSearchParams()
-    if (params.platforms) searchParams.set('platforms', params.platforms)
-    if (params.posts_per_platform) searchParams.set('posts_per_platform', params.posts_per_platform.toString())
-    
-    const response = await fetch(`${this.baseURL}/api/intelligence/stability/cost-calculator?${searchParams}`, {
-      headers: this.getHeaders()
-    })
-    
-    return this.handleResponse(response)
-  }
-
-  async downloadCampaignPackage(campaignId: string): Promise<any> {
-    const response = await fetch(`${this.baseURL}/api/intelligence/stability/${campaignId}/download-package`, {
-      headers: this.getHeaders()
-    })
-    
-    return this.handleResponse(response)
-  }
 
   async getAffiliatePreferences(): Promise<any> {
-  const response = await fetch(`${this.baseURL}/api/affiliate/preferences`, {
-    headers: this.getHeaders()
-  })
-  
-  if (response.status === 404) {
-    return null
+    const response = await fetch(`${this.baseURL}/api/affiliate/preferences`, {
+      headers: this.getHeaders()
+    })
+    
+    if (response.status === 404) {
+      return null
+    }
+    
+    return this.handleResponse(response)
   }
-  
-  return this.handleResponse(response)
-}
 
-async saveAffiliatePreferences(preferences: any): Promise<any> {
-  const response = await fetch(`${this.baseURL}/api/affiliate/preferences`, {
-    method: 'POST',
-    headers: this.getHeaders(),
-    body: JSON.stringify(preferences)
-  })
-  
-  return this.handleResponse(response)
-}
+  async saveAffiliatePreferences(preferences: any): Promise<any> {
+    const response = await fetch(`${this.baseURL}/api/affiliate/preferences`, {
+      method: 'POST',
+      headers: this.getHeaders(),
+      body: JSON.stringify(preferences)
+    })
+    
+    return this.handleResponse(response)
+  }
 
-async generateAffiliateLink(request: any): Promise<any> {
-  const response = await fetch(`${this.baseURL}/api/affiliate/generate-link`, {
-    method: 'POST',
-    headers: this.getHeaders(),
-    body: JSON.stringify(request)
-  })
-  
-  return this.handleResponse(response)
-}
+  async generateAffiliateLink(request: any): Promise<any> {
+    const response = await fetch(`${this.baseURL}/api/affiliate/generate-link`, {
+      method: 'POST',
+      headers: this.getHeaders(),
+      body: JSON.stringify(request)
+    })
+    
+    return this.handleResponse(response)
+  }
 
-async trackAffiliateClick(clickData: any): Promise<any> {
-  const response = await fetch(`${this.baseURL}/api/affiliate/track-click`, {
-    method: 'POST',
-    headers: this.getHeaders(),
-    body: JSON.stringify(clickData)
-  })
-  
-  return this.handleResponse(response)
-}
+  async trackAffiliateClick(clickData: any): Promise<any> {
+    const response = await fetch(`${this.baseURL}/api/affiliate/track-click`, {
+      method: 'POST',
+      headers: this.getHeaders(),
+      body: JSON.stringify(clickData)
+    })
+    
+    return this.handleResponse(response)
+  }
 
-async getAffiliatePerformance(days: number = 30): Promise<any> {
-  const response = await fetch(`${this.baseURL}/api/affiliate/performance?days=${days}`, {
-    headers: this.getHeaders()
-  })
-  
-  return this.handleResponse(response)
-}
+  async getAffiliatePerformance(days: number = 30): Promise<any> {
+    const response = await fetch(`${this.baseURL}/api/affiliate/performance?days=${days}`, {
+      headers: this.getHeaders()
+    })
+    
+    return this.handleResponse(response)
+  }
 }
 
 // ============================================================================
@@ -1745,7 +1500,7 @@ export const useApi = () => {
     logout: apiClient.logout.bind(apiClient),
     getUserProfile: apiClient.getUserProfile.bind(apiClient),
     
-    // Enhanced campaign operations
+    // Campaign operations
     createCampaign: apiClient.createCampaign.bind(apiClient),
     getCampaigns: apiClient.getCampaigns.bind(apiClient),
     getCampaign: apiClient.getCampaign.bind(apiClient),
@@ -1753,10 +1508,8 @@ export const useApi = () => {
     deleteCampaign: apiClient.deleteCampaign.bind(apiClient),
     duplicateCampaign: apiClient.duplicateCampaign.bind(apiClient),
     
-    // Legacy content method (for backward compatibility)
+    // Content management
     getGeneratedContent: apiClient.getGeneratedContent.bind(apiClient),
-    
-    // ✅ NEW: Enhanced content management methods
     getContentList: apiClient.getContentList.bind(apiClient),
     getContentDetail: apiClient.getContentDetail.bind(apiClient),
     updateContent: apiClient.updateContent.bind(apiClient),
@@ -1767,78 +1520,54 @@ export const useApi = () => {
     getContentStats: apiClient.getContentStats.bind(apiClient),
     duplicateContent: apiClient.duplicateContent.bind(apiClient),
     
-    // Flexible workflow operations
+    // Workflow operations
     getWorkflowState: apiClient.getWorkflowState.bind(apiClient),
     setWorkflowPreference: apiClient.setWorkflowPreference.bind(apiClient),
     advanceCampaignStep: apiClient.advanceCampaignStep.bind(apiClient),
     saveProgress: apiClient.saveProgress.bind(apiClient),
     quickCompleteCampaign: apiClient.quickCompleteCampaign.bind(apiClient),
     
-    // Intelligence operations (existing)
+    // Intelligence operations
     analyzeURL: apiClient.analyzeURL.bind(apiClient),
     uploadDocument: apiClient.uploadDocument.bind(apiClient),
     generateContent: apiClient.generateContent.bind(apiClient),
     getCampaignIntelligence: apiClient.getCampaignIntelligence.bind(apiClient),
     
-    // Enhanced intelligence operations
-    analyzeSalesPageEnhanced: apiClient.analyzeSalesPageEnhanced.bind(apiClient),
-    detectAndAnalyzeVSL: apiClient.detectAndAnalyzeVSL.bind(apiClient),
-    generateCampaignAngles: apiClient.generateCampaignAngles.bind(apiClient),
-    consolidateMultiSourceIntelligence: apiClient.consolidateMultiSourceIntelligence.bind(apiClient),
-    batchAnalyzeCompetitors: apiClient.batchAnalyzeCompetitors.bind(apiClient),
-    validateAndPreAnalyzeURL: apiClient.validateAndPreAnalyzeURL.bind(apiClient),
-    
-    // Dashboard - FIXED
+    // Dashboard
     getDashboardStats: apiClient.getDashboardStats.bind(apiClient),
     getCampaignStats: apiClient.getCampaignStats.bind(apiClient),
     getCompanyStats: apiClient.getCompanyStats.bind(apiClient),
     getCompanyDetails: apiClient.getCompanyDetails.bind(apiClient),
     
-    // Admin methods
-    getAdminStats: apiClient.getAdminStats.bind(apiClient),
-    getAdminUsers: apiClient.getAdminUsers.bind(apiClient),
-    getAdminCompanies: apiClient.getAdminCompanies.bind(apiClient),
-    updateUserStatus: apiClient.updateUserStatus.bind(apiClient),
-    updateUserRole: apiClient.updateUserRole.bind(apiClient),
-    updateCompanySubscription: apiClient.updateCompanySubscription.bind(apiClient),
-    
-    // ✅ NEW: Stability AI image generation methods
-    generateSingleImage: apiClient.generateSingleImage.bind(apiClient),
-    generateCampaignWithImages: apiClient.generateCampaignWithImages.bind(apiClient),
-    testStabilityConnection: apiClient.testStabilityConnection.bind(apiClient),
-    calculateImageCosts: apiClient.calculateImageCosts.bind(apiClient),
-    downloadCampaignPackage: apiClient.downloadCampaignPackage.bind(apiClient),
-    
     // Token management
     setAuthToken: apiClient.setAuthToken.bind(apiClient),
     clearAuthToken: apiClient.clearAuthToken.bind(apiClient),
 
-   // ClickBank marketplace methods
+    // ✅ PRIMARY POSTGRESQL CLICKBANK METHODS
+    getLiveClickBankProductsEnhanced: apiClient.getLiveClickBankProductsEnhanced.bind(apiClient),
     getClickBankCategoriesFromDB: apiClient.getClickBankCategoriesFromDB.bind(apiClient),
+    getAllCategoriesLiveWithPriority: apiClient.getAllCategoriesLiveWithPriority.bind(apiClient),
+    validateClickBankCategory: apiClient.validateClickBankCategory.bind(apiClient),
+    getClickBankScrapingStatusEnhanced: apiClient.getClickBankScrapingStatusEnhanced.bind(apiClient),
+    testClickBankConnectionEnhanced: apiClient.testClickBankConnectionEnhanced.bind(apiClient),
+    
+    // Convenience methods (use PostgreSQL under the hood)
+    fetchClickBankProducts: apiClient.fetchClickBankProducts.bind(apiClient),
     getClickBankCategories: apiClient.getClickBankCategories.bind(apiClient),
+    refreshAllCategories: apiClient.refreshAllCategories.bind(apiClient),
+    validateSalesPageURL: apiClient.validateSalesPageURL.bind(apiClient),
+    validateMultipleURLs: apiClient.validateMultipleURLs.bind(apiClient),
+    
+    // Legacy ClickBank methods (for backward compatibility)
     getClickBankProductsByCategory: apiClient.getClickBankProductsByCategory.bind(apiClient),
     analyzeClickBankProduct: apiClient.analyzeClickBankProduct.bind(apiClient),
     getClickBankProductAnalysis: apiClient.getClickBankProductAnalysis.bind(apiClient),
     addClickBankFavorite: apiClient.addClickBankFavorite.bind(apiClient),
     removeClickBankFavorite: apiClient.removeClickBankFavorite.bind(apiClient),
     getClickBankFavorites: apiClient.getClickBankFavorites.bind(apiClient),
-    testClickBankConnection: apiClient.testClickBankConnection.bind(apiClient),
     createCampaignFromClickBank: apiClient.createCampaignFromClickBank.bind(apiClient),
 
-    // ✅ NEW: Live ClickBank scraping methods
-    getLiveClickBankProducts: apiClient.getLiveClickBankProducts.bind(apiClient),
-    getAllCategoriesLive: apiClient.getAllCategoriesLive.bind(apiClient),
-    validateSalesPageURL: apiClient.validateSalesPageURL.bind(apiClient),
-    getScrapingStatus: apiClient.getScrapingStatus.bind(apiClient),
-    refreshAllCategories: apiClient.refreshAllCategories.bind(apiClient),
-    validateMultipleURLs: apiClient.validateMultipleURLs.bind(apiClient),
-    getLiveClickBankProductsEnhanced: apiClient.getLiveClickBankProductsEnhanced.bind(apiClient),
-    getAllCategoriesLiveWithPriority: apiClient.getAllCategoriesLiveWithPriority.bind(apiClient),
-    
-    // ✅ UPDATED: Enhanced ClickBank methods
-    fetchClickBankProducts: apiClient.fetchClickBankProducts.bind(apiClient),
-
-    // Affiliate link methods
+    // Affiliate methods
     getAffiliatePreferences: apiClient.getAffiliatePreferences.bind(apiClient),
     saveAffiliatePreferences: apiClient.saveAffiliatePreferences.bind(apiClient),
     generateAffiliateLink: apiClient.generateAffiliateLink.bind(apiClient),

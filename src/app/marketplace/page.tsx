@@ -1,4 +1,4 @@
-// Enhanced marketplace page with PostgreSQL category loading
+// Enhanced marketplace page with PostgreSQL category loading - COMPLETE VERSION
 'use client'
 
 import React, { useState, useEffect, useCallback } from 'react'
@@ -334,9 +334,6 @@ function CategoryGrid({
   )
 }
 
-// Keep your existing ProductAccordion and CampaignCreatorModal components...
-// (They don't need changes for PostgreSQL integration)
-
 function ProductAccordion({
   products,
   onCreateCampaign,
@@ -356,9 +353,355 @@ function ProductAccordion({
   userFavorites: string[]
   isLoading?: boolean
 }) {
-  // ... keep your existing ProductAccordion implementation
-  // Just adding a placeholder since it's quite long
-  return <div>Product Accordion Component (keep existing implementation)</div>
+  const [expandedProducts, setExpandedProducts] = useState<Set<string>>(new Set())
+  const [validatingURLs, setValidatingURLs] = useState<Set<string>>(new Set())
+  const [generatingLinks, setGeneratingLinks] = useState<Set<string>>(new Set())
+
+  const toggleExpanded = (productId: string) => {
+    const newExpanded = new Set(expandedProducts)
+    if (newExpanded.has(productId)) {
+      newExpanded.delete(productId)
+    } else {
+      newExpanded.add(productId)
+    }
+    setExpandedProducts(newExpanded)
+  }
+
+  const formatGravity = (gravity: number) => {
+    if (gravity > 100) return "🔥 Hot"
+    if (gravity > 50) return "📈 Strong"
+    if (gravity > 20) return "✅ Good"
+    return "⚡ New"
+  }
+
+  const handleValidateURL = async (product: ClickBankProduct) => {
+    setValidatingURLs(prev => {
+      const newSet = new Set(prev)
+      newSet.add(product.id)
+      return newSet
+    })
+    try {
+      await onValidateURL(product.salespage_url)
+    } finally {
+      setValidatingURLs(prev => {
+        const newSet = new Set(prev)
+        newSet.delete(product.id)
+        return newSet
+      })
+    }
+  }
+
+  const handleGenerateAffiliateLink = async (product: ClickBankProduct) => {
+    setGeneratingLinks(prev => {
+      const newSet = new Set(prev)
+      newSet.add(product.id)
+      return newSet
+    })
+    try {
+      await onGenerateAffiliateLink(product)
+    } finally {
+      setGeneratingLinks(prev => {
+        const newSet = new Set(prev)
+        newSet.delete(product.id)
+        return newSet
+      })
+    }
+  }
+
+  if (isLoading) {
+    return (
+      <div className="space-y-4">
+        {[...Array(8)].map((_, i) => (
+          <Card key={i} className="p-6">
+            <div className="animate-pulse">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-4">
+                  <div className="w-6 h-6 bg-gray-200 rounded"></div>
+                  <div className="h-4 bg-gray-200 rounded w-64"></div>
+                </div>
+                <div className="h-10 bg-gray-200 rounded w-32"></div>
+              </div>
+            </div>
+          </Card>
+        ))}
+      </div>
+    )
+  }
+
+  if (products.length === 0) {
+    return (
+      <Card className="p-12">
+        <div className="text-center">
+          <div className="w-16 h-16 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+            <Star className="w-8 h-8 text-gray-400" />
+          </div>
+          <h3 className="text-lg font-semibold text-black mb-2">No products found</h3>
+          <p className="text-gray-600 mb-6">Click refresh to scrape fresh products from ClickBank marketplace.</p>
+          <Button variant="outline" onClick={() => window.location.reload()}>
+            <RefreshCw className="w-4 h-4 mr-2" />
+            Refresh Products
+          </Button>
+        </div>
+      </Card>
+    )
+  }
+
+  return (
+    <div className="space-y-4">
+      {products.map((product) => {
+        const isExpanded = expandedProducts.has(product.id)
+        const isFavorited = userFavorites.includes(product.id)
+        const isValidating = validatingURLs.has(product.id)
+        const isGeneratingLink = generatingLinks.has(product.id)
+        
+        return (
+          <Card key={product.id} className="overflow-hidden transition-all duration-200 hover:shadow-md">
+            <div className="p-6">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-4 flex-1">
+                  <button
+                    onClick={() => onToggleFavorite(product.id)}
+                    className={`w-6 h-6 transition-colors ${
+                      isFavorited 
+                        ? 'text-yellow-500 hover:text-yellow-600' 
+                        : 'text-gray-300 hover:text-yellow-400'
+                    }`}
+                  >
+                    <Star className={`w-6 h-6 ${isFavorited ? 'fill-current' : ''}`} />
+                  </button>
+                  
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center space-x-3">
+                      <h3 className="text-lg font-semibold text-black truncate">{product.title}</h3>
+                      <span className="text-sm text-gray-500">by {product.vendor}</span>
+                      
+                      {/* PostgreSQL Data Badge */}
+                      {product.data_source === 'postgresql_scraping' && (
+                        <Badge variant="success">
+                          <Database className="w-3 h-3 mr-1" />
+                          PostgreSQL
+                        </Badge>
+                      )}
+                      
+                      {/* Priority Badge */}
+                      {product.category_priority && (
+                        <Badge variant={product.category_priority >= 9 ? "destructive" : "default"}>
+                          P{product.category_priority}
+                        </Badge>
+                      )}
+                      
+                      {product.is_analyzed && (
+                        <Badge variant="info">
+                          <Lightbulb className="w-3 h-3 mr-1" />
+                          Analyzed
+                        </Badge>
+                      )}
+                    </div>
+                    
+                    <div className="flex items-center space-x-4 mt-2">
+                      <div className="flex items-center space-x-1 text-sm text-gray-600">
+                        <TrendingUp className="w-4 h-4" />
+                        <span>{formatGravity(product.gravity)}</span>
+                        <span className="text-gray-400">({product.gravity})</span>
+                      </div>
+                      <div className="flex items-center space-x-1 text-sm text-gray-600">
+                        <DollarSign className="w-4 h-4" />
+                        <span>{product.commission_rate}% commission</span>
+                      </div>
+                      {product.commission_range && (
+                        <div className="flex items-center space-x-1 text-sm text-gray-500">
+                          <span>({product.commission_range} range)</span>
+                        </div>
+                      )}
+                    </div>
+                    
+                    {/* Target Audience */}
+                    {product.target_audience && (
+                      <div className="mt-1">
+                        <span className="text-xs text-gray-500 italic">
+                          Target: {product.target_audience.split(',')[0]}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+                
+                <div className="flex items-center space-x-3">
+                  <Button
+                    onClick={() => onCreateCampaign(product)}
+                    className="bg-black text-white hover:bg-gray-900"
+                    size="sm"
+                  >
+                    Create Campaign
+                  </Button>
+                  
+                  <Button
+                    onClick={() => handleGenerateAffiliateLink(product)}
+                    disabled={isGeneratingLink}
+                    className="bg-green-600 text-white hover:bg-green-700"
+                    size="sm"
+                  >
+                    {isGeneratingLink ? (
+                      <>
+                        <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                        Generating...
+                      </>
+                    ) : (
+                      <>
+                        <Link className="w-4 h-4 mr-2" />
+                        Get Affiliate Link
+                      </>
+                    )}
+                  </Button>
+                  
+                  <button
+                    onClick={() => toggleExpanded(product.id)}
+                    className="p-2 text-gray-400 hover:text-gray-600 transition-colors"
+                  >
+                    {isExpanded ? (
+                      <ChevronDown className="w-5 h-5" />
+                    ) : (
+                      <ChevronRight className="w-5 h-5" />
+                    )}
+                  </button>
+                </div>
+              </div>
+            </div>
+            
+            {isExpanded && (
+              <div className="border-t border-gray-200 bg-gray-50 p-6">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  <div>
+                    <h4 className="text-sm font-medium text-gray-900 mb-3">Product Description</h4>
+                    <p className="text-sm text-gray-600 leading-relaxed mb-4">
+                      {product.description || 'No description available'}
+                    </p>
+                    
+                    <div className="flex items-center space-x-4 mb-4">
+                      <a
+                        href={product.salespage_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center text-blue-600 hover:text-blue-700 text-sm font-medium"
+                      >
+                        <ExternalLink className="w-4 h-4 mr-1" />
+                        View Sales Page
+                      </a>
+                      
+                      <Button
+                        onClick={() => handleValidateURL(product)}
+                        disabled={isValidating}
+                        variant="outline"
+                        size="sm"
+                      >
+                        {isValidating ? (
+                          <>
+                            <RefreshCw className="w-3 h-3 mr-1 animate-spin" />
+                            Validating...
+                          </>
+                        ) : (
+                          <>
+                            <CheckCircle className="w-3 h-3 mr-1" />
+                            Validate URL
+                          </>
+                        )}
+                      </Button>
+                      
+                      {!product.is_analyzed && (
+                        <Button
+                          onClick={() => onAnalyzeProduct(product.id)}
+                          variant="outline"
+                          size="sm"
+                        >
+                          Analyze Product
+                        </Button>
+                      )}
+                    </div>
+                    
+                    {/* PostgreSQL Data Metadata */}
+                    <div className="text-xs text-gray-500 bg-white p-2 rounded border">
+                      <div className="flex items-center space-x-2 mb-1">
+                        <Clock className="w-3 h-3" />
+                        <span>Scraped: {new Date(product.created_at).toLocaleString()}</span>
+                      </div>
+                      <div className="flex items-center space-x-2 mb-1">
+                        <Database className="w-3 h-3" />
+                        <span>Source: PostgreSQL Categories</span>
+                      </div>
+                      {product.category_priority && (
+                        <div className="flex items-center space-x-2">
+                          <Target className="w-3 h-3" />
+                          <span>Priority Level: {product.category_priority}</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  
+                  <div>
+                    {product.is_analyzed ? (
+                      <>
+                        <h4 className="text-sm font-medium text-gray-900 mb-3">AI Insights</h4>
+                        
+                        {product.key_insights.length > 0 && (
+                          <div className="mb-4">
+                            <h5 className="text-xs font-medium text-gray-700 mb-2">Key Insights:</h5>
+                            <ul className="space-y-1">
+                              {product.key_insights.slice(0, 3).map((insight, idx) => (
+                                <li key={idx} className="text-sm text-gray-600 flex items-start">
+                                  <span className="text-green-500 mr-2">•</span>
+                                  {insight}
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+                        
+                        {product.recommended_angles.length > 0 && (
+                          <div className="mb-4">
+                            <h5 className="text-xs font-medium text-gray-700 mb-2">Campaign Angles:</h5>
+                            <div className="flex flex-wrap gap-2">
+                              {product.recommended_angles.slice(0, 3).map((angle, idx) => (
+                                <Badge key={idx} variant="info">
+                                  {angle}
+                                </Badge>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                        
+                        {product.analysis_score && (
+                          <div className="flex items-center space-x-2">
+                            <span className="text-xs text-gray-500">Confidence Score:</span>
+                            <div className="flex items-center">
+                              <div className="w-16 bg-gray-200 rounded-full h-2">
+                                <div
+                                  className="bg-green-500 h-2 rounded-full"
+                                  style={{ width: `${product.analysis_score * 100}%` }}
+                                ></div>
+                              </div>
+                              <span className="ml-2 text-xs text-gray-600">
+                                {Math.round(product.analysis_score * 100)}%
+                              </span>
+                            </div>
+                          </div>
+                        )}
+                      </>
+                    ) : (
+                      <div className="text-center py-8">
+                        <Lightbulb className="w-8 h-8 text-gray-300 mx-auto mb-2" />
+                        <p className="text-sm text-gray-500">No analysis available yet</p>
+                        <p className="text-xs text-gray-400 mt-1">Click &quot;Analyze Product&quot; to extract insights from this PostgreSQL product</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+          </Card>
+        )
+      })}
+    </div>
+  )
 }
 
 function CampaignCreatorModal({
@@ -372,8 +715,210 @@ function CampaignCreatorModal({
   onClose: () => void
   onCreate: (campaignData: CampaignCreationData) => void
 }) {
-  // ... keep your existing CampaignCreatorModal implementation
-  return <div>Campaign Creator Modal (keep existing implementation)</div>
+  const [formData, setFormData] = useState<CampaignCreationData>({
+    title: `${product.title} Campaign`,
+    description: `Marketing campaign for ${product.title} by ${product.vendor}`,
+    tone: 'professional',
+    style: 'persuasive',
+    target_audience: product.target_audience || '',
+    clickbank_product_id: product.product_id || product.id,
+    selected_angles: [],
+    settings: {
+      clickbank_integration: true,
+      product_url: product.salespage_url,
+      commission_rate: product.commission_rate,
+      // PostgreSQL enhanced data
+      category_priority: product.category_priority,
+      commission_range: product.commission_range
+    }
+  })
+
+  const [isCreating, setIsCreating] = useState(false)
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setIsCreating(true)
+    
+    try {
+      await onCreate(formData)
+    } catch (error) {
+      console.error('Failed to create campaign:', error)
+    } finally {
+      setIsCreating(false)
+    }
+  }
+
+  const handleChange = (field: keyof CampaignCreationData, value: any) => {
+    setFormData(prev => ({
+      ...prev,
+      [field]: value
+    }))
+  }
+
+  if (!isOpen) return null
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+      <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+        <div className="p-6">
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h3 className="text-2xl font-light text-black">Create Campaign</h3>
+              <p className="text-gray-600">From PostgreSQL ClickBank product: {product.title}</p>
+              {product.category_priority && (
+                <Badge variant={product.category_priority >= 9 ? "destructive" : "default"} className="mt-1">
+                  Priority Level {product.category_priority}
+                </Badge>
+              )}
+            </div>
+            <button
+              onClick={onClose}
+              className="p-2 text-gray-400 hover:text-gray-600 transition-colors"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+          
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div>
+              <Label htmlFor="title">Campaign Title</Label>
+              <Input
+                id="title"
+                value={formData.title}
+                onChange={(e) => handleChange('title', e.target.value)}
+                placeholder="Enter campaign title"
+                required
+              />
+            </div>
+            
+            <div>
+              <Label htmlFor="description">Description</Label>
+              <Input
+                id="description"
+                value={formData.description}
+                onChange={(e) => handleChange('description', e.target.value)}
+                placeholder="Describe your campaign goals"
+                required
+              />
+            </div>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="tone">Tone</Label>
+                <select
+                  id="tone"
+                  value={formData.tone}
+                  onChange={(e) => handleChange('tone', e.target.value)}
+                  className="flex h-12 w-full rounded-lg border-none bg-gray-100 px-4 py-3 text-sm"
+                >
+                  <option value="professional">Professional</option>
+                  <option value="casual">Casual</option>
+                  <option value="urgent">Urgent</option>
+                  <option value="friendly">Friendly</option>
+                  <option value="authoritative">Authoritative</option>
+                </select>
+              </div>
+              
+              <div>
+                <Label htmlFor="style">Style</Label>
+                <select
+                  id="style"
+                  value={formData.style}
+                  onChange={(e) => handleChange('style', e.target.value)}
+                  className="flex h-12 w-full rounded-lg border-none bg-gray-100 px-4 py-3 text-sm"
+                >
+                  <option value="persuasive">Persuasive</option>
+                  <option value="educational">Educational</option>
+                  <option value="emotional">Emotional</option>
+                  <option value="logical">Logical</option>
+                  <option value="story-driven">Story-driven</option>
+                </select>
+              </div>
+            </div>
+            
+            <div>
+              <Label htmlFor="target_audience">Target Audience</Label>
+              <Input
+                id="target_audience"
+                value={formData.target_audience}
+                onChange={(e) => handleChange('target_audience', e.target.value)}
+                placeholder="e.g., Health-conscious adults 30-50"
+              />
+              {product.target_audience && (
+                <p className="text-xs text-gray-500 mt-1">
+                  Suggested from PostgreSQL: {product.target_audience}
+                </p>
+              )}
+            </div>
+            
+            {/* Enhanced Product Information Display */}
+            <div className="bg-gray-50 p-4 rounded-lg">
+              <h4 className="text-sm font-medium text-gray-900 mb-3">PostgreSQL ClickBank Product Details</h4>
+              <div className="space-y-2 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Gravity Score:</span>
+                  <span className="font-medium">{product.gravity}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Commission Rate:</span>
+                  <span className="font-medium">{product.commission_rate}%</span>
+                </div>
+                {product.commission_range && (
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Commission Range:</span>
+                    <span className="font-medium">{product.commission_range}</span>
+                  </div>
+                )}
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Vendor:</span>
+                  <span className="font-medium">{product.vendor}</span>
+                </div>
+                {product.category_priority && (
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Category Priority:</span>
+                    <span className="font-medium">Level {product.category_priority}</span>
+                  </div>
+                )}
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Data Source:</span>
+                  <span className="font-medium">PostgreSQL Database</span>
+                </div>
+              </div>
+            </div>
+            
+            <div className="flex space-x-3 pt-4">
+              <Button
+                type="button"
+                onClick={onClose}
+                variant="outline"
+                className="flex-1"
+                disabled={isCreating}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                className="flex-1"
+                disabled={isCreating}
+              >
+                {isCreating ? (
+                  <>
+                    <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                    Creating...
+                  </>
+                ) : (
+                  <>
+                    <ArrowRight className="w-4 h-4 mr-2" />
+                    Create Campaign
+                  </>
+                )}
+              </Button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  )
 }
 
 // ============================================================================
@@ -596,7 +1141,8 @@ export default function EnhancedMarketplacePage() {
           ...campaignData.settings,
           clickbank_integration: true,
           clickbank_product_id: campaignData.clickbank_product_id,
-          auto_analyze_product: true
+          auto_analyze_product: true,
+          postgresql_enhanced: true
         }
       })
       
@@ -686,10 +1232,10 @@ export default function EnhancedMarketplacePage() {
               <Database className="w-5 h-5 text-green-600" />
             </div>
             <div>
-              <h2 className="text-2xl font-semibold text-black">Live Products from Database</h2>
+              <h2 className="text-2xl font-semibold text-black">Live Products from PostgreSQL</h2>
               <p className="text-gray-600">
                 {categories.length > 0 
-                  ? `${categories.length} categories loaded from PostgreSQL`
+                  ? `${categories.length} categories loaded from PostgreSQL database`
                   : 'Loading categories from PostgreSQL database...'
                 }
               </p>
