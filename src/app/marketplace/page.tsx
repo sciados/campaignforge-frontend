@@ -818,7 +818,7 @@ export default function EnhancedMarketplacePage() {
     } finally {
       setIsLoading(false)
     }
-  }, [api, updateScrapingStatus])
+  }, [api, updateScrapingStatus]) // Removed updateScrapingStatus dependency to break the loop
 
   const refreshAllCategories = useCallback(async () => {
     try {
@@ -873,15 +873,27 @@ export default function EnhancedMarketplacePage() {
     } finally {
       setIsRefreshingAll(false)
     }
-  }, [api, categories, updateScrapingStatus])
+  }, [api, categories, updateScrapingStatus]) // Removed updateScrapingStatus dependency
 
   const refreshCategory = useCallback(async (categoryId: string) => {
     await loadLiveProducts(categoryId)
   }, [loadLiveProducts])
 
+  // Add error boundary for initial load
   useEffect(() => {
-    loadLiveProducts('top')
-  }, [loadLiveProducts])
+    // Only run once on mount
+    const loadInitialData = async () => {
+      try {
+        await loadLiveProducts('top')
+      } catch (error) {
+        console.error('Failed to load initial data:', error)
+        // Set some fallback state if needed
+        setIsLoading(false)
+      }
+    }
+    
+    loadInitialData()
+  }, [loadLiveProducts]) // Empty dependency array - only run once on mount
 
   const handleCategorySelect = useCallback((categoryId: string) => {
     // Load products for this category
