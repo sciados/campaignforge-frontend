@@ -763,7 +763,7 @@ export default function EnhancedMarketplacePage() {
   const [categories] = useState<Category[]>([
     { id: 'new', name: 'New Products', description: 'Latest ClickBank releases', isNew: true },
     { id: 'top', name: 'Top Performers', description: 'Highest gravity products', isTrending: true },
-    { id: 'health', name: 'Health & Fitness', description: 'Health and wellness products' },
+    { id: 'Health+%26+Fitness', name: 'Health & Fitness', description: 'Health and wellness products' },
     { id: 'ebusiness', name: 'E-Business & Marketing', description: 'Online business tools' },
     { id: 'selfhelp', name: 'Self-Help', description: 'Personal development' },
     { id: 'business', name: 'Business & Investing', description: 'Business and investment' },
