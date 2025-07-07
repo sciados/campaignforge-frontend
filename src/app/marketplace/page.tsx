@@ -1,6 +1,4 @@
-// Enhanced marketplace page with live ClickBank scraping
-// Replace your existing marketplace page.tsx with this
-
+// Enhanced marketplace page with live ClickBank scraping and affiliate link generation
 'use client'
 
 import React, { useState, useEffect, useCallback } from 'react'
@@ -13,7 +11,7 @@ import { Badge } from '@/components/ui/badge'
 import { 
   Sparkles, TrendingUp, ShoppingBag, Star, ChevronDown, ChevronRight, 
   DollarSign, Users, Lightbulb, X, Target, Palette, Type, ArrowRight,
-  RefreshCw, Zap, AlertCircle, CheckCircle, Clock, ExternalLink
+  RefreshCw, Zap, AlertCircle, CheckCircle, Clock, ExternalLink, Link
 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 
@@ -148,22 +146,54 @@ function CategoryGrid({
   onRefreshCategory: (categoryId: string) => void
 }) {
   const CATEGORY_ICONS = {
-    new: <Sparkles className="w-6 h-6" />,
+    // Tier 1 - Highest Converting
+    mmo: <DollarSign className="w-6 h-6" />,
+    weightloss: <Target className="w-6 h-6" />,
+    relationships: <Users className="w-6 h-6" />,
+    
+    // Tier 2 - Strong Performers
     top: <TrendingUp className="w-6 h-6" />,
     health: <Users className="w-6 h-6" />,
-    ebusiness: <Lightbulb className="w-6 h-6" />,
-    selfhelp: <Target className="w-6 h-6" />,
+    selfhelp: <Lightbulb className="w-6 h-6" />,
+    
+    // Tier 3 - Specialized Niches
+    manifestation: <Sparkles className="w-6 h-6" />,
+    anxiety: <Target className="w-6 h-6" />,
+    survival: <ShoppingBag className="w-6 h-6" />,
+    diabetes: <Users className="w-6 h-6" />,
+    
+    // Tier 4 - Additional Categories
+    beauty: <Star className="w-6 h-6" />,
     business: <DollarSign className="w-6 h-6" />,
+    ebusiness: <Lightbulb className="w-6 h-6" />,
+    new: <Sparkles className="w-6 h-6" />,
+    cooking: <Star className="w-6 h-6" />,
     green: <Star className="w-6 h-6" />
   }
 
   const CATEGORY_COLORS = {
-    new: 'from-purple-500 to-pink-500',
+    // Tier 1 - Gold/Green (Money themes)
+    mmo: 'from-green-500 to-emerald-600',
+    weightloss: 'from-red-500 to-pink-600',
+    relationships: 'from-purple-500 to-pink-500',
+    
+    // Tier 2 - Strong Colors
     top: 'from-red-500 to-orange-500',
-    health: 'from-green-500 to-teal-500',
-    ebusiness: 'from-blue-500 to-indigo-500',
+    health: 'from-blue-500 to-teal-500',
     selfhelp: 'from-yellow-500 to-orange-500',
+    
+    // Tier 3 - Distinctive Colors
+    manifestation: 'from-purple-400 to-indigo-500',
+    anxiety: 'from-teal-500 to-cyan-500',
+    survival: 'from-orange-600 to-red-600',
+    diabetes: 'from-blue-600 to-indigo-600',
+    
+    // Tier 4 - Standard Colors
+    beauty: 'from-pink-400 to-rose-500',
     business: 'from-gray-600 to-gray-800',
+    ebusiness: 'from-indigo-500 to-purple-500',
+    new: 'from-purple-500 to-pink-500',
+    cooking: 'from-orange-400 to-red-500',
     green: 'from-green-400 to-emerald-500'
   }
 
@@ -268,6 +298,7 @@ function ProductAccordion({
   onToggleFavorite,
   onAnalyzeProduct,
   onValidateURL,
+  onGenerateAffiliateLink,
   userFavorites,
   isLoading = false
 }: {
@@ -276,11 +307,13 @@ function ProductAccordion({
   onToggleFavorite: (productId: string) => void
   onAnalyzeProduct: (productId: string) => void
   onValidateURL: (url: string) => void
+  onGenerateAffiliateLink: (product: ClickBankProduct) => void
   userFavorites: string[]
   isLoading?: boolean
 }) {
   const [expandedProducts, setExpandedProducts] = useState<Set<string>>(new Set())
   const [validatingURLs, setValidatingURLs] = useState<Set<string>>(new Set())
+  const [generatingLinks, setGeneratingLinks] = useState<Set<string>>(new Set())
 
   const toggleExpanded = (productId: string) => {
     const newExpanded = new Set(expandedProducts)
@@ -309,6 +342,23 @@ function ProductAccordion({
       await onValidateURL(product.salespage_url)
     } finally {
       setValidatingURLs(prev => {
+        const newSet = new Set(prev)
+        newSet.delete(product.id)
+        return newSet
+      })
+    }
+  }
+
+  const handleGenerateAffiliateLink = async (product: ClickBankProduct) => {
+    setGeneratingLinks(prev => {
+      const newSet = new Set(prev)
+      newSet.add(product.id)
+      return newSet
+    })
+    try {
+      await onGenerateAffiliateLink(product)
+    } finally {
+      setGeneratingLinks(prev => {
         const newSet = new Set(prev)
         newSet.delete(product.id)
         return newSet
@@ -360,6 +410,7 @@ function ProductAccordion({
         const isExpanded = expandedProducts.has(product.id)
         const isFavorited = userFavorites.includes(product.id)
         const isValidating = validatingURLs.has(product.id)
+        const isGeneratingLink = generatingLinks.has(product.id)
         
         return (
           <Card key={product.id} className="overflow-hidden transition-all duration-200 hover:shadow-md">
@@ -416,8 +467,28 @@ function ProductAccordion({
                   <Button
                     onClick={() => onCreateCampaign(product)}
                     className="bg-black text-white hover:bg-gray-900"
+                    size="sm"
                   >
                     Create Campaign
+                  </Button>
+                  
+                  <Button
+                    onClick={() => handleGenerateAffiliateLink(product)}
+                    disabled={isGeneratingLink}
+                    className="bg-green-600 text-white hover:bg-green-700"
+                    size="sm"
+                  >
+                    {isGeneratingLink ? (
+                      <>
+                        <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                        Generating...
+                      </>
+                    ) : (
+                      <>
+                        <Link className="w-4 h-4 mr-2" />
+                        Get Affiliate Link
+                      </>
+                    )}
                   </Button>
                   
                   <button
@@ -763,7 +834,7 @@ export default function EnhancedMarketplacePage() {
   const [categories] = useState<Category[]>([
     { id: 'new', name: 'New Products', description: 'Latest ClickBank releases', isNew: true },
     { id: 'top', name: 'Top Performers', description: 'Highest gravity products', isTrending: true },
-    { id: 'Health+%26+Fitness', name: 'Health & Fitness', description: 'Health and wellness products' },
+    { id: 'health', name: 'Health & Fitness', description: 'Health and wellness products' },
     { id: 'ebusiness', name: 'E-Business & Marketing', description: 'Online business tools' },
     { id: 'selfhelp', name: 'Self-Help', description: 'Personal development' },
     { id: 'business', name: 'Business & Investing', description: 'Business and investment' },
@@ -818,7 +889,7 @@ export default function EnhancedMarketplacePage() {
     } finally {
       setIsLoading(false)
     }
-  }, [api, updateScrapingStatus]) // Removed updateScrapingStatus dependency to break the loop
+  }, [api, updateScrapingStatus])
 
   const refreshAllCategories = useCallback(async () => {
     try {
@@ -873,27 +944,15 @@ export default function EnhancedMarketplacePage() {
     } finally {
       setIsRefreshingAll(false)
     }
-  }, [api, categories, updateScrapingStatus]) // Removed updateScrapingStatus dependency
+  }, [api, categories, updateScrapingStatus])
 
   const refreshCategory = useCallback(async (categoryId: string) => {
     await loadLiveProducts(categoryId)
   }, [loadLiveProducts])
 
-  // Add error boundary for initial load
   useEffect(() => {
-    // Only run once on mount
-    const loadInitialData = async () => {
-      try {
-        await loadLiveProducts('top')
-      } catch (error) {
-        console.error('Failed to load initial data:', error)
-        // Set some fallback state if needed
-        setIsLoading(false)
-      }
-    }
-    
-    loadInitialData()
-  }, [loadLiveProducts]) // Empty dependency array - only run once on mount
+    loadLiveProducts('top')
+  }, [loadLiveProducts])
 
   const handleCategorySelect = useCallback((categoryId: string) => {
     // Load products for this category
@@ -1041,8 +1100,9 @@ export default function EnhancedMarketplacePage() {
           onAnalyzeProduct={handleAnalyzeProduct}
           onValidateURL={handleValidateURL}
           userFavorites={userFavorites}
-          isLoading={isLoading}
-        />
+          isLoading={isLoading} onGenerateAffiliateLink={function (product: ClickBankProduct): void {
+            throw new Error('Function not implemented.')
+          } }        />
       </div>
 
       {/* Categories Section */}

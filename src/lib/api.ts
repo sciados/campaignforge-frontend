@@ -1524,6 +1524,56 @@ async createCampaignFromClickBank(campaignData: {
     
     return this.handleResponse(response)
   }
+
+  async getAffiliatePreferences(): Promise<any> {
+  const response = await fetch(`${this.baseURL}/api/affiliate/preferences`, {
+    headers: this.getHeaders()
+  })
+  
+  if (response.status === 404) {
+    return null
+  }
+  
+  return this.handleResponse(response)
+}
+
+async saveAffiliatePreferences(preferences: any): Promise<any> {
+  const response = await fetch(`${this.baseURL}/api/affiliate/preferences`, {
+    method: 'POST',
+    headers: this.getHeaders(),
+    body: JSON.stringify(preferences)
+  })
+  
+  return this.handleResponse(response)
+}
+
+async generateAffiliateLink(request: any): Promise<any> {
+  const response = await fetch(`${this.baseURL}/api/affiliate/generate-link`, {
+    method: 'POST',
+    headers: this.getHeaders(),
+    body: JSON.stringify(request)
+  })
+  
+  return this.handleResponse(response)
+}
+
+async trackAffiliateClick(clickData: any): Promise<any> {
+  const response = await fetch(`${this.baseURL}/api/affiliate/track-click`, {
+    method: 'POST',
+    headers: this.getHeaders(),
+    body: JSON.stringify(clickData)
+  })
+  
+  return this.handleResponse(response)
+}
+
+async getAffiliatePerformance(days: number = 30): Promise<any> {
+  const response = await fetch(`${this.baseURL}/api/affiliate/performance?days=${days}`, {
+    headers: this.getHeaders()
+  })
+  
+  return this.handleResponse(response)
+}
 }
 
 // ============================================================================
@@ -1656,6 +1706,13 @@ export const useApi = () => {
     validateMultipleURLs: apiClient.validateMultipleURLs.bind(apiClient),
     
     // ✅ UPDATED: Enhanced ClickBank methods
-    fetchClickBankProducts: apiClient.fetchClickBankProducts.bind(apiClient)
+    fetchClickBankProducts: apiClient.fetchClickBankProducts.bind(apiClient),
+
+    // Affiliate link methods
+    getAffiliatePreferences: apiClient.getAffiliatePreferences.bind(apiClient),
+    saveAffiliatePreferences: apiClient.saveAffiliatePreferences.bind(apiClient),
+    generateAffiliateLink: apiClient.generateAffiliateLink.bind(apiClient),
+    trackAffiliateClick: apiClient.trackAffiliateClick.bind(apiClient),
+    getAffiliatePerformance: apiClient.getAffiliatePerformance.bind(apiClient)
   }
 }
