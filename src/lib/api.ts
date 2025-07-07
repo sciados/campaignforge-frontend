@@ -469,6 +469,133 @@ async validateSalesPageURL(url: string): Promise<URLValidationResponse> {
   return this.handleResponse<URLValidationResponse>(response)
 }
 
+// ✅ NEW: Enhanced methods that work with your PostgreSQL table
+async getLiveClickBankProductsEnhanced(
+  category: string, 
+  limit: number = 10
+): Promise<LiveClickBankResponse> {
+  console.log(`🔍 Scraping live ClickBank products with PostgreSQL: ${category} (limit: ${limit})`)
+  
+  const response = await fetch(`${this.baseURL}/api/intelligence/clickbank/live-products/${category}?limit=${limit}`, {
+    headers: this.getHeaders()
+  })
+  
+  const result = await this.handleResponse<LiveClickBankResponse>(response)
+  console.log(`✅ PostgreSQL scraping complete: ${result.products_found} products`)
+  
+  return result
+}
+
+// Get categories from PostgreSQL with priority info
+async getClickBankCategoriesFromDB(): Promise<{
+  categories: Array<{
+    last_validated_at: any
+    id: string
+    name: string
+    primary_url: string
+    backup_urls_count: number
+    priority_level: number
+    target_audience: string
+    commission_range: string
+    validation_status: string
+    is_active: boolean
+  }>
+  total_categories: number
+  data_source: string
+  priority_breakdown: {
+    high_priority: number
+    medium_priority: number
+    low_priority: number
+  }
+}> {
+  const response = await fetch(`${this.baseURL}/api/intelligence/clickbank/categories`, {
+    headers: this.getHeaders()
+  })
+  
+  return this.handleResponse(response)
+}
+
+// Get products from multiple high-priority categories
+async getAllCategoriesLiveWithPriority(
+  productsPerCategory: number = 5,
+  priorityFilter?: number
+): Promise<{
+  categories_scraped: string[]
+  total_categories_attempted: number
+  products_per_category: number
+  total_products_found: number
+  priority_filter?: number
+  results: Record<string, {
+    category_name: string
+    priority_level: number
+    target_audience: string
+    commission_range: string
+    products: any[]
+    products_found: number
+  }>
+  success: boolean
+}> {
+  const params = new URLSearchParams()
+  params.set('products_per_category', productsPerCategory.toString())
+  if (priorityFilter) params.set('priority_filter', priorityFilter.toString())
+  
+  const response = await fetch(`${this.baseURL}/api/intelligence/clickbank/all-live-categories?${params}`, {
+    headers: this.getHeaders()
+  })
+  
+  return this.handleResponse(response)
+}
+
+// Validate category URLs
+async validateClickBankCategory(category: string): Promise<{
+  category: string
+  category_name: string
+  total_urls_tested: number
+  working_urls: number
+  test_results: Array<{
+    url: string
+    status_code: number
+    is_working: boolean
+    has_products: boolean
+  }>
+  validation_status: string
+  recommendation: string
+}> {
+  const response = await fetch(`${this.baseURL}/api/intelligence/clickbank/validate-category/${category}`, {
+    method: 'POST',
+    headers: this.getHeaders()
+  })
+  
+  return this.handleResponse(response)
+}
+
+// Get enhanced scraping status
+async getClickBankScrapingStatusEnhanced(): Promise<{
+  scraper_status: string
+  environment: string
+  database_connection: string
+  category_stats: {
+    total_categories: number
+    active_categories: number
+    high_priority_categories: number
+  }
+  supported_categories: string[]
+  features: string[]
+  data_quality: {
+    uses_real_database_urls: boolean
+    keyword_based_searches: boolean
+    target_audience_aware: boolean
+    commission_range_realistic: boolean
+  }
+}> {
+  const response = await fetch(`${this.baseURL}/api/intelligence/clickbank/scraping-status`, {
+    headers: this.getHeaders()
+  })
+  
+  return this.handleResponse(response)
+}
+
+
 // Get scraping status and capabilities
 async getScrapingStatus(): Promise<{
   scraper_status: string
@@ -1687,7 +1814,8 @@ export const useApi = () => {
     clearAuthToken: apiClient.clearAuthToken.bind(apiClient),
 
    // ClickBank marketplace methods
-    getClickBankCategories: apiClient.getClickBankCategories.bind(apiClient),    
+    getClickBankCategoriesFromDB: apiClient.getClickBankCategoriesFromDB.bind(apiClient),
+    getClickBankCategories: apiClient.getClickBankCategories.bind(apiClient),
     getClickBankProductsByCategory: apiClient.getClickBankProductsByCategory.bind(apiClient),
     analyzeClickBankProduct: apiClient.analyzeClickBankProduct.bind(apiClient),
     getClickBankProductAnalysis: apiClient.getClickBankProductAnalysis.bind(apiClient),
@@ -1704,6 +1832,8 @@ export const useApi = () => {
     getScrapingStatus: apiClient.getScrapingStatus.bind(apiClient),
     refreshAllCategories: apiClient.refreshAllCategories.bind(apiClient),
     validateMultipleURLs: apiClient.validateMultipleURLs.bind(apiClient),
+    getLiveClickBankProductsEnhanced: apiClient.getLiveClickBankProductsEnhanced.bind(apiClient),
+    getAllCategoriesLiveWithPriority: apiClient.getAllCategoriesLiveWithPriority.bind(apiClient),
     
     // ✅ UPDATED: Enhanced ClickBank methods
     fetchClickBankProducts: apiClient.fetchClickBankProducts.bind(apiClient),
