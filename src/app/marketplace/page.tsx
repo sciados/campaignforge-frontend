@@ -1,4 +1,5 @@
 // src/app/marketplace/page.tsx
+// Automatic Clickbank Listings
 'use client'
 
 import React, { useState, useEffect } from 'react'
