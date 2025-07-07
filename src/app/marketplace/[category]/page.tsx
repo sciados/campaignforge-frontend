@@ -1,15 +1,15 @@
-// src/app/marketplace/page.tsx
+// src/app/marketplace/[category]/page.tsx
 'use client'
 
 import React, { useState, useEffect } from 'react'
+import { useParams, useRouter } from 'next/navigation'
 import { useApi } from '@/lib/api'
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Sparkles, TrendingUp, ShoppingBag, Star, ChevronDown, ChevronRight, TrendingUp as TrendingUpIcon, DollarSign, Users, Lightbulb, X, Target, Palette, Type, ArrowRight } from 'lucide-react'
-import { useRouter } from 'next/navigation'
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
+import { ArrowLeft, Filter, SortAsc, Star, ChevronDown, ChevronRight, TrendingUp, DollarSign, Lightbulb, X, Target, Palette, Type } from 'lucide-react'
 
 // ============================================================================
-// INLINE COMPONENTS (to avoid import path issues)
+// TYPES
 // ============================================================================
 
 interface ClickBankProduct {
@@ -31,94 +31,10 @@ interface ClickBankProduct {
   created_at: string
 }
 
-interface Category {
-  id: string
-  name: string
-  description: string
-  isNew?: boolean
-  isTrending?: boolean
-}
+// ============================================================================
+// COMPONENTS
+// ============================================================================
 
-// CategoryGrid Component
-function CategoryGrid({
-  categories,
-  selectedCategory,
-  onCategorySelect,
-}: {
-  categories: Category[]
-  selectedCategory?: string
-  onCategorySelect: (categoryId: string) => void
-}) {
-  const CATEGORY_ICONS = {
-    new: <Sparkles className="w-6 h-6" />,
-    top: <TrendingUpIcon className="w-6 h-6" />,
-    health: <Users className="w-6 h-6" />,
-    ebusiness: <Lightbulb className="w-6 h-6" />,
-    selfhelp: <Target className="w-6 h-6" />,
-    business: <DollarSign className="w-6 h-6" />,
-    green: <Star className="w-6 h-6" />
-  }
-
-  const CATEGORY_COLORS = {
-    new: 'from-purple-500 to-pink-500',
-    top: 'from-red-500 to-orange-500',
-    health: 'from-green-500 to-teal-500',
-    ebusiness: 'from-blue-500 to-indigo-500',
-    selfhelp: 'from-yellow-500 to-orange-500',
-    business: 'from-gray-600 to-gray-800',
-    green: 'from-green-400 to-emerald-500'
-  }
-
-  return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-      {categories.map((category) => {
-        const isSelected = selectedCategory === category.id
-        const icon = CATEGORY_ICONS[category.id as keyof typeof CATEGORY_ICONS]
-        const colorClass = CATEGORY_COLORS[category.id as keyof typeof CATEGORY_COLORS]
-        
-        return (
-          <Card
-            key={category.id}
-            className={`cursor-pointer transition-all duration-200 hover:shadow-lg hover:scale-105 ${
-              isSelected ? 'ring-2 ring-black shadow-lg' : ''
-            }`}
-            onClick={() => onCategorySelect(category.id)}
-          >
-            <CardHeader className="text-center">
-              <div className={`w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br ${colorClass} flex items-center justify-center text-white shadow-lg`}>
-                {icon}
-              </div>
-              
-              <CardTitle className="text-lg font-semibold text-black mb-2">
-                {category.name}
-              </CardTitle>
-              
-              <p className="text-sm text-gray-600 leading-relaxed mb-4">
-                {category.description}
-              </p>
-              
-              <div className="flex items-center justify-center space-x-2">
-                {category.isNew && (
-                  <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
-                    New
-                  </span>
-                )}
-                
-                {category.isTrending && (
-                  <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
-                    Trending
-                  </span>
-                )}
-              </div>
-            </CardHeader>
-          </Card>
-        )
-      })}
-    </div>
-  )
-}
-
-// ProductAccordion Component
 function ProductAccordion({
   products,
   onCreateCampaign,
@@ -156,7 +72,7 @@ function ProductAccordion({
   if (isLoading) {
     return (
       <div className="space-y-4">
-        {[...Array(5)].map((_, i) => (
+        {[...Array(8)].map((_, i) => (
           <Card key={i} className="p-6">
             <div className="animate-pulse">
               <div className="flex items-center justify-between">
@@ -170,6 +86,23 @@ function ProductAccordion({
           </Card>
         ))}
       </div>
+    )
+  }
+
+  if (products.length === 0) {
+    return (
+      <Card className="p-12">
+        <div className="text-center">
+          <div className="w-16 h-16 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+            <Star className="w-8 h-8 text-gray-400" />
+          </div>
+          <h3 className="text-lg font-semibold text-black mb-2">No products found</h3>
+          <p className="text-gray-600 mb-6">Try adjusting your filters or check back later for new products.</p>
+          <Button variant="outline" onClick={() => window.location.reload()}>
+            Refresh Products
+          </Button>
+        </div>
+      </Card>
     )
   }
 
@@ -210,7 +143,7 @@ function ProductAccordion({
                     
                     <div className="flex items-center space-x-4 mt-2">
                       <div className="flex items-center space-x-1 text-sm text-gray-600">
-                        <TrendingUpIcon className="w-4 h-4" />
+                        <TrendingUp className="w-4 h-4" />
                         <span>{formatGravity(product.gravity)}</span>
                         <span className="text-gray-400">({product.gravity})</span>
                       </div>
@@ -345,7 +278,6 @@ function ProductAccordion({
   )
 }
 
-// ClickBankCampaignCreator Component
 function ClickBankCampaignCreator({
   isOpen,
   onClose,
@@ -603,52 +535,86 @@ function ClickBankCampaignCreator({
 }
 
 // ============================================================================
-// MAIN MARKETPLACE PAGE
+// MAIN CATEGORY PAGE
 // ============================================================================
 
-export default function MarketplacePage() {
+export default function CategoryPage() {
+  const params = useParams()
   const router = useRouter()
   const api = useApi()
   
-  const [categories, setCategories] = useState<Category[]>([])
-  const [newProducts, setNewProducts] = useState<ClickBankProduct[]>([])
+  const category = params.category as string
+  const [products, setProducts] = useState<ClickBankProduct[]>([])
   const [isLoading, setIsLoading] = useState(true)
-  const [userFavorites, setUserFavorites] = useState<string[]>([])
   const [selectedProduct, setSelectedProduct] = useState<ClickBankProduct | null>(null)
   const [showCampaignCreator, setShowCampaignCreator] = useState(false)
+  const [userFavorites, setUserFavorites] = useState<string[]>([])
+  const [sortBy, setSortBy] = useState('gravity')
+  const [showAnalyzedOnly, setShowAnalyzedOnly] = useState(false)
 
-  useEffect(() => {
-    loadInitialData()
-  }, [])
-
-  const loadInitialData = async () => {
+  const loadCategoryProducts = async () => {
     try {
       setIsLoading(true)
+      const productsData = await api.fetchClickBankProducts(category)
       
-      // Load new products
-      const newProductsData = await api.fetchClickBankProducts('new').catch(() => [])
+      // Apply client-side filtering and sorting
+      let filteredProducts = productsData
       
-      setCategories([
-        { id: 'new', name: 'New Products', description: 'Latest ClickBank releases', isNew: true },
-        { id: 'top', name: 'Top Performers', description: 'Highest gravity products', isTrending: true },
-        { id: 'health', name: 'Health & Fitness', description: 'Health and wellness products' },
-        { id: 'ebusiness', name: 'E-Business & Marketing', description: 'Online business tools' },
-        { id: 'selfhelp', name: 'Self-Help', description: 'Personal development' },
-        { id: 'business', name: 'Business & Investing', description: 'Business and investment' },
-        { id: 'green', name: 'Green Products', description: 'Environmental products' }
-      ])
+      if (showAnalyzedOnly) {
+        filteredProducts = filteredProducts.filter(p => p.is_analyzed)
+      }
       
-      setNewProducts(newProductsData.slice(0, 10))
+      // Sort products
+      filteredProducts.sort((a, b) => {
+        switch (sortBy) {
+          case 'gravity':
+            return b.gravity - a.gravity
+          case 'commission':
+            return b.commission_rate - a.commission_rate
+          case 'date':
+            return new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+          default:
+            return 0
+        }
+      })
       
+      setProducts(filteredProducts)
     } catch (error) {
-      console.error('Error loading marketplace data:', error)
+      console.error('Error loading category products:', error)
+      setProducts([])
     } finally {
       setIsLoading(false)
     }
   }
 
-  const handleCategorySelect = (categoryId: string) => {
-    router.push(`/marketplace/${categoryId}`)
+  useEffect(() => {
+    loadCategoryProducts()
+  }, [category, sortBy, showAnalyzedOnly]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  const getCategoryName = (categoryId: string) => {
+    const names = {
+      new: 'New Products',
+      top: 'Top Performers',
+      health: 'Health & Fitness',
+      ebusiness: 'E-Business & Marketing',
+      selfhelp: 'Self-Help',
+      business: 'Business & Investing',
+      green: 'Green Products'
+    }
+    return names[categoryId as keyof typeof names] || categoryId
+  }
+
+  const getCategoryDescription = (categoryId: string) => {
+    const descriptions = {
+      new: 'Latest ClickBank product releases',
+      top: 'Highest gravity and best-performing products',
+      health: 'Health, fitness, and wellness products',
+      ebusiness: 'Online business and marketing tools',
+      selfhelp: 'Personal development and self-improvement',
+      business: 'Business and investment opportunities',
+      green: 'Eco-friendly and sustainable products'
+    }
+    return descriptions[categoryId as keyof typeof descriptions] || `Products in ${categoryId} category`
   }
 
   const handleCreateCampaign = (product: ClickBankProduct) => {
@@ -668,98 +634,81 @@ export default function MarketplacePage() {
 
   const handleToggleFavorite = async (productId: string) => {
     console.log('Toggle favorite:', productId)
+    // TODO: Implement favorites functionality
   }
 
   const handleAnalyzeProduct = async (productId: string) => {
     console.log('Analyze product:', productId)
+    // TODO: Implement product analysis
   }
 
+  const categoryName = getCategoryName(category)
+  const categoryDescription = getCategoryDescription(category)
+
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Marketplace Header */}
-      <div className="bg-white border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 py-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-light text-black">ClickBank Marketplace</h1>
-              <p className="text-gray-600 mt-2">Discover high-converting products to promote</p>
-            </div>
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center space-x-4">
+          <Button
+            variant="ghost"
+            onClick={() => router.push('/marketplace')}
+            className="flex items-center space-x-2"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            <span>Back to Marketplace</span>
+          </Button>
+          
+          <div>
+            <h1 className="text-3xl font-light text-black">{categoryName}</h1>
+            <p className="text-gray-600 mt-1">{categoryDescription}</p>
+            <p className="text-sm text-gray-500 mt-1">{products.length} products available</p>
           </div>
         </div>
-      </div>
-      
-      {/* Content */}
-      <div className="max-w-7xl mx-auto px-4 py-8">
-        <div className="space-y-8">
-          {/* Hero Section */}
-          <Card className="bg-gradient-to-r from-blue-600 to-purple-600 text-white border-0">
-            <CardHeader className="text-center py-12">
-              <CardTitle className="text-3xl font-light mb-4">
-                Discover High-Converting Products
-              </CardTitle>
-              <p className="text-blue-100 text-lg max-w-2xl mx-auto">
-                Browse curated ClickBank products, get AI-powered insights, and create campaigns that convert
-              </p>
-            </CardHeader>
-          </Card>
 
-          {/* New Products Section */}
-          <div>
-            <div className="flex items-center justify-between mb-6">
-              <div className="flex items-center space-x-3">
-                <div className="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center">
-                  <Sparkles className="w-5 h-5 text-purple-600" />
-                </div>
-                <div>
-                  <h2 className="text-2xl font-semibold text-black">Latest Products</h2>
-                  <p className="text-gray-600">Fresh opportunities to explore</p>
-                </div>
-              </div>
-              <Button
-                variant="outline"
-                onClick={() => router.push('/marketplace/new')}
-              >
-                View All New Products
-              </Button>
-            </div>
-            
-            <ProductAccordion
-              products={newProducts}
-              onCreateCampaign={handleCreateCampaign}
-              onToggleFavorite={handleToggleFavorite}
-              onAnalyzeProduct={handleAnalyzeProduct}
-              userFavorites={userFavorites}
-              isLoading={isLoading}
-            />
-          </div>
-
-          {/* Categories Section */}
-          <div>
-            <div className="flex items-center space-x-3 mb-6">
-              <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
-                <TrendingUp className="w-5 h-5 text-blue-600" />
-              </div>
-              <div>
-                <h2 className="text-2xl font-semibold text-black">Browse by Category</h2>
-                <p className="text-gray-600">Find products in your preferred niches</p>
-              </div>
-            </div>
-            
-            <CategoryGrid
-              categories={categories}
-              onCategorySelect={handleCategorySelect}
-            />
-          </div>
-
-          {/* Campaign Creator Modal */}
-          <ClickBankCampaignCreator
-            isOpen={showCampaignCreator}
-            onClose={() => setShowCampaignCreator(false)}
-            product={selectedProduct}
-            onCreateCampaign={handleCampaignCreate}
-          />
+        {/* Filters & Sort */}
+        <div className="flex items-center space-x-3">
+          <button
+            onClick={() => setShowAnalyzedOnly(!showAnalyzedOnly)}
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+              showAnalyzedOnly
+                ? 'bg-blue-100 text-blue-800'
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            }`}
+          >
+            <Filter className="w-4 h-4 mr-2 inline" />
+            {showAnalyzedOnly ? 'Analyzed Only' : 'All Products'}
+          </button>
+          
+          <select
+            value={sortBy}
+            onChange={(e) => setSortBy(e.target.value)}
+            className="px-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          >
+            <option value="gravity">Sort by Gravity</option>
+            <option value="commission">Sort by Commission</option>
+            <option value="date">Sort by Date</option>
+          </select>
         </div>
       </div>
+
+      {/* Products List */}
+      <ProductAccordion
+        products={products}
+        onCreateCampaign={handleCreateCampaign}
+        onToggleFavorite={handleToggleFavorite}
+        onAnalyzeProduct={handleAnalyzeProduct}
+        userFavorites={userFavorites}
+        isLoading={isLoading}
+      />
+
+      {/* Campaign Creator Modal */}
+      <ClickBankCampaignCreator
+        isOpen={showCampaignCreator}
+        onClose={() => setShowCampaignCreator(false)}
+        product={selectedProduct}
+        onCreateCampaign={handleCampaignCreate}
+      />
     </div>
   )
 }
