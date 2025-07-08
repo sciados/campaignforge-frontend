@@ -128,7 +128,7 @@ export default function DashboardPage() {
               <div className="w-8 h-8 bg-black rounded-lg flex items-center justify-center">
                 <span className="text-white font-medium">C</span>
               </div>
-              <h1 className="text-xl font-semibold text-black">CampaignForge</h1>
+              <h1 className="text-xl font-semibold text-black">RodgersDigital</h1>
             </div>
             {stats && (
               <div className="hidden md:flex items-center space-x-1 text-sm text-gray-500">

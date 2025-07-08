@@ -410,7 +410,7 @@ export default function CampaignsPage() {
                 <Plus className="h-8 w-8 text-white" />
               </div>
               
-              <h2 className="text-2xl font-bold text-gray-900 mb-4">Welcome to CampaignForge!</h2>
+              <h2 className="text-2xl font-bold text-gray-900 mb-4">Welcome to RodgersDigital!</h2>
               <p className="text-gray-600 mb-8 max-w-lg mx-auto">
                 Create your first universal campaign that accepts any input source and generates multiple content types automatically.
               </p>

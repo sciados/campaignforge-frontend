@@ -117,7 +117,7 @@ export default function RegisterPage() {
           <h1 className="text-4xl font-light text-black mb-6 leading-tight">
             Start creating with
             <br />
-            <span className="font-semibold">CampaignForge.</span>
+            <span className="font-semibold">RodgersDigital.</span>
           </h1>
           <p className="text-lg text-gray-600 leading-relaxed mb-8">
             Join thousands of marketers transforming content into complete campaigns with AI.

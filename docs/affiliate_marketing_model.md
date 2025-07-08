@@ -14,11 +14,11 @@ PRODUCT CREATOR:
 ├── Provides affiliate resources (optional: basic email swipes, banners)
 └── Wants affiliates to promote their product successfully
 
-AFFILIATE MARKETER (Primary CampaignForge User):
+AFFILIATE MARKETER (Primary RodgersDigital User):
 ├── Finds products to promote through affiliate networks
 ├── Gets unique affiliate tracking link from product creator
 ├── Needs to create unique marketing content to stand out
-├── Uses CampaignForge to analyze sales page + generate campaigns
+├── Uses RodgersDigital to analyze sales page + generate campaigns
 ├── Promotes product through email, social media, ads, content
 └── Earns commissions when people buy through their link
 
@@ -46,7 +46,7 @@ Background:
 ├── Wants to scale to 20+ campaigns monthly
 └── Current tools: ClickFunnels, GetResponse, Canva (fragmented)
 
-Typical Workflow WITHOUT CampaignForge:
+Typical Workflow WITHOUT RodgersDigital:
 1. Finds new product to promote (ClickBank, JVZoo, etc.)
 2. Studies sales page manually (2-4 hours)
 3. Researches what other affiliates are doing (4-6 hours)
@@ -62,9 +62,9 @@ Total Time: 40-70 hours per campaign
 Success Rate: 20-30% of campaigns profitable
 Monthly Capacity: 2-3 campaigns maximum
 
-Workflow WITH CampaignForge:
+Workflow WITH RodgersDigital:
 1. Finds new product to promote
-2. Pastes sales page URL into CampaignForge
+2. Pastes sales page URL into RodgersDigital
 3. AI analyzes page and generates campaign intelligence (2 minutes)
 4. Selects unique angle from AI suggestions (3 minutes)
 5. Reviews and customizes AI-generated email sequence (15 minutes)
@@ -94,7 +94,7 @@ Pain Points:
 ├── Limited to promoting easy products with provided swipes
 └── Wants to scale but constrained by time
 
-CampaignForge Solution:
+RodgersDigital Solution:
 ├── Professional campaigns in under 1 hour
 ├── No design or copywriting skills required
 ├── Unique content that stands out from competition
@@ -122,7 +122,7 @@ Current Problems:
 ├── Can't provide unique content to each affiliate
 └── Affiliate success rate is low (affects her sales)
 
-CampaignForge Creator Benefits:
+RodgersDigital Creator Benefits:
 ├── Affiliates create unique, high-quality promotions
 ├── No market saturation from identical content
 ├── Professional campaigns enhance brand reputation
@@ -164,10 +164,10 @@ What They Need:
 └── Advertising copy and creatives
 ```
 
-#### **Step 2: CampaignForge Analysis Input**
+#### **Step 2: RodgersDigital Analysis Input**
 ```
 User Interface Flow:
-1. Login to CampaignForge dashboard
+1. Login to RodgersDigital dashboard
 2. Click "Create New Campaign"
 3. Enter campaign details:
    ├── Campaign Name: "Productivity Course - ADHD Angle"
@@ -193,7 +193,7 @@ User Interface Flow:
 
 #### **Step 3: AI Intelligence Generation**
 ```
-CampaignForge Analysis Output:
+RodgersDigital Analysis Output:
 
 📊 PRODUCT INTELLIGENCE:
 ├── Product: "Ultimate Productivity System"
@@ -516,4 +516,4 @@ PRODUCT CREATORS (20% of initial focus):
 └── Network effects: Creators attract more affiliates
 ```
 
-**This clarified model positions CampaignForge as the essential tool that transforms affiliate marketing from a time-intensive, low-success-rate activity into a scalable, professional, high-conversion business system.** 🚀
+**This clarified model positions RodgersDigital as the essential tool that transforms affiliate marketing from a time-intensive, low-success-rate activity into a scalable, professional, high-conversion business system.** 🚀

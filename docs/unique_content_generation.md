@@ -418,7 +418,7 @@ With Template System:
 ├── Total: 500 sales over 4 months
 └── Customer complaint: "I've seen this 100 times"
 
-With CampaignForge Uniqueness:
+With RodgersDigital Uniqueness:
 ├── Month 1: 250 sales (25% conversion rate)
 ├── Month 2: 240 sales (24% conversion rate - sustained)
 ├── Month 3: 230 sales (23% conversion rate - slight decline)
@@ -596,4 +596,4 @@ VS MANUAL CREATION:
 "Get the uniqueness of custom content creation with the speed and quality of AI automation."
 ```
 
-**CampaignForge's commitment to 100% unique content generation transforms affiliate marketing from a race-to-market into a quality-based competition where every user has an equal opportunity to succeed with their authentic, personal voice.** 🚀
+**RodgersDigital's commitment to 100% unique content generation transforms affiliate marketing from a race-to-market into a quality-based competition where every user has an equal opportunity to succeed with their authentic, personal voice.** 🚀

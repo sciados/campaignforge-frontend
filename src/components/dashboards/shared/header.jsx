@@ -70,11 +70,11 @@ const Header = ({
               )}
             </div>
             <h1 className="text-xl font-bold text-gray-900">
-              {isAdmin ? 'Admin Portal' : 'CampaignForge'}
+              {isAdmin ? 'Admin Portal' : 'RodgersDigital'}
             </h1>
           </div>
           <div className="hidden md:flex items-center space-x-1 text-sm text-gray-500">
-            <span>{isAdmin ? 'CampaignForge' : 'Dashboard'}</span>
+            <span>{isAdmin ? 'RodgersDigital' : 'Dashboard'}</span>
             <span>/</span>
             <span className="text-gray-900">
               {isAdmin ? 'Administration' : 'Campaign Studio'}

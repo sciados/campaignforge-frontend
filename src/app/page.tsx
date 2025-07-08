@@ -38,7 +38,7 @@ export default function HomePage() {
               <div className="w-8 h-8 bg-black rounded-lg flex items-center justify-center">
                 <span className="text-white text-lg font-medium">C</span>
               </div>
-              <span className="text-xl font-semibold text-black">CampaignForge</span>
+              <span className="text-xl font-semibold text-black">RodgersDigital</span>
             </div>
             
             <div className="flex items-center space-x-6">

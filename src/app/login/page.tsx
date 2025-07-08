@@ -75,7 +75,7 @@ export default function LoginPage() {
           <h1 className="text-4xl font-light text-black mb-6 leading-tight">
             Welcome back to
             <br />
-            <span className="font-semibold">CampaignForge.</span>
+            <span className="font-semibold">RodgersDigital.</span>
           </h1>
           <p className="text-lg text-gray-600 leading-relaxed">
             Transform any content into complete marketing campaigns with AI-powered intelligence.

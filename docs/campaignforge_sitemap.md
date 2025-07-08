@@ -1,6 +1,6 @@
-# 🗺️ CampaignForge Frontend Sitemap
+# 🗺️ RodgersDigital Frontend Sitemap
 
-**Project:** CampaignForge Universal Campaign System  
+**Project:** RodgersDigital Universal Campaign System  
 **Architecture:** Input-Agnostic Content Generation Platform  
 **Generated:** June 19, 2025
 

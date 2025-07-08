@@ -1,6 +1,6 @@
 // src/types/index.ts
 /**
- * TypeScript types for CampaignForge frontend
+ * TypeScript types for RodgersDigital frontend
  * Matches backend models and API responses
  */
 

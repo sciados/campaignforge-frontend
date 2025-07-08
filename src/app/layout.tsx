@@ -17,7 +17,7 @@ export default function RootLayout({
   return (
     <html lang="en" className={inter.variable}>
       <head>
-        <title>CampaignForge</title>
+        <title>RodgersDigital</title>
         <meta name="description" content="Intelligent Campaign Creation Platform" />
       </head>
       <body className="font-inter antialiased bg-white text-black">

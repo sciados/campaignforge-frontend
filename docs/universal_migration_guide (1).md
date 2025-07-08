@@ -1,4 +1,4 @@
-# 🚀 CampaignForge Universal System Migration Guide
+# 🚀 RodgersDigital Universal System Migration Guide
 
 **Goal**: Transform your existing campaign system to remove type restrictions and implement the universal input-agnostic architecture.
 

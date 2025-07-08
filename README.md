@@ -1,4 +1,4 @@
-# CampaignForge AI - Frontend
+# RodgersDigital AI - Frontend
 
 Multimedia Campaign Creation Platform - Next.js Frontend
 

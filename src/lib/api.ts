@@ -1,6 +1,6 @@
 // src/lib/api.ts - CLEAN AND PROPERLY ORGANIZED VERSION
 /**
- * Enhanced API client for CampaignForge with PostgreSQL ClickBank integration
+ * Enhanced API client for RodgersDigital with PostgreSQL ClickBank integration
  */
 
 const API_BASE_URL = 'https://campaign-backend-production-e2db.up.railway.app'

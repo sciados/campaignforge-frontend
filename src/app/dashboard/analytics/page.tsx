@@ -265,7 +265,7 @@ export default function CampaignDashboard() {
                 <Sparkles className="w-5 h-5 text-white" />
               </div>
               <div>
-                <h1 className="text-xl font-semibold text-black">CampaignForge</h1>
+                <h1 className="text-xl font-semibold text-black">RodgersDigital</h1>
                 <p className="text-sm text-gray-600 hidden md:block">Campaign Analytics</p>
               </div>
             </div>
