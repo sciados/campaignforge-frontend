@@ -2,9 +2,24 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation'
-import { Users, Building2, Target, DollarSign, TrendingUp, Search, Filter, Edit, Trash2, Eye, BarChart3, Settings, Database, Activity, Shield, Sparkles } from 'lucide-react';
+import { Users, Building2, Target, DollarSign, TrendingUp, Search, Filter, Edit, Trash2, Eye, BarChart3, Settings, Database, Activity, Shield, Sparkles, Image as ImageIcon } from 'lucide-react';
 import UserEditModal from '@/components/admin/UserEditModal';
 import CompanyEditModal from '@/components/admin/CompanyEditModal';
+// Optional imports - handle gracefully if components don't exist
+let StorageMonitoring: React.ComponentType | null = null;
+let ImageGenerationMonitoring: React.ComponentType | null = null;
+
+try {
+  StorageMonitoring = require('@/app/admin/components/StorageMonitoring').default;
+} catch (error) {
+  console.log('StorageMonitoring component not found');
+}
+
+try {
+  ImageGenerationMonitoring = require('@/app/admin/components/ImageGenerationMonitoring').default;
+} catch (error) {
+  console.log('ImageGenerationMonitoring component not found');
+}
 
 // Force this page to never be statically rendered
 export const dynamic = 'force-dynamic'
@@ -373,9 +388,11 @@ export default function AdminPage() {
               { id: 'users', label: 'User Management', icon: 'Users', active: activeTab === 'users' },
               { id: 'companies', label: 'Company Management', icon: 'Building2', active: activeTab === 'companies' },
               { id: 'campaigns', label: 'Campaign Manager', icon: 'Target', onClick: () => router.push('/campaigns') },
-              { id: 'revenue', label: 'Revenue Analytics', icon: 'DollarSign' },
-              { id: 'system', label: 'System Health', icon: 'Database' },
-              { id: 'settings', label: 'Platform Settings', icon: 'Settings' },
+              { id: 'storage', label: 'Storage Monitoring', icon: 'Database', active: activeTab === 'storage' },
+              { id: 'images', label: 'AI Image Generation', icon: 'ImageIcon', active: activeTab === 'images' },
+              { id: 'analytics', label: 'Analytics', icon: 'Activity', active: activeTab === 'analytics' },
+              { id: 'revenue', label: 'Revenue Analytics', icon: 'DollarSign', active: activeTab === 'revenue' },
+              { id: 'settings', label: 'Platform Settings', icon: 'Settings', active: activeTab === 'settings' },
             ].map((item) => (
               <button
                 key={item.id}
@@ -399,8 +416,10 @@ export default function AdminPage() {
                   {item.icon === 'Users' && <Users className="w-5 h-5" />}
                   {item.icon === 'Building2' && <Building2 className="w-5 h-5" />}
                   {item.icon === 'Target' && <Target className="w-5 h-5" />}
-                  {item.icon === 'DollarSign' && <DollarSign className="w-5 h-5" />}
                   {item.icon === 'Database' && <Database className="w-5 h-5" />}
+                  {item.icon === 'ImageIcon' && <ImageIcon className="w-5 h-5" />}
+                  {item.icon === 'Activity' && <Activity className="w-5 h-5" />}
+                  {item.icon === 'DollarSign' && <DollarSign className="w-5 h-5" />}
                   {item.icon === 'Settings' && <Settings className="w-5 h-5" />}
                 </div>
                 <span className="font-medium">{item.label}</span>
@@ -812,6 +831,119 @@ export default function AdminPage() {
                       ))}
                     </tbody>
                   </table>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Storage Monitoring */}
+          {activeTab === 'storage' && (
+            <div className="space-y-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-2xl font-bold text-gray-900">Storage Monitoring</h2>
+                  <p className="text-gray-600">Monitor storage usage and file management across the platform.</p>
+                </div>
+              </div>
+              {StorageMonitoring ? (
+                <StorageMonitoring />
+              ) : (
+                <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8">
+                  <div className="text-center">
+                    <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                      <Database className="w-8 h-8 text-gray-400" />
+                    </div>
+                    <h3 className="text-lg font-semibold text-gray-900 mb-2">Storage Monitoring</h3>
+                    <p className="text-gray-600">Storage monitoring component is not available.</p>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* AI Image Generation */}
+          {activeTab === 'images' && (
+            <div className="space-y-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-2xl font-bold text-gray-900">AI Image Generation</h2>
+                  <p className="text-gray-600">Monitor AI image generation usage and performance.</p>
+                </div>
+              </div>
+              {ImageGenerationMonitoring ? (
+                <ImageGenerationMonitoring />
+              ) : (
+                <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8">
+                  <div className="text-center">
+                    <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                      <ImageIcon className="w-8 h-8 text-blue-600" />
+                    </div>
+                    <h3 className="text-lg font-semibold text-gray-900 mb-2">AI Image Generation</h3>
+                    <p className="text-gray-600">Image generation monitoring component is not available.</p>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Analytics */}
+          {activeTab === 'analytics' && (
+            <div className="space-y-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-2xl font-bold text-gray-900">Analytics</h2>
+                  <p className="text-gray-600">Advanced analytics and reporting features.</p>
+                </div>
+              </div>
+              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8">
+                <div className="text-center">
+                  <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <Activity className="w-8 h-8 text-gray-400" />
+                  </div>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2">Analytics Coming Soon</h3>
+                  <p className="text-gray-600">Advanced analytics and reporting features will be available here.</p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Revenue Analytics */}
+          {activeTab === 'revenue' && (
+            <div className="space-y-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-2xl font-bold text-gray-900">Revenue Analytics</h2>
+                  <p className="text-gray-600">Track revenue, subscriptions, and financial metrics.</p>
+                </div>
+              </div>
+              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8">
+                <div className="text-center">
+                  <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <DollarSign className="w-8 h-8 text-green-600" />
+                  </div>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2">Revenue Analytics Coming Soon</h3>
+                  <p className="text-gray-600">Detailed revenue tracking and financial reporting features.</p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Platform Settings */}
+          {activeTab === 'settings' && (
+            <div className="space-y-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-2xl font-bold text-gray-900">Platform Settings</h2>
+                  <p className="text-gray-600">Configure system settings and preferences.</p>
+                </div>
+              </div>
+              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8">
+                <div className="text-center">
+                  <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <Settings className="w-8 h-8 text-gray-400" />
+                  </div>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2">Settings Coming Soon</h3>
+                  <p className="text-gray-600">System configuration and platform preferences will be available here.</p>
                 </div>
               </div>
             </div>
