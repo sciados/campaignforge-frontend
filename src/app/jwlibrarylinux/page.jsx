@@ -423,11 +423,14 @@ export default function JWLibraryLinuxWelcome() {
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="bg-gray-50 py-16 px-6">
-  <div className="max-w-6xl mx-auto">
-    <div className="grid md:grid-cols-3 gap-12 mb-12 w-max mx-auto">
+
+  {/* Footer Grid */}
+  <section className="py-20 px-6">
+    <div className="max-w-6xl mx-auto grid md:grid-cols-3 gap-12">
       <div>
+        <h2 className="text-4xl md:text-5xl font-light text-black text-center mb-16 tracking-tight">
+          © 2025 RodgersDigital.
+        </h2>
         <div className="flex items-center space-x-3 mb-4">
           <div className="w-8 h-8 bg-black rounded-lg flex items-center justify-center">
             <span className="text-white font-semibold text-sm">RD</span>
@@ -457,15 +460,13 @@ export default function JWLibraryLinuxWelcome() {
           <li>Free to use</li>
         </ul>
       </div>
-    </div>
-
-    <div className="border-t border-gray-200 pt-8 text-center">
+      <div className="border-t border-gray-200 pt-8 text-center">
       <p className="text-gray-500 font-light">
         © 2025 RodgersDigital. This tool is provided free of charge to the brothers.
       </p>
+      </div>
     </div>
+  </section>
   </div>
-</footer>
-    </div>
   );
 }
