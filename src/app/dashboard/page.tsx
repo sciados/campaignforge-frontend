@@ -30,7 +30,7 @@ interface CompanyStats {
   monthly_credits_used: number
   monthly_credits_limit: number
   credits_remaining: number
-  total_campaigns: number
+  total_campaigns_created: number
   active_campaigns: number
   team_members: number
   campaigns_this_month: number
@@ -77,7 +77,7 @@ export default function DashboardPage() {
             monthly_credits_used: userData.company.monthly_credits_used,
             monthly_credits_limit: userData.company.monthly_credits_limit,
             credits_remaining: userData.company.monthly_credits_limit - userData.company.monthly_credits_used,
-            total_campaigns: 12,
+            total_campaigns_created: 12,
             active_campaigns: 4,
             team_members: 3,
             campaigns_this_month: 5,
@@ -248,7 +248,7 @@ export default function DashboardPage() {
                     <Target className="w-6 h-6 text-black" />
                   </div>
                   <div className="space-y-1">
-                    <p className="text-2xl font-semibold text-black">{stats.total_campaigns}</p>
+                    <p className="text-2xl font-semibold text-black">{stats.total_campaigns_created}</p>
                     <p className="text-sm text-gray-600">Total Campaigns</p>
                     <p className="text-sm text-green-600">+{stats.campaigns_this_month} this month</p>
                   </div>
@@ -368,10 +368,10 @@ export default function DashboardPage() {
                     <Target className="h-8 w-8 text-gray-400" />
                   </div>
                   <h4 className="text-lg font-semibold text-black mb-2">
-                    {stats && stats.total_campaigns > 0 ? 'View Your Campaigns' : 'No campaigns yet'}
+                    {stats && stats.total_campaigns_created > 0 ? 'View Your Campaigns' : 'No campaigns yet'}
                   </h4>
                   <p className="text-gray-600 mb-6">
-                    {stats && stats.total_campaigns > 0 ? 
+                    {stats && stats.total_campaigns_created > 0 ? 
                       'Go to the campaigns page to see all your campaigns' : 
                       'Create your first campaign to get started'
                     }
@@ -380,7 +380,7 @@ export default function DashboardPage() {
                     onClick={() => router.push('/campaigns')}
                     className="bg-black text-white px-6 py-3 rounded-lg font-medium hover:bg-gray-900 transition-colors"
                   >
-                    {stats && stats.total_campaigns > 0 ? 'View Campaigns' : 'Create Campaign'}
+                    {stats && stats.total_campaigns_created > 0 ? 'View Campaigns' : 'Create Campaign'}
                   </button>
                 </div>
               </div>

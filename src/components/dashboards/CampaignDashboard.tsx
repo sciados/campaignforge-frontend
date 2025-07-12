@@ -27,7 +27,7 @@ interface CompanyStats {
   monthly_credits_used: number
   monthly_credits_limit: number
   credits_remaining: number
-  total_campaigns: number
+  total_campaigns_created: number
   active_campaigns: number
   team_members: number
   campaigns_this_month: number
@@ -85,10 +85,10 @@ export default function DashboardPage() {
                 monthly_credits_used: campaignStats.credits_used_this_month || userData.company.monthly_credits_used,
                 monthly_credits_limit: userData.company.monthly_credits_limit,
                 credits_remaining: campaignStats.credits_remaining || (userData.company.monthly_credits_limit - userData.company.monthly_credits_used),
-                total_campaigns: campaignStats.total_campaigns || 0,
+                total_campaigns_created: campaignStats.total_campaigns_created || 0,
                 active_campaigns: campaignStats.active_campaigns || 0,
                 team_members: 1, // Default for now
-                campaigns_this_month: campaignStats.total_campaigns || 0, // Simplified for now
+                campaigns_this_month: campaignStats.total_campaigns_created || 0, // Simplified for now
                 usage_percentage: userData.company.monthly_credits_limit > 0 ? 
                   (userData.company.monthly_credits_used / userData.company.monthly_credits_limit * 100) : 0
               }
@@ -102,7 +102,7 @@ export default function DashboardPage() {
                 monthly_credits_used: userData.company.monthly_credits_used,
                 monthly_credits_limit: userData.company.monthly_credits_limit,
                 credits_remaining: userData.company.monthly_credits_limit - userData.company.monthly_credits_used,
-                total_campaigns: 0,
+                total_campaigns_created: 0,
                 active_campaigns: 0,
                 team_members: 1,
                 campaigns_this_month: 0,
@@ -122,7 +122,7 @@ export default function DashboardPage() {
               monthly_credits_used: userData.company.monthly_credits_used,
               monthly_credits_limit: userData.company.monthly_credits_limit,
               credits_remaining: userData.company.monthly_credits_limit - userData.company.monthly_credits_used,
-              total_campaigns: 0,
+              total_campaigns_created: 0,
               active_campaigns: 0,
               team_members: 1,
               campaigns_this_month: 0,
@@ -300,7 +300,7 @@ export default function DashboardPage() {
                 <div>
                   <div className="flex justify-between text-xs text-gray-600 mb-1">
                     <span>Campaigns</span>
-                    <span>{stats.total_campaigns}</span>
+                    <span>{stats.total_campaigns_created}</span>
                   </div>
                   <div className="text-xs text-gray-500">
                     {stats.active_campaigns} active
@@ -348,7 +348,7 @@ export default function DashboardPage() {
                     </div>
                     <div className="ml-4">
                       <p className="text-sm font-medium text-gray-600">Total Campaigns</p>
-                      <p className="text-2xl font-bold text-gray-900">{stats.total_campaigns}</p>
+                      <p className="text-2xl font-bold text-gray-900">{stats.total_campaigns_created}</p>
                     </div>
                   </div>
                   <div className="mt-4 flex items-center text-sm">
@@ -507,10 +507,10 @@ export default function DashboardPage() {
                 <div className="text-center py-8 text-gray-500">
                   <Target className="h-12 w-12 mx-auto mb-4 text-gray-300" />
                   <p className="text-lg font-medium text-gray-900 mb-2">
-                    {stats && stats.total_campaigns > 0 ? 'View Your Campaigns' : 'No campaigns yet'}
+                    {stats && stats.total_campaigns_created > 0 ? 'View Your Campaigns' : 'No campaigns yet'}
                   </p>
                   <p className="text-sm text-gray-500">
-                    {stats && stats.total_campaigns > 0 ? 
+                    {stats && stats.total_campaigns_created > 0 ? 
                       'Go to the campaigns page to see all your campaigns' : 
                       'Create your first campaign to get started!'
                     }
@@ -519,7 +519,7 @@ export default function DashboardPage() {
                     onClick={handleNavigateToCampaigns}
                     className="mt-4 px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
                   >
-                    {stats && stats.total_campaigns > 0 ? 'View Campaigns' : 'Create Campaign'}
+                    {stats && stats.total_campaigns_created > 0 ? 'View Campaigns' : 'Create Campaign'}
                   </button>
                 </div>
               </div>

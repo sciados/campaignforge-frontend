@@ -26,7 +26,7 @@ interface Campaign {
 }
 
 interface DashboardStats {
-  total_campaigns: number
+  total_campaigns_created: number
   active_campaigns: number
   draft_campaigns: number
   completed_campaigns: number
@@ -119,7 +119,7 @@ export default function ContentLibraryDashboard() {
         
         // Transform dashboard stats to match our interface
         const transformedStats: DashboardStats = {
-          total_campaigns: statsData.total_campaigns || 0,
+          total_campaigns_created: statsData.total_campaigns_created || 0,
           active_campaigns: statsData.active_campaigns || 0,
           draft_campaigns: 0, // Will be calculated from campaigns
           completed_campaigns: 0, // Will be calculated from campaigns
@@ -306,7 +306,7 @@ export default function ContentLibraryDashboard() {
                 </div>
               </div>
               <div className="text-sm text-gray-500">
-                Across {stats.total_campaigns} campaigns
+                Across {stats.total_campaigns_created} campaigns
               </div>
             </div>
 

@@ -32,7 +32,7 @@ export const runtime = 'edge'
 interface AdminStats {
   total_users: number;
   total_companies: number;
-  total_campaigns: number;
+  total_campaigns_created: number;
   monthly_recurring_revenue: number;
   subscription_breakdown: Record<string, number>;
 }
@@ -570,7 +570,7 @@ You're receiving this because you joined our waitlist.`;
                   <span>{formatCurrency(stats.monthly_recurring_revenue)}</span>
                 </div>
                 <div className="text-xs text-gray-500">
-                  {stats.total_campaigns} campaigns
+                  {stats.total_campaigns_created} campaigns
                 </div>
               </div>
             </div>

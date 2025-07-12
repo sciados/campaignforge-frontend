@@ -56,7 +56,7 @@ export interface Company {
   subscription_status: 'active' | 'inactive' | 'trial' | 'cancelled';
   monthly_credits_used: number;
   monthly_credits_limit: number;
-  total_campaigns: number;
+  total_campaigns_created: number;
   created_at: string;
   updated_at: string;
 }
@@ -264,7 +264,7 @@ export interface CompanyStatsResponse {
   monthly_credits_used: number;
   monthly_credits_limit: number;
   credits_remaining: number;
-  total_campaigns: number;
+  total_campaigns_created: number;
   active_campaigns: number;
   team_members: number;
   campaigns_this_month: number;

@@ -161,7 +161,7 @@ export const UserTierProvider = ({ children }) => {
           aiTokens: profileData.company?.monthly_credits_used || 0,
           videoInputs: 0, // TODO: Track this in backend
           aiImages: 0,    // TODO: Track this in backend
-          campaigns: profileData.company?.total_campaigns || 0,
+          campaigns: profileData.company?.total_campaigns_created || 0,
           socialGraphics: 0, // TODO: Track this in backend
           aiVideos: 0     // TODO: Track this in backend
         });

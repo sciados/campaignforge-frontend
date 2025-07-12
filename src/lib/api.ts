@@ -1329,7 +1329,7 @@ class ApiClient {
   // ============================================================================
 
   async getDashboardStats(): Promise<{
-    total_campaigns: number
+    total_campaigns_created: number
     active_campaigns: number
     draft_campaigns: number
     completed_campaigns: number
@@ -1349,7 +1349,7 @@ class ApiClient {
   }
 
   async getCampaignStats(): Promise<{
-    total_campaigns: number
+    total_campaigns_created: number
     active_campaigns: number
     draft_campaigns: number
     completed_campaigns: number
@@ -1370,7 +1370,7 @@ class ApiClient {
     monthly_credits_used: number
     monthly_credits_limit: number
     credits_remaining: number
-    total_campaigns: number
+    total_campaigns_created: number
     active_campaigns: number
     team_members: number
     campaigns_this_month: number
