@@ -2,10 +2,12 @@
 
 import { useEffect, useState } from 'react'
 import { useForm, ValidationError } from '@formspree/react'
+import { WaitlistForm } from '@/components/WaitlistForm'
+import type { WaitlistJoinResponse } from '@/lib/waitlist-api'
 
 export const dynamic = 'force-dynamic'
 
-// Contact Form Component
+// Contact Form Component (unchanged)
 function ContactForm() {
   const [state, handleSubmit] = useForm("xnnveeor")
   
@@ -75,8 +77,6 @@ function ContactForm() {
 
 export default function ComingSoonPage() {
   const [mounted, setMounted] = useState(false)
-  const [email, setEmail] = useState('')
-  const [isSubmitted, setIsSubmitted] = useState(false)
   const [timeLeft, setTimeLeft] = useState({
     days: 0,
     hours: 0,
@@ -107,12 +107,31 @@ export default function ComingSoonPage() {
     return () => clearInterval(timer)
   }, [launchDate])
 
-  const handleEmailSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    // Here you would typically send the email to your backend
-    console.log('Email submitted:', email)
-    setIsSubmitted(true)
-    setEmail('')
+  // ✅ NEW: Handle waitlist success with analytics
+  const handleWaitlistSuccess = (result: WaitlistJoinResponse) => {
+    console.log('User joined waitlist:', result)
+    
+    // Optional: Track analytics
+    if (typeof window !== 'undefined' && (window as any).gtag) {
+      (window as any).gtag('event', 'waitlist_join', {
+        event_category: 'engagement',
+        event_label: 'coming_soon_page',
+        value: result.position
+      })
+    }
+  }
+
+  // ✅ NEW: Handle waitlist errors
+  const handleWaitlistError = (error: string) => {
+    console.error('Waitlist error:', error)
+    
+    // Optional: Track error analytics
+    if (typeof window !== 'undefined' && (window as any).gtag) {
+      (window as any).gtag('event', 'waitlist_error', {
+        event_category: 'error',
+        event_label: error
+      })
+    }
   }
 
   if (!mounted) {
@@ -192,38 +211,21 @@ export default function ComingSoonPage() {
             </div>
           </div>
 
-          {/* Email Signup */}
+          {/* ✅ UPDATED: Database-Powered Waitlist */}
           <div className="mb-16">
             <h3 className="text-2xl font-medium text-black mb-4">Be the first to know</h3>
             <p className="text-gray-600 mb-8 max-w-lg mx-auto">
               Join our waitlist and get early access when we launch.
             </p>
             
-            {!isSubmitted ? (
-              <form onSubmit={handleEmailSubmit} className="flex flex-col sm:flex-row gap-4 justify-center max-w-md mx-auto">
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="Enter your email"
-                  required
-                  className="flex-1 bg-gray-100 border-none rounded-xl px-6 py-4 text-black placeholder-gray-500 focus:outline-none focus:bg-white focus:ring-3 focus:ring-blue-500/20 transition-all"
-                />
-                <button
-                  type="submit"
-                  className="bg-black text-white px-8 py-4 rounded-xl font-medium hover:bg-gray-900 transition-all whitespace-nowrap"
-                >
-                  Join Waitlist
-                </button>
-              </form>
-            ) : (
-              <div className="bg-green-50 border border-green-200 rounded-xl p-6 max-w-md mx-auto">
-                <div className="text-green-700 font-medium mb-2">✅ You&apos;re on the list!</div>
-                <div className="text-green-600 text-sm">
-                  We&apos;ll notify you as soon as we launch.
-                </div>
-              </div>
-            )}
+            <WaitlistForm 
+              referrer="coming-soon-page"
+              showPosition={true}
+              successMessage="We'll notify you as soon as we launch!"
+              onSuccess={handleWaitlistSuccess}
+              onError={handleWaitlistError}
+              className="max-w-md mx-auto"
+            />
           </div>
 
           {/* Features Preview */}
@@ -321,7 +323,7 @@ export default function ComingSoonPage() {
           </div>
         </div>
 
-        {/* Contact Section */}
+        {/* Contact Section - Unchanged */}
         <div className="bg-white py-24">
           <div className="max-w-4xl mx-auto px-6">
             <div className="text-center mb-16">
@@ -339,7 +341,7 @@ export default function ComingSoonPage() {
           </div>
         </div>
 
-        {/* Footer */}
+        {/* Footer - Unchanged */}
         <footer className="py-16 px-6 bg-white border-t border-gray-200">
           <div className="max-w-4xl mx-auto text-center">
             <div className="flex items-center justify-center space-x-2 mb-6">
