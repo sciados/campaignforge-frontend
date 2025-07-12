@@ -425,47 +425,47 @@ export default function JWLibraryLinuxWelcome() {
 
       {/* Footer */}
       <footer className="bg-gray-50 py-16 px-6">
-        <div className="max-w-6xl mx-auto">
-          <div className="grid md:grid-cols-3 gap-12 mb-12">
-            <div>
-              <div className="flex items-center space-x-3 mb-4">
-                <div className="w-8 h-8 bg-black rounded-lg flex items-center justify-center">
-                  <span className="text-white font-semibold text-sm">RD</span>
-                </div>
-                <span className="text-xl font-semibold text-black">RodgersDigital</span>
-              </div>
-              <p className="text-gray-600 font-light leading-relaxed">
-                Creating useful tools and solutions for developers and technology enthusiasts worldwide.
-              </p>
-            </div>
-            
-            <div>
-              <h4 className="text-black font-medium mb-4">Useful Links</h4>
-              <ul className="space-y-3">
-                <li><a href="/jwlibrarylinuxinstaller" className="text-gray-600 hover:text-black transition-colors duration-200 font-light">Installation Tool</a></li>
-                <li><a href="https://rodgersdigital.com" className="text-gray-600 hover:text-black transition-colors duration-200 font-light">Main Website</a></li>
-                <li><a href="mailto:support@rodgersdigital.com" className="text-gray-600 hover:text-black transition-colors duration-200 font-light">Get Support</a></li>
-              </ul>
-            </div>
-            
-            <div>
-              <h4 className="text-black font-medium mb-4">About This Tool</h4>
-              <ul className="space-y-2 text-gray-600 font-light">
-                <li>Open source approach</li>
-                <li>Community driven</li>
-                <li>Regularly updated</li>
-                <li>Free to use</li>
-              </ul>
-            </div>
+  <div className="max-w-6xl mx-auto">
+    <div className="grid md:grid-cols-3 gap-12 mb-12 w-max mx-auto">
+      <div>
+        <div className="flex items-center space-x-3 mb-4">
+          <div className="w-8 h-8 bg-black rounded-lg flex items-center justify-center">
+            <span className="text-white font-semibold text-sm">RD</span>
           </div>
-          
-          <div className="border-t border-gray-200 pt-8 text-center">
-            <p className="text-gray-500 font-light">
-              © 2025 RodgersDigital. This tool is provided free of charge to the brothers.
-            </p>
-          </div>
+          <span className="text-xl font-semibold text-black">RodgersDigital</span>
         </div>
-      </footer>
+        <p className="text-gray-600 font-light leading-relaxed">
+          Creating useful tools and solutions for developers and technology enthusiasts worldwide.
+        </p>
+      </div>
+
+      <div>
+        <h4 className="text-black font-medium mb-4">Useful Links</h4>
+        <ul className="space-y-3">
+          <li><a href="/jwlibrarylinuxinstaller" className="text-gray-600 hover:text-black transition-colors duration-200 font-light">Installation Tool</a></li>
+          <li><a href="https://rodgersdigital.com" className="text-gray-600 hover:text-black transition-colors duration-200 font-light">Main Website</a></li>
+          <li><a href="mailto:support@rodgersdigital.com" className="text-gray-600 hover:text-black transition-colors duration-200 font-light">Get Support</a></li>
+        </ul>
+      </div>
+
+      <div>
+        <h4 className="text-black font-medium mb-4">About This Tool</h4>
+        <ul className="space-y-2 text-gray-600 font-light">
+          <li>Open source approach</li>
+          <li>Community driven</li>
+          <li>Regularly updated</li>
+          <li>Free to use</li>
+        </ul>
+      </div>
+    </div>
+
+    <div className="border-t border-gray-200 pt-8 text-center">
+      <p className="text-gray-500 font-light">
+        © 2025 RodgersDigital. This tool is provided free of charge to the brothers.
+      </p>
+    </div>
+  </div>
+</footer>
     </div>
   );
 }
