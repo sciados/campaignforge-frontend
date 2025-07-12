@@ -1,4 +1,4 @@
-// pages/api/download-jwlibrary-installer.js (or app/api/download-jwlibrary-installer/route.js for App Router)
+// app/api/download-jwlibrary-installer/route.js
 
 const scriptContent = `#!/bin/bash
 
@@ -17,7 +17,7 @@ WINE_PREFIX="$INSTALL_DIR/wine"
 DESKTOP_FILE="$HOME/.local/share/applications/jwlibrary.desktop"
 ICON_FILE="$INSTALL_DIR/jwlibrary.png"
 LOG_FILE="$INSTALL_DIR/wrapper.log"
-JW_LIBRARY_URL="https://download.jw.org/files/media_windows/JWLibrary_Windows.exe"
+JW_LIBRARY_URL="https://cfp2.jw-cdn.org/a/339b6d/1/o/ly_E.exe"
 
 # Colors for output
 RED='\\033[0;31m'
@@ -397,23 +397,6 @@ case "\${1:-}" in
         ;;
 esac`;
 
-// For Pages Router (pages/api/)
-export default function handler(req, res) {
-  if (req.method !== 'GET') {
-    return res.status(405).json({ message: 'Method not allowed' });
-  }
-
-  // Set headers for file download
-  res.setHeader('Content-Type', 'application/x-sh');
-  res.setHeader('Content-Disposition', 'attachment; filename="jwlibrary-wrapper.sh"');
-  res.setHeader('Cache-Control', 'no-cache');
-  
-  // Send the script content
-  res.status(200).send(scriptContent);
-}
-
-// For App Router (app/api/ - uncomment below and comment above)
-/*
 export async function GET() {
   return new Response(scriptContent, {
     headers: {
@@ -423,4 +406,3 @@ export async function GET() {
     },
   });
 }
-*/

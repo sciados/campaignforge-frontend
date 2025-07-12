@@ -1,7 +1,9 @@
-// pages/jwlibrarylinuxinstaller.js (or app/jwlibrarylinuxinstaller/page.js for App Router)
+// app/jwlibrarylinuxinstaller/page.js
+
+'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import Head from 'next/head';
+import { Metadata } from 'next';
 
 export default function JWLibraryLinuxInstaller() {
   const [activeTab, setActiveTab] = useState('upload');
@@ -25,7 +27,7 @@ WINE_PREFIX="$INSTALL_DIR/wine"
 DESKTOP_FILE="$HOME/.local/share/applications/jwlibrary.desktop"
 ICON_FILE="$INSTALL_DIR/jwlibrary.png"
 LOG_FILE="$INSTALL_DIR/wrapper.log"
-JW_LIBRARY_URL="https://download.jw.org/files/media_windows/JWLibrary_Windows.exe"
+JW_LIBRARY_URL="https://cfp2.jw-cdn.org/a/339b6d/1/o/ly_E.exe"
 
 # Colors for output
 RED='\\033[0;31m'
@@ -482,15 +484,6 @@ esac`;
 
   return (
     <>
-      <Head>
-        <title>JW Library Linux Installer - Rodgers Digital</title>
-        <meta name="description" content="Easy installation of JW Library on any Linux distribution. One-click installer script for Ubuntu, Mint, Fedora, and Arch Linux." />
-        <meta name="keywords" content="JW Library, Linux, installer, Wine, Ubuntu, Mint, Fedora, Arch" />
-        <meta property="og:title" content="JW Library Linux Installer" />
-        <meta property="og:description" content="Easy installation of JW Library on any Linux distribution" />
-        <meta property="og:type" content="website" />
-      </Head>
-
       <div className="min-h-screen bg-gradient-to-br from-blue-500 via-purple-600 to-purple-800 py-12 px-4">
         <div className="max-w-4xl mx-auto bg-white rounded-3xl shadow-2xl overflow-hidden">
           {/* Header with gradient border */}
@@ -659,9 +652,9 @@ esac`;
                     <div>
                       <h3 className="text-xl font-semibold text-gray-800 mb-4">4. Download and Install JW Library</h3>
                       <div className="bg-gray-800 text-green-400 p-4 rounded-lg font-mono text-sm overflow-x-auto">
-                        wget -O JWLibrary_installer.exe https://download.jw.org/files/media_windows/JWLibrary_Windows.exe<br/>
+                        wget -O JWLibrary_installer.exe https://cfp2.jw-cdn.org/a/339b6d/1/o/ly_E.exe<br/>
                         wine JWLibrary_installer.exe
-                        <CopyButton text={`wget -O JWLibrary_installer.exe https://download.jw.org/files/media_windows/JWLibrary_Windows.exe\nwine JWLibrary_installer.exe`} />
+                        <CopyButton text={`wget -O JWLibrary_installer.exe https://cfp2.jw-cdn.org/a/339b6d/1/o/ly_E.exe\nwine JWLibrary_installer.exe`} />
                       </div>
                     </div>
                   </div>
@@ -723,18 +716,18 @@ esac`;
               </div>
             )}
           </div>
+        </div>
 
-          {/* Footer */}
-          <div className="bg-gray-50 border-t px-8 py-6">
-            <div className="flex flex-col md:flex-row justify-between items-center">
-              <div className="text-gray-600 text-sm mb-4 md:mb-0">
-                © 2025 Rodgers Digital. This tool is provided free of charge.
-              </div>
-              <div className="flex space-x-4 text-sm">
-                <span className="text-gray-500">v1.0</span>
-                <span className="text-gray-400">•</span>
-                <span className="text-gray-500">Keyboard shortcuts: Ctrl+D (download), 1-3 (tabs)</span>
-              </div>
+        {/* Footer */}
+        <div className="bg-gray-50 border-t px-8 py-6">
+          <div className="flex flex-col md:flex-row justify-between items-center">
+            <div className="text-gray-600 text-sm mb-4 md:mb-0">
+              © 2025 Rodgers Digital. This tool is provided free of charge.
+            </div>
+            <div className="flex space-x-4 text-sm">
+              <span className="text-gray-500">v1.0</span>
+              <span className="text-gray-400">•</span>
+              <span className="text-gray-500">Keyboard shortcuts: Ctrl+D (download), 1-3 (tabs)</span>
             </div>
           </div>
         </div>
