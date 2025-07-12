@@ -5,10 +5,64 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { RefreshCw, AlertCircle, CheckCircle, TrendingUp, DollarSign } from 'lucide-react';
 
+// Type definitions
+interface SystemHealth {
+  overall_status: 'healthy' | 'degraded' | 'unhealthy';
+}
+
+interface ProviderStatus {
+  status: 'healthy' | 'degraded' | 'unhealthy';
+}
+
+interface ProviderDetails {
+  cloudflare_r2: ProviderStatus;
+  backblaze_b2: ProviderStatus;
+}
+
+interface HealthData {
+  system_health: SystemHealth;
+  provider_details: ProviderDetails;
+}
+
+interface FailoverStatistics {
+  uptime_percentage: number;
+  total_assets: number;
+  total_failover_events: number;
+  reliability_score: number;
+}
+
+interface FailoverData {
+  failover_statistics: FailoverStatistics;
+}
+
+interface CostAnalysis {
+  current_storage_cost_monthly: number;
+  savings_vs_aws_s3: number;
+}
+
+interface UsageStats {
+  total_size_gb: number;
+}
+
+interface ContentDistribution {
+  by_count: Record<string, number>;
+  by_size_mb: Record<string, number>;
+}
+
+interface UsageStatistics {
+  stats: UsageStats;
+  cost_analysis: CostAnalysis;
+  content_distribution: ContentDistribution;
+}
+
+interface UsageData {
+  usage_statistics: UsageStatistics;
+}
+
 const StorageMonitoring = () => {
-  const [healthData, setHealthData] = useState(null);
-  const [failoverStats, setFailoverStats] = useState(null);
-  const [usageStats, setUsageStats] = useState(null);
+  const [healthData, setHealthData] = useState<HealthData | null>(null);
+  const [failoverStats, setFailoverStats] = useState<FailoverData | null>(null);
+  const [usageStats, setUsageStats] = useState<UsageData | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -36,7 +90,7 @@ const StorageMonitoring = () => {
     }
   };
 
-  const getStatusColor = (status: any) => {
+  const getStatusColor = (status: string | undefined) => {
     switch (status) {
       case 'healthy': return 'bg-green-500';
       case 'degraded': return 'bg-yellow-500';
@@ -71,7 +125,7 @@ const StorageMonitoring = () => {
                 <span className="font-medium">Overall Status</span>
               </div>
               <Badge variant={healthData?.system_health?.overall_status === 'healthy' ? 'success' : 'destructive'}>
-                {healthData?.system_health?.overall_status?.toUpperCase()}
+                {healthData?.system_health?.overall_status?.toUpperCase() || 'UNKNOWN'}
               </Badge>
             </div>
 
@@ -106,7 +160,7 @@ const StorageMonitoring = () => {
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div className="text-center">
               <div className="text-2xl font-bold text-green-600">
-                {failoverStats?.failover_statistics?.uptime_percentage?.toFixed(2) || 0}%
+                {failoverStats?.failover_statistics?.uptime_percentage?.toFixed(2) || '0.00'}%
               </div>
               <p className="text-sm text-gray-600">Uptime</p>
             </div>
@@ -124,7 +178,7 @@ const StorageMonitoring = () => {
             </div>
             <div className="text-center">
               <div className="text-2xl font-bold text-blue-600">
-                {failoverStats?.failover_statistics?.reliability_score?.toFixed(1) || 0}
+                {failoverStats?.failover_statistics?.reliability_score?.toFixed(1) || '0.0'}
               </div>
               <p className="text-sm text-gray-600">Reliability Score</p>
             </div>
@@ -150,13 +204,13 @@ const StorageMonitoring = () => {
             </div>
             <div className="space-y-2">
               <div className="text-lg font-semibold text-green-600">
-                ${usageStats?.usage_statistics?.cost_analysis?.current_storage_cost_monthly?.toFixed(4) || 0}
+                ${usageStats?.usage_statistics?.cost_analysis?.current_storage_cost_monthly?.toFixed(4) || '0.0000'}
               </div>
               <p className="text-sm text-gray-600">Monthly Cost</p>
             </div>
             <div className="space-y-2">
               <div className="text-lg font-semibold text-blue-600">
-                ${usageStats?.usage_statistics?.cost_analysis?.savings_vs_aws_s3?.toFixed(4) || 0}
+                ${usageStats?.usage_statistics?.cost_analysis?.savings_vs_aws_s3?.toFixed(4) || '0.0000'}
               </div>
               <p className="text-sm text-gray-600">Savings vs AWS S3</p>
             </div>
@@ -171,23 +225,25 @@ const StorageMonitoring = () => {
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            {Object.entries(usageStats?.usage_statistics?.content_distribution?.by_count || {}).map(([type, count]) => (
-              <div key={type} className="flex items-center justify-between">
-                <span className="capitalize">{type}</span>
-                <div className="flex items-center gap-2">
-                  <Badge variant="outline">{count} files</Badge>
-                  <span className="text-sm text-gray-600">
-                    {usageStats?.usage_statistics?.content_distribution?.by_size_mb?.[type] || 0} MB
-                  </span>
+            {usageStats?.usage_statistics?.content_distribution?.by_count && 
+              Object.entries(usageStats.usage_statistics.content_distribution.by_count).map(([type, count]) => (
+                <div key={type} className="flex items-center justify-between">
+                  <span className="capitalize">{type}</span>
+                  <div className="flex items-center gap-2">
+                    <Badge variant="outline">{count} files</Badge>
+                    <span className="text-sm text-gray-600">
+                      {usageStats?.usage_statistics?.content_distribution?.by_size_mb?.[type] || 0} MB
+                    </span>
+                  </div>
                 </div>
-              </div>
-            ))}
+              ))
+            }
           </div>
         </CardContent>
       </Card>
 
       {/* Alerts */}
-      {failoverStats?.failover_statistics?.total_failover_events > 0 && (
+      {failoverStats?.failover_statistics?.total_failover_events && failoverStats.failover_statistics.total_failover_events > 0 && (
         <Alert>
           <AlertCircle className="h-4 w-4" />
           <AlertDescription>
