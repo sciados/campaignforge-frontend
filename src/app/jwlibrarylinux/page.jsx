@@ -186,10 +186,8 @@ export default function JWLibraryLinuxWelcome() {
             </span>
           </div>
           
-          <h1 className="text-5xl md:text-7xl font-light text-black mb-6 leading-tight tracking-tight">
-            JW Library
-            <br />
-            <span className="font-medium">for Linux.</span>
+          <h1 className="text-5xl md:text-7xl font-extrabold text-black mb-6 leading-none tracking-tighter antialiased">
+              JW Library for Linux
           </h1>
           
           <p className="text-xl text-gray-600 mb-12 max-w-2xl mx-auto leading-relaxed font-light">
