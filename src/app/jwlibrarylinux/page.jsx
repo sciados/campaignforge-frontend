@@ -159,17 +159,14 @@ export default function JWLibraryLinuxWelcome() {
             <div className="flex items-center space-x-8">
               <a href="/" className="text-gray-600 font-medium hover:text-black transition-colors duration-200">
                 Home
-              </a>
-              <a href="/jwlibrarylinuxinstaller" className="bg-blue-500 text-white px-6 py-2 rounded-full font-medium hover:bg-blue-600 transition-all duration-200 shadow-lg hover:shadow-xl">
-                Get Installer
-              </a>
+              </a>              
             </div>
           </div>
         </div>
       </nav>
 
       {/* Hero Section */}
-      <section className="relative px-6 py-24 bg-white">
+      <section className="relative px-6 py-32 bg-white">
         <div className="max-w-4xl mx-auto text-center">
           <div className="mb-8">
             <span className="inline-block bg-gray-100 text-gray-600 px-4 py-2 rounded-full text-sm font-medium">
@@ -226,8 +223,11 @@ export default function JWLibraryLinuxWelcome() {
         </div>
       </section>
 
+      {/* Spacing between sections */}
+      <div className="h-16 bg-gradient-to-b from-white to-gray-50"></div>
+
       {/* Screenshot Carousel */}
-      <section className="py-24 px-6 bg-gray-50">
+      <section className="py-32 px-6 bg-gray-50">
         <div className="max-w-5xl mx-auto">
           <h2 className="text-4xl md:text-5xl font-light text-black text-center mb-16 tracking-tight">
             See JW Library running on Linux.
@@ -265,8 +265,11 @@ export default function JWLibraryLinuxWelcome() {
         </div>
       </section>
 
+      {/* Spacing between sections */}
+      <div className="h-16 bg-gradient-to-b from-gray-50 to-white"></div>
+
       {/* Features Grid */}
-      <section className="py-24 px-6 bg-white">
+      <section className="py-32 px-6 bg-white">
         <div className="max-w-6xl mx-auto">
           <h2 className="text-4xl md:text-5xl font-light text-black text-center mb-16 tracking-tight">
             Why choose our installer?
@@ -288,8 +291,11 @@ export default function JWLibraryLinuxWelcome() {
         </div>
       </section>
 
+      {/* Spacing between sections */}
+      <div className="h-16 bg-gradient-to-b from-white to-gray-50"></div>
+
       {/* Supported Distributions */}
-      <section className="py-24 px-6 bg-gray-50">
+      <section className="py-32 px-6 bg-gray-50">
         <div className="max-w-6xl mx-auto">
           <h2 className="text-4xl md:text-5xl font-light text-black text-center mb-16 tracking-tight">
             Supported Linux distributions.
@@ -333,8 +339,11 @@ export default function JWLibraryLinuxWelcome() {
         </div>
       </section>
 
+      {/* Spacing between sections */}
+      <div className="h-16 bg-gradient-to-b from-gray-50 to-white"></div>
+
       {/* System Requirements */}
-      <section id="requirements" className="py-24 px-6 bg-white">
+      <section id="requirements" className="py-32 px-6 bg-white">
         <div className="max-w-4xl mx-auto">
           <h2 className="text-4xl md:text-5xl font-light text-black text-center mb-16 tracking-tight">
             System requirements.
@@ -391,8 +400,11 @@ export default function JWLibraryLinuxWelcome() {
         </div>
       </section>
 
+      {/* Spacing between sections */}
+      <div className="h-16 bg-gradient-to-b from-white to-black"></div>
+
       {/* Call to Action */}
-       <section className="py-24 px-6 bg-black text-white">
+      <section className="py-32 px-6 bg-black text-white">
         <div className="max-w-4xl mx-auto text-center">
           <h2 className="text-4xl md:text-5xl font-light mb-6 tracking-tight">
             Ready to install JW Library?
@@ -414,9 +426,11 @@ export default function JWLibraryLinuxWelcome() {
         </div>
       </section>
 
+      {/* Spacing between sections */}
+      <div className="h-16 bg-gradient-to-b from-black to-gray-50"></div>
 
       {/* Footer Grid */}
-      <section className="py-24 px-6 bg-gray-50">
+      <section className="py-32 px-6 bg-gray-50">
         <div className="max-w-6xl mx-auto">
           <div className="grid md:grid-cols-3 gap-12 mb-12">
 
