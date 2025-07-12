@@ -43,21 +43,21 @@ log() {
 
 # Print functions
 print_header() {
-    echo -e "\\${BLUE}================================\\${NC}"
-    echo -e "\\${BLUE}  $WRAPPER_NAME v$WRAPPER_VERSION\\${NC}"
-    echo -e "\\${BLUE}================================\\${NC}"
+    echo -e "\\$\{BLUE\}================================\\$\{NC\}"
+    echo -e "\\$\{BLUE\}  $WRAPPER_NAME v$WRAPPER_VERSION\\$\{NC\}"
+    echo -e "\\$\{BLUE\}================================\\$\{NC\}"
 }
 
 print_success() {
-    echo -e "\\${GREEN}✓ $1\\${NC}"
+    echo -e "\\$\{GREEN\}✓ $1\\$\{NC\}"
 }
 
 print_error() {
-    echo -e "\\${RED}✗ $1\\${NC}"
+    echo -e "\\$\{RED\}✗ $1\\$\{NC\}"
 }
 
 print_info() {
-    echo -e "\\${YELLOW}ℹ $1\\${NC}"
+    echo -e "\\$\{YELLOW\}ℹ $1\\$\{NC\}"
 }
 
 # Check if running as root
@@ -129,7 +129,7 @@ install_dependencies() {
     fi
     
     # Install missing dependencies
-    if [[ "$WINE_INSTALLED" = false ]] || [[ \${#MISSING_DEPS[@]} -gt 0 ]]; then
+    if [[ "$WINE_INSTALLED" = false ]] || [[ \\$\{#MISSING_DEPS[@]\} -gt 0 ]]; then
         print_info "Installing missing dependencies..."
         
         if command -v apt-get &> /dev/null; then
@@ -138,16 +138,16 @@ install_dependencies() {
             if [[ "$WINE_INSTALLED" = false ]]; then
                 sudo apt-get install -y wine wine64 wine32
             fi
-            if [[ \${#MISSING_DEPS[@]} -gt 0 ]]; then
-                sudo apt-get install -y "\${MISSING_DEPS[@]}"
+            if [[ \\$\{#MISSING_DEPS[@]\} -gt 0 ]]; then
+                sudo apt-get install -y "\\$\{MISSING_DEPS[@]\}"
             fi
         elif command -v dnf &> /dev/null; then
             # Fedora
             if [[ "$WINE_INSTALLED" = false ]]; then
                 sudo dnf install -y wine
             fi
-            if [[ \${#MISSING_DEPS[@]} -gt 0 ]]; then
-                sudo dnf install -y "\${MISSING_DEPS[@]}"
+            if [[ \\$\{#MISSING_DEPS[@]\} -gt 0 ]]; then
+                sudo dnf install -y "\\$\{MISSING_DEPS[@]\}"
             fi
         elif command -v pacman &> /dev/null; then
             # Arch Linux
@@ -155,9 +155,9 @@ install_dependencies() {
             if [[ "$WINE_INSTALLED" = false ]]; then
                 INSTALL_PACKAGES+=("wine")
             fi
-            INSTALL_PACKAGES+=("\${MISSING_DEPS[@]}")
-            if [[ \${#INSTALL_PACKAGES[@]} -gt 0 ]]; then
-                sudo pacman -S --needed "\${INSTALL_PACKAGES[@]}"
+            INSTALL_PACKAGES+=("\\$\{MISSING_DEPS[@]\}")
+            if [[ \\$\{#INSTALL_PACKAGES[@]\} -gt 0 ]]; then
+                sudo pacman -S --needed "\\$\{INSTALL_PACKAGES[@]\}"
             fi
         fi
         
@@ -190,8 +190,8 @@ setup_wine() {
     winetricks -q corefonts vcrun2019 dotnet48
     
     # Configure Wine registry settings
-    wine reg add "HKEY_CURRENT_USER\\\\Software\\\\Wine\\\\DirectSound" /v "DefaultBitsPerSample" /t REG_DWORD /d 16 /f
-    wine reg add "HKEY_CURRENT_USER\\\\Software\\\\Wine\\\\DirectSound" /v "DefaultSampleRate" /t REG_DWORD /d 44100 /f
+    wine reg add "HKEY_CURRENT_USER\\\\\\\\Software\\\\\\\\Wine\\\\\\\\DirectSound" /v "DefaultBitsPerSample" /t REG_DWORD /d 16 /f
+    wine reg add "HKEY_CURRENT_USER\\\\\\\\Software\\\\\\\\Wine\\\\\\\\DirectSound" /v "DefaultSampleRate" /t REG_DWORD /d 44100 /f
     
     print_success "Wine environment configured"
 }
@@ -264,7 +264,7 @@ EOF
     # Create launcher script
     cat > "$INSTALL_DIR/jwlibrary-launcher.sh" << 'EOF'
 #!/bin/bash
-SCRIPT_DIR="$(cd "$(dirname "\${BASH_SOURCE[0]}")" && pwd)"
+SCRIPT_DIR="$(cd "$(dirname "\\$\{BASH_SOURCE[0]\}")" && pwd)"
 source "$SCRIPT_DIR/config"
 export WINEPREFIX="$SCRIPT_DIR/wine"
 cd "$SCRIPT_DIR"
@@ -363,7 +363,7 @@ show_help() {
 }
 
 # Main script logic
-case "\${1:-}" in
+case "\\$\{1:-\}" in
     "install")
         install
         ;;
