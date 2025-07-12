@@ -1,14 +1,12 @@
-// app/jwlibrarylinuxinstaller/page.js
-
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { Metadata } from 'next';
 
 export default function JWLibraryLinuxInstaller() {
   const [activeTab, setActiveTab] = useState('upload');
   const [terminalVisible, setTerminalVisible] = useState(false);
   const [terminalContent, setTerminalContent] = useState([]);
+  const [mounted, setMounted] = useState(false);
 
   // The complete bash script content
   const scriptContent = `#!/bin/bash
@@ -462,6 +460,8 @@ esac`;
   };
 
   useEffect(() => {
+    setMounted(true);
+    
     // Add keyboard shortcuts
     const handleKeyDown = (e) => {
       if (e.ctrlKey && e.key === 'd') {
@@ -480,263 +480,267 @@ esac`;
 
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [downloadScript]); // Add downloadScript as dependency
+  }, [downloadScript]);
+
+  if (!mounted) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-white">
+        <div className="w-6 h-6 border-2 border-black border-t-transparent rounded-full animate-spin"></div>
+      </div>
+    )
+  }
 
   return (
-    <>
-      <div className="min-h-screen bg-gradient-to-br from-blue-500 via-purple-600 to-purple-800 py-12 px-4">
-        <div className="max-w-4xl mx-auto bg-white rounded-3xl shadow-2xl overflow-hidden">
-          {/* Header with gradient border */}
-          <div className="relative">
-            <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-500 to-purple-600"></div>
-            <div className="text-center py-12 px-8">
-              <h1 className="text-4xl md:text-5xl font-light text-gray-800 mb-4">
-                JW Library Linux Installer
-              </h1>
-              <p className="text-xl text-gray-600">
-                Easy installation of JW Library on any Linux distribution
-              </p>
-              <div className="mt-4 text-sm text-gray-500">
-                Powered by <span className="font-semibold text-blue-600">Rodgers Digital</span>
-              </div>
-            </div>
+    <div className="min-h-screen bg-white font-inter">
+      {/* Header with gradient border */}
+      <div className="relative">
+        <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-black to-gray-600"></div>
+        <div className="text-center py-12 px-8">
+          <h1 className="text-4xl md:text-5xl font-light text-black mb-4">
+            JW Library Linux Installer
+          </h1>
+          <p className="text-xl text-gray-600">
+            Easy installation of JW Library on any Linux distribution
+          </p>
+          <div className="mt-4 text-sm text-gray-500">
+            Powered by <span className="font-semibold text-black">RodgersDigital</span>
           </div>
-
-          {/* Tab Navigation */}
-          <div className="flex border-b-2 border-gray-200 bg-gray-50">
-            {[
-              { id: 'upload', label: '🚀 Easy Install', key: '1' },
-              { id: 'manual', label: '📝 Manual Install', key: '2' },
-              { id: 'requirements', label: 'ℹ️ Requirements', key: '3' }
-            ].map(tab => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={`flex-1 py-4 px-6 text-lg font-medium transition-all duration-200 ${
-                  activeTab === tab.id
-                    ? 'text-blue-600 border-b-2 border-blue-600 bg-white'
-                    : 'text-gray-600 hover:text-blue-500 hover:bg-gray-100'
-                }`}
-              >
-                {tab.label}
-                <span className="ml-2 text-xs text-gray-400">({tab.key})</span>
-              </button>
-            ))}
-          </div>
-
-          <div className="p-8">
-            {/* Easy Install Tab */}
-            {activeTab === 'upload' && (
-              <div className="space-y-8">
-                <div className="bg-gray-50 rounded-2xl p-8 border-l-4 border-blue-500 hover:shadow-lg transition-all duration-300">
-                  <h2 className="text-2xl font-semibold text-gray-800 mb-6">Step 1: Download the Installer</h2>
-                  <p className="text-gray-600 mb-6">Click the button below to download the JW Library installer script for Linux.</p>
-                  <button
-                    onClick={downloadScript}
-                    className="bg-gradient-to-r from-blue-500 to-purple-600 text-white px-8 py-4 rounded-full text-lg font-medium hover:shadow-lg transform hover:-translate-y-1 transition-all duration-200"
-                  >
-                    📥 Download Installer Script
-                  </button>
-                </div>
-
-                <div className="bg-gray-50 rounded-2xl p-8 border-l-4 border-blue-500 hover:shadow-lg transition-all duration-300">
-                  <h2 className="text-2xl font-semibold text-gray-800 mb-6">Step 2: Run the Installer</h2>
-                  <p className="text-gray-600 mb-6">After downloading, open a terminal and run these commands:</p>
-                  <div className="space-y-4">
-                    <div className="bg-gray-800 text-green-400 p-4 rounded-lg font-mono text-sm overflow-x-auto">
-                      chmod +x jwlibrary-wrapper.sh
-                      <CopyButton text="chmod +x jwlibrary-wrapper.sh" />
-                    </div>
-                    <div className="bg-gray-800 text-green-400 p-4 rounded-lg font-mono text-sm overflow-x-auto">
-                      ./jwlibrary-wrapper.sh install
-                      <CopyButton text="./jwlibrary-wrapper.sh install" />
-                    </div>
-                  </div>
-                </div>
-
-                <div className="bg-gray-50 rounded-2xl p-8 border-l-4 border-blue-500 hover:shadow-lg transition-all duration-300">
-                  <h2 className="text-2xl font-semibold text-gray-800 mb-6">Step 3: Launch JW Library</h2>
-                  <p className="text-gray-600 mb-6">Once installed, you can run JW Library in several ways:</p>
-                  <div className="bg-gray-800 text-green-400 p-4 rounded-lg font-mono text-sm overflow-x-auto mb-4">
-                    ./jwlibrary-wrapper.sh run
-                    <CopyButton text="./jwlibrary-wrapper.sh run" />
-                  </div>
-                  <p className="text-gray-600">Or find it in your applications menu!</p>
-                </div>
-
-                {terminalVisible && (
-                  <div className="bg-gray-900 rounded-xl overflow-hidden">
-                    <div className="flex items-center justify-between p-4 bg-gray-800">
-                      <div className="flex space-x-2">
-                        <div className="w-3 h-3 bg-red-500 rounded-full"></div>
-                        <div className="w-3 h-3 bg-yellow-500 rounded-full"></div>
-                        <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-                      </div>
-                      <div className="text-gray-400 text-sm font-mono">JW Library Installer</div>
-                    </div>
-                    <div className="p-4 h-64 overflow-y-auto font-mono text-sm">
-                      {terminalContent.map((line, index) => (
-                        <div
-                          key={index}
-                          className={`mb-1 ${
-                            line.type === 'success' ? 'text-green-400' :
-                            line.type === 'error' ? 'text-red-400' :
-                            line.type === 'command' ? 'text-blue-400' :
-                            'text-gray-300'
-                          }`}
-                        >
-                          {line.message}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* Manual Install Tab */}
-            {activeTab === 'manual' && (
-              <div className="space-y-8">
-                <div className="bg-gray-50 rounded-2xl p-8">
-                  <h2 className="text-2xl font-semibold text-gray-800 mb-6">Manual Installation Steps</h2>
-                  <p className="text-gray-600 mb-8">If you prefer to install manually, follow these steps:</p>
-                  
-                  <div className="space-y-6">
-                    <div>
-                      <h3 className="text-xl font-semibold text-gray-800 mb-4">1. Install Dependencies</h3>
-                      <div className="space-y-4">
-                        <div>
-                          <p className="text-gray-600 mb-2">Ubuntu/Debian/Mint:</p>
-                          <div className="bg-gray-800 text-green-400 p-4 rounded-lg font-mono text-sm overflow-x-auto">
-                            sudo apt-get update && sudo apt-get install -y wine winetricks wget curl unzip
-                            <CopyButton text="sudo apt-get update && sudo apt-get install -y wine winetricks wget curl unzip" />
-                          </div>
-                        </div>
-                        
-                        <div>
-                          <p className="text-gray-600 mb-2">Fedora:</p>
-                          <div className="bg-gray-800 text-green-400 p-4 rounded-lg font-mono text-sm overflow-x-auto">
-                            sudo dnf install -y wine winetricks wget curl unzip
-                            <CopyButton text="sudo dnf install -y wine winetricks wget curl unzip" />
-                          </div>
-                        </div>
-                        
-                        <div>
-                          <p className="text-gray-600 mb-2">Arch Linux:</p>
-                          <div className="bg-gray-800 text-green-400 p-4 rounded-lg font-mono text-sm overflow-x-auto">
-                            sudo pacman -S --needed wine winetricks wget curl unzip
-                            <CopyButton text="sudo pacman -S --needed wine winetricks wget curl unzip" />
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div>
-                      <h3 className="text-xl font-semibold text-gray-800 mb-4">2. Create Wine Environment</h3>
-                      <div className="bg-gray-800 text-green-400 p-4 rounded-lg font-mono text-sm overflow-x-auto">
-                        export WINEPREFIX=&quot;$HOME/.jwlibrary/wine&quot;<br/>
-                        export WINEARCH=&quot;win64&quot;<br/>
-                        winecfg
-                        <CopyButton text={`export WINEPREFIX="$HOME/.jwlibrary/wine"\nexport WINEARCH="win64"\nwinecfg`} />
-                      </div>
-                    </div>
-
-                    <div>
-                      <h3 className="text-xl font-semibold text-gray-800 mb-4">3. Install Windows Components</h3>
-                      <div className="bg-gray-800 text-green-400 p-4 rounded-lg font-mono text-sm overflow-x-auto">
-                        winetricks -q win10 corefonts vcrun2019 dotnet48
-                        <CopyButton text="winetricks -q win10 corefonts vcrun2019 dotnet48" />
-                      </div>
-                    </div>
-
-                    <div>
-                      <h3 className="text-xl font-semibold text-gray-800 mb-4">4. Download and Install JW Library</h3>
-                      <div className="bg-gray-800 text-green-400 p-4 rounded-lg font-mono text-sm overflow-x-auto">
-                        wget -O JWLibrary_installer.exe https://cfp2.jw-cdn.org/a/339b6d/1/o/ly_E.exe<br/>
-                        wine JWLibrary_installer.exe
-                        <CopyButton text={`wget -O JWLibrary_installer.exe https://cfp2.jw-cdn.org/a/339b6d/1/o/ly_E.exe\nwine JWLibrary_installer.exe`} />
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Requirements Tab */}
-            {activeTab === 'requirements' && (
-              <div className="space-y-8">
-                <div className="bg-yellow-50 border border-yellow-200 rounded-2xl p-8">
-                  <h3 className="text-xl font-semibold text-yellow-800 mb-4">System Requirements</h3>
-                  <ul className="text-yellow-800 space-y-2 ml-6">
-                    <li className="list-disc">64-bit Linux system (x86_64)</li>
-                    <li className="list-disc">Ubuntu 18.04+, Debian 10+, Linux Mint 19+, Fedora 30+, or Arch Linux</li>
-                    <li className="list-disc">At least 2GB free disk space</li>
-                    <li className="list-disc">Internet connection for downloading components</li>
-                    <li className="list-disc">Administrator privileges (sudo access)</li>
-                  </ul>
-                </div>
-
-                <div className="bg-gray-50 rounded-2xl p-8">
-                  <h2 className="text-2xl font-semibold text-gray-800 mb-6">Supported Distributions</h2>
-                  <p className="text-gray-600 mb-4">This installer has been tested on:</p>
-                  <ul className="text-gray-600 space-y-1 ml-6">
-                    <li className="list-disc">Ubuntu 20.04, 22.04, 24.04</li>
-                    <li className="list-disc">Linux Mint 20, 21, 22</li>
-                    <li className="list-disc">Debian 10, 11, 12</li>
-                    <li className="list-disc">Fedora 35, 36, 37+</li>
-                    <li className="list-disc">Arch Linux (current)</li>
-                  </ul>
-                </div>
-
-                <div className="bg-gray-50 rounded-2xl p-8">
-                  <h2 className="text-2xl font-semibold text-gray-800 mb-6">Troubleshooting</h2>
-                  <p className="text-gray-600 mb-4">If you encounter issues:</p>
-                  <ul className="text-gray-600 space-y-2 ml-6">
-                    <li className="list-disc">Check the log file: <code className="bg-gray-200 px-2 py-1 rounded">~/.jwlibrary/wrapper.log</code></li>
-                    <li className="list-disc">Ensure your system is up to date</li>
-                    <li className="list-disc">Try running the installer with verbose output</li>
-                    <li className="list-disc">Check Wine version compatibility</li>
-                  </ul>
-                </div>
-
-                <div className="bg-blue-50 border border-blue-200 rounded-2xl p-8">
-                  <h3 className="text-xl font-semibold text-blue-800 mb-4">Need Help?</h3>
-                  <p className="text-blue-800 mb-4">
-                    If you need assistance with the installation, feel free to reach out:
-                  </p>
-                  <div className="space-y-2">
-                    <p className="text-blue-700">
-                      📧 <strong>Email:</strong> support@rodgersdigital.com
-                    </p>
-                    <p className="text-blue-700">
-                      🌐 <strong>Website:</strong> <a href="https://rodgersdigital.com" className="underline hover:text-blue-900">rodgersdigital.com</a>
-                    </p>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Footer */}
-        <div className="bg-gray-50 border-t px-8 py-6">
-          <div className="flex flex-col md:flex-row justify-between items-center">
-            <div className="text-gray-600 text-sm mb-4 md:mb-0">
-              © 2025 Rodgers Digital. This tool is provided free of charge.
-            </div>
-            <div className="flex space-x-4 text-sm">
-              <span className="text-gray-500">v1.0</span>
-              <span className="text-gray-400">•</span>
-              <span className="text-gray-500">Keyboard shortcuts: Ctrl+D (download), 1-3 (tabs)</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Floating version indicator */}
-        <div className="fixed bottom-4 right-4 bg-black bg-opacity-70 text-white text-xs px-3 py-2 rounded-full font-mono">
-          v1.0
         </div>
       </div>
-    </>
+
+      {/* Tab Navigation */}
+      <div className="flex border-b border-gray-200 bg-gray-50">
+        {[
+          { id: 'upload', label: '🚀 Easy Install', key: '1' },
+          { id: 'manual', label: '📝 Manual Install', key: '2' },
+          { id: 'requirements', label: 'ℹ️ Requirements', key: '3' }
+        ].map(tab => (
+          <button
+            key={tab.id}
+            onClick={() => setActiveTab(tab.id)}
+            className={`flex-1 py-4 px-6 text-lg font-medium transition-all duration-200 ${
+              activeTab === tab.id
+                ? 'text-black border-b-2 border-black bg-white'
+                : 'text-gray-600 hover:text-black hover:bg-gray-100'
+            }`}
+          >
+            {tab.label}
+            <span className="ml-2 text-xs text-gray-400">({tab.key})</span>
+          </button>
+        ))}
+      </div>
+
+      <div className="max-w-4xl mx-auto p-8">
+        {/* Easy Install Tab */}
+        {activeTab === 'upload' && (
+          <div className="space-y-8">
+            <div className="bg-gray-50 rounded-2xl p-8 border border-gray-200">
+              <h2 className="text-2xl font-semibold text-black mb-6">Step 1: Download the Installer</h2>
+              <p className="text-gray-600 mb-6">Click the button below to download the JW Library installer script for Linux.</p>
+              <button
+                onClick={downloadScript}
+                className="bg-black text-white px-8 py-4 rounded-xl text-lg font-medium hover:bg-gray-900 transition-all duration-200"
+              >
+                📥 Download Installer Script
+              </button>
+            </div>
+
+            <div className="bg-gray-50 rounded-2xl p-8 border border-gray-200">
+              <h2 className="text-2xl font-semibold text-black mb-6">Step 2: Run the Installer</h2>
+              <p className="text-gray-600 mb-6">After downloading, open a terminal and run these commands:</p>
+              <div className="space-y-4">
+                <div className="bg-black text-green-400 p-4 rounded-lg font-mono text-sm overflow-x-auto">
+                  chmod +x jwlibrary-wrapper.sh
+                  <CopyButton text="chmod +x jwlibrary-wrapper.sh" />
+                </div>
+                <div className="bg-black text-green-400 p-4 rounded-lg font-mono text-sm overflow-x-auto">
+                  ./jwlibrary-wrapper.sh install
+                  <CopyButton text="./jwlibrary-wrapper.sh install" />
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-gray-50 rounded-2xl p-8 border border-gray-200">
+              <h2 className="text-2xl font-semibold text-black mb-6">Step 3: Launch JW Library</h2>
+              <p className="text-gray-600 mb-6">Once installed, you can run JW Library in several ways:</p>
+              <div className="bg-black text-green-400 p-4 rounded-lg font-mono text-sm overflow-x-auto mb-4">
+                ./jwlibrary-wrapper.sh run
+                <CopyButton text="./jwlibrary-wrapper.sh run" />
+              </div>
+              <p className="text-gray-600">Or find it in your applications menu!</p>
+            </div>
+
+            {terminalVisible && (
+              <div className="bg-black rounded-xl overflow-hidden border border-gray-200">
+                <div className="flex items-center justify-between p-4 bg-gray-900">
+                  <div className="flex space-x-2">
+                    <div className="w-3 h-3 bg-red-500 rounded-full"></div>
+                    <div className="w-3 h-3 bg-yellow-500 rounded-full"></div>
+                    <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                  </div>
+                  <div className="text-gray-400 text-sm font-mono">JW Library Installer</div>
+                </div>
+                <div className="p-4 h-64 overflow-y-auto font-mono text-sm">
+                  {terminalContent.map((line, index) => (
+                    <div
+                      key={index}
+                      className={`mb-1 ${
+                        line.type === 'success' ? 'text-green-400' :
+                        line.type === 'error' ? 'text-red-400' :
+                        line.type === 'command' ? 'text-blue-400' :
+                        'text-gray-300'
+                      }`}
+                    >
+                      {line.message}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Manual Install Tab */}
+        {activeTab === 'manual' && (
+          <div className="space-y-8">
+            <div className="bg-gray-50 rounded-2xl p-8 border border-gray-200">
+              <h2 className="text-2xl font-semibold text-black mb-6">Manual Installation Steps</h2>
+              <p className="text-gray-600 mb-8">If you prefer to install manually, follow these steps:</p>
+              
+              <div className="space-y-6">
+                <div>
+                  <h3 className="text-xl font-semibold text-black mb-4">1. Install Dependencies</h3>
+                  <div className="space-y-4">
+                    <div>
+                      <p className="text-gray-600 mb-2">Ubuntu/Debian/Mint:</p>
+                      <div className="bg-black text-green-400 p-4 rounded-lg font-mono text-sm overflow-x-auto">
+                        sudo apt-get update && sudo apt-get install -y wine winetricks wget curl unzip
+                        <CopyButton text="sudo apt-get update && sudo apt-get install -y wine winetricks wget curl unzip" />
+                      </div>
+                    </div>
+                    
+                    <div>
+                      <p className="text-gray-600 mb-2">Fedora:</p>
+                      <div className="bg-black text-green-400 p-4 rounded-lg font-mono text-sm overflow-x-auto">
+                        sudo dnf install -y wine winetricks wget curl unzip
+                        <CopyButton text="sudo dnf install -y wine winetricks wget curl unzip" />
+                      </div>
+                    </div>
+                    
+                    <div>
+                      <p className="text-gray-600 mb-2">Arch Linux:</p>
+                      <div className="bg-black text-green-400 p-4 rounded-lg font-mono text-sm overflow-x-auto">
+                        sudo pacman -S --needed wine winetricks wget curl unzip
+                        <CopyButton text="sudo pacman -S --needed wine winetricks wget curl unzip" />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <h3 className="text-xl font-semibold text-black mb-4">2. Create Wine Environment</h3>
+                  <div className="bg-black text-green-400 p-4 rounded-lg font-mono text-sm overflow-x-auto">
+                    export WINEPREFIX=&quot;$HOME/.jwlibrary/wine&quot;<br/>
+                    export WINEARCH=&quot;win64&quot;<br/>
+                    winecfg
+                    <CopyButton text={`export WINEPREFIX="$HOME/.jwlibrary/wine"\nexport WINEARCH="win64"\nwinecfg`} />
+                  </div>
+                </div>
+
+                <div>
+                  <h3 className="text-xl font-semibold text-black mb-4">3. Install Windows Components</h3>
+                  <div className="bg-black text-green-400 p-4 rounded-lg font-mono text-sm overflow-x-auto">
+                    winetricks -q win10 corefonts vcrun2019 dotnet48
+                    <CopyButton text="winetricks -q win10 corefonts vcrun2019 dotnet48" />
+                  </div>
+                </div>
+
+                <div>
+                  <h3 className="text-xl font-semibold text-black mb-4">4. Download and Install JW Library</h3>
+                  <div className="bg-black text-green-400 p-4 rounded-lg font-mono text-sm overflow-x-auto">
+                    wget -O JWLibrary_installer.exe https://cfp2.jw-cdn.org/a/339b6d/1/o/ly_E.exe<br/>
+                    wine JWLibrary_installer.exe
+                    <CopyButton text={`wget -O JWLibrary_installer.exe https://cfp2.jw-cdn.org/a/339b6d/1/o/ly_E.exe\nwine JWLibrary_installer.exe`} />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Requirements Tab */}
+        {activeTab === 'requirements' && (
+          <div className="space-y-8">
+            <div className="bg-yellow-50 border border-yellow-200 rounded-2xl p-8">
+              <h3 className="text-xl font-semibold text-yellow-800 mb-4">System Requirements</h3>
+              <ul className="text-yellow-800 space-y-2 ml-6">
+                <li className="list-disc">64-bit Linux system (x86_64)</li>
+                <li className="list-disc">Ubuntu 18.04+, Debian 10+, Linux Mint 19+, Fedora 30+, or Arch Linux</li>
+                <li className="list-disc">At least 2GB free disk space</li>
+                <li className="list-disc">Internet connection for downloading components</li>
+                <li className="list-disc">Administrator privileges (sudo access)</li>
+              </ul>
+            </div>
+
+            <div className="bg-gray-50 rounded-2xl p-8 border border-gray-200">
+              <h2 className="text-2xl font-semibold text-black mb-6">Supported Distributions</h2>
+              <p className="text-gray-600 mb-4">This installer has been tested on:</p>
+              <ul className="text-gray-600 space-y-1 ml-6">
+                <li className="list-disc">Ubuntu 20.04, 22.04, 24.04</li>
+                <li className="list-disc">Linux Mint 20, 21, 22</li>
+                <li className="list-disc">Debian 10, 11, 12</li>
+                <li className="list-disc">Fedora 35, 36, 37+</li>
+                <li className="list-disc">Arch Linux (current)</li>
+              </ul>
+            </div>
+
+            <div className="bg-gray-50 rounded-2xl p-8 border border-gray-200">
+              <h2 className="text-2xl font-semibold text-black mb-6">Troubleshooting</h2>
+              <p className="text-gray-600 mb-4">If you encounter issues:</p>
+              <ul className="text-gray-600 space-y-2 ml-6">
+                <li className="list-disc">Check the log file: <code className="bg-gray-200 px-2 py-1 rounded">~/.jwlibrary/wrapper.log</code></li>
+                <li className="list-disc">Ensure your system is up to date</li>
+                <li className="list-disc">Try running the installer with verbose output</li>
+                <li className="list-disc">Check Wine version compatibility</li>
+              </ul>
+            </div>
+
+            <div className="bg-blue-50 border border-blue-200 rounded-2xl p-8">
+              <h3 className="text-xl font-semibold text-blue-800 mb-4">Need Help?</h3>
+              <p className="text-blue-800 mb-4">
+                If you need assistance with the installation, feel free to reach out:
+              </p>
+              <div className="space-y-2">
+                <p className="text-blue-700">
+                  📧 <strong>Email:</strong> support@rodgersdigital.com
+                </p>
+                <p className="text-blue-700">
+                  🌐 <strong>Website:</strong> <a href="https://rodgersdigital.com" className="underline hover:text-blue-900">rodgersdigital.com</a>
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Footer */}
+      <div className="bg-gray-50 border-t border-gray-200 px-8 py-6">
+        <div className="flex flex-col md:flex-row justify-between items-center">
+          <div className="text-gray-600 text-sm mb-4 md:mb-0">
+            © 2025 RodgersDigital. This tool is provided free of charge.
+          </div>
+          <div className="flex space-x-4 text-sm">
+            <span className="text-gray-500">v1.0</span>
+            <span className="text-gray-400">•</span>
+            <span className="text-gray-500">Keyboard shortcuts: Ctrl+D (download), 1-3 (tabs)</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Floating version indicator */}
+      <div className="fixed bottom-4 right-4 bg-black bg-opacity-70 text-white text-xs px-3 py-2 rounded-full font-mono">
+        v1.0
+      </div>
+    </div>
   );
 }

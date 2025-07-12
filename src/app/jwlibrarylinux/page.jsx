@@ -1,11 +1,11 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import Link from 'next/link';
 
 export default function JWLibraryLinuxWelcome() {
   const [currentSlide, setCurrentSlide] = useState(0);
   const [isCompatible, setIsCompatible] = useState(null);
+  const [mounted, setMounted] = useState(false);
 
   const screenshots = [
     {
@@ -72,7 +72,7 @@ export default function JWLibraryLinuxWelcome() {
 
   const features = [
     {
-      icon: "🚀",
+      icon: "☀️",
       title: "One-Click Installation",
       description: "Download and run our installer script - everything is automated"
     },
@@ -87,7 +87,7 @@ export default function JWLibraryLinuxWelcome() {
       description: "JW Library appears in your applications menu like a native app"
     },
     {
-      icon: "🔧",
+      icon: "🔄",
       title: "Automatic Updates",
       description: "Easy update mechanism to get the latest JW Library version"
     },
@@ -113,6 +113,8 @@ export default function JWLibraryLinuxWelcome() {
   ];
 
   useEffect(() => {
+    setMounted(true);
+    
     // Auto-advance slides
     const interval = setInterval(() => {
       setCurrentSlide((prev) => (prev + 1) % screenshots.length);
@@ -132,52 +134,75 @@ export default function JWLibraryLinuxWelcome() {
     }
   }, []);
 
+  const scrollToRequirements = () => {
+    const element = document.getElementById('requirements');
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
+
+  if (!mounted) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-900 via-purple-900 to-indigo-900">
+        <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+      </div>
+    )
+  }
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-indigo-900">
+    <div className="min-h-screen bg-gradient-to-br from-blue-900 via-purple-900 to-indigo-900 text-white">
       {/* Navigation */}
-      <nav className="bg-black bg-opacity-20 backdrop-blur-sm border-b border-white border-opacity-10">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-4">
+      <nav className="sticky top-0 z-50 bg-black bg-opacity-20 backdrop-blur-md border-b border-white border-opacity-10">
+        <div className="max-w-6xl mx-auto px-6">
+          <div className="flex items-center justify-between h-16">
             <div className="flex items-center space-x-3">
               <div className="w-8 h-8 bg-blue-500 rounded-lg flex items-center justify-center">
                 <span className="text-white font-bold text-sm">RD</span>
               </div>
-              <span className="text-white font-semibold">Rodgers Digital</span>
+              <span className="text-xl font-semibold text-white">Rodgers Digital</span>
             </div>
-            <div className="text-sm text-blue-200">
-              Free Linux Tools
+            
+            <div className="flex items-center space-x-6">
+              <a href="/" className="text-blue-200 font-medium hover:text-white transition-colors">
+                Home
+              </a>
+              <a 
+                href="/jwlibrarylinuxinstaller"
+                className="bg-blue-500 text-white px-6 py-2 rounded-lg font-medium hover:bg-blue-600 transition-colors"
+              >
+                Get Installer
+              </a>
             </div>
           </div>
         </div>
       </nav>
 
       {/* Hero Section */}
-      <section className="relative py-20 px-4">
-        <div className="max-w-6xl mx-auto text-center">
+      <section className="relative px-4 py-20">
+        <div className="max-w-4xl mx-auto text-center">
           <div className="mb-8">
-            <span className="inline-block bg-blue-500 bg-opacity-20 text-blue-200 px-4 py-2 rounded-full text-sm font-medium mb-6 border border-blue-400 border-opacity-30">
+            <span className="inline-block bg-white bg-opacity-10 text-blue-200 px-4 py-2 rounded-full text-sm font-medium mb-6 backdrop-blur-sm border border-white border-opacity-20">
               🐧 Linux Compatible Tool
             </span>
           </div>
           
-          <h1 className="text-5xl md:text-7xl font-bold text-white mb-6 leading-tight">
+          <h1 className="text-4xl md:text-6xl font-bold text-white mb-6 leading-tight">
             JW Library
-            <span className="block text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-cyan-400">
-              for Linux
-            </span>
+            <br />
+            <span className="bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">for Linux.</span>
           </h1>
           
-          <p className="text-xl md:text-2xl text-blue-100 mb-12 max-w-3xl mx-auto leading-relaxed">
+          <p className="text-xl text-blue-100 mb-12 max-w-3xl mx-auto leading-relaxed">
             Install JW Library on any Linux distribution with our automated installer. 
             No Wine expertise required - we handle everything for you.
           </p>
 
           {/* Compatibility Check */}
           {isCompatible !== null && (
-            <div className={`inline-flex items-center px-6 py-3 rounded-full mb-8 ${
+            <div className={`inline-flex items-center px-6 py-3 rounded-xl mb-8 backdrop-blur-sm border ${
               isCompatible 
-                ? 'bg-green-500 bg-opacity-20 border border-green-400 border-opacity-30' 
-                : 'bg-yellow-500 bg-opacity-20 border border-yellow-400 border-opacity-30'
+                ? 'bg-green-500 bg-opacity-20 border-green-400 border-opacity-30' 
+                : 'bg-yellow-500 bg-opacity-20 border-yellow-400 border-opacity-30'
             }`}>
               <span className="text-2xl mr-3">
                 {isCompatible ? '✅' : '⚠️'}
@@ -192,15 +217,15 @@ export default function JWLibraryLinuxWelcome() {
           )}
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-            <Link href="/jwlibrarylinuxinstaller">
+            <a href="/jwlibrarylinuxinstaller">
               <button className="bg-gradient-to-r from-blue-500 to-cyan-500 text-white px-8 py-4 rounded-xl text-lg font-semibold hover:shadow-2xl hover:shadow-blue-500/25 transform hover:-translate-y-1 transition-all duration-300 flex items-center space-x-2">
                 <span>🚀</span>
                 <span>Get Started - Free Download</span>
               </button>
-            </Link>
+            </a>
             
             <button 
-              onClick={() => document.getElementById('requirements').scrollIntoView({ behavior: 'smooth' })}
+              onClick={scrollToRequirements}
               className="bg-white bg-opacity-10 text-white px-6 py-4 rounded-xl font-medium hover:bg-opacity-20 transition-all duration-300 border border-white border-opacity-20"
             >
               Check Compatibility
@@ -398,11 +423,11 @@ export default function JWLibraryLinuxWelcome() {
             Join thousands of Linux users who have successfully installed JW Library with our tool.
           </p>
           
-          <Link href="/jwlibrarylinuxinstaller">
+          <a href="/jwlibrarylinuxinstaller">
             <button className="bg-gradient-to-r from-blue-500 to-cyan-500 text-white px-12 py-6 rounded-xl text-xl font-bold hover:shadow-2xl hover:shadow-blue-500/25 transform hover:-translate-y-2 transition-all duration-300 mb-8">
               Start Installation Now
             </button>
-          </Link>
+          </a>
           
           <div className="text-sm text-blue-200 space-y-2">
             <div>✅ Free forever • No registration required • No data collection</div>
@@ -430,7 +455,7 @@ export default function JWLibraryLinuxWelcome() {
             <div>
               <h4 className="text-white font-semibold mb-4">Useful Links</h4>
               <ul className="space-y-2 text-sm">
-                <li><Link href="/jwlibrarylinuxinstaller" className="text-blue-200 hover:text-white transition-colors">Installation Tool</Link></li>
+                <li><a href="/jwlibrarylinuxinstaller" className="text-blue-200 hover:text-white transition-colors">Installation Tool</a></li>
                 <li><a href="https://rodgersdigital.com" className="text-blue-200 hover:text-white transition-colors">Main Website</a></li>
                 <li><a href="mailto:support@rodgersdigital.com" className="text-blue-200 hover:text-white transition-colors">Get Support</a></li>
               </ul>
@@ -449,7 +474,7 @@ export default function JWLibraryLinuxWelcome() {
           
           <div className="border-t border-white border-opacity-10 pt-8 text-center">
             <p className="text-blue-300 text-sm">
-              © 2025 Rodgers Digital. This tool is provided free of charge to the Linux community.
+              © 2025 Rodgers Digital. This tool is provided free of charge to our brothers.
             </p>
           </div>
         </div>
