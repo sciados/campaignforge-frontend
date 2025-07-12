@@ -72,9 +72,9 @@ export default function JWLibraryLinuxWelcome() {
 
   const features = [
     {
-      icon: "☀️",
+      icon: "⚡",
       title: "One-Click Installation",
-      description: "Download and run our installer script - everything is automated"
+      description: "Download and run our installer script — everything is automated"
     },
     {
       icon: "🍷",
@@ -99,7 +99,7 @@ export default function JWLibraryLinuxWelcome() {
     {
       icon: "📱",
       title: "Full Functionality",
-      description: "Publications, videos, audio, annotations - everything works"
+      description: "Publications, videos, audio, annotations — everything works"
     }
   ];
 
@@ -143,32 +143,32 @@ export default function JWLibraryLinuxWelcome() {
 
   if (!mounted) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-900 via-purple-900 to-indigo-900">
-        <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+      <div className="min-h-screen flex items-center justify-center bg-white">
+        <div className="w-6 h-6 border-2 border-gray-300 border-t-transparent rounded-full animate-spin"></div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-900 via-purple-900 to-indigo-900 text-white">
+    <div className="min-h-screen bg-white font-system">
       {/* Navigation */}
-      <nav className="sticky top-0 z-50 bg-black bg-opacity-20 backdrop-blur-md border-b border-white border-opacity-10">
+      <nav className="sticky top-0 z-50 bg-white/80 backdrop-blur-xl border-b border-gray-200">
         <div className="max-w-6xl mx-auto px-6">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center space-x-3">
-              <div className="w-8 h-8 bg-blue-500 rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold text-sm">RD</span>
+              <div className="w-8 h-8 bg-black rounded-lg flex items-center justify-center">
+                <span className="text-white font-semibold text-sm">RD</span>
               </div>
-              <span className="text-xl font-semibold text-white">Rodgers Digital</span>
+              <span className="text-xl font-semibold text-black">RodgersDigital</span>
             </div>
             
-            <div className="flex items-center space-x-6">
-              <a href="/" className="text-blue-200 font-medium hover:text-white transition-colors">
+            <div className="flex items-center space-x-8">
+              <a href="/" className="text-gray-600 font-medium hover:text-black transition-colors duration-200">
                 Home
               </a>
               <a 
                 href="/jwlibrarylinuxinstaller"
-                className="bg-blue-500 text-white px-6 py-2 rounded-lg font-medium hover:bg-blue-600 transition-colors"
+                className="bg-blue-500 text-white px-6 py-2 rounded-full font-medium hover:bg-blue-600 transition-all duration-200 shadow-lg hover:shadow-xl"
               >
                 Get Installer
               </a>
@@ -178,36 +178,36 @@ export default function JWLibraryLinuxWelcome() {
       </nav>
 
       {/* Hero Section */}
-      <section className="relative px-4 py-20">
+      <section className="relative px-6 py-24">
         <div className="max-w-4xl mx-auto text-center">
           <div className="mb-8">
-            <span className="inline-block bg-white bg-opacity-10 text-blue-200 px-4 py-2 rounded-full text-sm font-medium mb-6 backdrop-blur-sm border border-white border-opacity-20">
+            <span className="inline-block bg-gray-100 text-gray-600 px-4 py-2 rounded-full text-sm font-medium">
               🐧 Linux Compatible Tool
             </span>
           </div>
           
-          <h1 className="text-4xl md:text-6xl font-bold text-white mb-6 leading-tight">
+          <h1 className="text-5xl md:text-7xl font-light text-black mb-6 leading-tight tracking-tight">
             JW Library
             <br />
-            <span className="bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">for Linux.</span>
+            <span className="font-medium">for Linux.</span>
           </h1>
           
-          <p className="text-xl text-blue-100 mb-12 max-w-3xl mx-auto leading-relaxed">
+          <p className="text-xl text-gray-600 mb-12 max-w-2xl mx-auto leading-relaxed font-light">
             Install JW Library on any Linux distribution with our automated installer. 
-            No Wine expertise required - we handle everything for you.
+            No Wine expertise required — we handle everything for you.
           </p>
 
           {/* Compatibility Check */}
           {isCompatible !== null && (
-            <div className={`inline-flex items-center px-6 py-3 rounded-xl mb-8 backdrop-blur-sm border ${
+            <div className={`inline-flex items-center px-6 py-3 rounded-full mb-12 ${
               isCompatible 
-                ? 'bg-green-500 bg-opacity-20 border-green-400 border-opacity-30' 
-                : 'bg-yellow-500 bg-opacity-20 border-yellow-400 border-opacity-30'
+                ? 'bg-green-50 text-green-700 border border-green-200' 
+                : 'bg-orange-50 text-orange-700 border border-orange-200'
             }`}>
-              <span className="text-2xl mr-3">
+              <span className="text-xl mr-3">
                 {isCompatible ? '✅' : '⚠️'}
               </span>
-              <span className={`font-medium ${isCompatible ? 'text-green-200' : 'text-yellow-200'}`}>
+              <span className="font-medium">
                 {isCompatible 
                   ? 'Your system appears compatible!' 
                   : 'Please check system requirements below'
@@ -216,45 +216,44 @@ export default function JWLibraryLinuxWelcome() {
             </div>
           )}
 
-          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-8">
             <a href="/jwlibrarylinuxinstaller">
-              <button className="bg-gradient-to-r from-blue-500 to-cyan-500 text-white px-8 py-4 rounded-xl text-lg font-semibold hover:shadow-2xl hover:shadow-blue-500/25 transform hover:-translate-y-1 transition-all duration-300 flex items-center space-x-2">
-                <span>🚀</span>
-                <span>Get Started - Free Download</span>
+              <button className="bg-blue-500 text-white px-8 py-4 rounded-full text-lg font-medium hover:bg-blue-600 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5">
+                Get Started — Free Download
               </button>
             </a>
             
             <button 
               onClick={scrollToRequirements}
-              className="bg-white bg-opacity-10 text-white px-6 py-4 rounded-xl font-medium hover:bg-opacity-20 transition-all duration-300 border border-white border-opacity-20"
+              className="text-blue-500 px-8 py-4 rounded-full text-lg font-medium hover:bg-blue-50 transition-all duration-200"
             >
               Check Compatibility
             </button>
           </div>
 
-          <div className="mt-8 text-sm text-blue-200">
-            ⭐ Free tool • No registration required • Open source approach
+          <div className="text-sm text-gray-500">
+            Free tool • No registration required • Open source approach
           </div>
         </div>
       </section>
 
       {/* Screenshot Carousel */}
-      <section className="py-16 px-4">
-        <div className="max-w-6xl mx-auto">
-          <h2 className="text-3xl md:text-4xl font-bold text-white text-center mb-12">
-            See JW Library Running on Linux
+      <section className="py-20 px-6 bg-gray-50">
+        <div className="max-w-5xl mx-auto">
+          <h2 className="text-4xl md:text-5xl font-light text-black text-center mb-16 tracking-tight">
+            See JW Library running on Linux.
           </h2>
           
-          <div className="relative bg-black bg-opacity-30 rounded-2xl p-8 backdrop-blur-sm border border-white border-opacity-10">
-            <div className="relative h-96 bg-gray-800 rounded-xl overflow-hidden">
+          <div className="bg-white rounded-3xl p-8 shadow-xl">
+            <div className="relative h-96 bg-gray-100 rounded-2xl overflow-hidden">
               {/* Placeholder for screenshots */}
-              <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-gray-700 to-gray-900">
+              <div className="w-full h-full flex items-center justify-center">
                 <div className="text-center">
-                  <div className="text-6xl mb-4">📱</div>
-                  <h3 className="text-2xl font-semibold text-white mb-2">
+                  <div className="text-6xl mb-6">📱</div>
+                  <h3 className="text-2xl font-medium text-black mb-3">
                     {screenshots[currentSlide].title}
                   </h3>
-                  <p className="text-gray-300">
+                  <p className="text-gray-600 font-light">
                     {screenshots[currentSlide].description}
                   </p>
                 </div>
@@ -262,13 +261,13 @@ export default function JWLibraryLinuxWelcome() {
             </div>
             
             {/* Slide indicators */}
-            <div className="flex justify-center mt-6 space-x-2">
+            <div className="flex justify-center mt-8 space-x-2">
               {screenshots.map((_, index) => (
                 <button
                   key={index}
                   onClick={() => setCurrentSlide(index)}
-                  className={`w-3 h-3 rounded-full transition-all duration-300 ${
-                    index === currentSlide ? 'bg-blue-500' : 'bg-gray-500'
+                  className={`w-2 h-2 rounded-full transition-all duration-300 ${
+                    index === currentSlide ? 'bg-blue-500 w-8' : 'bg-gray-300'
                   }`}
                 />
               ))}
@@ -278,23 +277,20 @@ export default function JWLibraryLinuxWelcome() {
       </section>
 
       {/* Features Grid */}
-      <section className="py-16 px-4">
+      <section className="py-20 px-6">
         <div className="max-w-6xl mx-auto">
-          <h2 className="text-3xl md:text-4xl font-bold text-white text-center mb-16">
-            Why Choose Our Installer?
+          <h2 className="text-4xl md:text-5xl font-light text-black text-center mb-16 tracking-tight">
+            Why choose our installer?
           </h2>
           
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
             {features.map((feature, index) => (
-              <div
-                key={index}
-                className="bg-white bg-opacity-5 backdrop-blur-sm border border-white border-opacity-10 rounded-xl p-6 hover:bg-opacity-10 transition-all duration-300 hover:transform hover:-translate-y-2"
-              >
-                <div className="text-4xl mb-4">{feature.icon}</div>
-                <h3 className="text-xl font-semibold text-white mb-3">
+              <div key={index} className="text-center group">
+                <div className="text-4xl mb-6">{feature.icon}</div>
+                <h3 className="text-xl font-medium text-black mb-4">
                   {feature.title}
                 </h3>
-                <p className="text-blue-100 leading-relaxed">
+                <p className="text-gray-600 leading-relaxed font-light">
                   {feature.description}
                 </p>
               </div>
@@ -304,33 +300,26 @@ export default function JWLibraryLinuxWelcome() {
       </section>
 
       {/* Supported Distributions */}
-      <section className="py-16 px-4">
+      <section className="py-20 px-6 bg-gray-50">
         <div className="max-w-6xl mx-auto">
-          <h2 className="text-3xl md:text-4xl font-bold text-white text-center mb-16">
-            Supported Linux Distributions
+          <h2 className="text-4xl md:text-5xl font-light text-black text-center mb-16 tracking-tight">
+            Supported Linux distributions.
           </h2>
           
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
             {supportedDistros.map((distro, index) => (
-              <div
-                key={index}
-                className={`bg-white bg-opacity-5 backdrop-blur-sm border rounded-xl p-6 ${
-                  distro.tested 
-                    ? 'border-green-400 border-opacity-30' 
-                    : 'border-yellow-400 border-opacity-30'
-                }`}
-              >
+              <div key={index} className="bg-white rounded-2xl p-6 shadow-sm hover:shadow-lg transition-shadow duration-200">
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center space-x-3">
                     <span className="text-2xl">{distro.logo}</span>
-                    <h3 className="text-xl font-semibold text-white">
+                    <h3 className="text-xl font-medium text-black">
                       {distro.name}
                     </h3>
                   </div>
-                  <span className={`text-xs px-2 py-1 rounded-full ${
+                  <span className={`text-xs px-3 py-1 rounded-full font-medium ${
                     distro.tested 
-                      ? 'bg-green-500 bg-opacity-20 text-green-200' 
-                      : 'bg-yellow-500 bg-opacity-20 text-yellow-200'
+                      ? 'bg-green-100 text-green-700' 
+                      : 'bg-orange-100 text-orange-700'
                   }`}>
                     {distro.popularity}
                   </span>
@@ -338,14 +327,14 @@ export default function JWLibraryLinuxWelcome() {
                 
                 <div className="space-y-1 mb-4">
                   {distro.versions.map((version, vIndex) => (
-                    <div key={vIndex} className="text-sm text-blue-200">
+                    <div key={vIndex} className="text-sm text-gray-600 font-light">
                       • {version}
                     </div>
                   ))}
                 </div>
                 
                 <div className={`text-sm font-medium ${
-                  distro.tested ? 'text-green-300' : 'text-yellow-300'
+                  distro.tested ? 'text-green-600' : 'text-orange-600'
                 }`}>
                   {distro.tested ? '✅ Fully Tested' : '⚠️ Should Work'}
                 </div>
@@ -356,23 +345,23 @@ export default function JWLibraryLinuxWelcome() {
       </section>
 
       {/* System Requirements */}
-      <section id="requirements" className="py-16 px-4">
+      <section id="requirements" className="py-20 px-6">
         <div className="max-w-4xl mx-auto">
-          <h2 className="text-3xl md:text-4xl font-bold text-white text-center mb-16">
-            System Requirements
+          <h2 className="text-4xl md:text-5xl font-light text-black text-center mb-16 tracking-tight">
+            System requirements.
           </h2>
           
-          <div className="bg-white bg-opacity-5 backdrop-blur-sm border border-white border-opacity-10 rounded-xl p-8">
-            <div className="grid md:grid-cols-2 gap-8">
+          <div className="bg-white rounded-3xl p-8 shadow-xl">
+            <div className="grid md:grid-cols-2 gap-12">
               <div>
-                <h3 className="text-xl font-semibold text-white mb-6 flex items-center">
+                <h3 className="text-xl font-medium text-black mb-6 flex items-center">
                   <span className="mr-3">✅</span>
                   Minimum Requirements
                 </h3>
                 <ul className="space-y-3">
                   {requirements.map((req, index) => (
-                    <li key={index} className="text-blue-100 flex items-start">
-                      <span className="text-blue-400 mr-3 mt-1">•</span>
+                    <li key={index} className="text-gray-600 flex items-start font-light">
+                      <span className="text-gray-400 mr-3 mt-1.5 text-xs">●</span>
                       {req}
                     </li>
                   ))}
@@ -380,30 +369,30 @@ export default function JWLibraryLinuxWelcome() {
               </div>
               
               <div>
-                <h3 className="text-xl font-semibold text-white mb-6 flex items-center">
+                <h3 className="text-xl font-medium text-black mb-6 flex items-center">
                   <span className="mr-3">⚡</span>
                   Installation Process
                 </h3>
                 <div className="space-y-4">
                   <div className="flex items-start">
-                    <span className="bg-blue-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm font-bold mr-3 mt-0.5">1</span>
+                    <span className="bg-blue-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm font-medium mr-4 mt-0.5 flex-shrink-0">1</span>
                     <div>
-                      <div className="text-white font-medium">Download Script</div>
-                      <div className="text-blue-200 text-sm">One-click download from our tool</div>
+                      <div className="text-black font-medium">Download Script</div>
+                      <div className="text-gray-600 text-sm font-light">One-click download from our tool</div>
                     </div>
                   </div>
                   <div className="flex items-start">
-                    <span className="bg-blue-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm font-bold mr-3 mt-0.5">2</span>
+                    <span className="bg-blue-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm font-medium mr-4 mt-0.5 flex-shrink-0">2</span>
                     <div>
-                      <div className="text-white font-medium">Run Installer</div>
-                      <div className="text-blue-200 text-sm">Automated Wine setup and configuration</div>
+                      <div className="text-black font-medium">Run Installer</div>
+                      <div className="text-gray-600 text-sm font-light">Automated Wine setup and configuration</div>
                     </div>
                   </div>
                   <div className="flex items-start">
-                    <span className="bg-blue-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm font-bold mr-3 mt-0.5">3</span>
+                    <span className="bg-blue-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm font-medium mr-4 mt-0.5 flex-shrink-0">3</span>
                     <div>
-                      <div className="text-white font-medium">Launch JW Library</div>
-                      <div className="text-blue-200 text-sm">Find it in your applications menu</div>
+                      <div className="text-black font-medium">Launch JW Library</div>
+                      <div className="text-gray-600 text-sm font-light">Find it in your applications menu</div>
                     </div>
                   </div>
                 </div>
@@ -414,67 +403,67 @@ export default function JWLibraryLinuxWelcome() {
       </section>
 
       {/* Call to Action */}
-      <section className="py-20 px-4">
+      <section className="py-24 px-6 bg-black text-white">
         <div className="max-w-4xl mx-auto text-center">
-          <h2 className="text-4xl md:text-5xl font-bold text-white mb-6">
-            Ready to Install JW Library?
+          <h2 className="text-4xl md:text-5xl font-light mb-6 tracking-tight">
+            Ready to install JW Library?
           </h2>
-          <p className="text-xl text-blue-100 mb-12">
+          <p className="text-xl mb-12 max-w-2xl mx-auto leading-relaxed font-light text-gray-300">
             Join thousands of Linux users who have successfully installed JW Library with our tool.
           </p>
           
           <a href="/jwlibrarylinuxinstaller">
-            <button className="bg-gradient-to-r from-blue-500 to-cyan-500 text-white px-12 py-6 rounded-xl text-xl font-bold hover:shadow-2xl hover:shadow-blue-500/25 transform hover:-translate-y-2 transition-all duration-300 mb-8">
+            <button className="bg-white text-black px-12 py-4 rounded-full text-lg font-medium hover:bg-gray-100 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 mb-8">
               Start Installation Now
             </button>
           </a>
           
-          <div className="text-sm text-blue-200 space-y-2">
-            <div>✅ Free forever • No registration required • No data collection</div>
-            <div>💖 Made with love for the Linux community by Rodgers Digital</div>
+          <div className="text-sm text-gray-400 space-y-2 font-light">
+            <div>Free forever • No registration required • No data collection</div>
+            <div>Made with care for the Linux community by RodgersDigital</div>
           </div>
         </div>
       </section>
 
       {/* Footer */}
-      <footer className="border-t border-white border-opacity-10 py-12 px-4">
+      <footer className="bg-gray-50 py-16 px-6">
         <div className="max-w-6xl mx-auto">
-          <div className="grid md:grid-cols-3 gap-8 mb-8">
+          <div className="grid md:grid-cols-3 gap-12 mb-12">
             <div>
               <div className="flex items-center space-x-3 mb-4">
-                <div className="w-8 h-8 bg-blue-500 rounded-lg flex items-center justify-center">
-                  <span className="text-white font-bold text-sm">RD</span>
+                <div className="w-8 h-8 bg-black rounded-lg flex items-center justify-center">
+                  <span className="text-white font-semibold text-sm">RD</span>
                 </div>
-                <span className="text-white font-semibold">Rodgers Digital</span>
+                <span className="text-xl font-semibold text-black">RodgersDigital</span>
               </div>
-              <p className="text-blue-200 text-sm leading-relaxed">
+              <p className="text-gray-600 font-light leading-relaxed">
                 Creating useful tools and solutions for developers and technology enthusiasts worldwide.
               </p>
             </div>
             
             <div>
-              <h4 className="text-white font-semibold mb-4">Useful Links</h4>
-              <ul className="space-y-2 text-sm">
-                <li><a href="/jwlibrarylinuxinstaller" className="text-blue-200 hover:text-white transition-colors">Installation Tool</a></li>
-                <li><a href="https://rodgersdigital.com" className="text-blue-200 hover:text-white transition-colors">Main Website</a></li>
-                <li><a href="mailto:support@rodgersdigital.com" className="text-blue-200 hover:text-white transition-colors">Get Support</a></li>
+              <h4 className="text-black font-medium mb-4">Useful Links</h4>
+              <ul className="space-y-3">
+                <li><a href="/jwlibrarylinuxinstaller" className="text-gray-600 hover:text-black transition-colors duration-200 font-light">Installation Tool</a></li>
+                <li><a href="https://rodgersdigital.com" className="text-gray-600 hover:text-black transition-colors duration-200 font-light">Main Website</a></li>
+                <li><a href="mailto:support@rodgersdigital.com" className="text-gray-600 hover:text-black transition-colors duration-200 font-light">Get Support</a></li>
               </ul>
             </div>
             
             <div>
-              <h4 className="text-white font-semibold mb-4">About This Tool</h4>
-              <ul className="space-y-2 text-sm text-blue-200">
-                <li>• Open source approach</li>
-                <li>• Community driven</li>
-                <li>• Regularly updated</li>
-                <li>• Free to use</li>
+              <h4 className="text-black font-medium mb-4">About This Tool</h4>
+              <ul className="space-y-2 text-gray-600 font-light">
+                <li>Open source approach</li>
+                <li>Community driven</li>
+                <li>Regularly updated</li>
+                <li>Free to use</li>
               </ul>
             </div>
           </div>
           
-          <div className="border-t border-white border-opacity-10 pt-8 text-center">
-            <p className="text-blue-300 text-sm">
-              © 2025 Rodgers Digital. This tool is provided free of charge to our brothers.
+          <div className="border-t border-gray-200 pt-8 text-center">
+            <p className="text-gray-500 font-light">
+              © 2025 RodgersDigital. This tool is provided free of charge to the brothers.
             </p>
           </div>
         </div>
