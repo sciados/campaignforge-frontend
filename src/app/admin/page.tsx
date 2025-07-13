@@ -348,14 +348,20 @@ export default function AdminPage() {
             <button
               onClick={() => {
                 console.log('🔄 Switching to user dashboard...');
-                router.push('/dashboard');
+                // Try the admin_override parameter first
+                router.push('/dashboard?admin_override=true');
+                
+                // If that doesn't work, try these alternatives:
+                // router.push('/campaigns');
+                // router.push('/user');
+                // router.push('/user-dashboard');
               }}
               className="w-full flex items-center space-x-3 px-4 py-3 bg-purple-50 hover:bg-purple-100 text-purple-700 rounded-lg transition-colors text-sm border border-purple-200 hover:border-purple-300 hover:shadow-sm"
             >
               <Sparkles className="w-5 h-5" />
               <span className="font-medium">Switch to User Dashboard</span>
               <svg className="w-4 h-4 ml-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002 2v-4M14 4h6m0 0v6m0-6L10 14" />
               </svg>
             </button>
           </div>
