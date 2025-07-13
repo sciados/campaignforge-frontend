@@ -4,13 +4,12 @@
 import React, { useState, useCallback } from 'react';
 import { Mail, Download, Copy, Users, TrendingUp, BarChart3, Target, ListChecks } from 'lucide-react';
 
-// Define flexible interfaces that match your actual API structure
 interface WaitlistEntry {
-  id: number | string;  // Handle both number and string IDs
+  id: string;
   email: string;
   created_at: string;
-  is_notified?: boolean;  // Optional since it might not exist
-  ip_address?: string;    // Optional since it might not exist
+  is_notified: boolean;
+  ip_address?: string;
 }
 
 interface WaitlistStats {
@@ -18,8 +17,8 @@ interface WaitlistStats {
   today: number;
   this_week: number;
   this_month: number;
-  recent_signups?: WaitlistEntry[];  // Optional
-  daily_stats?: Array<{ date: string; count: number }>;  // Optional
+  recent_signups: WaitlistEntry[];
+  daily_stats: Array<{ date: string; count: number }>;
 }
 
 interface Props {
@@ -324,7 +323,7 @@ You're receiving this because you joined our waitlist.`;
                     <div 
                       className="bg-blue-500 h-3 rounded-full transition-all"
                       style={{ 
-                        width: `${Math.min(100, (day.count / Math.max(...(waitlistStats.daily_stats?.map(d => d.count) || [1]))) * 100)}%` 
+                        width: `${Math.min(100, (day.count / Math.max(...waitlistStats.daily_stats.map(d => d.count))) * 100)}%` 
                       }}
                     ></div>
                   </div>
