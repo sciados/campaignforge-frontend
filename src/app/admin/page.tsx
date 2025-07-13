@@ -213,6 +213,7 @@ You're receiving this because you joined our waitlist.`;
       const token = localStorage.getItem('authToken');
       if (!token) return;
       
+      console.log('🔍 Fetching users...');
       const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://campaign-backend-production-e2db.up.railway.app';
       const params = new URLSearchParams({
         page: currentPage.toString(),
@@ -226,7 +227,11 @@ You're receiving this because you joined our waitlist.`;
       });
       if (response.ok) {
         const data = await response.json();
+        console.log('✅ Users response:', data);
+        console.log('👥 Users array:', data.users);
         setUsers(data.users || []);
+      } else {
+        console.error('❌ Users API error:', response.status, response.statusText);
       }
     } catch (error) {
       console.error('Failed to fetch users:', error);
@@ -241,6 +246,7 @@ You're receiving this because you joined our waitlist.`;
       const token = localStorage.getItem('authToken');
       if (!token) return;
       
+      console.log('🏢 Fetching companies...');
       const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://campaign-backend-production-e2db.up.railway.app';
       const params = new URLSearchParams({
         page: currentPage.toString(),
@@ -254,7 +260,11 @@ You're receiving this because you joined our waitlist.`;
       });
       if (response.ok) {
         const data = await response.json();
+        console.log('✅ Companies response:', data);
+        console.log('🏢 Companies array:', data.companies);
         setCompanies(data.companies || []);
+      } else {
+        console.error('❌ Companies API error:', response.status, response.statusText);
       }
     } catch (error) {
       console.error('Failed to fetch companies:', error);
@@ -266,19 +276,25 @@ You're receiving this because you joined our waitlist.`;
   // ✅ FIXED: Load waitlist stats on overview tab and initial load
   useEffect(() => {
     if (mounted) {
+      console.log('🔄 Tab changed to:', activeTab);
+      
       // Always fetch admin stats and waitlist stats for overview
       fetchAdminStats();
       fetchWaitlistStats(); // ✅ FIXED: Load waitlist stats immediately
       
       // Load tab-specific data
       if (activeTab === 'users') {
+        console.log('👥 Loading users tab...');
         fetchUsers();
       } else if (activeTab === 'companies') {
+        console.log('🏢 Loading companies tab...');
         fetchCompanies();
       } else if (activeTab === 'waitlist') {
+        console.log('📋 Loading waitlist tab...');
         fetchWaitlistEntries();
       } else {
         // ✅ FIXED: Reset loading state for overview and other tabs
+        console.log('📊 Loading overview tab...');
         setLoading(false);
       }
     }
@@ -510,10 +526,12 @@ You're receiving this because you joined our waitlist.`;
               <button
                 key={item.id}
                 onClick={() => {
+                  console.log('🖱️ Clicking tab:', item.id);
                   if (item.onClick) {
                     item.onClick();
                   } else {
                     setActiveTab(item.id);
+                    console.log('✅ Active tab set to:', item.id);
                   }
                 }}
                 className={`w-full flex items-center space-x-3 px-4 py-3 text-left rounded-lg transition-colors ${
