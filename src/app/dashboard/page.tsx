@@ -1,11 +1,12 @@
+// /src/app/dashboard/page.tsx - FIXED VERSION with Admin Override
 'use client'
 
 import { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { 
   BarChart3, Target, TrendingUp, Users, ShoppingBag,
   Plus, Calendar, ArrowRight, 
-  Home
+  Home, Shield
 } from 'lucide-react'
 
 export const dynamic = 'force-dynamic'
@@ -42,6 +43,7 @@ export default function DashboardPage() {
   const [user, setUser] = useState<User | null>(null)
   const [stats, setStats] = useState<CompanyStats | null>(null)
   const router = useRouter()
+  const searchParams = useSearchParams()
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -63,9 +65,18 @@ export default function DashboardPage() {
         if (authResponse.ok) {
           const userData: User = await authResponse.json()
           
-          if (userData.role === 'admin') {
+          // ✅ FIXED: Check for admin override parameter
+          const adminOverride = searchParams.get('admin_override')
+          
+          if (userData.role === 'admin' && !adminOverride) {
+            console.log('👑 Admin detected, redirecting to admin dashboard...')
             router.push('/admin')
             return
+          }
+          
+          // ✅ FIXED: Log when admin is using user dashboard
+          if (userData.role === 'admin' && adminOverride) {
+            console.log('🔄 Admin using user dashboard with override')
           }
           
           setUser(userData)
@@ -101,13 +112,19 @@ export default function DashboardPage() {
     }
 
     checkAuth()
-  }, [router])
+  }, [router, searchParams])
 
   const handleLogout = () => {
     if (typeof window !== 'undefined') {
       localStorage.removeItem('authToken')
     }
     router.push('/login')
+  }
+
+  // ✅ FIXED: Add function to switch back to admin
+  const handleSwitchToAdmin = () => {
+    console.log('🔄 Switching back to admin dashboard...')
+    router.push('/admin')
   }
 
   if (isLoading) {
@@ -117,6 +134,9 @@ export default function DashboardPage() {
       </div>
     )
   }
+
+  // ✅ FIXED: Check if user is admin with override
+  const isAdminWithOverride = user?.role === 'admin' && searchParams.get('admin_override')
 
   return (
     <div className="min-h-screen bg-white">
@@ -135,11 +155,29 @@ export default function DashboardPage() {
                 <span>{stats.company_name}</span>
                 <span>/</span>
                 <span className="text-black">Dashboard</span>
+                {/* ✅ FIXED: Show admin indicator */}
+                {isAdminWithOverride && (
+                  <>
+                    <span>/</span>
+                    <span className="text-red-600 font-medium">Admin View</span>
+                  </>
+                )}
               </div>
             )}
           </div>
           
           <div className="flex items-center space-x-4">
+            {/* ✅ FIXED: Add admin switch button in header */}
+            {isAdminWithOverride && (
+              <button
+                onClick={handleSwitchToAdmin}
+                className="flex items-center space-x-2 px-3 py-1 bg-red-100 text-red-800 rounded-full text-sm font-medium border border-red-200 hover:bg-red-200 transition-colors"
+              >
+                <Shield className="w-4 h-4" />
+                <span>Back to Admin</span>
+              </button>
+            )}
+            
             <input
               type="text"
               placeholder="Search campaigns..."
@@ -156,12 +194,28 @@ export default function DashboardPage() {
       <div className="flex">
         {/* Sidebar */}
         <aside className="w-64 bg-white border-r border-gray-200 min-h-screen">
+          {/* ✅ FIXED: Add admin switch button in sidebar */}
+          {isAdminWithOverride && (
+            <div className="p-6 border-b border-gray-200">
+              <button
+                onClick={handleSwitchToAdmin}
+                className="w-full flex items-center space-x-3 px-4 py-3 bg-red-50 hover:bg-red-100 text-red-700 rounded-lg transition-colors text-sm border border-red-200"
+              >
+                <Shield className="w-5 h-5" />
+                <span className="font-medium">Switch Back to Admin</span>
+                <svg className="w-4 h-4 ml-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                </svg>
+              </button>
+            </div>
+          )}
+
           <nav className="p-6 space-y-2">
             {[
               { name: 'Dashboard', href: '/dashboard', icon: Home },
               { id: 'overview', label: 'Overview', icon: BarChart3, active: true },
               { id: 'campaigns', label: 'Campaigns', icon: Target, onClick: () => router.push('/campaigns') },
-              { id: 'marketplace', label: 'Marketplace', icon: ShoppingBag, onClick: () => router.push('/marketplace') }, // ✅ NEW MARKETPLACE LINK
+              { id: 'marketplace', label: 'Marketplace', icon: ShoppingBag, onClick: () => router.push('/marketplace') },
               { id: 'analytics', label: 'Analytics', icon: TrendingUp },
               { id: 'settings', label: 'Settings', icon: Users },
             ].map((item) => {
@@ -228,8 +282,17 @@ export default function DashboardPage() {
               <div>
                 <h2 className="text-3xl font-light text-black mb-2">
                   Good morning, {user?.full_name?.split(' ')[0] || 'User'}.
+                  {/* ✅ FIXED: Show admin indicator in welcome */}
+                  {isAdminWithOverride && (
+                    <span className="text-red-600 font-medium text-lg ml-2">(Admin View)</span>
+                  )}
                 </h2>
-                <p className="text-gray-600">Here is what is happening with your campaigns today.</p>
+                <p className="text-gray-600">
+                  {isAdminWithOverride 
+                    ? "You're viewing the user dashboard as an admin. Switch back anytime."
+                    : "Here is what is happening with your campaigns today."
+                  }
+                </p>
               </div>
               <button 
                 onClick={() => router.push('/campaigns')}
@@ -289,9 +352,8 @@ export default function DashboardPage() {
               </div>
             )}
 
-            {/* Quick Actions - Updated with Marketplace Card */}
+            {/* Quick Actions */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {/* ✅ NEW: ClickBank Marketplace Card */}
               <div className="bg-gradient-to-br from-purple-50 to-blue-50 rounded-2xl p-8 border border-purple-100">
                 <div className="w-12 h-12 bg-purple-600 rounded-xl flex items-center justify-center mb-6">
                   <ShoppingBag className="w-6 h-6 text-white" />
