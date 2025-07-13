@@ -1,33 +1,205 @@
-// File: src/lib/stores/campaignStore.ts
-import { Campaign } from "../api"
-import { CampaignCreateRequest } from "../types/campaign"
+// src/lib/stores/campaignStore.ts - Enhanced Implementation
+'use client'
+import { create } from 'zustand'
+import { devtools } from 'zustand/middleware'
+import { Campaign, apiClient } from "../api"
+
+interface CampaignCreateRequest {
+  title: string
+  description: string
+  campaign_type?: string
+  target_audience?: string
+  keywords?: string[]
+  tone?: string
+  style?: string
+  settings?: Record<string, any>
+}
 
 interface CampaignStore {
+  // State
   currentCampaign: Campaign | null
   campaigns: Campaign[]
   isLoading: boolean
-  createCampaign: (data: CampaignCreateRequest) => Promise<void>
-  updateCampaign: (id: string, data: Partial<Campaign>) => Promise<void>
+  error: string | null
+  lastUpdated: Date | null
+  
+  // Actions
+  createCampaign: (data: CampaignCreateRequest) => Promise<Campaign>
+  updateCampaign: (id: string, data: Partial<Campaign>) => Promise<Campaign>
   deleteCampaign: (id: string) => Promise<void>
+  loadCampaigns: () => Promise<void>
+  loadCampaign: (id: string) => Promise<void>
+  clearError: () => void
+  setCurrentCampaign: (campaign: Campaign | null) => void
+  
+  // Computed
+  activeCampaigns: () => Campaign[]
+  draftCampaigns: () => Campaign[]
+  completedCampaigns: () => Campaign[]
 }
 
-// Placeholder implementation - replace with your actual store logic
-export const useCampaignStore = (): CampaignStore => {
-  return {
-    currentCampaign: null,
-    campaigns: [],
-    isLoading: false,
-    createCampaign: async (data: CampaignCreateRequest) => {
-      // Implement campaign creation logic
-      console.log('Creating campaign:', data)
-    },
-    updateCampaign: async (id: string, data: Partial<Campaign>) => {
-      // Implement campaign update logic
-      console.log('Updating campaign:', id, data)
-    },
-    deleteCampaign: async (id: string) => {
-      // Implement campaign deletion logic
-      console.log('Deleting campaign:', id)
+export const useCampaignStore = create<CampaignStore>()(
+  devtools(
+    (set, get) => ({
+      // Initial state
+      currentCampaign: null,
+      campaigns: [],
+      isLoading: false,
+      error: null,
+      lastUpdated: null,
+
+      // Actions
+      createCampaign: async (data: CampaignCreateRequest) => {
+        set({ isLoading: true, error: null })
+        
+        try {
+          const campaign = await apiClient.createCampaign({
+            ...data,
+            campaign_type: data.campaign_type || 'universal'
+          })
+          
+          set((state) => ({
+            campaigns: [...state.campaigns, campaign],
+            currentCampaign: campaign,
+            isLoading: false,
+            lastUpdated: new Date()
+          }))
+          
+          return campaign
+        } catch (error) {
+          const errorMessage = error instanceof Error ? error.message : 'Failed to create campaign'
+          set({ error: errorMessage, isLoading: false })
+          throw error
+        }
+      },
+
+      updateCampaign: async (id: string, data: Partial<Campaign>) => {
+        set({ isLoading: true, error: null })
+        
+        try {
+          const updatedCampaign = await apiClient.updateCampaign(id, data)
+          
+          set((state) => ({
+            campaigns: state.campaigns.map(c => c.id === id ? updatedCampaign : c),
+            currentCampaign: state.currentCampaign?.id === id ? updatedCampaign : state.currentCampaign,
+            isLoading: false,
+            lastUpdated: new Date()
+          }))
+          
+          return updatedCampaign
+        } catch (error) {
+          const errorMessage = error instanceof Error ? error.message : 'Failed to update campaign'
+          set({ error: errorMessage, isLoading: false })
+          throw error
+        }
+      },
+
+      deleteCampaign: async (id: string) => {
+        set({ isLoading: true, error: null })
+        
+        try {
+          await apiClient.deleteCampaign(id)
+          
+          set((state) => ({
+            campaigns: state.campaigns.filter(c => c.id !== id),
+            currentCampaign: state.currentCampaign?.id === id ? null : state.currentCampaign,
+            isLoading: false,
+            lastUpdated: new Date()
+          }))
+        } catch (error) {
+          const errorMessage = error instanceof Error ? error.message : 'Failed to delete campaign'
+          set({ error: errorMessage, isLoading: false })
+          throw error
+        }
+      },
+
+      loadCampaigns: async () => {
+        set({ isLoading: true, error: null })
+        
+        try {
+          const campaigns = await apiClient.getCampaigns({ limit: 100 })
+          
+          set({
+            campaigns,
+            isLoading: false,
+            lastUpdated: new Date()
+          })
+        } catch (error) {
+          const errorMessage = error instanceof Error ? error.message : 'Failed to load campaigns'
+          set({ error: errorMessage, isLoading: false })
+          throw error
+        }
+      },
+
+      loadCampaign: async (id: string) => {
+        set({ isLoading: true, error: null })
+        
+        try {
+          const campaign = await apiClient.getCampaign(id)
+          
+          set((state) => ({
+            currentCampaign: campaign,
+            campaigns: state.campaigns.some(c => c.id === id) 
+              ? state.campaigns.map(c => c.id === id ? campaign : c)
+              : [...state.campaigns, campaign],
+            isLoading: false,
+            lastUpdated: new Date()
+          }))
+        } catch (error) {
+          const errorMessage = error instanceof Error ? error.message : 'Failed to load campaign'
+          set({ error: errorMessage, isLoading: false })
+          throw error
+        }
+      },
+
+      clearError: () => {
+        set({ error: null })
+      },
+
+      setCurrentCampaign: (campaign: Campaign | null) => {
+        set({ currentCampaign: campaign })
+      },
+
+      // Computed properties
+      activeCampaigns: () => {
+        return get().campaigns.filter(c => 
+          c.status === 'active' || c.status === 'in_progress'
+        )
+      },
+
+      draftCampaigns: () => {
+        return get().campaigns.filter(c => c.status === 'draft')
+      },
+
+      completedCampaigns: () => {
+        return get().campaigns.filter(c => c.status === 'completed')
+      }
+    }),
+    {
+      name: 'campaign-store',
+      partialize: (state: { campaigns: any; lastUpdated: any }) => ({
+        // Only persist non-sensitive data
+        campaigns: state.campaigns,
+        lastUpdated: state.lastUpdated
+      })
     }
+  )
+)
+
+// Hooks for easy access to computed values
+export const useActiveCampaigns = () => useCampaignStore(state => state.activeCampaigns())
+export const useDraftCampaigns = () => useCampaignStore(state => state.draftCampaigns())
+export const useCompletedCampaigns = () => useCampaignStore(state => state.completedCampaigns())
+
+// Hook for campaign stats
+export const useCampaignStats = () => {
+  const campaigns = useCampaignStore(state => state.campaigns)
+  
+  return {
+    total: campaigns.length,
+    active: campaigns.filter(c => c.status === 'active' || c.status === 'in_progress').length,
+    draft: campaigns.filter(c => c.status === 'draft').length,
+    completed: campaigns.filter(c => c.status === 'completed').length,
+    archived: campaigns.filter(c => c.status === 'archived').length
   }
 }
