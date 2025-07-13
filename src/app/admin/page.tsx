@@ -1,4 +1,4 @@
-// pages/admin/page.tsx - Updated with Waitlist Management
+// /src/app/admin/page.tsx - FIXED VERSION: Improved Formatting + Waitlist Loading
 'use client'
 
 import React, { useState, useEffect, useCallback } from 'react';
@@ -74,7 +74,7 @@ export default function AdminPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [loading, setLoading] = useState(true);
   
-  // ✅ NEW: Waitlist states
+  // ✅ FIXED: Waitlist states
   const [waitlistStats, setWaitlistStats] = useState<WaitlistStatsResponse | null>(null);
   const [waitlistEntries, setWaitlistEntries] = useState<WaitlistEntry[]>([]);
   const [showEmailComposer, setShowEmailComposer] = useState(false);
@@ -98,11 +98,12 @@ export default function AdminPage() {
     setMounted(true);
   }, []);
 
-  // ✅ NEW: Waitlist functions
+  // ✅ FIXED: Waitlist functions
   const fetchWaitlistStats = useCallback(async () => {
     try {
       const data = await waitlistApi.getStats();
       setWaitlistStats(data);
+      console.log('✅ Waitlist stats loaded:', data);
     } catch (error) {
       console.error('Failed to fetch waitlist stats:', error);
     }
@@ -186,7 +187,7 @@ The RodgersDigital Team
 You're receiving this because you joined our waitlist.`;
   }, [waitlistStats]);
 
-  // Existing functions (unchanged)
+  // Existing functions
   const fetchAdminStats = useCallback(async () => {
     try {
       const token = localStorage.getItem('authToken');
@@ -199,6 +200,7 @@ You're receiving this because you joined our waitlist.`;
       if (response.ok) {
         const data = await response.json();
         setStats(data);
+        console.log('✅ Admin stats loaded:', data);
       }
     } catch (error) {
       console.error('Failed to fetch admin stats:', error);
@@ -261,13 +263,17 @@ You're receiving this because you joined our waitlist.`;
     }
   }, [currentPage, searchTerm, filterTier]);
 
+  // ✅ FIXED: Load waitlist stats on overview tab and initial load
   useEffect(() => {
     if (mounted) {
+      // Always fetch admin stats and waitlist stats for overview
       fetchAdminStats();
+      fetchWaitlistStats(); // ✅ FIXED: Load waitlist stats immediately
+      
+      // Load tab-specific data
       if (activeTab === 'users') fetchUsers();
       if (activeTab === 'companies') fetchCompanies();
       if (activeTab === 'waitlist') {
-        fetchWaitlistStats();
         fetchWaitlistEntries();
       }
     }
@@ -420,26 +426,24 @@ You're receiving this because you joined our waitlist.`;
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header - Unchanged */}
-      <header className="bg-white border-b border-gray-200 px-6 py-4">
+      {/* Header - Enhanced */}
+      <header className="bg-white border-b border-gray-200 px-6 py-4 shadow-sm">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-4">
-            <div className="flex items-center space-x-2">
-              <div className="w-8 h-8 bg-gradient-to-r from-red-600 to-purple-600 rounded-lg flex items-center justify-center">
-                <Shield className="w-5 h-5 text-white" />
+            <div className="flex items-center space-x-3">
+              <div className="w-10 h-10 bg-gradient-to-r from-red-600 to-purple-600 rounded-xl flex items-center justify-center shadow-lg">
+                <Shield className="w-6 h-6 text-white" />
               </div>
-              <h1 className="text-xl font-bold text-gray-900">RodgersDigital Admin</h1>
-            </div>
-            <div className="hidden md:flex items-center space-x-1 text-sm text-gray-500">
-              <span>Platform</span>
-              <span>/</span>
-              <span className="text-gray-900">Administration</span>
+              <div>
+                <h1 className="text-2xl font-bold text-gray-900">RodgersDigital Admin</h1>
+                <p className="text-sm text-gray-500">Platform Administration Dashboard</p>
+              </div>
             </div>
           </div>
           
           <div className="flex items-center space-x-4">
             {/* Admin Badge */}
-            <div className="flex items-center space-x-2 px-3 py-1 rounded-full bg-red-100 text-red-800">
+            <div className="flex items-center space-x-2 px-4 py-2 rounded-full bg-red-100 text-red-800 border border-red-200">
               <Shield className="w-4 h-4" />
               <span className="text-sm font-medium">Admin Access</span>
             </div>
@@ -464,7 +468,7 @@ You're receiving this because you joined our waitlist.`;
               <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full"></span>
             </button>
             
-            <div className="w-8 h-8 bg-gradient-to-r from-red-600 to-purple-600 rounded-full flex items-center justify-center text-white font-medium text-sm">
+            <div className="w-10 h-10 bg-gradient-to-r from-red-600 to-purple-600 rounded-full flex items-center justify-center text-white font-medium">
               A
             </div>
           </div>
@@ -472,25 +476,25 @@ You're receiving this because you joined our waitlist.`;
       </header>
 
       <div className="flex">
-        {/* Sidebar - Updated with Waitlist */}
-        <aside className="w-64 bg-white border-r border-gray-200 min-h-screen">
+        {/* Sidebar - Enhanced */}
+        <aside className="w-72 bg-white border-r border-gray-200 min-h-screen">
           {/* Switch to User Dashboard Button */}
-          <div className="p-4 border-b border-gray-200">
+          <div className="p-6 border-b border-gray-200">
             <button
               onClick={() => router.push('/dashboard')}
-              className="w-full flex items-center space-x-2 px-3 py-2 bg-purple-50 hover:bg-purple-100 text-purple-700 rounded-lg transition-colors text-sm border border-purple-200"
+              className="w-full flex items-center space-x-3 px-4 py-3 bg-purple-50 hover:bg-purple-100 text-purple-700 rounded-lg transition-colors text-sm border border-purple-200"
             >
-              <Sparkles className="w-4 h-4" />
-              <span>Switch to User Dashboard</span>
+              <Sparkles className="w-5 h-5" />
+              <span className="font-medium">Switch to User Dashboard</span>
             </button>
           </div>
 
-          <nav className="p-4 space-y-2">
+          <nav className="p-6 space-y-2">
             {[
               { id: 'overview', label: 'Platform Overview', icon: 'BarChart3', active: activeTab === 'overview' },
               { id: 'users', label: 'User Management', icon: 'Users', active: activeTab === 'users' },
               { id: 'companies', label: 'Company Management', icon: 'Building2', active: activeTab === 'companies' },
-              { id: 'waitlist', label: 'Waitlist Management', icon: 'ListChecks', active: activeTab === 'waitlist' }, // ✅ NEW
+              { id: 'waitlist', label: 'Waitlist Management', icon: 'ListChecks', active: activeTab === 'waitlist' },
               { id: 'campaigns', label: 'Campaign Manager', icon: 'Target', onClick: () => router.push('/campaigns') },
               { id: 'storage', label: 'Storage Monitoring', icon: 'Database', active: activeTab === 'storage' },
               { id: 'images', label: 'AI Image Generation', icon: 'ImageIcon', active: activeTab === 'images' },
@@ -507,7 +511,7 @@ You're receiving this because you joined our waitlist.`;
                     setActiveTab(item.id);
                   }
                 }}
-                className={`w-full flex items-center space-x-3 px-3 py-2 text-left rounded-lg transition-colors ${
+                className={`w-full flex items-center space-x-3 px-4 py-3 text-left rounded-lg transition-colors ${
                   item.active
                     ? 'bg-red-50 text-red-700 border border-red-200'
                     : item.id === 'campaigns'
@@ -519,7 +523,7 @@ You're receiving this because you joined our waitlist.`;
                   {item.icon === 'BarChart3' && <BarChart3 className="w-5 h-5" />}
                   {item.icon === 'Users' && <Users className="w-5 h-5" />}
                   {item.icon === 'Building2' && <Building2 className="w-5 h-5" />}
-                  {item.icon === 'ListChecks' && <ListChecks className="w-5 h-5" />} {/* ✅ NEW */}
+                  {item.icon === 'ListChecks' && <ListChecks className="w-5 h-5" />}
                   {item.icon === 'Target' && <Target className="w-5 h-5" />}
                   {item.icon === 'Database' && <Database className="w-5 h-5" />}
                   {item.icon === 'ImageIcon' && <ImageIcon className="w-5 h-5" />}
@@ -537,40 +541,38 @@ You're receiving this because you joined our waitlist.`;
             ))}
           </nav>
 
-          {/* Platform Stats in Sidebar - Updated with Waitlist */}
-          <div className="p-4 mt-6">
-            <h4 className="text-sm font-medium text-gray-900 mb-3">Platform Status</h4>
-            <div className="space-y-3">
-              <div>
-                <div className="flex justify-between text-xs text-gray-600 mb-1">
-                  <span>Total Users</span>
-                  <span>{stats.total_users}</span>
+          {/* Platform Stats in Sidebar - Enhanced */}
+          <div className="p-6 mt-6 border-t border-gray-200">
+            <h4 className="text-sm font-semibold text-gray-900 mb-4">Platform Status</h4>
+            <div className="space-y-4">
+              <div className="bg-gray-50 rounded-lg p-4">
+                <div className="flex justify-between text-sm text-gray-700 mb-1">
+                  <span className="font-medium">Total Users</span>
+                  <span className="font-bold text-lg">{stats.total_users}</span>
                 </div>
                 <div className="text-xs text-gray-500">
-                  {stats.total_companies} companies
+                  {stats.total_companies} companies registered
                 </div>
               </div>
               
-              {/* ✅ NEW: Waitlist stats in sidebar */}
-              {waitlistStats && (
-                <div>
-                  <div className="flex justify-between text-xs text-gray-600 mb-1">
-                    <span>Waitlist</span>
-                    <span>{waitlistStats.total}</span>
-                  </div>
-                  <div className="text-xs text-gray-500">
-                    {waitlistStats.today} today
-                  </div>
+              {/* ✅ FIXED: Enhanced waitlist display */}
+              <div className="bg-orange-50 rounded-lg p-4 border border-orange-200">
+                <div className="flex justify-between text-sm text-orange-700 mb-1">
+                  <span className="font-medium">Waitlist</span>
+                  <span className="font-bold text-lg">{waitlistStats?.total || 0}</span>
                 </div>
-              )}
+                <div className="text-xs text-orange-600">
+                  {waitlistStats?.today || 0} joined today
+                </div>
+              </div>
               
-              <div>
-                <div className="flex justify-between text-xs text-gray-600 mb-1">
-                  <span>Monthly Revenue</span>
-                  <span>{formatCurrency(stats.monthly_recurring_revenue)}</span>
+              <div className="bg-green-50 rounded-lg p-4 border border-green-200">
+                <div className="flex justify-between text-sm text-green-700 mb-1">
+                  <span className="font-medium">Monthly Revenue</span>
+                  <span className="font-bold">{formatCurrency(stats.monthly_recurring_revenue)}</span>
                 </div>
-                <div className="text-xs text-gray-500">
-                  {stats.total_campaigns_created} campaigns
+                <div className="text-xs text-green-600">
+                  {stats.total_campaigns_created} campaigns created
                 </div>
               </div>
             </div>
@@ -578,7 +580,7 @@ You're receiving this because you joined our waitlist.`;
             {/* Logout Button */}
             <button
               onClick={handleLogout}
-              className="w-full mt-6 px-3 py-2 text-sm text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-lg transition-colors"
+              className="w-full mt-6 px-4 py-2 text-sm text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-lg transition-colors"
             >
               Sign Out
             </button>
@@ -586,23 +588,21 @@ You're receiving this because you joined our waitlist.`;
         </aside>
 
         {/* Main Content */}
-        <main className="flex-1 p-6">
-          {/* Keep all existing tabs (overview, users, companies, etc.) unchanged */}
-          
-          {/* Stats Overview - Unchanged */}
+        <main className="flex-1 p-8">
+          {/* Stats Overview - Enhanced */}
           {activeTab === 'overview' && (
-            <div className="space-y-6">
+            <div className="space-y-8">
               <div className="flex items-center justify-between">
                 <div>
-                  <h2 className="text-2xl font-bold text-gray-900">Platform Overview</h2>
-                  <p className="text-gray-600">Monitor and manage your entire platform.</p>
+                  <h2 className="text-3xl font-bold text-gray-900">Platform Overview</h2>
+                  <p className="text-gray-600 mt-2">Monitor and manage your entire platform with real-time insights.</p>
                 </div>
                 <div className="flex items-center space-x-3">
-                  <button className="flex items-center space-x-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50">
+                  <button className="flex items-center space-x-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
                     <Filter className="w-4 h-4" />
                     <span>Filter</span>
                   </button>
-                  <button className="flex items-center space-x-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700">
+                  <button className="flex items-center space-x-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors">
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                     </svg>
@@ -611,118 +611,174 @@ You're receiving this because you joined our waitlist.`;
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-                <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
-                  <div className="flex items-center">
-                    <div className="bg-blue-100 p-3 rounded-lg">
-                      <Users className="h-6 w-6 text-blue-600" />
+              {/* ✅ FIXED: Enhanced Stats Cards with Better Formatting */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+                <div className="bg-white rounded-2xl shadow-lg p-8 border border-gray-100 hover:shadow-xl transition-all">
+                  <div className="flex items-center justify-between mb-6">
+                    <div className="bg-blue-100 p-4 rounded-xl">
+                      <Users className="h-8 w-8 text-blue-600" />
                     </div>
-                    <div className="ml-4">
-                      <p className="text-sm font-medium text-gray-600">Total Users</p>
-                      <p className="text-2xl font-bold text-gray-900">{stats.total_users}</p>
-                    </div>
-                  </div>
-                  <div className="mt-4 flex items-center text-sm">
-                    <TrendingUp className="w-4 h-4 text-green-500 mr-1" />
-                    <span className="text-green-600 font-medium">Platform growth</span>
-                  </div>
-                </div>
-
-                <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
-                  <div className="flex items-center">
-                    <div className="bg-green-100 p-3 rounded-lg">
-                      <Building2 className="h-6 w-6 text-green-600" />
-                    </div>
-                    <div className="ml-4">
-                      <p className="text-sm font-medium text-gray-600">Companies</p>
-                      <p className="text-2xl font-bold text-gray-900">{stats.total_companies}</p>
+                    <div className="text-right">
+                      <p className="text-sm font-semibold text-gray-600 uppercase tracking-wide">Total Users</p>
+                      <p className="text-4xl font-bold text-gray-900 mt-2">{stats.total_users}</p>
                     </div>
                   </div>
-                  <div className="mt-4 text-sm text-gray-500">
-                    Active organizations
+                  <div className="flex items-center justify-between text-sm">
+                    <div className="flex items-center text-green-600">
+                      <TrendingUp className="w-4 h-4 mr-2" />
+                      <span className="font-semibold">Growing</span>
+                    </div>
+                    <span className="text-gray-500">Platform growth</span>
                   </div>
                 </div>
 
-                {/* ✅ NEW: Waitlist card in overview */}
-                <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
-                  <div className="flex items-center">
-                    <div className="bg-orange-100 p-3 rounded-lg">
-                      <ListChecks className="h-6 w-6 text-orange-600" />
+                <div className="bg-white rounded-2xl shadow-lg p-8 border border-gray-100 hover:shadow-xl transition-all">
+                  <div className="flex items-center justify-between mb-6">
+                    <div className="bg-green-100 p-4 rounded-xl">
+                      <Building2 className="h-8 w-8 text-green-600" />
                     </div>
-                    <div className="ml-4">
-                      <p className="text-sm font-medium text-gray-600">Waitlist</p>
-                      <p className="text-2xl font-bold text-gray-900">{waitlistStats?.total || 0}</p>
+                    <div className="text-right">
+                      <p className="text-sm font-semibold text-gray-600 uppercase tracking-wide">Companies</p>
+                      <p className="text-4xl font-bold text-gray-900 mt-2">{stats.total_companies}</p>
                     </div>
                   </div>
-                  <div className="mt-4 text-sm text-gray-500">
-                    {waitlistStats?.today || 0} joined today
+                  <div className="flex items-center justify-between text-sm">
+                    <div className="flex items-center text-blue-600">
+                      <Building2 className="w-4 h-4 mr-2" />
+                      <span className="font-semibold">Active</span>
+                    </div>
+                    <span className="text-gray-500">Organizations</span>
                   </div>
                 </div>
 
-                <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
-                  <div className="flex items-center">
-                    <div className="bg-emerald-100 p-3 rounded-lg">
-                      <DollarSign className="h-6 w-6 text-emerald-600" />
+                {/* ✅ FIXED: Enhanced Waitlist Card */}
+                <div className="bg-white rounded-2xl shadow-lg p-8 border border-gray-100 hover:shadow-xl transition-all">
+                  <div className="flex items-center justify-between mb-6">
+                    <div className="bg-orange-100 p-4 rounded-xl">
+                      <ListChecks className="h-8 w-8 text-orange-600" />
                     </div>
-                    <div className="ml-4">
-                      <p className="text-sm font-medium text-gray-600">Monthly Revenue</p>
-                      <p className="text-2xl font-bold text-gray-900">{formatCurrency(stats.monthly_recurring_revenue)}</p>
+                    <div className="text-right">
+                      <p className="text-sm font-semibold text-gray-600 uppercase tracking-wide">Waitlist</p>
+                      <p className="text-4xl font-bold text-gray-900 mt-2">{waitlistStats?.total || 0}</p>
                     </div>
                   </div>
-                  <div className="mt-4 flex items-center text-sm">
-                    <TrendingUp className="w-4 h-4 text-green-500 mr-1" />
-                    <span className="text-green-600 font-medium">Growing steadily</span>
+                  <div className="flex items-center justify-between text-sm">
+                    <div className="flex items-center text-orange-600">
+                      <TrendingUp className="w-4 h-4 mr-2" />
+                      <span className="font-semibold">+{waitlistStats?.today || 0}</span>
+                    </div>
+                    <span className="text-gray-500">Joined today</span>
+                  </div>
+                </div>
+
+                <div className="bg-white rounded-2xl shadow-lg p-8 border border-gray-100 hover:shadow-xl transition-all">
+                  <div className="flex items-center justify-between mb-6">
+                    <div className="bg-emerald-100 p-4 rounded-xl">
+                      <DollarSign className="h-8 w-8 text-emerald-600" />
+                    </div>
+                    <div className="text-right">
+                      <p className="text-sm font-semibold text-gray-600 uppercase tracking-wide">Monthly Revenue</p>
+                      <p className="text-4xl font-bold text-gray-900 mt-2">{formatCurrency(stats.monthly_recurring_revenue)}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between text-sm">
+                    <div className="flex items-center text-emerald-600">
+                      <Target className="w-4 h-4 mr-2" />
+                      <span className="font-semibold">{stats.total_campaigns_created}</span>
+                    </div>
+                    <span className="text-gray-500">Campaigns created</span>
                   </div>
                 </div>
               </div>
 
-              {/* Subscription Breakdown */}
-              <div className="bg-white rounded-xl shadow-sm border border-gray-200">
-                <div className="p-6 border-b border-gray-200">
-                  <h3 className="text-lg font-semibold text-gray-900">Subscription Breakdown</h3>
+              {/* Enhanced Subscription Breakdown */}
+              <div className="bg-white rounded-2xl shadow-lg border border-gray-100">
+                <div className="p-8 border-b border-gray-200">
+                  <h3 className="text-xl font-bold text-gray-900">Subscription Distribution</h3>
+                  <p className="text-gray-600 mt-1">Current subscription tier breakdown across all companies</p>
                 </div>
-                <div className="p-6">
-                  <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+                <div className="p-8">
+                  <div className="grid grid-cols-2 md:grid-cols-5 gap-6">
                     {Object.entries(stats.subscription_breakdown || {}).map(([tier, count]) => (
-                      <div key={tier} className="text-center">
-                        <div className={`inline-flex px-3 py-1 rounded-full text-sm font-medium ${getTierColor(tier)}`}>
+                      <div key={tier} className="text-center p-6 bg-gray-50 rounded-xl border border-gray-200 hover:shadow-md transition-all">
+                        <div className={`inline-flex px-4 py-2 rounded-full text-sm font-bold ${getTierColor(tier)} mb-4`}>
                           {tier.charAt(0).toUpperCase() + tier.slice(1)}
                         </div>
-                        <p className="text-2xl font-bold text-gray-900 mt-2">{count}</p>
+                        <p className="text-3xl font-bold text-gray-900">{count}</p>
+                        <p className="text-sm text-gray-500 mt-1">companies</p>
                       </div>
                     ))}
                   </div>
                 </div>
               </div>
+
+              {/* Quick Actions Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="bg-gradient-to-br from-blue-500 to-blue-600 p-8 rounded-2xl text-white shadow-lg hover:shadow-xl transition-all">
+                  <Users className="w-10 h-10 mb-4 opacity-90" />
+                  <h3 className="text-xl font-bold mb-2">User Management</h3>
+                  <p className="text-blue-100 text-sm mb-6">Manage user accounts, roles, and permissions across the platform</p>
+                  <button 
+                    onClick={() => setActiveTab('users')}
+                    className="w-full bg-white bg-opacity-20 hover:bg-opacity-30 text-white py-3 px-4 rounded-lg transition-colors font-semibold"
+                  >
+                    Manage Users
+                  </button>
+                </div>
+
+                <div className="bg-gradient-to-br from-green-500 to-green-600 p-8 rounded-2xl text-white shadow-lg hover:shadow-xl transition-all">
+                  <Building2 className="w-10 h-10 mb-4 opacity-90" />
+                  <h3 className="text-xl font-bold mb-2">Company Management</h3>
+                  <p className="text-green-100 text-sm mb-6">Oversee company accounts, subscriptions, and billing information</p>
+                  <button 
+                    onClick={() => setActiveTab('companies')}
+                    className="w-full bg-white bg-opacity-20 hover:bg-opacity-30 text-white py-3 px-4 rounded-lg transition-colors font-semibold"
+                  >
+                    Manage Companies
+                  </button>
+                </div>
+
+                <div className="bg-gradient-to-br from-orange-500 to-orange-600 p-8 rounded-2xl text-white shadow-lg hover:shadow-xl transition-all">
+                  <ListChecks className="w-10 h-10 mb-4 opacity-90" />
+                  <h3 className="text-xl font-bold mb-2">Waitlist Management</h3>
+                  <p className="text-orange-100 text-sm mb-6">View and manage waitlist subscribers, send launch notifications</p>
+                  <button 
+                    onClick={() => setActiveTab('waitlist')}
+                    className="w-full bg-white bg-opacity-20 hover:bg-opacity-30 text-white py-3 px-4 rounded-lg transition-colors font-semibold"
+                  >
+                    Manage Waitlist
+                  </button>
+                </div>
+              </div>
             </div>
           )}
 
-          {/* ✅ NEW: Waitlist Management Tab */}
+          {/* ✅ FIXED: Enhanced Waitlist Management Tab */}
           {activeTab === 'waitlist' && (
-            <div className="space-y-6">
+            <div className="space-y-8">
               {/* Header */}
               <div className="flex items-center justify-between">
                 <div>
-                  <h2 className="text-2xl font-bold text-gray-900">Waitlist Management</h2>
-                  <p className="text-gray-600">
-                    Manage your {waitlistStats?.total.toLocaleString() || 0} waitlist subscribers
+                  <h2 className="text-3xl font-bold text-gray-900">Waitlist Management</h2>
+                  <p className="text-gray-600 mt-2">
+                    Manage your {waitlistStats?.total.toLocaleString() || 0} waitlist subscribers and prepare launch communications
                   </p>
                 </div>
                 
                 <div className="flex space-x-4">
                   <button
                     onClick={() => setShowEmailComposer(!showEmailComposer)}
-                    className="bg-green-500 text-white px-6 py-3 rounded-lg hover:bg-green-600 transition-colors font-medium flex items-center space-x-2"
+                    className="bg-green-500 text-white px-6 py-3 rounded-lg hover:bg-green-600 transition-colors font-semibold flex items-center space-x-2 shadow-lg"
                   >
-                    <Mail className="w-4 h-4" />
+                    <Mail className="w-5 h-5" />
                     <span>Launch Email</span>
                   </button>
                   
                   <button
                     onClick={handleEmailExport}
-                    className="bg-blue-500 text-white px-6 py-3 rounded-lg hover:bg-blue-600 transition-colors font-medium flex items-center space-x-2"
+                    className="bg-blue-500 text-white px-6 py-3 rounded-lg hover:bg-blue-600 transition-colors font-semibold flex items-center space-x-2 shadow-lg"
                   >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
                     </svg>
                     <span>Copy Emails</span>
@@ -731,9 +787,9 @@ You're receiving this because you joined our waitlist.`;
                   <button
                     onClick={handleWaitlistExport}
                     disabled={exporting}
-                    className="bg-gray-800 text-white px-6 py-3 rounded-lg hover:bg-gray-900 transition-colors font-medium disabled:opacity-50 flex items-center space-x-2"
+                    className="bg-gray-800 text-white px-6 py-3 rounded-lg hover:bg-gray-900 transition-colors font-semibold disabled:opacity-50 flex items-center space-x-2 shadow-lg"
                   >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                     </svg>
                     <span>{exporting ? 'Exporting...' : 'Export CSV'}</span>
@@ -741,37 +797,57 @@ You're receiving this because you joined our waitlist.`;
                 </div>
               </div>
 
-              {/* Stats Cards */}
+              {/* Enhanced Stats Cards */}
               <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-                <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
-                  <h3 className="text-sm font-medium text-gray-500 mb-2">Total Signups</h3>
-                  <p className="text-3xl font-bold text-blue-600">{waitlistStats?.total.toLocaleString() || 0}</p>
+                <div className="bg-white p-8 rounded-2xl shadow-lg border border-gray-100 hover:shadow-xl transition-all">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="bg-blue-100 p-3 rounded-xl">
+                      <Users className="w-8 h-8 text-blue-600" />
+                    </div>
+                  </div>
+                  <h3 className="text-sm font-semibold text-gray-600 uppercase tracking-wide mb-2">Total Signups</h3>
+                  <p className="text-4xl font-bold text-blue-600">{waitlistStats?.total.toLocaleString() || 0}</p>
                 </div>
                 
-                <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
-                  <h3 className="text-sm font-medium text-gray-500 mb-2">Today</h3>
-                  <p className="text-3xl font-bold text-green-600">{waitlistStats?.today || 0}</p>
+                <div className="bg-white p-8 rounded-2xl shadow-lg border border-gray-100 hover:shadow-xl transition-all">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="bg-green-100 p-3 rounded-xl">
+                      <TrendingUp className="w-8 h-8 text-green-600" />
+                    </div>
+                  </div>
+                  <h3 className="text-sm font-semibold text-gray-600 uppercase tracking-wide mb-2">Today</h3>
+                  <p className="text-4xl font-bold text-green-600">{waitlistStats?.today || 0}</p>
                 </div>
                 
-                <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
-                  <h3 className="text-sm font-medium text-gray-500 mb-2">This Week</h3>
-                  <p className="text-3xl font-bold text-purple-600">{waitlistStats?.this_week || 0}</p>
+                <div className="bg-white p-8 rounded-2xl shadow-lg border border-gray-100 hover:shadow-xl transition-all">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="bg-purple-100 p-3 rounded-xl">
+                      <BarChart3 className="w-8 h-8 text-purple-600" />
+                    </div>
+                  </div>
+                  <h3 className="text-sm font-semibold text-gray-600 uppercase tracking-wide mb-2">This Week</h3>
+                  <p className="text-4xl font-bold text-purple-600">{waitlistStats?.this_week || 0}</p>
                 </div>
                 
-                <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
-                  <h3 className="text-sm font-medium text-gray-500 mb-2">This Month</h3>
-                  <p className="text-3xl font-bold text-orange-600">{waitlistStats?.this_month || 0}</p>
+                <div className="bg-white p-8 rounded-2xl shadow-lg border border-gray-100 hover:shadow-xl transition-all">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="bg-orange-100 p-3 rounded-xl">
+                      <Target className="w-8 h-8 text-orange-600" />
+                    </div>
+                  </div>
+                  <h3 className="text-sm font-semibold text-gray-600 uppercase tracking-wide mb-2">This Month</h3>
+                  <p className="text-4xl font-bold text-orange-600">{waitlistStats?.this_month || 0}</p>
                 </div>
               </div>
 
               {/* Email Composer */}
               {showEmailComposer && (
-                <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
-                  <div className="flex justify-between items-center mb-4">
-                    <h2 className="text-xl font-semibold">Launch Email Template</h2>
+                <div className="bg-white rounded-2xl shadow-lg p-8 border border-gray-100">
+                  <div className="flex justify-between items-center mb-6">
+                    <h2 className="text-2xl font-bold text-gray-900">Launch Email Template</h2>
                     <button
                       onClick={() => setShowEmailComposer(false)}
-                      className="text-gray-500 hover:text-gray-700"
+                      className="text-gray-500 hover:text-gray-700 p-2 rounded-lg hover:bg-gray-100 transition-colors"
                     >
                       ✕
                     </button>
@@ -780,18 +856,18 @@ You're receiving this because you joined our waitlist.`;
                   <textarea
                     value={generateLaunchEmail()}
                     readOnly
-                    className="w-full h-96 p-4 border border-gray-300 rounded-lg font-mono text-sm"
+                    className="w-full h-96 p-6 border border-gray-300 rounded-lg font-mono text-sm bg-gray-50 resize-none"
                   />
                   
-                  <div className="mt-4 flex space-x-4">
+                  <div className="mt-6 flex space-x-4">
                     <button
                       onClick={async () => {
                         await navigator.clipboard.writeText(generateLaunchEmail())
                         alert('Email template copied to clipboard!')
                       }}
-                      className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition-colors flex items-center space-x-2"
+                      className="bg-blue-500 text-white px-6 py-3 rounded-lg hover:bg-blue-600 transition-colors flex items-center space-x-2 font-semibold"
                     >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
                       </svg>
                       <span>Copy Template</span>
@@ -803,9 +879,9 @@ You're receiving this because you joined our waitlist.`;
                         const body = encodeURIComponent(generateLaunchEmail().split('\n').slice(1).join('\n'))
                         window.open(`mailto:?subject=${subject}&body=${body}`)
                       }}
-                      className="bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600 transition-colors flex items-center space-x-2"
+                      className="bg-green-500 text-white px-6 py-3 rounded-lg hover:bg-green-600 transition-colors flex items-center space-x-2 font-semibold"
                     >
-                      <Mail className="w-4 h-4" />
+                      <Mail className="w-5 h-5" />
                       <span>Open in Email Client</span>
                     </button>
                   </div>
@@ -813,28 +889,29 @@ You're receiving this because you joined our waitlist.`;
               )}
 
               {/* Waitlist Entries Table */}
-              <div className="bg-white rounded-xl shadow-sm overflow-hidden border border-gray-200">
-                <div className="px-6 py-4 border-b border-gray-200">
-                  <h2 className="text-xl font-semibold">Recent Signups</h2>
+              <div className="bg-white rounded-2xl shadow-lg overflow-hidden border border-gray-100">
+                <div className="px-8 py-6 border-b border-gray-200 bg-gray-50">
+                  <h2 className="text-xl font-bold text-gray-900">Recent Signups</h2>
+                  <p className="text-gray-600 mt-1">Latest waitlist entries and subscriber information</p>
                 </div>
                 
                 <div className="overflow-x-auto">
                   <table className="w-full">
-                    <thead className="bg-gray-50">
+                    <thead className="bg-gray-50 border-b border-gray-200">
                       <tr>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        <th className="px-8 py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">
                           Position
                         </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Email
+                        <th className="px-8 py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">
+                          Email Address
                         </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Joined Date
+                        <th className="px-8 py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">
+                          Join Date
                         </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        <th className="px-8 py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">
                           Status
                         </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        <th className="px-8 py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">
                           IP Address
                         </th>
                       </tr>
@@ -842,35 +919,46 @@ You're receiving this because you joined our waitlist.`;
                     <tbody className="bg-white divide-y divide-gray-200">
                       {waitlistEntries.length > 0 ? (
                         waitlistEntries.map((entry, index) => (
-                          <tr key={entry.id} className="hover:bg-gray-50">
-                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                          <tr key={entry.id} className="hover:bg-gray-50 transition-colors">
+                            <td className="px-8 py-6 whitespace-nowrap text-sm font-bold text-gray-900">
                               #{index + 1}
                             </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                            <td className="px-8 py-6 whitespace-nowrap text-sm text-gray-900 font-medium">
                               {entry.email}
                             </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            <td className="px-8 py-6 whitespace-nowrap text-sm text-gray-600">
                               {new Date(entry.created_at).toLocaleDateString()} at{' '}
                               {new Date(entry.created_at).toLocaleTimeString()}
                             </td>
-                            <td className="px-6 py-4 whitespace-nowrap">
-                              <span className={`inline-flex px-2 py-1 text-xs rounded-full font-medium ${
+                            <td className="px-8 py-6 whitespace-nowrap">
+                              <span className={`inline-flex px-3 py-1 text-xs rounded-full font-semibold ${
                                 entry.is_notified 
-                                  ? 'bg-green-100 text-green-800' 
-                                  : 'bg-yellow-100 text-yellow-800'
+                                  ? 'bg-green-100 text-green-800 border border-green-200' 
+                                  : 'bg-yellow-100 text-yellow-800 border border-yellow-200'
                               }`}>
                                 {entry.is_notified ? 'Notified' : 'Waiting'}
                               </span>
                             </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            <td className="px-8 py-6 whitespace-nowrap text-sm text-gray-500 font-mono">
                               {entry.ip_address || 'N/A'}
                             </td>
                           </tr>
                         ))
                       ) : (
                         <tr>
-                          <td colSpan={5} className="px-6 py-8 text-center text-gray-500">
-                            {waitlistLoading ? 'Loading waitlist entries...' : 'No waitlist entries yet.'}
+                          <td colSpan={5} className="px-8 py-12 text-center text-gray-500">
+                            {waitlistLoading ? (
+                              <div className="flex items-center justify-center space-x-3">
+                                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-gray-400"></div>
+                                <span>Loading waitlist entries...</span>
+                              </div>
+                            ) : (
+                              <div>
+                                <ListChecks className="w-12 h-12 mx-auto text-gray-300 mb-4" />
+                                <p className="text-lg font-medium">No waitlist entries yet</p>
+                                <p className="text-sm">Subscribers will appear here when they join the waitlist</p>
+                              </div>
+                            )}
                           </td>
                         </tr>
                       )}
@@ -880,26 +968,30 @@ You're receiving this because you joined our waitlist.`;
               </div>
 
               {/* Growth Chart */}
-              <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
-                <h2 className="text-xl font-semibold mb-4">Daily Signups (Last 30 Days)</h2>
+              <div className="bg-white rounded-2xl shadow-lg p-8 border border-gray-100">
+                <h2 className="text-xl font-bold text-gray-900 mb-6">Daily Signups (Last 30 Days)</h2>
                 
                 {waitlistStats?.daily_stats && waitlistStats.daily_stats.length > 0 ? (
-                  <div className="space-y-2">
+                  <div className="space-y-4">
                     {waitlistStats.daily_stats.slice(0, 10).map((day, index) => (
-                      <div key={index} className="flex justify-between items-center py-2">
-                        <span className="text-sm text-gray-600">
-                          {new Date(day.date).toLocaleDateString()}
+                      <div key={index} className="flex justify-between items-center py-3 px-4 bg-gray-50 rounded-lg">
+                        <span className="text-sm font-medium text-gray-700">
+                          {new Date(day.date).toLocaleDateString('en-US', { 
+                            weekday: 'short', 
+                            month: 'short', 
+                            day: 'numeric' 
+                          })}
                         </span>
-                        <div className="flex items-center space-x-3">
-                          <div className="w-32 bg-gray-200 rounded-full h-2">
+                        <div className="flex items-center space-x-4">
+                          <div className="w-32 bg-gray-200 rounded-full h-3">
                             <div 
-                              className="bg-blue-500 h-2 rounded-full"
+                              className="bg-blue-500 h-3 rounded-full transition-all"
                               style={{ 
                                 width: `${Math.min(100, (day.count / Math.max(...waitlistStats.daily_stats.map(d => d.count))) * 100)}%` 
                               }}
                             ></div>
                           </div>
-                          <span className="text-sm font-medium text-gray-900 w-8 text-right">
+                          <span className="text-sm font-bold text-gray-900 w-8 text-right">
                             {day.count}
                           </span>
                         </div>
@@ -907,14 +999,17 @@ You're receiving this because you joined our waitlist.`;
                     ))}
                   </div>
                 ) : (
-                  <p className="text-gray-500">No daily statistics available yet.</p>
+                  <div className="text-center py-12">
+                    <BarChart3 className="w-16 h-16 mx-auto text-gray-300 mb-4" />
+                    <p className="text-lg font-medium text-gray-500">No daily statistics available yet</p>
+                    <p className="text-sm text-gray-400">Data will appear here as people join the waitlist</p>
+                  </div>
                 )}
               </div>
             </div>
           )}
 
           {/* Keep all other existing tabs unchanged (users, companies, etc.) */}
-          {/* Users Management - Unchanged */}
           {activeTab === 'users' && (
             <div className="space-y-6">
               <div className="flex items-center justify-between">
