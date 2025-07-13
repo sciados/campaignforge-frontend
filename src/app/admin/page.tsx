@@ -1,348 +1,543 @@
-// /src/app/admin/components/WaitlistManagement.tsx - Extracted Component
+// /src/app/admin/page.tsx - CLEAN VERSION
 'use client'
 
-import React, { useState, useCallback } from 'react';
-import { Mail, Download, Copy, Users, TrendingUp, BarChart3, Target, ListChecks } from 'lucide-react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { useRouter } from 'next/navigation'
+import { Users, Building2, BarChart3, Shield, Sparkles, ListChecks, Search } from 'lucide-react';
+import UserEditModal from '@/components/admin/UserEditModal';
+import CompanyEditModal from '@/components/admin/CompanyEditModal';
+import { waitlistApi } from '@/lib/waitlist-api';
 
-// Define flexible interfaces that match your actual API structure
-interface WaitlistEntry {
-  id: number | string;  // Handle both number and string IDs
+// Import extracted components
+import UserManagement from './components/UserManagement';
+import CompanyManagement from './components/CompanyManagement';
+import WaitlistManagement from './components/WaitlistManagement';
+
+// Type definitions
+interface AdminStats {
+  total_users: number;
+  total_companies: number;
+  total_campaigns_created: number;
+  monthly_recurring_revenue: number;
+  subscription_breakdown: Record<string, number>;
+}
+
+interface User {
+  id: string;
+  full_name: string;
   email: string;
-  created_at: string;
-  is_notified?: boolean;  // Optional since it might not exist
-  ip_address?: string;    // Optional since it might not exist
+  role: string;
+  company_name: string;
+  subscription_tier: string;
+  monthly_credits_used: number;
+  monthly_credits_limit: number;
+  is_active: boolean;
+  is_verified: boolean;
 }
 
-interface WaitlistStats {
-  total: number;
-  today: number;
-  this_week: number;
-  this_month: number;
-  recent_signups?: WaitlistEntry[];  // Optional
-  daily_stats?: Array<{ date: string; count: number }>;  // Optional
+interface Company {
+  id: string;
+  company_name: string;
+  company_slug: string;
+  company_size: string;
+  industry: string;
+  subscription_tier: string;
+  monthly_credits_used: number;
+  monthly_credits_limit: number;
+  user_count: number;
+  campaign_count: number;
 }
 
-interface Props {
-  waitlistStats: WaitlistStats | null;
-  waitlistEntries: WaitlistEntry[];
-  waitlistLoading: boolean;
-  onExport: () => void;
-  onEmailExport: () => void;
-  exporting: boolean;
-}
+export default function AdminPage() {
+  // State management
+  const [mounted, setMounted] = useState(false);
+  const [stats, setStats] = useState<AdminStats | null>(null);
+  const [users, setUsers] = useState<User[]>([]);
+  const [companies, setCompanies] = useState<Company[]>([]);
+  const [activeTab, setActiveTab] = useState('overview');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filterTier, setFilterTier] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [loading, setLoading] = useState(true);
+  
+  // Waitlist states
+  const [waitlistStats, setWaitlistStats] = useState<any>(null);
+  const [waitlistEntries, setWaitlistEntries] = useState<any[]>([]);
+  const [waitlistLoading, setWaitlistLoading] = useState(false);
+  const [exporting, setExporting] = useState(false);
+  
+  // Modal states
+  const [userEditModal, setUserEditModal] = useState<{isOpen: boolean, user: User | null}>({
+    isOpen: false,
+    user: null
+  });
+  const [companyEditModal, setCompanyEditModal] = useState<{isOpen: boolean, company: Company | null}>({
+    isOpen: false,
+    company: null
+  });
+  
+  const router = useRouter()
 
-export default function WaitlistManagement({
-  waitlistStats,
-  waitlistEntries,
-  waitlistLoading,
-  onExport,
-  onEmailExport,
-  exporting,
-}: Props) {
-  const [showEmailComposer, setShowEmailComposer] = useState(false);
+  // Mount check
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
-  console.log('📋 WaitlistManagement component rendering. Entries:', waitlistEntries.length);
+  // API Functions
+  const fetchAdminStats = useCallback(async () => {
+    try {
+      const token = localStorage.getItem('authToken');
+      if (!token) return;
+      
+      const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://campaign-backend-production-e2db.up.railway.app';
+      const response = await fetch(`${API_BASE_URL}/api/admin/stats`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setStats(data);
+        console.log('✅ Admin stats loaded:', data);
+      }
+    } catch (error) {
+      console.error('Failed to fetch admin stats:', error);
+    }
+  }, []);
 
-  const generateLaunchEmail = useCallback(() => {
-    if (!waitlistStats) return '';
-    
-    return `Subject: 🚀 We're Live! RodgersDigital AI is Now Available
+  const fetchWaitlistStats = useCallback(async () => {
+    try {
+      const data = await waitlistApi.getStats();
+      setWaitlistStats(data);
+      console.log('✅ Waitlist stats loaded:', data);
+    } catch (error) {
+      console.error('Failed to fetch waitlist stats:', error);
+    }
+  }, []);
 
-Hi there!
+  const fetchWaitlistEntries = useCallback(async (page: number = 1) => {
+    try {
+      setWaitlistLoading(true);
+      const skip = (page - 1) * 50;
+      const data = await waitlistApi.getList(skip, 50);
+      setWaitlistEntries(data);
+      console.log('✅ Waitlist entries loaded:', data.length);
+    } catch (error) {
+      console.error('Failed to fetch waitlist entries:', error);
+    } finally {
+      setWaitlistLoading(false);
+    }
+  }, []);
 
-You're receiving this email because you joined our waitlist for RodgersDigital AI. 
+  const handleWaitlistExport = useCallback(async () => {
+    setExporting(true);
+    try {
+      const data = await waitlistApi.export();
+      // Handle export logic here
+    } catch (error) {
+      console.error('Export failed:', error);
+    } finally {
+      setExporting(false);
+    }
+  }, []);
 
-🎉 **We're officially live!**
+  const handleEmailExport = useCallback(async () => {
+    try {
+      const data = await waitlistApi.export();
+      const emailList = data.emails?.map((e: any) => e.email).join(', ') || '';
+      await navigator.clipboard.writeText(emailList);
+      alert(`Emails copied to clipboard!`);
+    } catch (error) {
+      console.error('Email export failed:', error);
+    }
+  }, []);
 
-After months of development, we're excited to announce that RodgersDigital AI is now available. You were one of ${waitlistStats.total.toLocaleString()} people who believed in our vision early on.
+  const fetchUsers = useCallback(async () => {
+    try {
+      setLoading(true);
+      const token = localStorage.getItem('authToken');
+      if (!token) return;
+      
+      const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://campaign-backend-production-e2db.up.railway.app';
+      const params = new URLSearchParams({
+        page: currentPage.toString(),
+        limit: '20',
+        ...(searchTerm && { search: searchTerm }),
+        ...(filterTier && { subscription_tier: filterTier })
+      });
+      
+      const response = await fetch(`${API_BASE_URL}/api/admin/users?${params}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setUsers(data.users || []);
+      }
+    } catch (error) {
+      console.error('Failed to fetch users:', error);
+    } finally {
+      setLoading(false);
+    }
+  }, [currentPage, searchTerm, filterTier]);
 
-**What's New:**
-• AI-powered campaign generation
-• Ultra-cheap image creation (90% cost savings)
-• Complete marketing asset creation
-• Landing page generation
-• Social media content creation
+  const fetchCompanies = useCallback(async () => {
+    try {
+      setLoading(true);
+      const token = localStorage.getItem('authToken');
+      if (!token) return;
+      
+      const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://campaign-backend-production-e2db.up.railway.app';
+      const params = new URLSearchParams({
+        page: currentPage.toString(),
+        limit: '20',
+        ...(searchTerm && { search: searchTerm }),
+        ...(filterTier && { subscription_tier: filterTier })
+      });
+      
+      const response = await fetch(`${API_BASE_URL}/api/admin/companies?${params}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setCompanies(data.companies || []);
+      }
+    } catch (error) {
+      console.error('Failed to fetch companies:', error);
+    } finally {
+      setLoading(false);
+    }
+  }, [currentPage, searchTerm, filterTier]);
 
-**Your Early Access:**
-As a waitlist member, you get:
-• Free trial extended to 30 days
-• Priority support
-• Exclusive early adopter pricing
+  // Main useEffect for tab changes
+  useEffect(() => {
+    if (mounted) {
+      fetchAdminStats();
+      fetchWaitlistStats();
+      
+      if (activeTab === 'users') {
+        fetchUsers();
+      } else if (activeTab === 'companies') {
+        fetchCompanies();
+      } else if (activeTab === 'waitlist') {
+        fetchWaitlistEntries();
+      } else {
+        setLoading(false);
+      }
+    }
+  }, [mounted, activeTab, fetchAdminStats, fetchUsers, fetchCompanies, fetchWaitlistStats, fetchWaitlistEntries]);
 
-**Get Started:**
-👉 Visit: https://rodgersdigital.com
-👉 Use code: EARLYBIRD for 50% off your first month
+  // Helper functions
+  const handleLogout = () => {
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('authToken')
+    }
+    router.push('/login')
+  }
 
-Thank you for your patience and support!
+  const updateUserStatus = async (userId: string, isActive: boolean) => {
+    try {
+      const token = localStorage.getItem('authToken');
+      if (!token) return;
+      
+      const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://campaign-backend-production-e2db.up.railway.app';
+      const response = await fetch(`${API_BASE_URL}/api/admin/users/${userId}`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ is_active: isActive })
+      });
+      if (response.ok) {
+        fetchUsers();
+      }
+    } catch (error) {
+      console.error('Failed to update user:', error);
+    }
+  };
 
-Best regards,
-The RodgersDigital Team
+  const openUserEditModal = (user: User) => {
+    setUserEditModal({ isOpen: true, user });
+  };
 
----
-You're receiving this because you joined our waitlist.`;
-  }, [waitlistStats]);
+  const closeUserEditModal = () => {
+    setUserEditModal({ isOpen: false, user: null });
+  };
+
+  const openCompanyEditModal = (company: Company) => {
+    setCompanyEditModal({ isOpen: true, company });
+  };
+
+  const closeCompanyEditModal = () => {
+    setCompanyEditModal({ isOpen: false, company: null });
+  };
+
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+      minimumFractionDigits: 0
+    }).format(amount);
+  };
+
+  // Loading states
+  if (!mounted) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-red-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Loading admin dashboard...</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (!stats) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-red-600"></div>
+      </div>
+    );
+  }
 
   return (
-    <div className="space-y-8">
+    <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold text-gray-900">Waitlist Management</h2>
-          <p className="text-gray-600 mt-2">
-            Manage your {waitlistStats?.total.toLocaleString() || 0} waitlist subscribers and prepare launch communications
-          </p>
-        </div>
-        
-        <div className="flex space-x-4">
-          <button
-            onClick={() => setShowEmailComposer(!showEmailComposer)}
-            className="bg-green-500 text-white px-6 py-3 rounded-lg hover:bg-green-600 transition-colors font-semibold flex items-center space-x-2 shadow-lg"
-          >
-            <Mail className="w-5 h-5" />
-            <span>Launch Email</span>
-          </button>
-          
-          <button
-            onClick={onEmailExport}
-            className="bg-blue-500 text-white px-6 py-3 rounded-lg hover:bg-blue-600 transition-colors font-semibold flex items-center space-x-2 shadow-lg"
-          >
-            <Copy className="w-5 h-5" />
-            <span>Copy Emails</span>
-          </button>
-          
-          <button
-            onClick={onExport}
-            disabled={exporting}
-            className="bg-gray-800 text-white px-6 py-3 rounded-lg hover:bg-gray-900 transition-colors font-semibold disabled:opacity-50 flex items-center space-x-2 shadow-lg"
-          >
-            <Download className="w-5 h-5" />
-            <span>{exporting ? 'Exporting...' : 'Export CSV'}</span>
-          </button>
-        </div>
-      </div>
-
-      {/* Enhanced Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <div className="bg-white p-8 rounded-2xl shadow-lg border border-gray-100 hover:shadow-xl transition-all">
-          <div className="flex items-center justify-between mb-4">
-            <div className="bg-blue-100 p-3 rounded-xl">
-              <Users className="w-8 h-8 text-blue-600" />
+      <header className="bg-white border-b border-gray-200 px-6 py-4 shadow-sm">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-4">
+            <div className="flex items-center space-x-3">
+              <div className="w-10 h-10 bg-gradient-to-r from-red-600 to-purple-600 rounded-xl flex items-center justify-center shadow-lg">
+                <Shield className="w-6 h-6 text-white" />
+              </div>
+              <div>
+                <h1 className="text-2xl font-bold text-gray-900">RodgersDigital Admin</h1>
+                <p className="text-sm text-gray-500">Platform Administration Dashboard</p>
+              </div>
             </div>
           </div>
-          <h3 className="text-sm font-semibold text-gray-600 uppercase tracking-wide mb-2">Total Signups</h3>
-          <p className="text-4xl font-bold text-blue-600">{waitlistStats?.total.toLocaleString() || 0}</p>
-        </div>
-        
-        <div className="bg-white p-8 rounded-2xl shadow-lg border border-gray-100 hover:shadow-xl transition-all">
-          <div className="flex items-center justify-between mb-4">
-            <div className="bg-green-100 p-3 rounded-xl">
-              <TrendingUp className="w-8 h-8 text-green-600" />
-            </div>
-          </div>
-          <h3 className="text-sm font-semibold text-gray-600 uppercase tracking-wide mb-2">Today</h3>
-          <p className="text-4xl font-bold text-green-600">{waitlistStats?.today || 0}</p>
-        </div>
-        
-        <div className="bg-white p-8 rounded-2xl shadow-lg border border-gray-100 hover:shadow-xl transition-all">
-          <div className="flex items-center justify-between mb-4">
-            <div className="bg-purple-100 p-3 rounded-xl">
-              <BarChart3 className="w-8 h-8 text-purple-600" />
-            </div>
-          </div>
-          <h3 className="text-sm font-semibold text-gray-600 uppercase tracking-wide mb-2">This Week</h3>
-          <p className="text-4xl font-bold text-purple-600">{waitlistStats?.this_week || 0}</p>
-        </div>
-        
-        <div className="bg-white p-8 rounded-2xl shadow-lg border border-gray-100 hover:shadow-xl transition-all">
-          <div className="flex items-center justify-between mb-4">
-            <div className="bg-orange-100 p-3 rounded-xl">
-              <Target className="w-8 h-8 text-orange-600" />
-            </div>
-          </div>
-          <h3 className="text-sm font-semibold text-gray-600 uppercase tracking-wide mb-2">This Month</h3>
-          <p className="text-4xl font-bold text-orange-600">{waitlistStats?.this_month || 0}</p>
-        </div>
-      </div>
-
-      {/* Email Composer */}
-      {showEmailComposer && (
-        <div className="bg-white rounded-2xl shadow-lg p-8 border border-gray-100">
-          <div className="flex justify-between items-center mb-6">
-            <h2 className="text-2xl font-bold text-gray-900">Launch Email Template</h2>
-            <button
-              onClick={() => setShowEmailComposer(false)}
-              className="text-gray-500 hover:text-gray-700 p-2 rounded-lg hover:bg-gray-100 transition-colors"
-            >
-              ✕
-            </button>
-          </div>
           
-          <textarea
-            value={generateLaunchEmail()}
-            readOnly
-            className="w-full h-96 p-6 border border-gray-300 rounded-lg font-mono text-sm bg-gray-50 resize-none"
-          />
-          
-          <div className="mt-6 flex space-x-4">
-            <button
-              onClick={async () => {
-                await navigator.clipboard.writeText(generateLaunchEmail())
-                alert('Email template copied to clipboard!')
-              }}
-              className="bg-blue-500 text-white px-6 py-3 rounded-lg hover:bg-blue-600 transition-colors flex items-center space-x-2 font-semibold"
-            >
-              <Copy className="w-5 h-5" />
-              <span>Copy Template</span>
-            </button>
+          <div className="flex items-center space-x-4">
+            <div className="flex items-center space-x-2 px-4 py-2 rounded-full bg-red-100 text-red-800 border border-red-200">
+              <Shield className="w-4 h-4" />
+              <span className="text-sm font-medium">Admin Access</span>
+            </div>
             
+            <div className="relative">
+              <input
+                type="text"
+                placeholder="Search users, companies..."
+                className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent w-64"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+              <div className="absolute left-3 top-1/2 transform -translate-y-1/2">
+                <Search className="w-4 h-4 text-gray-400" />
+              </div>
+            </div>
+            
+            <div className="w-10 h-10 bg-gradient-to-r from-red-600 to-purple-600 rounded-full flex items-center justify-center text-white font-medium">
+              A
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <div className="flex">
+        {/* Sidebar */}
+        <aside className="w-72 bg-white border-r border-gray-200 min-h-screen">
+          <div className="p-6 border-b border-gray-200">
             <button
               onClick={() => {
-                const subject = encodeURIComponent('🚀 We\'re Live! RodgersDigital AI is Now Available')
-                const body = encodeURIComponent(generateLaunchEmail().split('\n').slice(1).join('\n'))
-                window.open(`mailto:?subject=${subject}&body=${body}`)
+                console.log('🔄 Switching to user dashboard...');
+                router.push('/dashboard');
               }}
-              className="bg-green-500 text-white px-6 py-3 rounded-lg hover:bg-green-600 transition-colors flex items-center space-x-2 font-semibold"
+              className="w-full flex items-center space-x-3 px-4 py-3 bg-purple-50 hover:bg-purple-100 text-purple-700 rounded-lg transition-colors text-sm border border-purple-200 hover:border-purple-300 hover:shadow-sm"
             >
-              <Mail className="w-5 h-5" />
-              <span>Open in Email Client</span>
+              <Sparkles className="w-5 h-5" />
+              <span className="font-medium">Switch to User Dashboard</span>
+              <svg className="w-4 h-4 ml-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+              </svg>
             </button>
           </div>
-        </div>
-      )}
 
-      {/* Waitlist Entries Table */}
-      <div className="bg-white rounded-2xl shadow-lg overflow-hidden border border-gray-100">
-        <div className="px-8 py-6 border-b border-gray-200 bg-gray-50">
-          <h2 className="text-xl font-bold text-gray-900">Recent Signups</h2>
-          <p className="text-gray-600 mt-1">Latest waitlist entries and subscriber information</p>
-        </div>
-        
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-gray-50 border-b border-gray-200">
-              <tr>
-                <th className="px-8 py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">
-                  Position
-                </th>
-                <th className="px-8 py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">
-                  Email Address
-                </th>
-                <th className="px-8 py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">
-                  Join Date
-                </th>
-                <th className="px-8 py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">
-                  Status
-                </th>
-                <th className="px-8 py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">
-                  IP Address
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {waitlistEntries.length > 0 ? (
-                waitlistEntries.map((entry, index) => {
-                  console.log('📧 Rendering waitlist entry:', entry.email);
-                  return (
-                    <tr key={entry.id} className="hover:bg-gray-50 transition-colors">
-                      <td className="px-8 py-6 whitespace-nowrap text-sm font-bold text-gray-900">
-                        #{index + 1}
-                      </td>
-                      <td className="px-8 py-6 whitespace-nowrap">
-                        <div className="flex items-center">
-                          <div className="w-10 h-10 bg-gradient-to-r from-orange-600 to-red-600 rounded-full flex items-center justify-center text-white font-bold">
-                            {entry.email.substring(0, 2).toUpperCase()}
-                          </div>
-                          <div className="ml-4">
-                            <div className="text-sm font-bold text-gray-900">{entry.email}</div>
-                            <div className="text-xs text-gray-500">Subscriber</div>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-8 py-6 whitespace-nowrap text-sm text-gray-600">
-                        <div className="text-sm text-gray-900">
-                          {new Date(entry.created_at).toLocaleDateString()}
-                        </div>
-                        <div className="text-xs text-gray-500">
-                          {new Date(entry.created_at).toLocaleTimeString()}
-                        </div>
-                      </td>
-                      <td className="px-8 py-6 whitespace-nowrap">
-                        <span className={`inline-flex px-3 py-1 text-xs rounded-full font-semibold ${
-                          entry.is_notified 
-                            ? 'bg-green-100 text-green-800 border border-green-200' 
-                            : 'bg-yellow-100 text-yellow-800 border border-yellow-200'
-                        }`}>
-                          {entry.is_notified ? '✅ Notified' : '⏳ Waiting'}
-                        </span>
-                      </td>
-                      <td className="px-8 py-6 whitespace-nowrap text-sm text-gray-500 font-mono">
-                        {entry.ip_address || 'N/A'}
-                      </td>
-                    </tr>
-                  );
-                })
-              ) : (
-                <tr>
-                  <td colSpan={5} className="px-8 py-12 text-center text-gray-500">
-                    {waitlistLoading ? (
-                      <div className="flex items-center justify-center space-x-3">
-                        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-gray-400"></div>
-                        <span>Loading waitlist entries...</span>
-                      </div>
-                    ) : (
-                      <div>
-                        <ListChecks className="w-12 h-12 mx-auto text-gray-300 mb-4" />
-                        <p className="text-lg font-medium">No waitlist entries yet</p>
-                        <p className="text-sm">Subscribers will appear here when they join the waitlist</p>
-                      </div>
-                    )}
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
+          <nav className="p-6 space-y-2">
+            {[
+              { id: 'overview', label: 'Platform Overview', icon: BarChart3, active: activeTab === 'overview' },
+              { id: 'users', label: 'User Management', icon: Users, active: activeTab === 'users' },
+              { id: 'companies', label: 'Company Management', icon: Building2, active: activeTab === 'companies' },
+              { id: 'waitlist', label: 'Waitlist Management', icon: ListChecks, active: activeTab === 'waitlist' },
+            ].map((item) => (
+              <button
+                key={item.id}
+                onClick={() => setActiveTab(item.id)}
+                className={`w-full flex items-center space-x-3 px-4 py-3 text-left rounded-lg transition-colors ${
+                  item.active
+                    ? 'bg-red-50 text-red-700 border border-red-200'
+                    : 'text-gray-600 hover:bg-gray-50'
+                }`}
+              >
+                <item.icon className="w-5 h-5" />
+                <span className="font-medium">{item.label}</span>
+              </button>
+            ))}
+          </nav>
 
-      {/* Growth Chart */}
-      <div className="bg-white rounded-2xl shadow-lg p-8 border border-gray-100">
-        <h2 className="text-xl font-bold text-gray-900 mb-6">Daily Signups (Last 30 Days)</h2>
-        
-        {waitlistStats?.daily_stats && waitlistStats.daily_stats.length > 0 ? (
-          <div className="space-y-4">
-            {waitlistStats.daily_stats.slice(0, 10).map((day, index) => (
-              <div key={index} className="flex justify-between items-center py-3 px-4 bg-gray-50 rounded-lg">
-                <span className="text-sm font-medium text-gray-700">
-                  {new Date(day.date).toLocaleDateString('en-US', { 
-                    weekday: 'short', 
-                    month: 'short', 
-                    day: 'numeric' 
-                  })}
-                </span>
-                <div className="flex items-center space-x-4">
-                  <div className="w-32 bg-gray-200 rounded-full h-3">
-                    <div 
-                      className="bg-blue-500 h-3 rounded-full transition-all"
-                      style={{ 
-                        width: `${Math.min(100, (day.count / Math.max(...(waitlistStats.daily_stats?.map(d => d.count) || [1]))) * 100)}%` 
-                      }}
-                    ></div>
-                  </div>
-                  <span className="text-sm font-bold text-gray-900 w-8 text-right">
-                    {day.count}
-                  </span>
+          <div className="p-6 mt-6 border-t border-gray-200">
+            <h4 className="text-sm font-semibold text-gray-900 mb-4">Platform Status</h4>
+            <div className="space-y-4">
+              <div className="bg-gray-50 rounded-lg p-4">
+                <div className="flex justify-between text-sm text-gray-700 mb-1">
+                  <span className="font-medium">Total Users</span>
+                  <span className="font-bold text-lg">{stats.total_users}</span>
+                </div>
+                <div className="text-xs text-gray-500">
+                  {stats.total_companies} companies registered
                 </div>
               </div>
-            ))}
+              
+              {waitlistStats && (
+                <div className="bg-orange-50 rounded-lg p-4 border border-orange-200">
+                  <div className="flex justify-between text-sm text-orange-700 mb-1">
+                    <span className="font-medium">Waitlist</span>
+                    <span className="font-bold text-lg">{waitlistStats.total || 0}</span>
+                  </div>
+                  <div className="text-xs text-orange-600">
+                    {waitlistStats.today || 0} joined today
+                  </div>
+                </div>
+              )}
+            </div>
+            
+            <button
+              onClick={handleLogout}
+              className="w-full mt-6 px-4 py-2 text-sm text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-lg transition-colors"
+            >
+              Sign Out
+            </button>
           </div>
-        ) : (
-          <div className="text-center py-12">
-            <BarChart3 className="w-16 h-16 mx-auto text-gray-300 mb-4" />
-            <p className="text-lg font-medium text-gray-500">No daily statistics available yet</p>
-            <p className="text-sm text-gray-400">Data will appear here as people join the waitlist</p>
-          </div>
-        )}
+        </aside>
+
+        {/* Main Content */}
+        <main className="flex-1 p-8">
+          {/* Overview Tab */}
+          {activeTab === 'overview' && (
+            <div className="space-y-8">
+              <div>
+                <h2 className="text-3xl font-bold text-gray-900">Platform Overview</h2>
+                <p className="text-gray-600 mt-2">Monitor and manage your entire platform.</p>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+                <div className="bg-white rounded-2xl shadow-lg p-8 border border-gray-100">
+                  <div className="flex items-center justify-between mb-6">
+                    <div className="bg-blue-100 p-4 rounded-xl">
+                      <Users className="h-8 w-8 text-blue-600" />
+                    </div>
+                    <div className="text-right">
+                      <p className="text-sm font-semibold text-gray-600 uppercase tracking-wide">Total Users</p>
+                      <p className="text-4xl font-bold text-gray-900 mt-2">{stats.total_users}</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-white rounded-2xl shadow-lg p-8 border border-gray-100">
+                  <div className="flex items-center justify-between mb-6">
+                    <div className="bg-green-100 p-4 rounded-xl">
+                      <Building2 className="h-8 w-8 text-green-600" />
+                    </div>
+                    <div className="text-right">
+                      <p className="text-sm font-semibold text-gray-600 uppercase tracking-wide">Companies</p>
+                      <p className="text-4xl font-bold text-gray-900 mt-2">{stats.total_companies}</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-white rounded-2xl shadow-lg p-8 border border-gray-100">
+                  <div className="flex items-center justify-between mb-6">
+                    <div className="bg-orange-100 p-4 rounded-xl">
+                      <ListChecks className="h-8 w-8 text-orange-600" />
+                    </div>
+                    <div className="text-right">
+                      <p className="text-sm font-semibold text-gray-600 uppercase tracking-wide">Waitlist</p>
+                      <p className="text-4xl font-bold text-gray-900 mt-2">{waitlistStats?.total || 0}</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-white rounded-2xl shadow-lg p-8 border border-gray-100">
+                  <div className="flex items-center justify-between mb-6">
+                    <div className="bg-emerald-100 p-4 rounded-xl">
+                      <BarChart3 className="h-8 w-8 text-emerald-600" />
+                    </div>
+                    <div className="text-right">
+                      <p className="text-sm font-semibold text-gray-600 uppercase tracking-wide">Campaigns</p>
+                      <p className="text-4xl font-bold text-gray-900 mt-2">{stats.total_campaigns_created}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* User Management Tab */}
+          {activeTab === 'users' && (
+            <UserManagement
+              users={users}
+              loading={loading}
+              searchTerm={searchTerm}
+              setSearchTerm={setSearchTerm}
+              filterTier={filterTier}
+              setFilterTier={setFilterTier}
+              onEditUser={openUserEditModal}
+              onUpdateUserStatus={updateUserStatus}
+            />
+          )}
+
+          {/* Company Management Tab */}
+          {activeTab === 'companies' && (
+            <CompanyManagement
+              companies={companies}
+              loading={loading}
+              searchTerm={searchTerm}
+              setSearchTerm={setSearchTerm}
+              filterTier={filterTier}
+              setFilterTier={setFilterTier}
+              onEditCompany={openCompanyEditModal}
+            />
+          )}
+
+          {/* Waitlist Management Tab */}
+          {activeTab === 'waitlist' && (
+            <WaitlistManagement
+              waitlistStats={waitlistStats}
+              waitlistEntries={waitlistEntries}
+              waitlistLoading={waitlistLoading}
+              onExport={handleWaitlistExport}
+              onEmailExport={handleEmailExport}
+              exporting={exporting}
+            />
+          )}
+        </main>
       </div>
+
+      {/* Edit Modals */}
+      {userEditModal.user && (
+        <UserEditModal
+          user={userEditModal.user}
+          isOpen={userEditModal.isOpen}
+          onClose={closeUserEditModal}
+          onSave={fetchUsers}
+        />
+      )}
+
+      {companyEditModal.company && (
+        <CompanyEditModal
+          company={companyEditModal.company}
+          isOpen={companyEditModal.isOpen}
+          onClose={closeCompanyEditModal}
+          onSave={fetchCompanies}
+        />
+      )}
     </div>
   );
 }
