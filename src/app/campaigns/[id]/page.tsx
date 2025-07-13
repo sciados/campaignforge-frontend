@@ -1,4 +1,4 @@
-// src/app/campaigns/[id]/page.tsx - Apple Design System
+// src/app/campaigns/[id]/page.tsx - WITH NAVIGATION
 'use client'
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { useParams, useRouter } from 'next/navigation'
@@ -23,7 +23,15 @@ import {
   Play,
   Loader2,
   TrendingUp,
-  RefreshCw
+  RefreshCw,
+  Search,
+  Shield,
+  Users,
+  Building2,
+  BarChart3,
+  Activity,
+  Image as ImageIcon,
+  ListChecks
 } from 'lucide-react'
 import { useApi } from '@/lib/api'
 import { Campaign } from '@/lib/api'
@@ -64,8 +72,6 @@ export default function AppleCampaignDetailPage() {
 
   console.log('🔍 API object:', api)
   console.log('🔍 Available methods:', Object.keys(api))
-  // console.log('🔍 generateSingleImage type:', typeof api.generateSingleImage)
-  // console.log('🔍 generateCampaignWithImages type:', typeof api.generateCampaignWithImages)
   
   const isInitializedRef = useRef(false)
   const isLoadingRef = useRef(false)
@@ -93,6 +99,15 @@ export default function AppleCampaignDetailPage() {
     uploadDocument: api.uploadDocument,
     generateContent: api.generateContent
   }), [api])
+
+  // Helper functions for navigation
+  const handleLogout = () => {
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('authToken')
+      localStorage.removeItem('access_token')
+    }
+    router.push('/login')
+  }
 
   const loadCampaignData = useCallback(async () => {
     if (!campaignId || isInitializedRef.current || isLoadingRef.current) {
@@ -313,10 +328,10 @@ export default function AppleCampaignDetailPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-apple-light flex items-center justify-center">
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <div className="w-8 h-8 border-2 border-black border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-apple-gray text-sm font-medium">Loading campaign...</p>
+          <div className="w-8 h-8 border-2 border-purple-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-600 text-sm font-medium">Loading campaign...</p>
         </div>
       </div>
     )
@@ -324,16 +339,16 @@ export default function AppleCampaignDetailPage() {
 
   if (error || !campaign) {
     return (
-      <div className="min-h-screen bg-apple-light flex items-center justify-center">
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <div className="text-red-500 mb-4">
             <AlertCircle className="h-12 w-12 mx-auto" />
           </div>
-          <h1 className="text-2xl font-light text-black mb-2">Campaign Not Found</h1>
-          <p className="text-apple-gray mb-6 max-w-md">{error || 'The campaign you\'re looking for doesn\'t exist.'}</p>
+          <h1 className="text-2xl font-light text-gray-900 mb-2">Campaign Not Found</h1>
+          <p className="text-gray-600 mb-6 max-w-md">{error || 'The campaign you\'re looking for doesn\'t exist.'}</p>
           <button
             onClick={() => router.push('/campaigns')}
-            className="bg-black text-white px-6 py-3 rounded-lg font-medium hover:bg-gray-900 transition-colors"
+            className="bg-purple-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-purple-700 transition-colors"
           >
             Back to Campaigns
           </button>
@@ -343,21 +358,24 @@ export default function AppleCampaignDetailPage() {
   }
 
   return (
-    <div className="min-h-screen bg-apple-light">
-      {/* Apple-style Header */}
-      <div className="bg-white border-b border-gray-200 sticky top-0 z-10">
-        <div className="max-w-7xl mx-auto px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            <div className="flex items-center space-x-4">
-              <button
-                onClick={() => router.push('/campaigns')}
-                className="w-8 h-8 flex items-center justify-center text-apple-gray hover:text-black transition-colors rounded-lg hover:bg-gray-100"
-              >
-                <ArrowLeft className="h-5 w-5" />
-              </button>
+    <div className="min-h-screen bg-gray-50">
+      {/* Header */}
+      <header className="bg-white border-b border-gray-200 px-6 py-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-4">
+            <button
+              onClick={() => router.push('/campaigns')}
+              className="w-8 h-8 flex items-center justify-center text-gray-500 hover:text-gray-700 transition-colors rounded-lg hover:bg-gray-100"
+            >
+              <ArrowLeft className="h-5 w-5" />
+            </button>
+            <div className="flex items-center space-x-2">
+              <div className="w-8 h-8 bg-gradient-to-r from-purple-600 to-blue-600 rounded-lg flex items-center justify-center">
+                <Target className="w-5 h-5 text-white" />
+              </div>
               <div>
-                <h1 className="text-xl font-semibold text-black">{campaign.title}</h1>
-                <p className="text-sm text-apple-gray">
+                <h1 className="text-xl font-bold text-gray-900">{campaign.title}</h1>
+                <p className="text-sm text-gray-500">
                   Step {currentStep} • {workflowMode} mode
                   {isActiveSession && (
                     <span className="ml-2 text-green-600 font-medium">• {formatTime(sessionTimer)}</span>
@@ -365,187 +383,243 @@ export default function AppleCampaignDetailPage() {
                 </p>
               </div>
             </div>
+          </div>
+          
+          <div className="flex items-center space-x-4">
+            {/* Session Control */}
+            <button
+              onClick={() => setIsActiveSession(!isActiveSession)}
+              className={`flex items-center space-x-2 px-3 py-2 rounded-lg font-medium text-sm transition-colors ${
+                isActiveSession 
+                  ? 'bg-red-100 text-red-700 hover:bg-red-200'
+                  : 'bg-green-100 text-green-700 hover:bg-green-200'
+              }`}
+            >
+              {isActiveSession ? <Clock className="h-4 w-4" /> : <Play className="h-4 w-4" />}
+              <span>{isActiveSession ? 'Pause' : 'Start'}</span>
+            </button>
             
-            <div className="flex items-center space-x-3">
-              {/* Session Control */}
+            {/* Auto-save Status */}
+            <div className="flex items-center space-x-2 text-sm text-gray-500">
+              <div className={`w-2 h-2 rounded-full ${autoSave ? 'bg-green-500' : 'bg-gray-400'}`}></div>
+              <span className="font-medium">
+                {lastSaved ? `Saved ${lastSaved.toLocaleTimeString()}` : 'Not saved'}
+              </span>
+            </div>
+            
+            {/* Save Button */}
+            <button
+              onClick={() => saveProgress({ manual_save: true })}
+              className="flex items-center space-x-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-medium"
+            >
+              <Save className="h-4 w-4" />
+              <span>Save</span>
+            </button>
+
+            <button
+              onClick={handleLogout}
+              className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-lg transition-colors border border-gray-300"
+            >
+              Sign Out
+            </button>
+            
+            <div className="w-8 h-8 bg-gradient-to-r from-purple-600 to-blue-600 rounded-full flex items-center justify-center text-white font-medium text-sm">
+              {campaign.title.charAt(0).toUpperCase()}
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <div className="flex">
+        {/* Sidebar */}
+        <aside className="w-64 bg-white border-r border-gray-200 min-h-screen">
+          <div className="p-4 border-b border-gray-200">
+            <button
+              onClick={() => router.push('/campaigns')}
+              className="w-full flex items-center space-x-2 px-3 py-2 bg-purple-50 hover:bg-purple-100 text-purple-700 rounded-lg transition-colors text-sm border border-purple-200"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              <span>Back to Campaigns</span>
+            </button>
+          </div>
+
+          <nav className="p-4 space-y-2">
+            {[
+              { id: 'dashboard', label: 'Dashboard', icon: BarChart3, path: '/dashboard' },
+              { id: 'campaigns', label: 'Campaigns', icon: Target, path: '/campaigns' },
+              { id: 'analytics', label: 'Analytics', icon: Activity, path: '/dashboard/analytics' },
+              { id: 'content-library', label: 'Content Library', icon: FileText, path: '/dashboard/content-library' },
+              { id: 'settings', label: 'Settings', icon: Settings, path: '/dashboard/settings' },
+            ].map((item) => (
               <button
-                onClick={() => setIsActiveSession(!isActiveSession)}
-                className={`flex items-center space-x-2 px-3 py-2 rounded-lg font-medium text-sm transition-colors ${
-                  isActiveSession 
-                    ? 'bg-red-100 text-red-700 hover:bg-red-200'
-                    : 'bg-green-100 text-green-700 hover:bg-green-200'
+                key={item.id}
+                onClick={() => router.push(item.path)}
+                className="w-full flex items-center space-x-3 px-3 py-2 text-left rounded-lg transition-colors text-gray-600 hover:bg-gray-50"
+              >
+                <item.icon className="w-5 h-5" />
+                <span className="font-medium">{item.label}</span>
+              </button>
+            ))}
+            
+            {/* Admin Access */}
+            <div className="pt-4 border-t border-gray-200 mt-4">
+              <button
+                onClick={() => router.push('/admin')}
+                className="w-full flex items-center space-x-3 px-3 py-2 text-left rounded-lg transition-colors text-gray-600 hover:bg-red-50 hover:text-red-700"
+              >
+                <Shield className="w-5 h-5" />
+                <span className="font-medium">Admin Panel</span>
+              </button>
+            </div>
+          </nav>
+
+          {/* Working Style Selector */}
+          <div className="p-4 border-t border-gray-200">
+            <h3 className="text-sm font-semibold text-gray-900 mb-3">Working Style</h3>
+            
+            <div className="space-y-2">
+              <button
+                onClick={() => handleModeChange('quick')}
+                className={`w-full p-3 rounded-lg border transition-all text-left ${
+                  workflowMode === 'quick'
+                    ? 'border-orange-500 bg-orange-50'
+                    : 'border-gray-200 hover:border-orange-300 hover:bg-gray-50'
                 }`}
               >
-                {isActiveSession ? <Clock className="h-4 w-4" /> : <Play className="h-4 w-4" />}
-                <span>{isActiveSession ? 'Pause' : 'Start'}</span>
-              </button>
-              
-              {/* Refresh Button */}
-              <button
-                onClick={refreshIntelligenceData}
-                className="flex items-center space-x-2 px-3 py-2 rounded-lg bg-gray-100 text-black hover:bg-gray-200 transition-colors font-medium text-sm"
-              >
-                <RefreshCw className="h-4 w-4" />
-                <span>Refresh</span>
-              </button>
-              
-              {/* Auto-save Status */}
-              <div className="flex items-center space-x-2 text-sm text-apple-gray">
-                <div className={`w-2 h-2 rounded-full ${autoSave ? 'bg-green-500' : 'bg-gray-400'}`}></div>
-                <span className="font-medium">
-                  {lastSaved ? `Saved ${lastSaved.toLocaleTimeString()}` : 'Not saved'}
-                </span>
-              </div>
-              
-              {/* Save Button */}
-              <button
-                onClick={() => saveProgress({ manual_save: true })}
-                className="flex items-center space-x-2 px-4 py-2 bg-black text-white rounded-lg hover:bg-gray-900 transition-colors font-medium"
-              >
-                <Save className="h-4 w-4" />
-                <span>Save</span>
-              </button>
-              
-              {/* More Options */}
-              <button className="w-8 h-8 flex items-center justify-center text-apple-gray hover:text-black transition-colors rounded-lg hover:bg-gray-100">
-                <MoreHorizontal className="h-5 w-5" />
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div className="max-w-7xl mx-auto px-6 lg:px-8 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-          {/* Apple-style Sidebar */}
-          <div className="lg:col-span-1 space-y-6">
-            {/* Working Style Selector */}
-            <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm">
-              <h3 className="text-lg font-semibold text-black mb-4">Working Style</h3>
-              
-              <div className="space-y-3">
-                <button
-                  onClick={() => handleModeChange('quick')}
-                  className={`w-full p-4 rounded-xl border transition-all ${
-                    workflowMode === 'quick'
-                      ? 'border-orange-500 bg-orange-50'
-                      : 'border-gray-200 hover:border-orange-300 hover:bg-gray-50'
-                  }`}
-                >
-                  <Zap className={`h-5 w-5 mx-auto mb-2 ${workflowMode === 'quick' ? 'text-orange-600' : 'text-apple-gray'}`} />
-                  <div className="text-sm font-medium text-black">Quick Mode</div>
-                  <div className="text-xs text-apple-gray mt-1">Rush through steps</div>
-                </button>
-                
-                <button
-                  onClick={() => handleModeChange('methodical')}
-                  className={`w-full p-4 rounded-xl border transition-all ${
-                    workflowMode === 'methodical'
-                      ? 'border-blue-500 bg-blue-50'
-                      : 'border-gray-200 hover:border-blue-300 hover:bg-gray-50'
-                  }`}
-                >
-                  <BookOpen className={`h-5 w-5 mx-auto mb-2 ${workflowMode === 'methodical' ? 'text-blue-600' : 'text-apple-gray'}`} />
-                  <div className="text-sm font-medium text-black">Methodical</div>
-                  <div className="text-xs text-apple-gray mt-1">Take your time</div>
-                </button>
-                
-                <button
-                  onClick={() => handleModeChange('flexible')}
-                  className={`w-full p-4 rounded-xl border transition-all ${
-                    workflowMode === 'flexible'
-                      ? 'border-black bg-gray-50'
-                      : 'border-gray-200 hover:border-gray-400 hover:bg-gray-50'
-                  }`}
-                >
-                  <Settings className={`h-5 w-5 mx-auto mb-2 ${workflowMode === 'flexible' ? 'text-black' : 'text-apple-gray'}`} />
-                  <div className="text-sm font-medium text-black">Flexible</div>
-                  <div className="text-xs text-apple-gray mt-1">Mix of both</div>
-                </button>
-              </div>
-            </div>
-
-            {/* Step Navigation */}
-            <StepNavigation
-              currentStep={currentStep}
-              workflowMode={workflowMode}
-              workflowState={workflowState}
-              onStepClick={handleStepChange}
-            />
-
-            {/* Progress Summary */}
-            {workflowState && (
-              <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm">
-                <h3 className="text-lg font-semibold text-black mb-4">Progress</h3>
-                
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-apple-gray font-medium">Overall</span>
-                    <span className="text-sm font-semibold text-black">
-                      {Math.round(workflowState.progress_summary?.completion_percentage || 0)}%
-                    </span>
-                  </div>
-                  <div className="w-full bg-gray-200 rounded-full h-2">
-                    <div 
-                      className="bg-black h-2 rounded-full transition-all duration-500"
-                      style={{ width: `${workflowState.progress_summary?.completion_percentage || 0}%` }}
-                    ></div>
+                <div className="flex items-center space-x-2">
+                  <Zap className={`h-4 w-4 ${workflowMode === 'quick' ? 'text-orange-600' : 'text-gray-400'}`} />
+                  <div>
+                    <div className="text-sm font-medium text-gray-900">Quick Mode</div>
+                    <div className="text-xs text-gray-500">Rush through steps</div>
                   </div>
                 </div>
-
-                <div className="grid grid-cols-3 gap-2 mt-6 text-center">
+              </button>
+              
+              <button
+                onClick={() => handleModeChange('methodical')}
+                className={`w-full p-3 rounded-lg border transition-all text-left ${
+                  workflowMode === 'methodical'
+                    ? 'border-blue-500 bg-blue-50'
+                    : 'border-gray-200 hover:border-blue-300 hover:bg-gray-50'
+                }`}
+              >
+                <div className="flex items-center space-x-2">
+                  <BookOpen className={`h-4 w-4 ${workflowMode === 'methodical' ? 'text-blue-600' : 'text-gray-400'}`} />
                   <div>
-                    <div className="text-lg font-semibold text-black">
-                      {intelligenceData.length}
-                    </div>
-                    <div className="text-xs text-apple-gray font-medium">Sources</div>
-                  </div>
-                  <div>
-                    <div className="text-lg font-semibold text-black">
-                      {intelligenceData.filter(s => s.confidence_score && s.confidence_score > 0).length}
-                    </div>
-                    <div className="text-xs text-apple-gray font-medium">Analyzed</div>
-                  </div>
-                  <div>
-                    <div className="text-lg font-semibold text-black">
-                      {workflowState.progress_summary?.content_generated || 0}
-                    </div>
-                    <div className="text-xs text-apple-gray font-medium">Content</div>
+                    <div className="text-sm font-medium text-gray-900">Methodical</div>
+                    <div className="text-xs text-gray-500">Take your time</div>
                   </div>
                 </div>
-              </div>
-            )}
-
-            {/* Next Action Card */}
-            {workflowState && workflowState.suggested_step && (
-              <div className="bg-black rounded-2xl p-6 shadow-sm">
-                <h4 className="text-sm font-semibold text-white mb-2">Next Action</h4>
-                <p className="text-sm text-gray-300 mb-4">
-                  {workflowState.primary_suggestion}
-                </p>
-                <button
-                  onClick={() => handleStepChange(workflowState.suggested_step!)}
-                  className="w-full px-4 py-2 bg-white text-black rounded-lg hover:bg-gray-100 transition-colors text-sm font-medium"
-                >
-                  Continue
-                </button>
-              </div>
-            )}
-          </div>
-
-          {/* Main Content */}
-          <div className="lg:col-span-3">
-            <div className="bg-white rounded-2xl border border-gray-200 p-8 shadow-sm">
-              {renderStepContent()}
+              </button>
+              
+              <button
+                onClick={() => handleModeChange('flexible')}
+                className={`w-full p-3 rounded-lg border transition-all text-left ${
+                  workflowMode === 'flexible'
+                    ? 'border-purple-500 bg-purple-50'
+                    : 'border-gray-200 hover:border-purple-300 hover:bg-gray-50'
+                }`}
+              >
+                <div className="flex items-center space-x-2">
+                  <Settings className={`h-4 w-4 ${workflowMode === 'flexible' ? 'text-purple-600' : 'text-gray-400'}`} />
+                  <div>
+                    <div className="text-sm font-medium text-gray-900">Flexible</div>
+                    <div className="text-xs text-gray-500">Mix of both</div>
+                  </div>
+                </div>
+              </button>
             </div>
           </div>
-        </div>
+        </aside>
+
+        {/* Main Content */}
+        <main className="flex-1 p-6">
+          <div className="max-w-6xl mx-auto">
+            <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+              {/* Step Navigation */}
+              <div className="lg:col-span-1 space-y-6">
+                <StepNavigation
+                  currentStep={currentStep}
+                  workflowMode={workflowMode}
+                  workflowState={workflowState}
+                  onStepClick={handleStepChange}
+                />
+
+                {/* Progress Summary */}
+                {workflowState && (
+                  <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
+                    <h3 className="text-lg font-semibold text-gray-900 mb-4">Progress</h3>
+                    
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-gray-600 font-medium">Overall</span>
+                        <span className="text-sm font-semibold text-gray-900">
+                          {Math.round(workflowState.progress_summary?.completion_percentage || 0)}%
+                        </span>
+                      </div>
+                      <div className="w-full bg-gray-200 rounded-full h-2">
+                        <div 
+                          className="bg-purple-600 h-2 rounded-full transition-all duration-500"
+                          style={{ width: `${workflowState.progress_summary?.completion_percentage || 0}%` }}
+                        ></div>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-3 gap-2 mt-6 text-center">
+                      <div>
+                        <div className="text-lg font-semibold text-gray-900">
+                          {intelligenceData.length}
+                        </div>
+                        <div className="text-xs text-gray-600 font-medium">Sources</div>
+                      </div>
+                      <div>
+                        <div className="text-lg font-semibold text-gray-900">
+                          {intelligenceData.filter(s => s.confidence_score && s.confidence_score > 0).length}
+                        </div>
+                        <div className="text-xs text-gray-600 font-medium">Analyzed</div>
+                      </div>
+                      <div>
+                        <div className="text-lg font-semibold text-gray-900">
+                          {workflowState.progress_summary?.content_generated || 0}
+                        </div>
+                        <div className="text-xs text-gray-600 font-medium">Content</div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Next Action Card */}
+                {workflowState && workflowState.suggested_step && (
+                  <div className="bg-purple-600 rounded-xl p-6 shadow-sm">
+                    <h4 className="text-sm font-semibold text-white mb-2">Next Action</h4>
+                    <p className="text-sm text-purple-100 mb-4">
+                      {workflowState.primary_suggestion}
+                    </p>
+                    <button
+                      onClick={() => handleStepChange(workflowState.suggested_step!)}
+                      className="w-full px-4 py-2 bg-white text-purple-600 rounded-lg hover:bg-gray-100 transition-colors text-sm font-medium"
+                    >
+                      Continue
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              {/* Main Content */}
+              <div className="lg:col-span-3">
+                <div className="bg-white rounded-xl border border-gray-200 p-8 shadow-sm">
+                  {renderStepContent()}
+                </div>
+              </div>
+            </div>
+          </div>
+        </main>
       </div>
     </div>
   )
 }
 
-// Apple-styled Step Navigation Component
+// Step Navigation Component
 function StepNavigation({ 
   currentStep, 
   workflowMode, 
@@ -577,14 +651,14 @@ function StepNavigation({
       return <CheckCircle className="h-5 w-5 text-green-600" />
     } else {
       return <Icon className={`h-5 w-5 ${
-        status === 'active' ? 'text-black' : 'text-apple-gray'
+        status === 'active' ? 'text-purple-600' : 'text-gray-400'
       }`} />
     }
   }
 
   return (
-    <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm">
-      <h3 className="text-lg font-semibold text-black mb-4">Steps</h3>
+    <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
+      <h3 className="text-lg font-semibold text-gray-900 mb-4">Steps</h3>
       
       <div className="space-y-3">
         {steps.map((step) => {
@@ -596,15 +670,15 @@ function StepNavigation({
               onClick={() => onStepClick(step.number)}
               className={`w-full p-4 rounded-xl border text-center transition-all ${
                 status === 'completed' ? 'bg-green-50 border-green-200' :
-                status === 'active' ? 'bg-gray-100 border-black' :
+                status === 'active' ? 'bg-purple-50 border-purple-200' :
                 'bg-gray-50 border-gray-200 hover:bg-gray-100'
               }`}
             >
               <div className="flex flex-col items-center space-y-2">
                 {getStepIcon(step, status)}
                 <div>
-                  <div className="text-sm font-medium text-black">{step.title}</div>
-                  <div className="text-xs text-apple-gray">Step {step.number}</div>
+                  <div className="text-sm font-medium text-gray-900">{step.title}</div>
+                  <div className="text-xs text-gray-600">Step {step.number}</div>
                 </div>
               </div>
             </button>
@@ -615,8 +689,8 @@ function StepNavigation({
       {/* Current step indicator */}
       <div className="mt-4 p-3 bg-gray-100 rounded-xl">
         <div className="flex items-center space-x-2">
-          <Target className="h-4 w-4 text-black" />
-          <span className="text-sm text-black font-medium">
+          <Target className="h-4 w-4 text-purple-600" />
+          <span className="text-sm text-gray-900 font-medium">
             Current: {steps.find(s => s.number === currentStep)?.title}
           </span>
         </div>

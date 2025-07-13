@@ -1,9 +1,13 @@
-// src/app/campaigns/page.tsx - SIMPLIFIED - Universal Campaigns Only
+// src/app/campaigns/page.tsx - WITH NAVIGATION
 'use client'
 
 import React, { useState, useEffect, useCallback, useRef } from 'react'
 import { useRouter } from 'next/navigation'
-import { Plus, Video, FileText, Globe, Calendar, Filter, Grid, List, FolderOpen } from 'lucide-react'
+import { 
+  Plus, Video, FileText, Globe, Calendar, Filter, Grid, List, FolderOpen,
+  Shield, Search, Users, Building2, Target, BarChart3, Settings, Database, 
+  Activity, Image as ImageIcon, ListChecks, Sparkles 
+} from 'lucide-react'
 import { useApi, type Campaign } from '@/lib/api'
 import CampaignFilters from '@/components/campaigns/CampaignFilters'
 import CampaignGrid from '@/components/campaigns/CampaignGrid'
@@ -39,6 +43,15 @@ export default function CampaignsPage() {
   // Use ref to prevent multiple loads and track completion
   const isInitialized = useRef(false)
   const isLoadingData = useRef(false)
+
+  // Helper functions for navigation
+  const handleLogout = () => {
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('authToken')
+      localStorage.removeItem('access_token')
+    }
+    router.push('/login')
+  }
 
   // ✅ SIMPLIFIED: Remove campaign type filtering
   const filterCampaigns = useCallback(() => {
@@ -358,272 +371,373 @@ export default function CampaignsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
-      <div className="max-w-7xl mx-auto space-y-8">
-
-        {/* Header */}
-        <div className="flex justify-between items-center">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">Universal Campaigns</h1>
-            <p className="text-gray-600 mt-2">Create intelligent campaigns that work with any input and generate multiple content types</p>
-          </div>
-          <button 
-            onClick={() => setShowCreateModal(true)}
-            className="bg-gradient-to-r from-purple-600 to-blue-600 text-white px-6 py-3 rounded-lg font-medium hover:from-purple-700 hover:to-blue-700 transition-all flex items-center"
-          >
-            <Plus className="h-5 w-5 mr-2" />
-            New Campaign
-          </button>
-        </div>
-
-        {/* Error Display */}
-        {error && (
-          <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-red-700 font-medium">Error</p>
-                <p className="text-red-600 text-sm mt-1">{error}</p>
+    <div className="min-h-screen bg-gray-50">
+      {/* Header */}
+      <header className="bg-white border-b border-gray-200 px-6 py-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-4">
+            <div className="flex items-center space-x-2">
+              <div className="w-8 h-8 bg-gradient-to-r from-purple-600 to-blue-600 rounded-lg flex items-center justify-center">
+                <Target className="w-5 h-5 text-white" />
               </div>
-              <div className="flex space-x-2">
-                <button 
-                  onClick={handleRetry}
-                  className="px-3 py-1 bg-red-100 text-red-700 text-sm rounded hover:bg-red-200"
-                >
-                  Retry
-                </button>
-                <button 
-                  onClick={() => setError(null)}
-                  className="text-red-500 hover:text-red-700 text-sm"
-                >
-                  Dismiss
-                </button>
-              </div>
+              <h1 className="text-xl font-bold text-gray-900">Campaign Manager</h1>
+            </div>
+            <div className="hidden md:flex items-center space-x-1 text-sm text-gray-500">
+              <span>RodgersDigital</span>
+              <span>/</span>
+              <span className="text-gray-900">Campaigns</span>
             </div>
           </div>
-        )}
+          
+          <div className="flex items-center space-x-4">
+            <div className="flex items-center space-x-2 px-3 py-1 rounded-full bg-purple-100 text-purple-800">
+              <Target className="w-4 h-4" />
+              <span className="text-sm font-medium">Campaign Access</span>
+            </div>
+            
+            <div className="relative">
+              <input
+                type="text"
+                placeholder="Search campaigns..."
+                className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent w-64"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+              <div className="absolute left-3 top-1/2 transform -translate-y-1/2">
+                <Search className="w-4 h-4 text-gray-400" />
+              </div>
+            </div>
+            
+            <button
+              onClick={handleLogout}
+              className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-lg transition-colors border border-gray-300"
+            >
+              Sign Out
+            </button>
+            
+            <div className="w-8 h-8 bg-gradient-to-r from-purple-600 to-blue-600 rounded-full flex items-center justify-center text-white font-medium text-sm">
+              {user?.full_name?.charAt(0).toUpperCase() || 'U'}
+            </div>
+          </div>
+        </div>
+      </header>
 
-        {/* Empty State - First Time User */}
-        {campaigns.length === 0 && !error && (
-          <div className="text-center py-12">
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8 max-w-2xl mx-auto">
-              <div className="w-16 h-16 bg-gradient-to-r from-purple-600 to-blue-600 rounded-full flex items-center justify-center mx-auto mb-6">
-                <Plus className="h-8 w-8 text-white" />
-              </div>
-              
-              <h2 className="text-2xl font-bold text-gray-900 mb-4">Welcome to RodgersDigital!</h2>
-              <p className="text-gray-600 mb-8 max-w-lg mx-auto">
-                Create your first universal campaign that accepts any input source and generates multiple content types automatically.
-              </p>
-              
-              {/* ✅ SIMPLIFIED: Universal workflow description */}
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-                <div className="text-center">
-                  <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center mx-auto mb-3">
-                    <FileText className="h-6 w-6 text-purple-600" />
-                  </div>
-                  <h3 className="font-medium text-gray-900 mb-1">1. Create Campaign</h3>
-                  <p className="text-sm text-gray-600">Set name and basic details</p>
-                </div>
-                
-                <div className="text-center">
-                  <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mx-auto mb-3">
-                    <Globe className="h-6 w-6 text-blue-600" />
-                  </div>
-                  <h3 className="font-medium text-gray-900 mb-1">2. Add Any Sources</h3>
-                  <p className="text-sm text-gray-600">URLs, documents, videos, text</p>
-                </div>
-                
-                <div className="text-center">
-                  <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center mx-auto mb-3">
-                    <Video className="h-6 w-6 text-green-600" />
-                  </div>
-                  <h3 className="font-medium text-gray-900 mb-1">3. AI Analysis</h3>
-                  <p className="text-sm text-gray-600">Extract marketing intelligence</p>
-                </div>
-                
-                <div className="text-center">
-                  <div className="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center mx-auto mb-3">
-                    <Plus className="h-6 w-6 text-orange-600" />
-                  </div>
-                  <h3 className="font-medium text-gray-900 mb-1">4. Generate Everything</h3>
-                  <p className="text-sm text-gray-600">Emails, ads, posts, pages, videos</p>
-                </div>
-              </div>
-              
-              <button 
-                onClick={() => setShowCreateModal(true)}
-                className="bg-gradient-to-r from-purple-600 to-blue-600 text-white px-8 py-3 rounded-lg font-medium hover:from-purple-700 hover:to-blue-700 transition-all inline-flex items-center text-lg"
+      <div className="flex">
+        {/* Sidebar */}
+        <aside className="w-64 bg-white border-r border-gray-200 min-h-screen">
+          <div className="p-4 border-b border-gray-200">
+            <button
+              onClick={() => router.push('/dashboard')}
+              className="w-full flex items-center space-x-2 px-3 py-2 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-lg transition-colors text-sm border border-blue-200"
+            >
+              <Sparkles className="w-4 h-4" />
+              <span>Switch to Dashboard</span>
+            </button>
+          </div>
+
+          <nav className="p-4 space-y-2">
+            {[
+              { id: 'dashboard', label: 'Dashboard', icon: BarChart3, path: '/dashboard' },
+              { id: 'campaigns', label: 'Campaigns', icon: Target, path: '/campaigns', active: true },
+              { id: 'analytics', label: 'Analytics', icon: Activity, path: '/dashboard/analytics' },
+              { id: 'content-library', label: 'Content Library', icon: FileText, path: '/dashboard/content-library' },
+              { id: 'settings', label: 'Settings', icon: Settings, path: '/dashboard/settings' },
+            ].map((item) => (
+              <button
+                key={item.id}
+                onClick={() => router.push(item.path)}
+                className={`w-full flex items-center space-x-3 px-3 py-2 text-left rounded-lg transition-colors ${
+                  item.active
+                    ? 'bg-purple-50 text-purple-700 border border-purple-200'
+                    : 'text-gray-600 hover:bg-gray-50'
+                }`}
               >
-                <Plus className="h-5 w-5 mr-2" />
-                Create Your First Campaign
+                <item.icon className="w-5 h-5" />
+                <span className="font-medium">{item.label}</span>
+              </button>
+            ))}
+            
+            {/* Admin Access */}
+            <div className="pt-4 border-t border-gray-200 mt-4">
+              <button
+                onClick={() => router.push('/admin')}
+                className="w-full flex items-center space-x-3 px-3 py-2 text-left rounded-lg transition-colors text-gray-600 hover:bg-red-50 hover:text-red-700"
+              >
+                <Shield className="w-5 h-5" />
+                <span className="font-medium">Admin Panel</span>
               </button>
             </div>
-          </div>
-        )}
+          </nav>
+        </aside>
 
-        {/* Campaign Stats */}
-        {campaigns.length > 0 && (
-          <CampaignStats campaigns={campaigns} user={user} />
-        )}
-
-        {/* ✅ SIMPLIFIED: Campaign Management without type filter */}
-        {campaigns.length > 0 && (
-          <>
-            {/* Simplified Filters Component */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-              <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between space-y-4 lg:space-y-0">
-                <div className="flex-1 max-w-md">
-                  <div className="relative">
-                    <input
-                      type="text"
-                      placeholder="Search campaigns..."
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                    />
-                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                      <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                      </svg>
-                    </div>
-                  </div>
-                </div>
-                
-                <div className="flex items-center space-x-4">
-                  <select
-                    value={statusFilter}
-                    onChange={(e) => setStatusFilter(e.target.value)}
-                    className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                  >
-                    <option value="all">All Status</option>
-                    <option value="draft">Draft</option>
-                    <option value="active">Active</option>
-                    <option value="completed">Completed</option>
-                    <option value="paused">Paused</option>
-                  </select>
-                  
-                  <button
-                    onClick={clearFilters}
-                    className="px-4 py-2 text-gray-600 hover:text-gray-800 font-medium"
-                  >
-                    Clear Filters
-                  </button>
-                  
-                  <span className="text-sm text-gray-500">
-                    {filteredCampaigns.length} campaigns
-                  </span>
-                </div>
+        {/* Main Content */}
+        <main className="flex-1 p-6">
+          <div className="max-w-7xl mx-auto space-y-8">
+            {/* Header */}
+            <div className="flex justify-between items-center">
+              <div>
+                <h1 className="text-3xl font-bold text-gray-900">Universal Campaigns</h1>
+                <p className="text-gray-600 mt-2">Create intelligent campaigns that work with any input and generate multiple content types</p>
               </div>
+              <button 
+                onClick={() => setShowCreateModal(true)}
+                className="bg-gradient-to-r from-purple-600 to-blue-600 text-white px-6 py-3 rounded-lg font-medium hover:from-purple-700 hover:to-blue-700 transition-all flex items-center"
+              >
+                <Plus className="h-5 w-5 mr-2" />
+                New Campaign
+              </button>
             </div>
 
-            <CampaignGrid
-              campaigns={filteredCampaigns}
-              viewMode={viewMode}
-              onViewModeChange={setViewMode}
-              onCampaignView={handleCampaignView}
-              onCampaignEdit={handleCampaignEdit}
-              onCampaignDuplicate={handleCampaignDuplicate}
-              onCampaignDelete={handleCampaignDelete}
-            />
-          </>
-        )}
-
-        {/* Recent Campaigns */}
-{campaigns.length > 0 && (
-  <div className="bg-white rounded-xl shadow-sm border border-gray-200">
-    <div className="p-6 border-b border-gray-200">
-      <div className="flex items-center justify-between">
-        <h3 className="text-lg font-semibold text-gray-900">Recent Activity</h3>
-        <div className="flex items-center space-x-2">
-          <Filter className="h-4 w-4 text-gray-400" />
-          <span className="text-sm text-gray-500">
-            {filteredCampaigns.length} campaigns • {' '}
-            {filteredCampaigns.reduce((acc, campaign) => acc + (campaign.generated_content_count ?? 0), 0)} content pieces
-          </span>
-        </div>
-      </div>
-    </div>
-    <div className="p-6">
-      {filteredCampaigns.length === 0 ? (
-        <div className="text-center py-8 text-gray-500">
-          <p>No campaigns match your current filters.</p>
-          <button 
-            onClick={clearFilters}
-            className="mt-2 text-purple-600 hover:text-purple-700"
-          >
-            Clear filters
-          </button>
-        </div>
-      ) : (
-        <div className="space-y-4">
-          {filteredCampaigns.slice(0, 3).map((campaign) => {
-            const contentCount = campaign.generated_content_count ?? 0
-            const hasContent = contentCount > 0
-            
-            return (
-              <div key={campaign.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
-                <div className="flex items-center">
-                  <div className="bg-purple-100 p-2 rounded-lg mr-3">
-                    <span className="text-lg">🌟</span>
-                  </div>
+            {/* Error Display */}
+            {error && (
+              <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                <div className="flex items-center justify-between">
                   <div>
-                    <div className="flex items-center space-x-2 mb-1">
-                      <h4 className="font-semibold text-gray-900">{campaign.title}</h4>
-                      {hasContent && (
-                        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                          📄 {contentCount}
-                        </span>
-                      )}
-                    </div>
-                    <p className="text-gray-600 text-sm flex items-center">
-                      <Calendar className="h-4 w-4 mr-1" />
-                      {new Date(campaign.created_at).toLocaleDateString()}
-                      <span className="mx-2">•</span>
-                      <span className="text-purple-600 font-medium">Universal Campaign</span>
-                      {hasContent && (
-                        <>
-                          <span className="mx-2">•</span>
-                          <span className="text-green-600 font-medium">{contentCount} content pieces ready</span>
-                        </>
-                      )}
-                    </p>
+                    <p className="text-red-700 font-medium">Error</p>
+                    <p className="text-red-600 text-sm mt-1">{error}</p>
+                  </div>
+                  <div className="flex space-x-2">
+                    <button 
+                      onClick={handleRetry}
+                      className="px-3 py-1 bg-red-100 text-red-700 text-sm rounded hover:bg-red-200"
+                    >
+                      Retry
+                    </button>
+                    <button 
+                      onClick={() => setError(null)}
+                      className="text-red-500 hover:text-red-700 text-sm"
+                    >
+                      Dismiss
+                    </button>
                   </div>
                 </div>
-                <div className="flex items-center space-x-2">
-                  <span className={`px-3 py-1 rounded-full text-sm font-medium ${
-                    campaign.status === 'active' ? 'bg-green-100 text-green-800' :
-                    campaign.status === 'completed' ? 'bg-blue-100 text-blue-800' :
-                    'bg-gray-100 text-gray-800'
-                  }`}>
-                    {campaign.status}
-                  </span>
+              </div>
+            )}
+
+            {/* Empty State - First Time User */}
+            {campaigns.length === 0 && !error && (
+              <div className="text-center py-12">
+                <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8 max-w-2xl mx-auto">
+                  <div className="w-16 h-16 bg-gradient-to-r from-purple-600 to-blue-600 rounded-full flex items-center justify-center mx-auto mb-6">
+                    <Plus className="h-8 w-8 text-white" />
+                  </div>
                   
-                  {/* Content Library Button - only show if content exists */}
-                  {hasContent && (
-                    <button 
-                      onClick={() => router.push(`/campaigns/${campaign.id}/content`)}
-                      className="text-green-600 hover:text-green-700 text-sm font-medium flex items-center space-x-1 px-3 py-1 hover:bg-green-50 rounded-lg transition-colors"
-                    >
-                      <FolderOpen className="h-4 w-4" />
-                      <span>Content</span>
-                    </button>
-                  )}
+                  <h2 className="text-2xl font-bold text-gray-900 mb-4">Welcome to RodgersDigital!</h2>
+                  <p className="text-gray-600 mb-8 max-w-lg mx-auto">
+                    Create your first universal campaign that accepts any input source and generates multiple content types automatically.
+                  </p>
+                  
+                  {/* ✅ SIMPLIFIED: Universal workflow description */}
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+                    <div className="text-center">
+                      <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center mx-auto mb-3">
+                        <FileText className="h-6 w-6 text-purple-600" />
+                      </div>
+                      <h3 className="font-medium text-gray-900 mb-1">1. Create Campaign</h3>
+                      <p className="text-sm text-gray-600">Set name and basic details</p>
+                    </div>
+                    
+                    <div className="text-center">
+                      <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mx-auto mb-3">
+                        <Globe className="h-6 w-6 text-blue-600" />
+                      </div>
+                      <h3 className="font-medium text-gray-900 mb-1">2. Add Any Sources</h3>
+                      <p className="text-sm text-gray-600">URLs, documents, videos, text</p>
+                    </div>
+                    
+                    <div className="text-center">
+                      <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center mx-auto mb-3">
+                        <Video className="h-6 w-6 text-green-600" />
+                      </div>
+                      <h3 className="font-medium text-gray-900 mb-1">3. AI Analysis</h3>
+                      <p className="text-sm text-gray-600">Extract marketing intelligence</p>
+                    </div>
+                    
+                    <div className="text-center">
+                      <div className="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center mx-auto mb-3">
+                        <Plus className="h-6 w-6 text-orange-600" />
+                      </div>
+                      <h3 className="font-medium text-gray-900 mb-1">4. Generate Everything</h3>
+                      <p className="text-sm text-gray-600">Emails, ads, posts, pages, videos</p>
+                    </div>
+                  </div>
                   
                   <button 
-                    onClick={() => handleCampaignView(campaign)}
-                    className="text-purple-600 hover:text-purple-700 text-sm font-medium px-3 py-1 hover:bg-purple-50 rounded-lg transition-colors"
+                    onClick={() => setShowCreateModal(true)}
+                    className="bg-gradient-to-r from-purple-600 to-blue-600 text-white px-8 py-3 rounded-lg font-medium hover:from-purple-700 hover:to-blue-700 transition-all inline-flex items-center text-lg"
                   >
-                    View
+                    <Plus className="h-5 w-5 mr-2" />
+                    Create Your First Campaign
                   </button>
                 </div>
               </div>
-            )
-          })}
-        </div>
-      )}
-    </div>
-  </div>
-)}
+            )}
+
+            {/* Campaign Stats */}
+            {campaigns.length > 0 && (
+              <CampaignStats campaigns={campaigns} user={user} />
+            )}
+
+            {/* ✅ SIMPLIFIED: Campaign Management without type filter */}
+            {campaigns.length > 0 && (
+              <>
+                {/* Simplified Filters Component */}
+                <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                  <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between space-y-4 lg:space-y-0">
+                    <div className="flex-1 max-w-md">
+                      <div className="relative">
+                        <input
+                          type="text"
+                          placeholder="Search campaigns..."
+                          value={searchQuery}
+                          onChange={(e) => setSearchQuery(e.target.value)}
+                          className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                        />
+                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                          <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                          </svg>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center space-x-4">
+                      <select
+                        value={statusFilter}
+                        onChange={(e) => setStatusFilter(e.target.value)}
+                        className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                      >
+                        <option value="all">All Status</option>
+                        <option value="draft">Draft</option>
+                        <option value="active">Active</option>
+                        <option value="completed">Completed</option>
+                        <option value="paused">Paused</option>
+                      </select>
+                      
+                      <button
+                        onClick={clearFilters}
+                        className="px-4 py-2 text-gray-600 hover:text-gray-800 font-medium"
+                      >
+                        Clear Filters
+                      </button>
+                      
+                      <span className="text-sm text-gray-500">
+                        {filteredCampaigns.length} campaigns
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <CampaignGrid
+                  campaigns={filteredCampaigns}
+                  viewMode={viewMode}
+                  onViewModeChange={setViewMode}
+                  onCampaignView={handleCampaignView}
+                  onCampaignEdit={handleCampaignEdit}
+                  onCampaignDuplicate={handleCampaignDuplicate}
+                  onCampaignDelete={handleCampaignDelete}
+                />
+              </>
+            )}
+
+            {/* Recent Campaigns */}
+            {campaigns.length > 0 && (
+              <div className="bg-white rounded-xl shadow-sm border border-gray-200">
+                <div className="p-6 border-b border-gray-200">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-lg font-semibold text-gray-900">Recent Activity</h3>
+                    <div className="flex items-center space-x-2">
+                      <Filter className="h-4 w-4 text-gray-400" />
+                      <span className="text-sm text-gray-500">
+                        {filteredCampaigns.length} campaigns • {' '}
+                        {filteredCampaigns.reduce((acc, campaign) => acc + (campaign.generated_content_count ?? 0), 0)} content pieces
+                      </span>
+                    </div>
+                  </div>
+                </div>
+                <div className="p-6">
+                  {filteredCampaigns.length === 0 ? (
+                    <div className="text-center py-8 text-gray-500">
+                      <p>No campaigns match your current filters.</p>
+                      <button 
+                        onClick={clearFilters}
+                        className="mt-2 text-purple-600 hover:text-purple-700"
+                      >
+                        Clear filters
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {filteredCampaigns.slice(0, 3).map((campaign) => {
+                        const contentCount = campaign.generated_content_count ?? 0
+                        const hasContent = contentCount > 0
+                        
+                        return (
+                          <div key={campaign.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+                            <div className="flex items-center">
+                              <div className="bg-purple-100 p-2 rounded-lg mr-3">
+                                <span className="text-lg">🌟</span>
+                              </div>
+                              <div>
+                                <div className="flex items-center space-x-2 mb-1">
+                                  <h4 className="font-semibold text-gray-900">{campaign.title}</h4>
+                                  {hasContent && (
+                                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                      📄 {contentCount}
+                                    </span>
+                                  )}
+                                </div>
+                                <p className="text-gray-600 text-sm flex items-center">
+                                  <Calendar className="h-4 w-4 mr-1" />
+                                  {new Date(campaign.created_at).toLocaleDateString()}
+                                  <span className="mx-2">•</span>
+                                  <span className="text-purple-600 font-medium">Universal Campaign</span>
+                                  {hasContent && (
+                                    <>
+                                      <span className="mx-2">•</span>
+                                      <span className="text-green-600 font-medium">{contentCount} content pieces ready</span>
+                                    </>
+                                  )}
+                                </p>
+                              </div>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                              <span className={`px-3 py-1 rounded-full text-sm font-medium ${
+                                campaign.status === 'active' ? 'bg-green-100 text-green-800' :
+                                campaign.status === 'completed' ? 'bg-blue-100 text-blue-800' :
+                                'bg-gray-100 text-gray-800'
+                              }`}>
+                                {campaign.status}
+                              </span>
+                              
+                              {/* Content Library Button - only show if content exists */}
+                              {hasContent && (
+                                <button 
+                                  onClick={() => router.push(`/campaigns/${campaign.id}/content`)}
+                                  className="text-green-600 hover:text-green-700 text-sm font-medium flex items-center space-x-1 px-3 py-1 hover:bg-green-50 rounded-lg transition-colors"
+                                >
+                                  <FolderOpen className="h-4 w-4" />
+                                  <span>Content</span>
+                                </button>
+                              )}
+                              
+                              <button 
+                                onClick={() => handleCampaignView(campaign)}
+                                className="text-purple-600 hover:text-purple-700 text-sm font-medium px-3 py-1 hover:bg-purple-50 rounded-lg transition-colors"
+                              >
+                                View
+                              </button>
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        </main>
       </div>
 
       {/* ✅ SIMPLIFIED: Campaign Creation Modal */}
