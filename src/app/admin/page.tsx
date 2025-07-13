@@ -271,10 +271,15 @@ You're receiving this because you joined our waitlist.`;
       fetchWaitlistStats(); // ✅ FIXED: Load waitlist stats immediately
       
       // Load tab-specific data
-      if (activeTab === 'users') fetchUsers();
-      if (activeTab === 'companies') fetchCompanies();
-      if (activeTab === 'waitlist') {
+      if (activeTab === 'users') {
+        fetchUsers();
+      } else if (activeTab === 'companies') {
+        fetchCompanies();
+      } else if (activeTab === 'waitlist') {
         fetchWaitlistEntries();
+      } else {
+        // ✅ FIXED: Reset loading state for overview and other tabs
+        setLoading(false);
       }
     }
   }, [mounted, activeTab, fetchAdminStats, fetchUsers, fetchCompanies, fetchWaitlistStats, fetchWaitlistEntries]);
@@ -1024,7 +1029,8 @@ You're receiving this because you joined our waitlist.`;
 
           {/* All other existing tabs remain unchanged */}
           
-          {loading && (
+          {/* ✅ FIXED: Only show loading spinner for tabs that actually need loading */}
+          {loading && (activeTab === 'users' || activeTab === 'companies') && (
             <div className="flex justify-center py-8">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-600"></div>
             </div>
