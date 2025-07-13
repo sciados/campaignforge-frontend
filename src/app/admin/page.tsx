@@ -1,4 +1,6 @@
-// /src/app/admin/page.tsx - FIXED VERSION: Improved Formatting + Waitlist Loading
+// /src/app/admin/page.tsx - FIXED VERSION: 
+// Improved Formatting + Waitlist Loading
+
 'use client'
 
 import React, { useState, useEffect, useCallback } from 'react';
