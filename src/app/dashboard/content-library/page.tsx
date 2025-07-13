@@ -8,6 +8,7 @@ import {
   Play, Pause, Settings, Copy, Eye, Edit, Trash2, Clock,
   ChevronDown, ArrowUpRight, Zap, Award, Sparkles, ArrowLeft
 } from 'lucide-react'
+import { apiClient, type User as ApiUser, type Campaign as ApiCampaign } from '@/lib/api'
 
 interface Campaign {
   id: string
@@ -16,13 +17,32 @@ interface Campaign {
   campaign_type: string
   status: string
   created_at: string
+  updated_at: string
   user_id: string
   company_id: string
-  content: any
+  content?: any
   intelligence_count?: number
   generated_content_count?: number
   confidence_score?: number
   last_activity?: string
+  workflow_state?: string
+  completion_percentage?: number
+}
+
+interface GeneratedContentItem {
+  id: string
+  content_type: string
+  content_title: string
+  content_body: string
+  content_metadata: any
+  generation_settings: any
+  intelligence_used: any
+  performance_data?: any
+  user_rating?: number
+  is_published?: boolean
+  published_at?: string
+  created_at: string
+  updated_at?: string
 }
 
 interface DashboardStats {
@@ -43,11 +63,13 @@ interface User {
   full_name: string
   role: string
   company: {
+    id: string
     company_name: string
-    company_id: string
+    company_slug: string
     subscription_tier: string
     monthly_credits_used: number
     monthly_credits_limit: number
+    company_size?: string
   }
 }
 
@@ -59,7 +81,8 @@ const CAMPAIGN_TYPES = {
   advertisement: { label: 'Advertisement', icon: '📢', color: 'bg-gray-100 text-gray-800' },
   product_launch: { label: 'Product Launch', icon: '🚀', color: 'bg-gray-100 text-gray-800' },
   brand_awareness: { label: 'Brand Awareness', icon: '🎯', color: 'bg-gray-100 text-gray-800' },
-  multimedia: { label: 'Multimedia', icon: '🎨', color: 'bg-gray-100 text-gray-800' }
+  multimedia: { label: 'Multimedia', icon: '🎨', color: 'bg-gray-100 text-gray-800' },
+  universal: { label: 'Universal Campaign', icon: '🔮', color: 'bg-gray-100 text-gray-800' }
 }
 
 const STATUS_CONFIG = {
@@ -74,6 +97,7 @@ const STATUS_CONFIG = {
 export default function ContentLibraryDashboard() {
   const [user, setUser] = useState<User | null>(null)
   const [campaigns, setCampaigns] = useState<Campaign[]>([])
+  const [allGeneratedContent, setAllGeneratedContent] = useState<GeneratedContentItem[]>([])
   const [stats, setStats] = useState<DashboardStats | null>(null)
   const [loading, setLoading] = useState(true)
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
@@ -83,12 +107,7 @@ export default function ContentLibraryDashboard() {
   const [showCreateModal, setShowCreateModal] = useState(false)
   const router = useRouter()
 
-  useEffect(() => {
-    loadDashboardData()
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
-
-  const loadDashboardData = async () => {
+  const loadDashboardData = React.useCallback(async () => {
     try {
       setLoading(true)
       const token = localStorage.getItem('authToken')
@@ -97,114 +116,153 @@ export default function ContentLibraryDashboard() {
         return
       }
 
-      const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://campaign-backend-production-e2db.up.railway.app'
+      console.log('🔍 Loading Content Library data...')
 
-      // Load user data
-      const userResponse = await fetch(`${API_BASE_URL}/api/auth/me`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      })
-      
-      if (userResponse.ok) {
-        const userData = await userResponse.json()
-        setUser(userData)
+      // Load user profile
+      try {
+        const userProfile = await apiClient.getUserProfile()
+        // Transform API user to local user interface
+        const transformedUser: User = {
+          id: userProfile.id,
+          email: userProfile.email,
+          full_name: userProfile.full_name,
+          role: userProfile.role,
+          company: {
+            id: userProfile.company.id,
+            company_name: userProfile.company.company_name,
+            company_slug: userProfile.company.company_slug,
+            subscription_tier: userProfile.company.subscription_tier,
+            monthly_credits_used: userProfile.company.monthly_credits_used,
+            monthly_credits_limit: userProfile.company.monthly_credits_limit,
+            company_size: userProfile.company.company_size
+          }
+        }
+        setUser(transformedUser)
+        console.log('✅ User profile loaded:', transformedUser.full_name)
+      } catch (error) {
+        console.error('❌ Failed to load user profile:', error)
+      }
+
+      // Load campaigns with real API call
+      try {
+        const campaignsData = await apiClient.getCampaigns({ limit: 50 })
+        console.log('✅ Real campaigns loaded:', campaignsData.length)
+        
+        // Enhance campaigns with content count and intelligence data
+        const enhancedCampaigns: Campaign[] = await Promise.all(
+          campaignsData.map(async (campaign): Promise<Campaign> => {
+            try {
+              // Get generated content for each campaign
+              const contentData = await apiClient.getContentList(campaign.id, false)
+              const contentCount = contentData.content_items?.length || 0
+              
+              // Get intelligence sources
+              const intelligenceData = await apiClient.getCampaignIntelligence(campaign.id)
+              const intelligenceCount = intelligenceData.intelligence_sources?.length || 0
+              
+              // Calculate confidence score from content ratings
+              const avgRating = contentData.content_items?.length > 0 
+                ? contentData.content_items.reduce((sum, item) => sum + (item.user_rating || 0), 0) / contentData.content_items.length
+                : 0
+
+              return {
+                id: campaign.id,
+                title: campaign.title,
+                description: campaign.description,
+                campaign_type: campaign.campaign_type,
+                status: campaign.status,
+                created_at: campaign.created_at,
+                updated_at: campaign.updated_at,
+                user_id: campaign.user_id,
+                company_id: campaign.company_id,
+                content: campaign.content || {},
+                generated_content_count: contentCount,
+                intelligence_count: intelligenceCount,
+                confidence_score: avgRating > 0 ? avgRating / 5 : 0.85, // Convert to 0-1 scale or default
+                last_activity: campaign.updated_at || campaign.created_at,
+                workflow_state: campaign.workflow_state,
+                completion_percentage: campaign.completion_percentage
+              }
+            } catch (error) {
+              console.warn(`⚠️ Failed to enhance campaign ${campaign.id}:`, error)
+              return {
+                id: campaign.id,
+                title: campaign.title,
+                description: campaign.description,
+                campaign_type: campaign.campaign_type,
+                status: campaign.status,
+                created_at: campaign.created_at,
+                updated_at: campaign.updated_at,
+                user_id: campaign.user_id,
+                company_id: campaign.company_id,
+                content: campaign.content || {},
+                generated_content_count: 0,
+                intelligence_count: 0,
+                confidence_score: 0,
+                last_activity: campaign.updated_at || campaign.created_at,
+                workflow_state: campaign.workflow_state,
+                completion_percentage: campaign.completion_percentage
+              }
+            }
+          })
+        )
+        
+        setCampaigns(enhancedCampaigns)
+        console.log('✅ Enhanced campaigns with content counts')
+
+        // Load all generated content for stats
+        const allContent: GeneratedContentItem[] = []
+        for (const campaign of campaignsData) {
+          try {
+            const contentData = await apiClient.getContentList(campaign.id, false)
+            if (contentData.content_items) {
+              allContent.push(...contentData.content_items)
+            }
+          } catch (error) {
+            console.warn(`⚠️ Failed to load content for campaign ${campaign.id}:`, error)
+          }
+        }
+        setAllGeneratedContent(allContent)
+        console.log('✅ All generated content loaded:', allContent.length, 'items')
+
+      } catch (error) {
+        console.error('❌ Failed to load campaigns:', error)
+        setCampaigns([])
       }
 
       // Load dashboard stats
-      const statsResponse = await fetch(`${API_BASE_URL}/api/dashboard/stats`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      })
-      
-      if (statsResponse.ok) {
-        const statsData = await statsResponse.json()
+      try {
+        const statsData = await apiClient.getCompanyStats()
         
-        // Transform dashboard stats to match our interface
         const transformedStats: DashboardStats = {
           total_campaigns_created: statsData.total_campaigns_created || 0,
           active_campaigns: statsData.active_campaigns || 0,
-          draft_campaigns: 0, // Will be calculated from campaigns
-          completed_campaigns: 0, // Will be calculated from campaigns
-          total_intelligence_sources: 0, // Will be calculated
-          total_generated_content: 0, // Will be calculated
+          draft_campaigns: campaigns.filter(c => c.status === 'draft').length,
+          completed_campaigns: campaigns.filter(c => c.status === 'completed').length,
+          total_intelligence_sources: campaigns.reduce((sum, c) => sum + (c.intelligence_count || 0), 0),
+          total_generated_content: allGeneratedContent.length,
           credits_used_this_month: statsData.monthly_credits_used || 0,
           credits_remaining: statsData.credits_remaining || 0,
-          avg_confidence_score: 0.85 // Placeholder
+          avg_confidence_score: 0.85
         }
         
         setStats(transformedStats)
+        console.log('✅ Dashboard stats loaded')
+        
+      } catch (error) {
+        console.error('❌ Failed to load dashboard stats:', error)
       }
 
-      // Mock campaigns data (replace with actual API call when available)
-      const mockCampaigns: Campaign[] = [
-        {
-          id: '1',
-          title: 'Product Launch Campaign',
-          description: 'Comprehensive campaign for our new product launch including social media, email, and video content.',
-          campaign_type: 'product_launch',
-          status: 'active',
-          created_at: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
-          user_id: user?.id || '',
-          company_id: user?.company.company_id || '',
-          content: {},
-          intelligence_count: 3,
-          generated_content_count: 15,
-          confidence_score: 0.92,
-          last_activity: new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString()
-        },
-        {
-          id: '2',
-          title: 'Social Media Blitz',
-          description: 'Multi-platform social media campaign targeting Gen Z audience.',
-          campaign_type: 'social_media',
-          status: 'in_progress',
-          created_at: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
-          user_id: user?.id || '',
-          company_id: user?.company?.company_id || '',
-          content: {},
-          intelligence_count: 2,
-          generated_content_count: 28,
-          confidence_score: 0.87,
-          last_activity: new Date(Date.now() - 1 * 60 * 60 * 1000).toISOString()
-        },
-        {
-          id: '3',
-          title: 'Email Newsletter Series',
-          description: 'Weekly email series for customer retention and engagement.',
-          campaign_type: 'email_marketing',
-          status: 'completed',
-          created_at: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
-          user_id: user?.id || '',
-          company_id: user?.company?.company_id || '',
-          content: {},
-          intelligence_count: 1,
-          generated_content_count: 12,
-          confidence_score: 0.79,
-          last_activity: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
-        },
-        {
-          id: '4',
-          title: 'Brand Awareness Video Series',
-          description: 'YouTube and TikTok video series to increase brand recognition.',
-          campaign_type: 'video_content',
-          status: 'draft',
-          created_at: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
-          user_id: user?.id || '',
-          company_id: user?.company?.company_id || '',
-          content: {},
-          intelligence_count: 0,
-          generated_content_count: 3,
-          confidence_score: 0.0,
-          last_activity: new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString()
-        }
-      ]
-
-      setCampaigns(mockCampaigns)
-
     } catch (error) {
-      console.error('Failed to load dashboard data:', error)
+      console.error('❌ Failed to load dashboard data:', error)
     } finally {
       setLoading(false)
     }
-  }
+  }, [allGeneratedContent.length, campaigns, router])
+
+  useEffect(() => {
+    loadDashboardData()
+  }, [loadDashboardData])
 
   const filteredCampaigns = campaigns.filter(campaign => {
     const matchesSearch = campaign.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -235,6 +293,14 @@ export default function ContentLibraryDashboard() {
 
   const handleBack = () => {
     router.back()
+  }
+
+  const handleViewContent = (campaignId: string) => {
+    router.push(`/campaigns/${campaignId}/content`)
+  }
+
+  const handleEditCampaign = (campaignId: string) => {
+    router.push(`/campaigns/${campaignId}`)
   }
 
   if (loading) {
@@ -293,74 +359,74 @@ export default function ContentLibraryDashboard() {
         </div>
 
         {/* Content Stats Grid */}
-        {stats && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
-            <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm hover:shadow-lg transition-all">
-              <div className="flex items-center justify-between mb-4">
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Total Content Pieces</p>
-                  <p className="text-3xl font-semibold text-black">{campaigns.reduce((sum, c) => sum + (c.generated_content_count || 0), 0)}</p>
-                </div>
-                <div className="bg-gray-100 p-3 rounded-xl">
-                  <FileText className="h-6 w-6 text-black" />
-                </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
+          <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm hover:shadow-lg transition-all">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <p className="text-sm font-medium text-gray-600">Total Content Pieces</p>
+                <p className="text-3xl font-semibold text-black">{allGeneratedContent.length}</p>
               </div>
-              <div className="text-sm text-gray-500">
-                Across {stats.total_campaigns_created} campaigns
+              <div className="bg-gray-100 p-3 rounded-xl">
+                <FileText className="h-6 w-6 text-black" />
               </div>
             </div>
-
-            <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm hover:shadow-lg transition-all">
-              <div className="flex items-center justify-between mb-4">
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Recent Content</p>
-                  <p className="text-3xl font-semibold text-black">{campaigns.filter(c => {
-                    const lastActivity = new Date(c.last_activity || c.created_at)
-                    const weekAgo = new Date()
-                    weekAgo.setDate(weekAgo.getDate() - 7)
-                    return lastActivity > weekAgo
-                  }).reduce((sum, c) => sum + (c.generated_content_count || 0), 0)}</p>
-                </div>
-                <div className="bg-gray-100 p-3 rounded-xl">
-                  <Calendar className="h-6 w-6 text-black" />
-                </div>
-              </div>
-              <div className="text-sm text-gray-500">
-                Generated this week
-              </div>
-            </div>
-
-            <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm hover:shadow-lg transition-all">
-              <div className="flex items-center justify-between mb-4">
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Content Types</p>
-                  <p className="text-3xl font-semibold text-black">{Object.keys(CAMPAIGN_TYPES).length}</p>
-                </div>
-                <div className="bg-gray-100 p-3 rounded-xl">
-                  <Globe className="h-6 w-6 text-black" />
-                </div>
-              </div>
-              <div className="text-sm text-gray-500">
-                Different formats
-              </div>
-            </div>
-
-            <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm hover:shadow-lg transition-all">
-              <div className="flex items-center justify-between mb-4">
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Avg Quality Score</p>
-                  <p className="text-3xl font-semibold text-black">{(campaigns.reduce((sum, c) => sum + (c.confidence_score || 0), 0) / campaigns.length * 100).toFixed(0)}%</p>
-                </div>
-                <div className="bg-gray-100 p-3 rounded-xl">
-                  <Star className="h-6 w-6 text-black" />
-                </div>
-              </div>
-              <div className="text-sm text-gray-500">
-                Content confidence
-              </div>
+            <div className="text-sm text-gray-500">
+              Across {campaigns.length} campaigns
             </div>
           </div>
-        )}
+
+          <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm hover:shadow-lg transition-all">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <p className="text-sm font-medium text-gray-600">Recent Content</p>
+                <p className="text-3xl font-semibold text-black">{allGeneratedContent.filter(content => {
+                  const contentDate = new Date(content.created_at)
+                  const weekAgo = new Date()
+                  weekAgo.setDate(weekAgo.getDate() - 7)
+                  return contentDate > weekAgo
+                }).length}</p>
+              </div>
+              <div className="bg-gray-100 p-3 rounded-xl">
+                <Calendar className="h-6 w-6 text-black" />
+              </div>
+            </div>
+            <div className="text-sm text-gray-500">
+              Generated this week
+            </div>
+          </div>
+
+          <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm hover:shadow-lg transition-all">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <p className="text-sm font-medium text-gray-600">Content Types</p>
+                <p className="text-3xl font-semibold text-black">{new Set(allGeneratedContent.map(c => c.content_type)).size}</p>
+              </div>
+              <div className="bg-gray-100 p-3 rounded-xl">
+                <Globe className="h-6 w-6 text-black" />
+              </div>
+            </div>
+            <div className="text-sm text-gray-500">
+              Different formats
+            </div>
+          </div>
+
+          <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm hover:shadow-lg transition-all">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <p className="text-sm font-medium text-gray-600">Avg Quality Score</p>
+                <p className="text-3xl font-semibold text-black">{allGeneratedContent.length > 0 
+                  ? Math.round((allGeneratedContent.reduce((sum, c) => sum + (c.user_rating || 4), 0) / allGeneratedContent.length) * 20)
+                  : 85}%</p>
+              </div>
+              <div className="bg-gray-100 p-3 rounded-xl">
+                <Star className="h-6 w-6 text-black" />
+              </div>
+            </div>
+            <div className="text-sm text-gray-500">
+              Content confidence
+            </div>
+          </div>
+        </div>
 
         {/* Content Controls */}
         <div className="bg-white rounded-2xl border border-gray-200 p-8 shadow-sm mb-8">
@@ -418,11 +484,11 @@ export default function ContentLibraryDashboard() {
                 </button>
               </div>
               <button 
-                onClick={() => setShowCreateModal(true)}
+                onClick={() => router.push('/campaigns')}
                 className="bg-black text-white px-6 py-3 rounded-lg font-medium hover:bg-gray-900 transition-colors flex items-center"
               >
                 <Plus className="w-4 h-4 mr-2" />
-                New Content
+                New Campaign
               </button>
             </div>
           </div>
@@ -433,7 +499,7 @@ export default function ContentLibraryDashboard() {
           <div className="bg-white rounded-2xl border border-gray-200 p-12 text-center shadow-sm">
             <FileText className="h-12 w-12 mx-auto text-gray-300 mb-4" />
             <h3 className="text-lg font-medium text-black mb-2">
-              {campaigns.length === 0 ? 'No content yet' : 'No content matches your filters'}
+              {campaigns.length === 0 ? 'No campaigns yet' : 'No campaigns match your filters'}
             </h3>
             <p className="text-gray-500 mb-6">
               {campaigns.length === 0 
@@ -442,10 +508,10 @@ export default function ContentLibraryDashboard() {
               }
             </p>
             <button 
-              onClick={() => setShowCreateModal(true)}
+              onClick={() => router.push('/campaigns')}
               className="bg-black text-white px-6 py-3 rounded-lg font-medium hover:bg-gray-900 transition-colors"
             >
-              Generate Content
+              Create Campaign
             </button>
           </div>
         ) : (
@@ -454,8 +520,8 @@ export default function ContentLibraryDashboard() {
             : "space-y-4 mb-8"
           }>
             {filteredCampaigns.map((campaign) => {
-              const typeConfig = CAMPAIGN_TYPES[campaign.campaign_type as keyof typeof CAMPAIGN_TYPES]
-              const statusConfig = STATUS_CONFIG[campaign.status as keyof typeof STATUS_CONFIG]
+              const typeConfig = CAMPAIGN_TYPES[campaign.campaign_type as keyof typeof CAMPAIGN_TYPES] || CAMPAIGN_TYPES.universal
+              const statusConfig = STATUS_CONFIG[campaign.status as keyof typeof STATUS_CONFIG] || STATUS_CONFIG.draft
               const StatusIcon = statusConfig.icon
 
               if (viewMode === 'list') {
@@ -497,17 +563,20 @@ export default function ContentLibraryDashboard() {
                         </div>
                       </div>
                       <div className="flex items-center space-x-2">
-                        <button className="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100 transition-colors">
+                        <button 
+                          onClick={() => handleViewContent(campaign.id)}
+                          className="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100 transition-colors"
+                        >
                           <Eye className="w-4 h-4" />
                         </button>
-                        <button className="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100 transition-colors">
+                        <button 
+                          onClick={() => handleEditCampaign(campaign.id)}
+                          className="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100 transition-colors"
+                        >
                           <Edit className="w-4 h-4" />
                         </button>
                         <button className="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100 transition-colors">
                           <Copy className="w-4 h-4" />
-                        </button>
-                        <button className="p-2 text-gray-400 hover:text-red-600 rounded-lg hover:bg-red-50 transition-colors">
-                          <Trash2 className="w-4 h-4" />
                         </button>
                       </div>
                     </div>
@@ -564,11 +633,17 @@ export default function ContentLibraryDashboard() {
                   </div>
                   
                   <div className="flex items-center space-x-2">
-                    <button className="flex-1 bg-black text-white px-4 py-3 rounded-lg font-medium hover:bg-gray-900 transition-colors flex items-center justify-center">
+                    <button 
+                      onClick={() => handleViewContent(campaign.id)}
+                      className="flex-1 bg-black text-white px-4 py-3 rounded-lg font-medium hover:bg-gray-900 transition-colors flex items-center justify-center"
+                    >
                       <Eye className="w-4 h-4 mr-2" />
                       View Content
                     </button>
-                    <button className="bg-gray-100 text-black px-4 py-3 rounded-lg font-medium hover:bg-gray-200 transition-colors">
+                    <button 
+                      onClick={() => handleEditCampaign(campaign.id)}
+                      className="bg-gray-100 text-black px-4 py-3 rounded-lg font-medium hover:bg-gray-200 transition-colors"
+                    >
                       <Edit className="w-4 h-4" />
                     </button>
                     <button className="bg-gray-100 text-black px-4 py-3 rounded-lg font-medium hover:bg-gray-200 transition-colors">
