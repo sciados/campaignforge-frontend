@@ -235,33 +235,33 @@ export default function ContentLibraryDashboard() {
         console.log('✅ Enhanced campaigns with content counts')
         console.log('✅ All generated content loaded:', allContent.length, 'items')
 
+        // Load dashboard stats with the collected content
+        try {
+          const statsData = await apiClient.getCompanyStats()
+          
+          const transformedStats: DashboardStats = {
+            total_campaigns_created: statsData.total_campaigns_created || 0,
+            active_campaigns: statsData.active_campaigns || 0,
+            draft_campaigns: enhancedCampaigns.filter(c => c.status === 'draft').length,
+            completed_campaigns: enhancedCampaigns.filter(c => c.status === 'completed').length,
+            total_intelligence_sources: enhancedCampaigns.reduce((sum, c) => sum + (c.intelligence_count || 0), 0),
+            total_generated_content: allContent.length,
+            credits_used_this_month: statsData.monthly_credits_used || 0,
+            credits_remaining: statsData.credits_remaining || 0,
+            avg_confidence_score: 0.85
+          }
+          
+          setStats(transformedStats)
+          console.log('✅ Dashboard stats loaded')
+          
+        } catch (error) {
+          console.error('❌ Failed to load dashboard stats:', error)
+        }
+
       } catch (error) {
         console.error('❌ Failed to load campaigns:', error)
         setCampaigns([])
         setAllGeneratedContent([])
-      }
-
-      // Load dashboard stats
-      try {
-        const statsData = await apiClient.getCompanyStats()
-        
-        const transformedStats: DashboardStats = {
-          total_campaigns_created: statsData.total_campaigns_created || 0,
-          active_campaigns: statsData.active_campaigns || 0,
-          draft_campaigns: 0, // Will be calculated after campaigns are loaded
-          completed_campaigns: 0, // Will be calculated after campaigns are loaded
-          total_intelligence_sources: 0, // Will be calculated after campaigns are loaded
-          total_generated_content: allGeneratedContent.length,
-          credits_used_this_month: statsData.monthly_credits_used || 0,
-          credits_remaining: statsData.credits_remaining || 0,
-          avg_confidence_score: 0.85
-        }
-        
-        setStats(transformedStats)
-        console.log('✅ Dashboard stats loaded')
-        
-      } catch (error) {
-        console.error('❌ Failed to load dashboard stats:', error)
       }
 
       hasLoadedRef.current = true
@@ -272,7 +272,7 @@ export default function ContentLibraryDashboard() {
       setLoading(false)
       isLoadingRef.current = false
     }
-  }, [allGeneratedContent.length, router]) // ✅ FIX: Only depend on router, which is stable
+  }, [router]) // ✅ FIX: Only depend on router, which is stable
 
   // ✅ FIX: Only load once on mount
   useEffect(() => {
@@ -525,19 +525,14 @@ export default function ContentLibraryDashboard() {
           </div>
         </div>
 
-        {/* Rest of your component remains the same... */}
-        {/* Campaign display logic, empty states, etc. */}
-        {filteredCampaigns.length === 0 ? (
+        {/* Campaign Display */}
+        {/* Campaign Display - Replace your current section with this */}
+        {campaigns.length === 0 ? (
           <div className="bg-white rounded-2xl border border-gray-200 p-12 text-center shadow-sm">
             <FileText className="h-12 w-12 mx-auto text-gray-300 mb-4" />
-            <h3 className="text-lg font-medium text-black mb-2">
-              {campaigns.length === 0 ? 'No campaigns yet' : 'No campaigns match your filters'}
-            </h3>
+            <h3 className="text-lg font-medium text-black mb-2">No campaigns yet</h3>
             <p className="text-gray-500 mb-6">
-              {campaigns.length === 0 
-                ? 'Create your first campaign to start generating content!'
-                : 'Try adjusting your search or filter settings.'
-              }
+              Create your first campaign to start generating content!
             </p>
             <button 
               onClick={() => router.push('/campaigns')}
@@ -546,14 +541,172 @@ export default function ContentLibraryDashboard() {
               Create Campaign
             </button>
           </div>
-        ) : (
-          // Your existing campaign display logic here...
-          <div className="text-center py-8">
-            <p className="text-gray-600">
-              ✅ Showing {filteredCampaigns.length} campaigns with {allGeneratedContent.length} total content pieces
+        ) : filteredCampaigns.length === 0 ? (
+          <div className="bg-white rounded-2xl border border-gray-200 p-12 text-center shadow-sm">
+            <FileText className="h-12 w-12 mx-auto text-gray-300 mb-4" />
+            <h3 className="text-lg font-medium text-black mb-2">No campaigns match your filters</h3>
+            <p className="text-gray-500 mb-6">
+              Try adjusting your search or filter settings.
             </p>
+            <button 
+              onClick={() => {
+                setSearchQuery('')
+                setStatusFilter('all')
+                setTypeFilter('all')
+              }}
+              className="bg-black text-white px-6 py-3 rounded-lg font-medium hover:bg-gray-900 transition-colors"
+            >
+              Clear Filters
+            </button>
+          </div>
+        ) : (
+          <div className={viewMode === 'grid' 
+            ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8" 
+            : "space-y-4 mb-8"
+          }>
+            {filteredCampaigns.map((campaign) => {
+              const typeConfig = CAMPAIGN_TYPES[campaign.campaign_type as keyof typeof CAMPAIGN_TYPES] || CAMPAIGN_TYPES.universal
+              const statusConfig = STATUS_CONFIG[campaign.status as keyof typeof STATUS_CONFIG] || STATUS_CONFIG.draft
+              const StatusIcon = statusConfig.icon
+
+              if (viewMode === 'list') {
+                return (
+                  <div key={campaign.id} className="bg-white rounded-2xl border border-gray-200 p-6 hover:shadow-sm transition-all">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-4 flex-1">
+                        <div className="w-12 h-12 bg-gray-100 rounded-xl flex items-center justify-center text-2xl">
+                          {typeConfig?.icon || '📊'}
+                        </div>
+                        <div className="flex-1">
+                          <div className="flex items-center space-x-3 mb-1">
+                            <h3 className="text-lg font-medium text-black">{campaign.title}</h3>
+                            <div className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${statusConfig.color}`}>
+                              <StatusIcon className="w-3 h-3 mr-1" />
+                              {statusConfig.label}
+                            </div>
+                            <div className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${typeConfig?.color}`}>
+                              {typeConfig?.label}
+                            </div>
+                          </div>
+                          <p className="text-gray-600 text-sm mb-2">{campaign.description}</p>
+                          <div className="flex items-center space-x-6 text-sm text-gray-500">
+                            <span className="flex items-center">
+                              <FileText className="w-4 h-4 mr-1" />
+                              {campaign.generated_content_count || 0} pieces
+                            </span>
+                            <span className="flex items-center">
+                              <Calendar className="w-4 h-4 mr-1" />
+                              {formatTimeAgo(campaign.created_at)}
+                            </span>
+                            {campaign.confidence_score && campaign.confidence_score > 0 && (
+                              <span className="flex items-center">
+                                <Star className="w-4 h-4 mr-1 text-black" />
+                                {(campaign.confidence_score * 100).toFixed(0)}% quality
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <button 
+                          onClick={() => handleViewContent(campaign.id)}
+                          className="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100 transition-colors"
+                        >
+                          <Eye className="w-4 h-4" />
+                        </button>
+                        <button 
+                          onClick={() => handleEditCampaign(campaign.id)}
+                          className="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100 transition-colors"
+                        >
+                          <Edit className="w-4 h-4" />
+                        </button>
+                        <button className="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100 transition-colors">
+                          <Copy className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )
+              }
+
+              // Grid view
+              return (
+                <div key={campaign.id} className="bg-white rounded-2xl border border-gray-200 p-6 hover:shadow-lg transition-all hover:border-gray-300">
+                  <div className="flex items-start justify-between mb-4">
+                    <div className="w-12 h-12 bg-gray-100 rounded-xl flex items-center justify-center text-2xl">
+                      {typeConfig?.icon || '📊'}
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <div className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${statusConfig.color}`}>
+                        <StatusIcon className="w-3 h-3 mr-1" />
+                        {statusConfig.label}
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <h3 className="text-lg font-medium text-black mb-2">{campaign.title}</h3>
+                  <p className="text-gray-600 text-sm mb-4 line-clamp-2">{campaign.description}</p>
+                  
+                  <div className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium mb-4 ${typeConfig?.color}`}>
+                    {typeConfig?.label}
+                  </div>
+                  
+                  <div className="space-y-3 mb-4">
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-gray-500">Content Pieces</span>
+                      <span className="font-medium text-black">{campaign.generated_content_count || 0}</span>
+                    </div>
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-gray-500">Intelligence Used</span>
+                      <span className="font-medium text-black">{campaign.intelligence_count || 0}</span>
+                    </div>
+                    {campaign.confidence_score && campaign.confidence_score > 0 && (
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-gray-500">Quality Score</span>
+                        <div className="flex items-center">
+                          <Star className="w-4 h-4 text-black mr-1" />
+                          <span className="font-medium text-black">{(campaign.confidence_score * 100).toFixed(0)}%</span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                  
+                  <div className="flex items-center justify-between text-sm text-gray-500 mb-4">
+                    <span>Created {formatTimeAgo(campaign.created_at)}</span>
+                    {campaign.last_activity && (
+                      <span>Updated {formatTimeAgo(campaign.last_activity)}</span>
+                    )}
+                  </div>
+                  
+                  <div className="flex items-center space-x-2">
+                    <button 
+                      onClick={() => handleViewContent(campaign.id)}
+                      className="flex-1 bg-black text-white px-4 py-3 rounded-lg font-medium hover:bg-gray-900 transition-colors flex items-center justify-center"
+                    >
+                      <Eye className="w-4 h-4 mr-2" />
+                      View Content
+                    </button>
+                    <button 
+                      onClick={() => handleEditCampaign(campaign.id)}
+                      className="bg-gray-100 text-black px-4 py-3 rounded-lg font-medium hover:bg-gray-200 transition-colors"
+                    >
+                      <Edit className="w-4 h-4" />
+                    </button>
+                    <button className="bg-gray-100 text-black px-4 py-3 rounded-lg font-medium hover:bg-gray-200 transition-colors">
+                      <Copy className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              )
+            })}
           </div>
         )}
+
+        {/* Debug Info - Remove this after testing */}
+        <div className="mt-8 p-4 bg-gray-100 rounded-lg text-sm">
+          <p><strong>Debug:</strong> campaigns.length = {campaigns.length}, filteredCampaigns.length = {filteredCampaigns.length}</p>
+          <p><strong>Filters:</strong> search=&quot;{searchQuery}&quot;, status=&quot;{statusFilter}&quot;, type=&quot;{typeFilter}&quot;</p>
+        </div>
       </div>
     </div>
   )
