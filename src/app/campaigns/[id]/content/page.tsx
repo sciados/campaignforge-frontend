@@ -55,7 +55,7 @@ export default function CampaignContentLibrary() {
   const [selectedContent, setSelectedContent] = useState<GeneratedContent | null>(null)
   const [showPreviewModal, setShowPreviewModal] = useState(false)
 
-  // Fixed: Move loadCampaignAndContent inside useEffect or use useCallback
+  // Fixed: Remove api from dependencies to prevent infinite loop
   const loadCampaignAndContent = useCallback(async () => {
     try {
       setIsLoading(true)
@@ -75,11 +75,37 @@ export default function CampaignContentLibrary() {
     } finally {
       setIsLoading(false)
     }
-  }, [campaignId, api]) // Include dependencies
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [campaignId]) // Only include campaignId, not api
 
+  // Fixed: Use campaignId directly in useEffect instead of the callback
   useEffect(() => {
-    loadCampaignAndContent()
-  }, [loadCampaignAndContent]) // Now we can safely include the function
+    if (!campaignId) return
+
+    const loadData = async () => {
+      try {
+        setIsLoading(true)
+        setError(null)
+        
+        // Load campaign details
+        const campaignData = await api.getCampaign(campaignId)
+        setCampaign(campaignData)
+        
+        // Load generated content
+        const contentData = await api.getContentList(campaignId, true)
+        setContent(contentData.content_items || [])
+        
+      } catch (err) {
+        console.error('Failed to load content:', err)
+        setError(err instanceof Error ? err.message : 'Failed to load content')
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    loadData()
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [campaignId]) // Only depend on campaignId
 
   const handleRefresh = () => {
     loadCampaignAndContent()
