@@ -480,7 +480,7 @@ export default function CampaignsPage() {
                 <p className="text-gray-600 mt-2">Create intelligent campaigns that work with any input and generate multiple content types</p>
               </div>
               <button 
-                onClick={() => setShowCreateModal(true)}
+                onClick={() => router.push('/campaigns/create-workflow')}
                 className="bg-gradient-to-r from-purple-600 to-blue-600 text-white px-6 py-3 rounded-lg font-medium hover:from-purple-700 hover:to-blue-700 transition-all flex items-center"
               >
                 <Plus className="h-5 w-5 mr-2" />
@@ -563,7 +563,7 @@ export default function CampaignsPage() {
                   </div>
                   
                   <button 
-                    onClick={() => setShowCreateModal(true)}
+                    onClick={() => router.push('/campaigns/create-workflow')}
                     className="bg-gradient-to-r from-purple-600 to-blue-600 text-white px-8 py-3 rounded-lg font-medium hover:from-purple-700 hover:to-blue-700 transition-all inline-flex items-center text-lg"
                   >
                     <Plus className="h-5 w-5 mr-2" />
@@ -739,13 +739,6 @@ export default function CampaignsPage() {
           </div>
         </main>
       </div>
-
-      {/* ✅ SIMPLIFIED: Campaign Creation Modal */}
-      <SimpleCampaignModal
-        isOpen={showCreateModal}
-        onClose={() => setShowCreateModal(false)}
-        onCreateCampaign={handleCreateCampaign}
-      />
     </div>
   )
 }

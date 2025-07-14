@@ -237,7 +237,7 @@ export default function DashboardPage() {
             })}
             
             <button
-              onClick={() => router.push('/campaigns')}
+              onClick={() => router.push('/campaigns/create-workflow')}
               className="w-full flex items-center space-x-3 px-4 py-3 text-left rounded-lg bg-black text-white hover:bg-gray-900 transition-colors font-medium mt-4"
             >
               <Plus className="w-5 h-5" />
