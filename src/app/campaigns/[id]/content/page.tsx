@@ -161,24 +161,95 @@ export default function CampaignContentLibrary() {
     if (content.content_body && typeof content.content_body === 'object') {
       const bodyObj = content.content_body as any
       
-      // Handle structured content (emails, sequences, etc.)
+      // Handle email sequences specifically
       if (bodyObj.emails && Array.isArray(bodyObj.emails)) {
-        return bodyObj.emails.map((email: any, index: number) => 
-          `Email ${index + 1}: ${email.subject || 'No Subject'}\n\n${email.body || email.content || ''}`
-        ).join('\n\n---\n\n')
+        const title = bodyObj.sequence_title || 'Email Sequence'
+        const focus = bodyObj.campaign_focus || ''
+        
+        let formatted = `${title}\n`
+        if (focus) {
+          formatted += `Campaign Focus: ${focus}\n`
+        }
+        formatted += `\n${'='.repeat(50)}\n\n`
+        
+        bodyObj.emails.forEach((email: any, index: number) => {
+          formatted += `EMAIL ${index + 1}\n`
+          formatted += `${'='.repeat(20)}\n\n`
+          
+          formatted += `Subject: ${email.subject || 'No Subject'}\n\n`
+          formatted += `Body:\n${email.body || email.content || 'No content'}\n\n`
+          
+          // Add metadata
+          if (email.send_delay) formatted += `Send Delay: ${email.send_delay}\n`
+          if (email.strategic_angle) formatted += `Strategic Angle: ${email.strategic_angle}\n`
+          if (email.angle_name) formatted += `Angle Name: ${email.angle_name}\n`
+          if (email.angle_focus) formatted += `Angle Focus: ${email.angle_focus}\n`
+          if (email.campaign_focus) formatted += `Campaign Focus: ${email.campaign_focus}\n`
+          if (email.emotional_triggers && email.emotional_triggers.length > 0) {
+            formatted += `Emotional Triggers: ${email.emotional_triggers.join(', ')}\n`
+          }
+          
+          formatted += `\n${'='.repeat(50)}\n\n`
+        })
+        
+        return formatted
       }
       
-      if (bodyObj.sequence_title || bodyObj.emails) {
-        const title = bodyObj.sequence_title || 'Email Sequence'
-        const emails = bodyObj.emails || []
-        return `${title}\n\n${emails.map((email: any, index: number) => 
-          `Email ${index + 1}: ${email.subject || 'No Subject'}\n\n${email.body || email.content || ''}`
-        ).join('\n\n---\n\n')}`
+      // Handle single email objects
+      if (bodyObj.subject || bodyObj.body) {
+        let formatted = ''
+        if (bodyObj.subject) formatted += `Subject: ${bodyObj.subject}\n\n`
+        if (bodyObj.body) formatted += `Body:\n${bodyObj.body}\n\n`
+        
+        // Add metadata for single emails
+        if (bodyObj.send_delay) formatted += `Send Delay: ${bodyObj.send_delay}\n`
+        if (bodyObj.strategic_angle) formatted += `Strategic Angle: ${bodyObj.strategic_angle}\n`
+        if (bodyObj.angle_name) formatted += `Angle Name: ${bodyObj.angle_name}\n`
+        if (bodyObj.campaign_focus) formatted += `Campaign Focus: ${bodyObj.campaign_focus}\n`
+        if (bodyObj.emotional_triggers && bodyObj.emotional_triggers.length > 0) {
+          formatted += `Emotional Triggers: ${bodyObj.emotional_triggers.join(', ')}\n`
+        }
+        
+        return formatted
+      }
+      
+      // Handle ad copy
+      if (bodyObj.headline || bodyObj.copy || bodyObj.cta) {
+        let formatted = ''
+        if (bodyObj.headline) formatted += `Headline: ${bodyObj.headline}\n\n`
+        if (bodyObj.copy) formatted += `Copy:\n${bodyObj.copy}\n\n`
+        if (bodyObj.cta) formatted += `Call to Action: ${bodyObj.cta}\n\n`
+        
+        // Add metadata
+        Object.keys(bodyObj).forEach(key => {
+          if (!['headline', 'copy', 'cta'].includes(key)) {
+            formatted += `${key.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}: ${bodyObj[key]}\n`
+          }
+        })
+        
+        return formatted
       }
       
       // Handle other structured content
       if (bodyObj.content) {
         return bodyObj.content
+      }
+      
+      // Handle blog posts
+      if (bodyObj.title || bodyObj.introduction || bodyObj.sections) {
+        let formatted = ''
+        if (bodyObj.title) formatted += `Title: ${bodyObj.title}\n\n`
+        if (bodyObj.introduction) formatted += `Introduction:\n${bodyObj.introduction}\n\n`
+        if (bodyObj.sections && Array.isArray(bodyObj.sections)) {
+          bodyObj.sections.forEach((section: any, index: number) => {
+            formatted += `Section ${index + 1}:\n`
+            if (section.heading) formatted += `${section.heading}\n\n`
+            if (section.content) formatted += `${section.content}\n\n`
+          })
+        }
+        if (bodyObj.conclusion) formatted += `Conclusion:\n${bodyObj.conclusion}\n\n`
+        
+        return formatted
       }
       
       // Fallback to JSON stringify with better formatting
