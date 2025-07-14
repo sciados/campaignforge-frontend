@@ -54,6 +54,8 @@ export default function CampaignContentLibrary() {
   // Modal states
   const [selectedContent, setSelectedContent] = useState<GeneratedContent | null>(null)
   const [showPreviewModal, setShowPreviewModal] = useState(false)
+  const [isEditing, setIsEditing] = useState(false)
+  const [editedContent, setEditedContent] = useState('')
 
   // Fixed: Remove api from dependencies to prevent infinite loop
   const loadCampaignAndContent = useCallback(async () => {
@@ -75,8 +77,8 @@ export default function CampaignContentLibrary() {
     } finally {
       setIsLoading(false)
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [campaignId]) // Only include campaignId, not api
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [campaignId]) // Only include campaignId, not api to prevent infinite loop
 
   // Fixed: Use campaignId directly in useEffect instead of the callback
   useEffect(() => {
@@ -104,8 +106,8 @@ export default function CampaignContentLibrary() {
     }
 
     loadData()
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [campaignId]) // Only depend on campaignId
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [campaignId]) // Only depend on campaignId - api excluded to prevent infinite loop
 
   const handleRefresh = () => {
     loadCampaignAndContent()
@@ -114,13 +116,21 @@ export default function CampaignContentLibrary() {
   const getContentIcon = (contentType: string) => {
     switch (contentType) {
       case 'email_sequence':
+      case 'email':
         return Mail
       case 'ad_copy':
+      case 'ad':
         return Megaphone
       case 'social_posts':
+      case 'social_media':
+      case 'social':
         return FileText
       case 'blog_post':
+      case 'blog':
         return BookOpen
+      case 'video_script':
+      case 'video':
+        return FileText
       default:
         return FileText
     }
@@ -129,12 +139,53 @@ export default function CampaignContentLibrary() {
   const getContentTypeLabel = (contentType: string) => {
     const labels: Record<string, string> = {
       'email_sequence': 'Email Sequence',
+      'email': 'Email',
       'ad_copy': 'Ad Copy',
+      'ad': 'Ad Copy',
       'social_posts': 'Social Posts',
+      'social_media': 'Social Media',
+      'social': 'Social Media',
       'blog_post': 'Blog Post',
-      'video_script': 'Video Script'
+      'blog': 'Blog Post',
+      'video_script': 'Video Script',
+      'video': 'Video Script'
     }
-    return labels[contentType] || contentType
+    return labels[contentType] || contentType.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())
+  }
+
+  const formatContentForDisplay = (content: GeneratedContent) => {
+    if (typeof content.content_body === 'string') {
+      return content.content_body
+    }
+    
+    if (content.content_body && typeof content.content_body === 'object') {
+      const bodyObj = content.content_body as any
+      
+      // Handle structured content (emails, sequences, etc.)
+      if (bodyObj.emails && Array.isArray(bodyObj.emails)) {
+        return bodyObj.emails.map((email: any, index: number) => 
+          `Email ${index + 1}: ${email.subject || 'No Subject'}\n\n${email.body || email.content || ''}`
+        ).join('\n\n---\n\n')
+      }
+      
+      if (bodyObj.sequence_title || bodyObj.emails) {
+        const title = bodyObj.sequence_title || 'Email Sequence'
+        const emails = bodyObj.emails || []
+        return `${title}\n\n${emails.map((email: any, index: number) => 
+          `Email ${index + 1}: ${email.subject || 'No Subject'}\n\n${email.body || email.content || ''}`
+        ).join('\n\n---\n\n')}`
+      }
+      
+      // Handle other structured content
+      if (bodyObj.content) {
+        return bodyObj.content
+      }
+      
+      // Fallback to JSON stringify with better formatting
+      return JSON.stringify(content.content_body, null, 2)
+    }
+    
+    return 'No content available'
   }
 
   const formatDate = (dateString: string) => {
@@ -148,35 +199,50 @@ export default function CampaignContentLibrary() {
   }
 
   const getContentPreview = (content: GeneratedContent) => {
-    let preview = ''
-    
-    if (typeof content.content_body === 'string') {
-      preview = content.content_body.substring(0, 200)
-    } else if (content.content_body && typeof content.content_body === 'object') {
-      try {
-        const bodyStr = JSON.stringify(content.content_body, null, 2)
-        preview = bodyStr.substring(0, 200)
-      } catch {
-        preview = 'Generated content available'
-      }
-    }
-    
-    return preview + (preview.length >= 200 ? '...' : '')
+    const formattedContent = formatContentForDisplay(content)
+    const preview = formattedContent.substring(0, 150)
+    return preview + (formattedContent.length > 150 ? '...' : '')
   }
 
   const handleViewContent = (contentItem: GeneratedContent) => {
     setSelectedContent(contentItem)
+    setEditedContent(formatContentForDisplay(contentItem))
+    setIsEditing(false)
     setShowPreviewModal(true)
+  }
+
+  const handleSaveEdit = async () => {
+    if (!selectedContent) return
+    
+    try {
+      // Update the content via API
+      await api.updateContent(campaignId, selectedContent.id, {
+        content_body: editedContent
+      })
+      
+      // Update local state
+      setContent(prev => prev.map(c => 
+        c.id === selectedContent.id 
+          ? { ...c, content_body: editedContent }
+          : c
+      ))
+      
+      setIsEditing(false)
+      console.log('Content updated successfully')
+    } catch (error) {
+      console.error('Failed to update content:', error)
+    }
+  }
+
+  const handleCancelEdit = () => {
+    setEditedContent(formatContentForDisplay(selectedContent!))
+    setIsEditing(false)
   }
 
   const handleCopyContent = async (contentItem: GeneratedContent) => {
     try {
-      const textToCopy = typeof contentItem.content_body === 'string' 
-        ? contentItem.content_body 
-        : JSON.stringify(contentItem.content_body, null, 2)
-      
+      const textToCopy = formatContentForDisplay(contentItem)
       await navigator.clipboard.writeText(textToCopy)
-      // You could add a toast notification here
       console.log('Content copied to clipboard')
     } catch (error) {
       console.error('Failed to copy content:', error)
@@ -310,9 +376,16 @@ export default function CampaignContentLibrary() {
               >
                 <option value="all">All Types</option>
                 <option value="email_sequence">Email Sequences</option>
+                <option value="email">Emails</option>
                 <option value="ad_copy">Ad Copy</option>
+                <option value="ad">Ads</option>
                 <option value="social_posts">Social Posts</option>
+                <option value="social_media">Social Media</option>
+                <option value="social">Social</option>
                 <option value="blog_post">Blog Posts</option>
+                <option value="blog">Blog</option>
+                <option value="video_script">Video Scripts</option>
+                <option value="video">Video</option>
               </select>
               
               <select
@@ -381,7 +454,9 @@ export default function CampaignContentLibrary() {
                         <Icon className="h-5 w-5 text-purple-600" />
                       </div>
                       <div>
-                        <h3 className="font-medium text-gray-900 truncate">{contentItem.content_title}</h3>
+                        <h3 className="font-medium text-gray-900 truncate max-w-[200px]" title={contentItem.content_title}>
+                          {contentItem.content_title}
+                        </h3>
                         <p className="text-sm text-gray-500">{getContentTypeLabel(contentItem.content_type)}</p>
                       </div>
                     </div>
@@ -439,7 +514,9 @@ export default function CampaignContentLibrary() {
                         <Icon className="h-5 w-5 text-purple-600" />
                       </div>
                       <div className="flex-1">
-                        <h3 className="font-medium text-gray-900">{contentItem.content_title}</h3>
+                        <h3 className="font-medium text-gray-900 truncate max-w-[300px]" title={contentItem.content_title}>
+                          {contentItem.content_title}
+                        </h3>
                         <p className="text-sm text-gray-500">
                           {getContentTypeLabel(contentItem.content_type)} • {formatDate(contentItem.created_at)}
                         </p>
@@ -489,22 +566,55 @@ export default function CampaignContentLibrary() {
                   <h3 className="text-xl font-bold text-gray-900">{selectedContent.content_title}</h3>
                   <p className="text-gray-600">{getContentTypeLabel(selectedContent.content_type)}</p>
                 </div>
-                <button
-                  onClick={() => setShowPreviewModal(false)}
-                  className="text-gray-400 hover:text-gray-600"
-                >
-                  ×
-                </button>
+                <div className="flex items-center space-x-2">
+                  {!isEditing ? (
+                    <button
+                      onClick={() => setIsEditing(true)}
+                      className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                    >
+                      <Edit className="h-4 w-4" />
+                      <span>Edit</span>
+                    </button>
+                  ) : (
+                    <div className="flex space-x-2">
+                      <button
+                        onClick={handleSaveEdit}
+                        className="flex items-center space-x-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                      >
+                        <CheckCircle className="h-4 w-4" />
+                        <span>Save</span>
+                      </button>
+                      <button
+                        onClick={handleCancelEdit}
+                        className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  )}
+                  <button
+                    onClick={() => setShowPreviewModal(false)}
+                    className="text-gray-400 hover:text-gray-600 text-2xl leading-none"
+                  >
+                    ×
+                  </button>
+                </div>
               </div>
             </div>
             
             <div className="p-6 overflow-y-auto max-h-96">
-              <pre className="whitespace-pre-wrap text-sm text-gray-700 font-mono">
-                {typeof selectedContent.content_body === 'string' 
-                  ? selectedContent.content_body 
-                  : JSON.stringify(selectedContent.content_body, null, 2)
-                }
-              </pre>
+              {isEditing ? (
+                <textarea
+                  value={editedContent}
+                  onChange={(e) => setEditedContent(e.target.value)}
+                  className="w-full h-80 p-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none font-mono text-sm"
+                  placeholder="Edit your content..."
+                />
+              ) : (
+                <div className="whitespace-pre-wrap text-sm text-gray-700 leading-relaxed">
+                  {formatContentForDisplay(selectedContent)}
+                </div>
+              )}
             </div>
             
             <div className="p-6 border-t border-gray-200 flex justify-end space-x-3">
@@ -512,6 +622,7 @@ export default function CampaignContentLibrary() {
                 onClick={() => handleCopyContent(selectedContent)}
                 className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
               >
+                <Copy className="h-4 w-4 mr-2 inline" />
                 Copy Content
               </button>
               <button
