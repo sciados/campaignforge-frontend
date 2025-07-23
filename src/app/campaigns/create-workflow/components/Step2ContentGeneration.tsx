@@ -1,7 +1,7 @@
-// src/app/campaigns/create-workflow/components/Step3Generate.tsx
+// src/app/campaigns/create-workflow/components/Step2ContentGeneration.tsx
 'use client'
 import React, { useState } from 'react'
-import { Sparkles, Mail, MessageSquare, FileText, Video, Megaphone, ExternalLink, BookOpen, Check, Target } from 'lucide-react'
+import { Sparkles, Mail, MessageSquare, FileText, Video, Megaphone, ExternalLink, BookOpen, Check, Target, Loader2 } from 'lucide-react'
 import { useApi } from '@/lib/api'
 
 interface ContentType {
@@ -21,7 +21,7 @@ interface GeneratedContentItem {
   generated_at: string
 }
 
-interface Step3GenerateProps {
+interface Step2ContentGenerationProps {
   campaignId: string
   campaignTitle: string
   sourcesAnalyzed: number
@@ -99,13 +99,13 @@ const COMPOSITE_TOOLS: ContentType[] = [
   }
 ]
 
-export default function Step3Generate({ 
+export default function Step2ContentGeneration({ 
   campaignId, 
   campaignTitle,
   sourcesAnalyzed,
   onContentGenerated,
   analysisComplete
-}: Step3GenerateProps) {
+}: Step2ContentGenerationProps) {
   const api = useApi()
   const [generatedContent, setGeneratedContent] = useState<GeneratedContentItem[]>([])
   const [isGenerating, setIsGenerating] = useState(false)
@@ -149,6 +149,9 @@ export default function Step3Generate({
       }
       
       setGeneratedContent(prev => [...prev, newContent])
+      
+      // Notify parent component
+      onContentGenerated()
       
     } catch (error) {
       console.error('❌ Content generation failed:', error)
@@ -202,12 +205,26 @@ export default function Step3Generate({
   if (!analysisComplete) {
     return (
       <div className="p-8 text-center">
-        <div className="w-16 h-16 bg-gray-100 rounded-lg flex items-center justify-center mx-auto mb-4">
-          <Sparkles className="h-8 w-8 text-gray-400" />
+        <div className="w-16 h-16 bg-blue-100 rounded-lg flex items-center justify-center mx-auto mb-4">
+          <Loader2 className="h-8 w-8 text-blue-600 animate-spin" />
         </div>
-        <h3 className="text-lg font-medium text-gray-900 mb-2">Waiting for Analysis</h3>
-        <p className="text-gray-600">
-          Complete source analysis in Step 2 before generating content.
+        <h3 className="text-lg font-medium text-gray-900 mb-2">Auto-Analysis in Progress</h3>
+        <p className="text-gray-600 mb-4">
+          Your competitor URL is being analyzed automatically. This usually takes 1-3 minutes.
+        </p>
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 max-w-md mx-auto">
+          <div className="text-sm text-blue-700">
+            <div className="flex items-center justify-between mb-2">
+              <span>Analyzing competitor page...</span>
+              <Loader2 className="h-4 w-4 animate-spin" />
+            </div>
+            <div className="w-full bg-blue-200 rounded-full h-2">
+              <div className="bg-blue-600 h-2 rounded-full animate-pulse" style={{width: '60%'}}></div>
+            </div>
+          </div>
+        </div>
+        <p className="text-xs text-gray-500 mt-4">
+          Step 2 will unlock automatically when analysis completes
         </p>
       </div>
     )
@@ -220,18 +237,24 @@ export default function Step3Generate({
           <Sparkles className="h-6 w-6 text-green-600" />
         </div>
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">Generate Content</h2>
-          <p className="text-gray-600">Create marketing content using AI-extracted intelligence</p>
+          <h2 className="text-2xl font-bold text-gray-900">Step 2: Generate Content</h2>
+          <p className="text-gray-600">Create marketing content using AI analysis from your competitor</p>
         </div>
       </div>
 
-      {/* Campaign Summary */}
+      {/* Campaign Summary - Updated for Streamlined Workflow */}
       <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
         <h3 className="font-medium text-green-900 mb-1">Campaign: {campaignTitle}</h3>
         <p className="text-sm text-green-700">
-          Ready to generate content from {sourcesAnalyzed} analyzed source{sourcesAnalyzed !== 1 ? 's' : ''}. 
-          Choose content types below to create your marketing materials.
+          ✅ Auto-analysis complete! Your competitor has been analyzed and intelligence extracted. 
+          Choose content types below to create your marketing materials using the insights.
         </p>
+        {sourcesAnalyzed > 0 && (
+          <div className="mt-2 flex items-center text-sm text-green-600">
+            <Check className="h-4 w-4 mr-1" />
+            <span>{sourcesAnalyzed} source{sourcesAnalyzed !== 1 ? 's' : ''} analyzed and ready for content generation</span>
+          </div>
+        )}
       </div>
 
       {/* Foundation Tools - Core AI */}
@@ -575,7 +598,7 @@ export default function Step3Generate({
             </div>
             <h3 className="text-xl font-semibold text-gray-900 mb-2">🎉 Campaign Complete!</h3>
             <p className="text-gray-600 mb-6 max-w-md mx-auto">
-              You&apos;ve successfully created unique marketing content using shared intelligence. 
+              You&apos;ve successfully created unique marketing content using streamlined AI analysis. 
               Access your Content Library to view, edit, and manage all generated materials.
             </p>
             
@@ -604,8 +627,14 @@ export default function Step3Generate({
           <Sparkles className="h-16 w-16 text-gray-400 mx-auto mb-4" />
           <h3 className="text-lg font-medium text-gray-900 mb-2">Ready to Generate Content</h3>
           <p className="text-gray-600 mb-4 max-w-md mx-auto">
-            Choose a content type above to generate your first marketing material using the analyzed intelligence.
+            Choose a content type above to generate your first marketing material using the AI analysis from your competitor.
           </p>
+          <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 max-w-sm mx-auto">
+            <p className="text-sm font-medium text-gray-700 mb-1">💡 Pro Tip</p>
+            <p className="text-xs text-gray-600">
+              Start with Email Sequence or Ad Copy - they generate the fastest and work great for testing your audience.
+            </p>
+          </div>
         </div>
       )}
     </div>
