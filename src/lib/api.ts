@@ -3,7 +3,7 @@
  * Enhanced API client for RodgersDigital with PostgreSQL ClickBank integration
  */
 
-const API_BASE_URL = 'https://campaign-backend-production-e2db.up.railway.app'
+const API_BASE_URL = 'https://campaign-backend-production-e2db.up.railway.app/'
 
 console.log('🔍 Environment check:')
 console.log('- process.env.NEXT_PUBLIC_API_URL:', process.env.NEXT_PUBLIC_API_URL)

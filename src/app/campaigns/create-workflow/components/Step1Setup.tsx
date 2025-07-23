@@ -508,6 +508,7 @@ export default function Step1Setup({
               !formData.description.trim() || 
               !formData.product_name.trim() ||
               !formData.salespage_url.trim() ||
+              !formData.keywords ||
               !formData.affiliate_link.trim() ||
               !urlValidation.salespage_url.isValid ||
               !urlValidation.affiliate_link.isValid
