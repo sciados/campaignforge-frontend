@@ -1,7 +1,10 @@
-// src/lib/api.ts - CLEAN AND PROPERLY ORGANIZED VERSION
+// src/lib/api.ts - ENHANCED WITH DEMO PREFERENCE CONTROL
 /**
  * Enhanced API client for RodgersDigital with PostgreSQL ClickBank integration
+ * 🆕 NEW: Demo preference management system with smart user control
  */
+
+import { useState, useCallback, useEffect } from 'react'
 
 const API_BASE_URL = 'https://campaign-backend-production-e2db.up.railway.app'
 
@@ -11,7 +14,7 @@ console.log('- API_BASE_URL being used:', API_BASE_URL)
 console.log('- Window location:', typeof window !== 'undefined' ? window.location.href : 'SSR')
 
 // ============================================================================
-// TYPES
+// TYPES (Enhanced with Demo Preference Types)
 // ============================================================================
 
 export interface Campaign {
@@ -38,10 +41,28 @@ export interface Campaign {
   intelligence_count?: number
   generated_content_count?: number
   
+  // 🆕 NEW: Demo campaign fields
+  is_demo?: boolean
+  
   // Legacy fields for backward compatibility
   content?: any
   confidence_score?: number
   last_activity?: string
+}
+
+// 🆕 NEW: Demo Preference Types
+export interface DemoPreference {
+  show_demo_campaigns: boolean
+  demo_available: boolean
+  real_campaigns_count: number
+  demo_campaigns_count: number
+}
+
+export interface DemoToggleResponse {
+  success: boolean
+  show_demo_campaigns: boolean
+  message: string
+  action: string
 }
 
 export interface WorkflowState {
@@ -379,7 +400,7 @@ export class CreditError extends Error {
 }
 
 // ============================================================================
-// API CLIENT CLASS
+// API CLIENT CLASS (Enhanced with Demo Preferences)
 // ============================================================================
 
 class ApiClient {
@@ -524,7 +545,145 @@ class ApiClient {
   }
 
   // ============================================================================
-  // CAMPAIGN METHODS
+  // 🆕 NEW: DEMO PREFERENCE MANAGEMENT METHODS
+  // ============================================================================
+
+  /**
+   * Get user's current demo campaign preferences
+   */
+  async getDemoPreferences(): Promise<DemoPreference> {
+    try {
+      const response = await fetch(`${this.baseURL}/api/campaigns/demo/preferences`, {
+        method: 'GET',
+        headers: this.getHeaders(),
+      })
+      
+      if (!response.ok) {
+        throw new Error(`Failed to get demo preferences: ${response.statusText}`)
+      }
+      
+      return response.json()
+    } catch (error) {
+      console.error('Error getting demo preferences:', error)
+      throw error
+    }
+  }
+
+  /**
+   * Update user's demo campaign preferences
+   */
+  async updateDemoPreferences(showDemo: boolean): Promise<DemoPreference> {
+    try {
+      const response = await fetch(`${this.baseURL}/api/campaigns/demo/preferences`, {
+        method: 'PUT',
+        headers: this.getHeaders(),
+        body: JSON.stringify({
+          show_demo_campaigns: showDemo
+        })
+      })
+      
+      if (!response.ok) {
+        throw new Error(`Failed to update demo preferences: ${response.statusText}`)
+      }
+      
+      return response.json()
+    } catch (error) {
+      console.error('Error updating demo preferences:', error)
+      throw error
+    }
+  }
+
+  /**
+   * Quick toggle demo campaign visibility
+   */
+  async toggleDemoVisibility(): Promise<DemoToggleResponse> {
+    try {
+      const response = await fetch(`${this.baseURL}/api/campaigns/demo/toggle`, {
+        method: 'POST',
+        headers: this.getHeaders(),
+      })
+      
+      if (!response.ok) {
+        throw new Error(`Failed to toggle demo visibility: ${response.statusText}`)
+      }
+      
+      return response.json()
+    } catch (error) {
+      console.error('Error toggling demo visibility:', error)
+      throw error
+    }
+  }
+
+  /**
+   * Get demo campaign management information (admin)
+   */
+  async getDemoManagementInfo(): Promise<any> {
+    try {
+      const response = await fetch(`${this.baseURL}/api/campaigns/demo/status`, {
+        method: 'GET',
+        headers: this.getHeaders(),
+      })
+      
+      if (!response.ok) {
+        throw new Error(`Failed to get demo management info: ${response.statusText}`)
+      }
+      
+      return response.json()
+    } catch (error) {
+      console.error('Error getting demo management info:', error)
+      throw error
+    }
+  }
+
+  /**
+   * Create demo campaign manually (admin/testing)
+   */
+  async createDemoManually(): Promise<any> {
+    try {
+      const response = await fetch(`${this.baseURL}/api/campaigns/demo/create`, {
+        method: 'POST',
+        headers: this.getHeaders(),
+      })
+      
+      if (!response.ok) {
+        throw new Error(`Failed to create demo campaign: ${response.statusText}`)
+      }
+      
+      return response.json()
+    } catch (error) {
+      console.error('Error creating demo campaign:', error)
+      throw error
+    }
+  }
+
+  /**
+   * Get campaigns including demo campaigns (admin view)
+   */
+  async getCampaignsWithDemo(skip = 0, limit = 100): Promise<Campaign[]> {
+    try {
+      const params = new URLSearchParams({
+        skip: skip.toString(),
+        limit: limit.toString()
+      })
+      
+      const response = await fetch(`${this.baseURL}/api/campaigns?${params}`, {
+        method: 'GET',
+        headers: this.getHeaders(),
+      })
+      
+      if (!response.ok) {
+        throw new Error(`Failed to get campaigns with demo: ${response.statusText}`)
+      }
+      
+      return response.json()
+    } catch (error) {
+      console.error('Error getting campaigns with demo:', error)
+      throw error
+    }
+  }
+
+  // ============================================================================
+  // CAMPAIGN METHODS (Enhanced)
   // ============================================================================
 
   async createCampaign(campaignData: {
@@ -551,17 +710,20 @@ class ApiClient {
     return this.handleResponse<Campaign>(response)
   }
 
+  // 🆕 ENHANCED: Updated getCampaigns method with demo awareness
   async getCampaigns(params?: {
     page?: number
     limit?: number
     status_filter?: string
     search?: string
+    skip?: number
   }): Promise<Campaign[]> {
     const baseUrl = `${this.baseURL}/api/campaigns`
     
     const searchParams = new URLSearchParams()
     if (params?.page) searchParams.set('page', params.page.toString())
     if (params?.limit) searchParams.set('limit', params.limit.toString())
+    if (params?.skip) searchParams.set('skip', params.skip.toString())
     if (params?.status_filter) searchParams.set('status_filter', params.status_filter)
     if (params?.search) searchParams.set('search', params.search)
 
@@ -585,6 +747,14 @@ class ApiClient {
       
       const data = await this.handleResponse<Campaign[]>(response)
       console.log('✅ getCampaigns success, got', Array.isArray(data) ? data.length : 'unknown', 'campaigns')
+      
+      // Add helpful logging for demo campaigns
+      if (Array.isArray(data)) {
+        const demoCampaigns = data.filter((c: any) => c.is_demo)
+        const realCampaigns = data.filter((c: any) => !c.is_demo)
+        
+        console.log(`📊 Campaigns loaded: ${realCampaigns.length} real, ${demoCampaigns.length} demo`)
+      }
       
       return data
       
@@ -1325,11 +1495,13 @@ class ApiClient {
   }
 
   // ============================================================================
-  // DASHBOARD METHODS
+  // DASHBOARD METHODS (Enhanced with Demo Info)
   // ============================================================================
 
   async getDashboardStats(): Promise<{
     total_campaigns_created: number
+    real_campaigns: number
+    demo_campaigns: number
     active_campaigns: number
     draft_campaigns: number
     completed_campaigns: number
@@ -1337,6 +1509,19 @@ class ApiClient {
     total_content: number
     avg_completion: number
     recent_activity: any[]
+    demo_system?: {
+      demo_available: boolean
+      user_demo_preference: boolean
+      demo_visible_in_current_view: boolean
+      can_toggle_demo: boolean
+      helps_onboarding: boolean
+      user_control: string
+    }
+    user_experience?: {
+      is_new_user: boolean
+      demo_recommended: boolean
+      onboarding_complete: boolean
+    }
     user_id: string
     company_id: string
     generated_at: string
@@ -1465,6 +1650,145 @@ class ApiClient {
 export const apiClient = new ApiClient()
 
 // ============================================================================
+// 🆕 NEW: DEMO PREFERENCE REACT HOOK
+// ============================================================================
+
+export function useDemoPreferences() {
+  const [preferences, setPreferences] = useState<DemoPreference | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const api = useApi()
+
+  const loadPreferences = useCallback(async () => {
+    try {
+      setIsLoading(true)
+      setError(null)
+      const prefs = await api.getDemoPreferences()
+      setPreferences(prefs)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load preferences')
+      console.error('Error loading demo preferences:', err)
+    } finally {
+      setIsLoading(false)
+    }
+  }, [api])
+
+  const updatePreferences = useCallback(async (showDemo: boolean) => {
+    try {
+      setError(null)
+      const updatedPrefs = await api.updateDemoPreferences(showDemo)
+      setPreferences(updatedPrefs)
+      return updatedPrefs
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to update preferences')
+      throw err
+    }
+  }, [api])
+
+  const toggleVisibility = useCallback(async () => {
+    try {
+      setError(null)
+      const result = await api.toggleDemoVisibility()
+      
+      // Update local preferences
+      if (preferences) {
+        setPreferences({
+          ...preferences,
+          show_demo_campaigns: result.show_demo_campaigns
+        })
+      }
+      
+      return result
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to toggle visibility')
+      throw err
+    }
+  }, [api, preferences])
+
+  useEffect(() => {
+    loadPreferences()
+  }, [loadPreferences])
+
+  return {
+    preferences,
+    isLoading,
+    error,
+    updatePreferences,
+    toggleVisibility,
+    reload: loadPreferences
+  }
+}
+
+// ============================================================================
+// 🆕 NEW: DEMO CAMPAIGN UTILITY FUNCTIONS
+// ============================================================================
+
+export const demoUtils = {
+  /**
+   * Check if a campaign is a demo campaign
+   */
+  isDemoCampaign: (campaign: any): boolean => {
+    return campaign?.is_demo === true
+  },
+
+  /**
+   * Filter campaigns by type
+   */
+  filterCampaigns: (campaigns: any[], showDemo: boolean) => {
+    if (showDemo) {
+      return campaigns // Show all
+    }
+    return campaigns.filter(c => !demoUtils.isDemoCampaign(c)) // Hide demos
+  },
+
+  /**
+   * Sort campaigns with smart demo positioning
+   */
+  sortCampaigns: (campaigns: any[], hasRealCampaigns: boolean) => {
+    return campaigns.sort((a, b) => {
+      const aIsDemo = demoUtils.isDemoCampaign(a)
+      const bIsDemo = demoUtils.isDemoCampaign(b)
+      
+      if (hasRealCampaigns) {
+        // Real campaigns first, then demos
+        if (aIsDemo !== bIsDemo) {
+          return aIsDemo ? 1 : -1
+        }
+      } else {
+        // Demo campaigns first for new users
+        if (aIsDemo !== bIsDemo) {
+          return aIsDemo ? -1 : 1
+        }
+      }
+      
+      // Sort by updated_at within same type
+      return new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
+    })
+  },
+
+  /**
+   * Get demo campaign benefits text
+   */
+  getDemoBenefits: () => [
+    "Reference high-quality analysis examples",
+    "Compare your campaigns with best practices", 
+    "Learn from professionally written content",
+    "Great for training new team members",
+    "See the full platform capabilities",
+    "Perfect templates to inspire your own campaigns"
+  ],
+
+  /**
+   * Get smart default for demo preference
+   */
+  getSmartDefault: (realCampaignsCount: number): boolean => {
+    // Show demo for new users (0-2 real campaigns)
+    // Hide demo for experienced users (3+ real campaigns)
+    return realCampaignsCount < 3
+  }
+}
+
+// ============================================================================
 // UTILITY FUNCTIONS
 // ============================================================================
 
@@ -1489,7 +1813,7 @@ export function getErrorMessage(error: unknown): string {
 }
 
 // ============================================================================
-// REACT HOOK FOR API ACCESS
+// REACT HOOK FOR API ACCESS (Enhanced)
 // ============================================================================
 
 export const useApi = () => {
@@ -1500,7 +1824,15 @@ export const useApi = () => {
     logout: apiClient.logout.bind(apiClient),
     getUserProfile: apiClient.getUserProfile.bind(apiClient),
     
-    // Campaign operations
+    // 🆕 NEW: Demo preference methods
+    getDemoPreferences: apiClient.getDemoPreferences.bind(apiClient),
+    updateDemoPreferences: apiClient.updateDemoPreferences.bind(apiClient),
+    toggleDemoVisibility: apiClient.toggleDemoVisibility.bind(apiClient),
+    getDemoManagementInfo: apiClient.getDemoManagementInfo.bind(apiClient),
+    createDemoManually: apiClient.createDemoManually.bind(apiClient),
+    getCampaignsWithDemo: apiClient.getCampaignsWithDemo.bind(apiClient),
+    
+    // Campaign operations (enhanced)
     createCampaign: apiClient.createCampaign.bind(apiClient),
     getCampaigns: apiClient.getCampaigns.bind(apiClient),
     getCampaign: apiClient.getCampaign.bind(apiClient),
@@ -1533,7 +1865,7 @@ export const useApi = () => {
     generateContent: apiClient.generateContent.bind(apiClient),
     getCampaignIntelligence: apiClient.getCampaignIntelligence.bind(apiClient),
     
-    // Dashboard
+    // Dashboard (enhanced with demo info)
     getDashboardStats: apiClient.getDashboardStats.bind(apiClient),
     getCampaignStats: apiClient.getCampaignStats.bind(apiClient),
     getCompanyStats: apiClient.getCompanyStats.bind(apiClient),
@@ -1575,3 +1907,5 @@ export const useApi = () => {
     getAffiliatePerformance: apiClient.getAffiliatePerformance.bind(apiClient)
   }
 }
+
+export default apiClient
