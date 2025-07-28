@@ -121,11 +121,11 @@ export default function Step2ContentGeneration({
       // Get campaign intelligence to use first source
       const intelligence = await api.getCampaignIntelligence(campaignId)
       
-      if (!intelligence.intelligence_sources || intelligence.intelligence_sources.length === 0) {
+      if (!intelligence.intelligence_entries || intelligence.intelligence_entries.length === 0) {
         throw new Error('No intelligence sources available')
       }
       
-      const firstSource = intelligence.intelligence_sources[0]
+      const firstSource = intelligence.intelligence_entries[0]
       
       const result = await api.generateContent({
         intelligence_id: firstSource.id,
