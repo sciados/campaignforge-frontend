@@ -19,6 +19,7 @@ console.log('- Window location:', typeof window !== 'undefined' ? window.locatio
 // ============================================================================
 
 export interface Campaign {
+  generated_content_count: number
   id: string
   title: string
   description: string
@@ -212,7 +213,6 @@ export interface WorkflowState {
       step_1: number
       step_2: number
       step_3: number
-      step_4: number
     }
   }
   user_settings: {
