@@ -632,10 +632,8 @@ function StepNavigation({
   onStepClick: (step: number) => void
 }) {
   const steps = [
-    { number: 1, icon: FileText, title: "Setup", description: "Campaign basics" },
-    { number: 2, icon: Database, title: "Sources", description: "Add content to analyze" },
-    { number: 3, icon: Brain, title: "Analysis", description: "AI extracts insights" },
-    { number: 4, icon: Sparkles, title: "Generate", description: "Create content" }
+    { number: 1, icon: FileText, title: "Setup & Analysis", description: "Campaign setup + auto-analysis" },
+    { number: 2, icon: Sparkles, title: "Generate Content", description: "Create marketing content" }
   ]
 
   const getStepStatus = (stepNumber: number) => {
