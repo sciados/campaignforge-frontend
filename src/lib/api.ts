@@ -70,6 +70,7 @@ interface CampaignCreateData {
   description?: string
   keywords?: string[]
   target_audience?: string
+  campaign_type?: string
   tone?: string
   style?: string
   
