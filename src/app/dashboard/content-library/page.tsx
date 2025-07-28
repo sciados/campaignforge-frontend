@@ -51,7 +51,7 @@ interface DashboardStats {
   active_campaigns: number
   draft_campaigns: number
   completed_campaigns: number
-  total_intelligence_sources: number
+  total_intelligence_entries: number
   total_generated_content: number
   credits_used_this_month: number
   credits_remaining: number
@@ -172,7 +172,7 @@ export default function ContentLibraryDashboard() {
             
             // Get intelligence sources
             const intelligenceData = await apiClient.getCampaignIntelligence(campaign.id)
-            const intelligenceCount = intelligenceData.intelligence_sources?.length || 0
+            const intelligenceCount = intelligenceData.intelligence_entries?.length || 0
             
             // Calculate confidence score from content ratings
             const avgRating = contentData.content_items?.length > 0 
@@ -244,7 +244,7 @@ export default function ContentLibraryDashboard() {
             active_campaigns: statsData.active_campaigns || 0,
             draft_campaigns: enhancedCampaigns.filter(c => c.status === 'draft').length,
             completed_campaigns: enhancedCampaigns.filter(c => c.status === 'completed').length,
-            total_intelligence_sources: enhancedCampaigns.reduce((sum, c) => sum + (c.intelligence_count || 0), 0),
+            total_intelligence_entries: enhancedCampaigns.reduce((sum, c) => sum + (c.intelligence_count || 0), 0),
             total_generated_content: allContent.length,
             credits_used_this_month: statsData.monthly_credits_used || 0,
             credits_remaining: statsData.credits_remaining || 0,
@@ -288,7 +288,7 @@ export default function ContentLibraryDashboard() {
         ...stats,
         draft_campaigns: campaigns.filter(c => c.status === 'draft').length,
         completed_campaigns: campaigns.filter(c => c.status === 'completed').length,
-        total_intelligence_sources: campaigns.reduce((sum, c) => sum + (c.intelligence_count || 0), 0),
+        total_intelligence_entries: campaigns.reduce((sum, c) => sum + (c.intelligence_count || 0), 0),
         total_generated_content: allGeneratedContent.length
       }
       setStats(updatedStats)

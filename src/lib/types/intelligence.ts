@@ -134,7 +134,7 @@ export interface BatchAnalysisRequest {
 
 export interface CampaignAngleRequest {
   campaign_id: string
-  intelligence_sources: string[]
+  intelligence_entries: string[]
   target_audience?: string
   business_context?: string
   differentiation_focus?: string[]

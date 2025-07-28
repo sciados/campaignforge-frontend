@@ -23,10 +23,10 @@ interface IntelligenceSource {
 
 interface CampaignIntelligence {
   campaign_id: string
-  intelligence_sources: IntelligenceSource[]
+  intelligence_entries: IntelligenceSource[]
   generated_content: any[]
   summary: {
-    total_intelligence_sources: number
+    total_intelligence_entries: number
     total_generated_content: number
     avg_confidence_score: number
   }
@@ -147,10 +147,10 @@ export const useIntelligenceStore = create<IntelligenceStore>()(
             if (existingIntelligence) {
               const updatedIntelligence = {
                 ...existingIntelligence,
-                intelligence_sources: [...existingIntelligence.intelligence_sources, newSource],
+                intelligence_entries: [...existingIntelligence.intelligence_entries, newSource],
                 summary: {
                   ...existingIntelligence.summary,
-                  total_intelligence_sources: existingIntelligence.intelligence_sources.length + 1
+                  total_intelligence_entries: existingIntelligence.intelligence_entries.length + 1
                 }
               }
               
@@ -225,10 +225,10 @@ export const useIntelligenceStore = create<IntelligenceStore>()(
             if (existingIntelligence) {
               const updatedIntelligence = {
                 ...existingIntelligence,
-                intelligence_sources: [...existingIntelligence.intelligence_sources, newSource],
+                intelligence_entries: [...existingIntelligence.intelligence_entries, newSource],
                 summary: {
                   ...existingIntelligence.summary,
-                  total_intelligence_sources: existingIntelligence.intelligence_sources.length + 1
+                  total_intelligence_entries: existingIntelligence.intelligence_entries.length + 1
                 }
               }
               
@@ -317,7 +317,7 @@ export const useIntelligenceStore = create<IntelligenceStore>()(
 
       getAnalyzedSources: (campaignId: string) => {
         const intelligence = get().intelligence[campaignId]
-        return intelligence?.intelligence_sources?.filter(
+        return intelligence?.intelligence_entries?.filter(
           source => source.analysis_status === 'completed'
         ) || []
       },

@@ -103,7 +103,7 @@ export interface Campaign {
   updated_at: string;
   
   // Relationships (populated when needed)
-  intelligence_sources?: CampaignIntelligence[];
+  intelligence_entries?: CampaignIntelligence[];
   generated_content?: GeneratedContent[];
   smart_urls?: SmartURL[];
   assets?: CampaignAsset[];
@@ -296,7 +296,7 @@ export interface UsageStats {
 // Campaign Intelligence Summary
 export interface CampaignIntelligenceSummary {
   campaign_id: string;
-  intelligence_sources: Array<{
+  intelligence_entries: Array<{
     id: string;
     source_type: IntelligenceSourceType;
     source_title?: string;
@@ -315,7 +315,7 @@ export interface CampaignIntelligenceSummary {
     created_at: string;
   }>;
   summary: {
-    total_intelligence_sources: number;
+    total_intelligence_entries: number;
     total_generated_content: number;
     avg_confidence_score: number;
   };

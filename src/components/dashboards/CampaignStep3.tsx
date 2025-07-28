@@ -136,10 +136,10 @@ export default function CampaignStep3({ campaignId }: CampaignStep3Props) {
 
         if (intelligenceResponse.ok) {
           const intelligenceData = await intelligenceResponse.json()
-          setIntelligenceSources(intelligenceData.intelligence_sources || [])
+          setIntelligenceSources(intelligenceData.intelligence_entries || [])
           // Auto-select first intelligence source
-          if (intelligenceData.intelligence_sources?.length > 0) {
-            setSelectedIntelligence(intelligenceData.intelligence_sources[0].id)
+          if (intelligenceData.intelligence_entries?.length > 0) {
+            setSelectedIntelligence(intelligenceData.intelligence_entries[0].id)
           }
         }
       } catch (error) {

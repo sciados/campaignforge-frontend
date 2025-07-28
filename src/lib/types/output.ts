@@ -110,7 +110,7 @@ export interface ContentGenerationRequest {
   content_type: ContentType
   template?: string
   generation_parameters?: GenerationParameters
-  intelligence_sources?: string[]
+  intelligence_entries?: string[]
   customization?: Record<string, any>
   batch_generation?: boolean
 }

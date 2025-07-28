@@ -30,7 +30,7 @@ interface DashboardStats {
   active_campaigns: number
   draft_campaigns: number
   completed_campaigns: number
-  total_intelligence_sources: number
+  total_intelligence_entries: number
   total_generated_content: number
   credits_used_this_month: number
   credits_remaining: number
@@ -123,7 +123,7 @@ export default function CampaignDashboard() {
           active_campaigns: statsData.active_campaigns || 0,
           draft_campaigns: 0, // Will be calculated from campaigns
           completed_campaigns: 0, // Will be calculated from campaigns
-          total_intelligence_sources: 0, // Will be calculated
+          total_intelligence_entries: 0, // Will be calculated
           total_generated_content: 0, // Will be calculated
           credits_used_this_month: statsData.monthly_credits_used || 0,
           credits_remaining: statsData.credits_remaining || 0,
