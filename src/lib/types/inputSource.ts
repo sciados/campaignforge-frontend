@@ -88,21 +88,3 @@ export type InputSourceStatus =
   | 'validating'
   | 'extracting'
   | 'analyzing'
-
-// 📦 ClickBank Product Type
-export type ClickBankProduct = {
-  title: string;
-  vendor: string;
-  description: string;
-  salespage_url: string;
-};
-
-// 📂 Valid ClickBank Categories
-export type ClickBankCategory =
-  | "top"
-  | "new"
-  | "health"
-  | "ebusiness"
-  | "selfhelp"
-  | "green"
-  | "business";
