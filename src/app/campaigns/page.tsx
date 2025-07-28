@@ -1,4 +1,4 @@
-// src/app/campaigns/page.tsx - WITH NAVIGATION
+// src/app/campaigns/page.tsx - WITH DEMO REFRESH FIX
 'use client'
 
 import React, { useState, useEffect, useCallback, useRef } from 'react'
@@ -165,6 +165,94 @@ export default function CampaignsPage() {
     loadInitialData()
     
   }, [api, router])
+
+  // 🎯 NEW: Demo Campaign Auto-Refresh Handler
+  useEffect(() => {
+    const handleDemoCreation = async () => {
+      // Check for demo creation indicators
+      const demoCreated = sessionStorage.getItem('demo_just_created')
+      const urlParams = new URLSearchParams(window.location.search)
+      const demoParam = urlParams.get('demo_created')
+      
+      if ((demoCreated || demoParam) && campaigns.length === 0 && !isLoading) {
+        console.log('🎯 Demo campaign created, refreshing data...')
+        
+        // Clear indicators
+        sessionStorage.removeItem('demo_just_created')
+        if (demoParam) {
+          // Clean URL without refresh
+          window.history.replaceState({}, '', window.location.pathname)
+        }
+        
+        // Force refresh campaigns with delay for backend processing
+        setTimeout(async () => {
+          try {
+            console.log('🔄 Fetching campaigns after demo creation...')
+            const refreshedCampaigns = await api.getCampaigns({ limit: 50 })
+            
+            if (refreshedCampaigns && Array.isArray(refreshedCampaigns) && refreshedCampaigns.length > 0) {
+              setCampaigns(refreshedCampaigns)
+              console.log('✅ Demo campaign now visible:', refreshedCampaigns.length)
+              
+              // Optional: Show success message
+              const demoCount = refreshedCampaigns.filter(c => c.is_demo).length
+              if (demoCount > 0) {
+                // Could add a toast notification here
+                console.log(`🎉 ${demoCount} demo campaign(s) loaded successfully`)
+              }
+            }
+          } catch (error) {
+            console.error('❌ Failed to refresh after demo creation:', error)
+            // Fallback: force reload page
+            window.location.reload()
+          }
+        }, 1500) // Allow backend time to complete demo creation
+      }
+    }
+
+    // Only run if page is initialized and not currently loading
+    if (isInitialized.current && !isLoading) {
+      handleDemoCreation()
+    }
+  }, [campaigns.length, isLoading, api])
+
+  // 🎯 NEW: Optional periodic polling for robustness
+  useEffect(() => {
+    let pollInterval: NodeJS.Timeout | null = null
+
+    // If we have zero campaigns and we're not loading, poll briefly for demos
+    if (campaigns.length === 0 && !isLoading && !error && isInitialized.current) {
+      console.log('📡 Starting demo campaign polling...')
+      
+      let attempts = 0
+      const maxAttempts = 5 // 10 seconds total
+      
+      pollInterval = setInterval(async () => {
+        attempts++
+        
+        if (attempts > maxAttempts) {
+          if (pollInterval) clearInterval(pollInterval)
+          console.log('📡 Demo polling completed')
+          return
+        }
+
+        try {
+          const polledCampaigns = await api.getCampaigns({ limit: 50 })
+          if (polledCampaigns && polledCampaigns.length > 0) {
+            console.log('✅ Polling found campaigns:', polledCampaigns.length)
+            setCampaigns(polledCampaigns)
+            if (pollInterval) clearInterval(pollInterval)
+          }
+        } catch (pollError) {
+          console.warn('⚠️ Polling attempt failed:', pollError)
+        }
+      }, 2000)
+    }
+
+    return () => {
+      if (pollInterval) clearInterval(pollInterval)
+    }
+  }, [campaigns.length, isLoading, error, api])
 
   // Filter campaigns when data changes
   useEffect(() => {
