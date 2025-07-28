@@ -1,8 +1,8 @@
-// src/lib/stores/intelligenceStore.ts - Enhanced Implementation
+// src/lib/stores/intelligenceStore.ts - FIXED TYPE COMPATIBILITY
 'use client'
 import { create } from 'zustand'
 import { devtools } from 'zustand/middleware'
-import { apiClient } from "../api"
+import { apiClient, CampaignIntelligenceResponse } from "../api"
 
 interface IntelligenceSource {
   id: string
@@ -21,21 +21,11 @@ interface IntelligenceSource {
   brand_intelligence?: Record<string, any>
 }
 
-interface CampaignIntelligence {
-  campaign_id: string
-  intelligence_entries: IntelligenceSource[]
-  generated_content: any[]
-  summary: {
-    total_intelligence_entries: number
-    total_generated_content: number
-    avg_confidence_score: number
-  }
-}
-
+// 🔧 FIX: Use API response type directly instead of custom interface
 interface IntelligenceStore {
-  // State
-  intelligence: Record<string, CampaignIntelligence>
-  currentCampaignIntelligence: CampaignIntelligence | null
+  // State - use API response type
+  intelligence: Record<string, CampaignIntelligenceResponse>
+  currentCampaignIntelligence: CampaignIntelligenceResponse | null
   isAnalyzing: boolean
   isGenerating: boolean
   error: string | null
@@ -57,8 +47,8 @@ interface IntelligenceStore {
   clearError: () => void
   resetAnalysis: () => void
   
-  // Computed
-  getIntelligenceForCampaign: (campaignId: string) => CampaignIntelligence | null
+  // Computed - updated return types
+  getIntelligenceForCampaign: (campaignId: string) => CampaignIntelligenceResponse | null
   getAnalyzedSources: (campaignId: string) => IntelligenceSource[]
   getAverageConfidence: (campaignId: string) => number
 }
@@ -84,6 +74,7 @@ export const useIntelligenceStore = create<IntelligenceStore>()(
         try {
           const intelligence = await apiClient.getCampaignIntelligence(campaignId)
           
+          // 🔧 FIX: Now types match perfectly
           set((state) => ({
             intelligence: {
               ...state.intelligence,
@@ -141,13 +132,25 @@ export const useIntelligenceStore = create<IntelligenceStore>()(
             competitive_intelligence: result.competitive_opportunities
           }
 
-          // Update intelligence store
+          // 🔧 FIX: Update to match API response structure
           set((state) => {
             const existingIntelligence = state.intelligence[campaignId]
             if (existingIntelligence) {
-              const updatedIntelligence = {
+              const updatedIntelligence: CampaignIntelligenceResponse = {
                 ...existingIntelligence,
-                intelligence_entries: [...existingIntelligence.intelligence_entries, newSource],
+                intelligence_entries: [...existingIntelligence.intelligence_entries, {
+                  id: newSource.id,
+                  source_type: newSource.source_type,
+                  source_url: newSource.source_url,
+                  source_title: newSource.source_title,
+                  confidence_score: newSource.confidence_score,
+                  analysis_status: newSource.analysis_status,
+                  offer_intelligence: newSource.offer_intelligence || {},
+                  psychology_intelligence: newSource.psychology_intelligence || {},
+                  processing_metadata: {},
+                  created_at: newSource.created_at,
+                  updated_at: newSource.updated_at
+                }],
                 summary: {
                   ...existingIntelligence.summary,
                   total_intelligence_entries: existingIntelligence.intelligence_entries.length + 1
@@ -219,13 +222,23 @@ export const useIntelligenceStore = create<IntelligenceStore>()(
             created_at: new Date().toISOString()
           }
 
-          // Update intelligence store
+          // 🔧 FIX: Update to match API response structure
           set((state) => {
             const existingIntelligence = state.intelligence[campaignId]
             if (existingIntelligence) {
-              const updatedIntelligence = {
+              const updatedIntelligence: CampaignIntelligenceResponse = {
                 ...existingIntelligence,
-                intelligence_entries: [...existingIntelligence.intelligence_entries, newSource],
+                intelligence_entries: [...existingIntelligence.intelligence_entries, {
+                  id: newSource.id,
+                  source_type: newSource.source_type,
+                  source_title: newSource.source_title,
+                  confidence_score: newSource.confidence_score,
+                  analysis_status: newSource.analysis_status,
+                  offer_intelligence: {},
+                  psychology_intelligence: {},
+                  processing_metadata: {},
+                  created_at: newSource.created_at
+                }],
                 summary: {
                   ...existingIntelligence.summary,
                   total_intelligence_entries: existingIntelligence.intelligence_entries.length + 1
@@ -310,16 +323,30 @@ export const useIntelligenceStore = create<IntelligenceStore>()(
         })
       },
 
-      // Computed properties
+      // 🔧 FIX: Updated computed properties with correct return types
       getIntelligenceForCampaign: (campaignId: string) => {
         return get().intelligence[campaignId] || null
       },
 
       getAnalyzedSources: (campaignId: string) => {
         const intelligence = get().intelligence[campaignId]
-        return intelligence?.intelligence_entries?.filter(
-          source => source.analysis_status === 'completed'
-        ) || []
+        if (!intelligence?.intelligence_entries) return []
+        
+        // Convert API entries to IntelligenceSource format
+        return intelligence.intelligence_entries
+          .filter(entry => entry.analysis_status === 'completed')
+          .map(entry => ({
+            id: entry.id,
+            source_title: entry.source_title || 'Unknown Source',
+            source_type: entry.source_type,
+            source_url: entry.source_url,
+            confidence_score: entry.confidence_score,
+            analysis_status: entry.analysis_status,
+            created_at: entry.created_at,
+            updated_at: entry.updated_at,
+            offer_intelligence: entry.offer_intelligence,
+            psychology_intelligence: entry.psychology_intelligence
+          }))
       },
 
       getAverageConfidence: (campaignId: string) => {
@@ -341,7 +368,7 @@ export const useIntelligenceStore = create<IntelligenceStore>()(
   )
 )
 
-// Hooks for easy access to computed values
+// 🔧 FIX: Updated hooks with correct return types
 export const useCampaignIntelligence = (campaignId: string) => {
   return useIntelligenceStore(state => state.getIntelligenceForCampaign(campaignId))
 }
