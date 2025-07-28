@@ -211,8 +211,6 @@ export interface WorkflowState {
     steps: {
       step_1: number
       step_2: number
-      step_3: number
-      step_4: number
     }
   }
   user_settings: {

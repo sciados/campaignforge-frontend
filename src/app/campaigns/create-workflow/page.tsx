@@ -468,7 +468,7 @@ export default function CreateWorkflowPage() {
           <div className="mt-4 p-3 bg-white rounded-lg border border-blue-200">
             <p className="text-sm text-blue-600">
               <strong>New:</strong> No manual source adding required! We automatically analyze your salespage 
-              and extract intelligence to create targeted marketing content.
+              and extract intelligence and AI Enhance the intelligence to create new and unique targeted marketing content.
             </p>
           </div>
         </div>
