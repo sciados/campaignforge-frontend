@@ -27,6 +27,7 @@ export default function LoginPage() {
     try {
       const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://campaign-backend-production-e2db.up.railway.app'
       
+      // Step 1: Login to get access token
       const response = await fetch(`${API_BASE_URL}/api/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -39,10 +40,33 @@ export default function LoginPage() {
           localStorage.setItem('authToken', data.access_token)
         }
         
-        // Redirect based on role
-        if (data.user?.role === 'admin') {
-          router.push('/admin')
-        } else {
+        try {
+          // Step 2: Get user profile to check role
+          console.log('🔍 Getting user profile to determine dashboard...')
+          const profileResponse = await fetch(`${API_BASE_URL}/api/auth/profile`, {
+            headers: { 'Authorization': `Bearer ${data.access_token}` }
+          })
+          
+          if (profileResponse.ok) {
+            const userProfile = await profileResponse.json()
+            console.log('✅ User profile loaded:', userProfile.email, userProfile.role)
+            
+            // Redirect based on role
+            if (userProfile.role === 'admin') {
+              console.log('👑 Admin user, redirecting to admin dashboard')
+              router.push('/admin')
+            } else {
+              console.log('👤 Regular user, redirecting to user dashboard')
+              router.push('/dashboard')
+            }
+          } else {
+            console.warn('⚠️ Profile fetch failed, defaulting to user dashboard')
+            // Fallback to user dashboard if profile fetch fails
+            router.push('/dashboard')
+          }
+        } catch (profileError) {
+          console.error('❌ Profile fetch error:', profileError)
+          // Fallback to user dashboard if profile fetch fails
           router.push('/dashboard')
         }
       } else {
@@ -75,7 +99,7 @@ export default function LoginPage() {
           <h1 className="text-4xl font-light text-black mb-6 leading-tight">
             Welcome back to
             <br />
-            <span className="font-semibold">RodgersDigital.</span>
+            <span className="font-semibold">CampaignForge.</span>
           </h1>
           <p className="text-lg text-gray-600 leading-relaxed">
             Transform any content into complete marketing campaigns with AI-powered intelligence.
