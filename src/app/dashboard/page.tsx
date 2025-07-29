@@ -69,6 +69,7 @@ export default function DashboardPage() {
         // Check for admin override parameter
         const adminOverride = searchParams.get('admin_override')
         
+        // ✅ FIXED: Only redirect admins to admin dashboard if no override
         if (userData.role === 'admin' && !adminOverride) {
           console.log('👑 Admin detected, redirecting to admin dashboard...')
           router.push('/admin')
@@ -81,10 +82,10 @@ export default function DashboardPage() {
         
         setUser(userData)
         
-        // ✅ FIXED: Get real stats from backend instead of mock data
-        console.log('📊 Loading live company stats...')
+        // ✅ FIXED: Only call user company stats - no admin or waitlist stats
+        console.log('📊 Loading user company stats...')
         const companyStats = await api.getCompanyStats()
-        console.log('✅ Company stats loaded:', companyStats)
+        console.log('✅ User company stats loaded:', companyStats)
         
         setStats(companyStats)
         
