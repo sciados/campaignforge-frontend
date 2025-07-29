@@ -49,6 +49,9 @@ export default function UserDashboard() {
 
   useEffect(() => {
     const loadUserDashboard = async () => {
+      // Prevent multiple simultaneous loads
+      if (isLoading) return
+      
       // Check if user is logged in
       const token = localStorage.getItem('authToken')
       if (!token) {
@@ -88,7 +91,8 @@ export default function UserDashboard() {
     }
 
     loadUserDashboard()
-  }, [api, router])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [router]) // ✅ FIXED: Only depend on router, remove api dependency
 
   const handleLogout = () => {
     localStorage.removeItem('authToken')
