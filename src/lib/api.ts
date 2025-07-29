@@ -1,8 +1,9 @@
-// src/lib/api.ts - ENHANCED WITH DEMO PREFERENCE CONTROL & NEW WORKFLOW SUPPORT
+// src/lib/api.ts - CLEANED FOR 2-STEP WORKFLOW
 /**
  * Enhanced API client for CampaignForge with streamlined 2-step workflow
  * 🆕 NEW: Demo preference management system with smart user control
- * 🔧 FIXED: Updated for streamlined 2-step workflow with auto-analysis
+ * 🔧 UPDATED: Cleaned legacy 4-step workflow references
+ * 🧹 CLEANED: Removed old workflow interfaces and methods
  */
 
 import { useState, useCallback, useEffect } from 'react'
@@ -15,7 +16,7 @@ console.log('- API_BASE_URL being used:', API_BASE_URL)
 console.log('- Window location:', typeof window !== 'undefined' ? window.location.href : 'SSR')
 
 // ============================================================================
-// 🔧 UPDATED TYPES FOR NEW WORKFLOW
+// 🔧 UPDATED TYPES FOR 2-STEP WORKFLOW
 // ============================================================================
 
 export interface Campaign {
@@ -180,55 +181,6 @@ export interface CampaignIntelligenceResponse {
   is_demo: boolean
 }
 
-// Legacy WorkflowState interface (for backward compatibility)
-export interface WorkflowState {
-  campaign_id: string
-  workflow_state: string
-  workflow_preference: string
-  current_session: Record<string, any>
-  available_actions: Array<{
-    step: number
-    action: string
-    title: string
-    description: string
-    can_access: boolean
-    is_complete: boolean
-    suggested?: boolean
-    prerequisites?: string[]
-  }>
-  quick_actions: Array<{
-    action: string
-    title: string
-    description: string
-  }>
-  primary_suggestion: string
-  suggested_step: number
-  progress_summary: {
-    sources_added: number
-    sources_analyzed: number
-    content_generated: number
-    completion_percentage: number
-  }
-  progress: {
-    steps: {
-      step_1: number
-      step_2: number
-    }
-  }
-  user_settings: {
-    quick_mode: boolean
-    auto_advance: boolean
-    detailed_guidance: boolean
-    save_frequently: boolean
-  }
-  resume_info: {
-    last_action?: string
-    time_spent_today?: string
-    suggested_session_length: string
-    can_quick_complete: boolean
-  }
-}
-
 export interface IntelligenceSource {
   id: string
   source_title: string
@@ -383,7 +335,7 @@ export class CreditError extends Error {
 }
 
 // ============================================================================
-// API CLIENT CLASS (Enhanced with Demo Preferences & New Workflow)
+// API CLIENT CLASS (Enhanced with Demo Preferences & 2-Step Workflow)
 // ============================================================================
 
 class ApiClient {
@@ -666,7 +618,7 @@ class ApiClient {
   }
 
   // ============================================================================
-  // 🔧 UPDATED CAMPAIGN METHODS FOR NEW WORKFLOW
+  // 🔧 UPDATED CAMPAIGN METHODS FOR 2-STEP WORKFLOW
   // ============================================================================
 
   async createCampaign(campaignData: CampaignCreateData): Promise<Campaign> {
@@ -955,77 +907,6 @@ class ApiClient {
     return this.handleResponse(response)
   }
 
-  // Legacy workflow methods (for backward compatibility)
-  async setWorkflowPreference(campaignId: string, preferences: {
-    workflow_preference?: 'quick' | 'methodical' | 'flexible'
-    quick_mode?: boolean
-    auto_advance?: boolean
-    detailed_guidance?: boolean
-  }): Promise<{
-    campaign_id: string
-    workflow_preference: string
-    settings_updated: Record<string, any>
-    message: string
-  }> {
-    const response = await fetch(`${this.baseURL}/api/campaigns/${campaignId}/workflow/set-preference`, {
-      method: 'POST',
-      headers: this.getHeaders(),
-      body: JSON.stringify(preferences)
-    })
-    
-    return this.handleResponse(response)
-  }
-
-  async advanceCampaignStep(campaignId: string, stepData: Record<string, any> = {}): Promise<{
-    campaign_id: string
-    previous_step: number
-    current_step: number
-    workflow_state: string
-    message: string
-  }> {
-    const response = await fetch(`${this.baseURL}/api/campaigns/${campaignId}/workflow/advance-step`, {
-      method: 'POST',
-      headers: this.getHeaders(),
-      body: JSON.stringify(stepData)
-    })
-    
-    return this.handleResponse(response)
-  }
-
-  async saveProgress(campaignId: string, progressData: Record<string, any>): Promise<{
-    campaign_id: string
-    message: string
-    saved_at: string
-  }> {
-    const response = await fetch(`${this.baseURL}/api/campaigns/${campaignId}/workflow/save-progress`, {
-      method: 'POST',
-      headers: this.getHeaders(),
-      body: JSON.stringify(progressData)
-    })
-    
-    return this.handleResponse(response)
-  }
-
-  async quickCompleteCampaign(campaignId: string, options: Record<string, any> = {}): Promise<{
-    campaign_id: string
-    completion_plan: Array<{
-      step: number
-      action: string
-      description: string
-    }>
-    estimated_time: string
-    can_execute: boolean
-    message: string
-  }> {
-    const response = await fetch(`${this.baseURL}/api/campaigns/${campaignId}/workflow/quick-complete`, {
-      method: 'POST',
-      headers: this.getHeaders(),
-      body: JSON.stringify(options)
-    })
-    
-    return this.handleResponse(response)
-  }
-
   // ============================================================================
   // 🔧 UPDATED INTELLIGENCE METHODS
   // ============================================================================
@@ -1108,7 +989,7 @@ class ApiClient {
   }
 
   // ============================================================================
-  // 🔧 UPDATED DASHBOARD METHODS (Enhanced with Demo Info & New Workflow)
+  // 🔧 UPDATED DASHBOARD METHODS (Enhanced with Demo Info & 2-Step Workflow)
   // ============================================================================
 
   async getDashboardStats(): Promise<{
@@ -1421,7 +1302,7 @@ export function getErrorMessage(error: unknown): string {
 }
 
 // ============================================================================
-// 🔧 UPDATED REACT HOOK FOR API ACCESS (Enhanced with New Workflow)
+// 🔧 UPDATED REACT HOOK FOR API ACCESS (Cleaned for 2-Step Workflow)
 // ============================================================================
 
 export const useApi = () => {
@@ -1440,7 +1321,7 @@ export const useApi = () => {
     createDemoManually: apiClient.createDemoManually.bind(apiClient),
     getCampaignsWithDemo: apiClient.getCampaignsWithDemo.bind(apiClient),
     
-    // 🔧 Campaign operations (enhanced for new workflow)
+    // 🔧 Campaign operations (enhanced for 2-step workflow)
     createCampaign: apiClient.createCampaign.bind(apiClient),
     getCampaigns: apiClient.getCampaigns.bind(apiClient),
     getCampaign: apiClient.getCampaign.bind(apiClient),
@@ -1464,19 +1345,13 @@ export const useApi = () => {
     getWorkflowState: apiClient.getWorkflowState.bind(apiClient),
     saveWorkflowProgress: apiClient.saveWorkflowProgress.bind(apiClient),
     
-    // Legacy workflow methods (for backward compatibility)
-    setWorkflowPreference: apiClient.setWorkflowPreference.bind(apiClient),
-    advanceCampaignStep: apiClient.advanceCampaignStep.bind(apiClient),
-    saveProgress: apiClient.saveProgress.bind(apiClient),
-    quickCompleteCampaign: apiClient.quickCompleteCampaign.bind(apiClient),
-    
     // 🔧 Intelligence operations (updated)
     analyzeURL: apiClient.analyzeURL.bind(apiClient),
     uploadDocument: apiClient.uploadDocument.bind(apiClient),
     generateContent: apiClient.generateContent.bind(apiClient),
     getCampaignIntelligence: apiClient.getCampaignIntelligence.bind(apiClient),
     
-    // 🔧 Dashboard (enhanced with demo info & new workflow)
+    // 🔧 Dashboard (enhanced with demo info & 2-step workflow)
     getDashboardStats: apiClient.getDashboardStats.bind(apiClient),
     getCampaignStats: apiClient.getCampaignStats.bind(apiClient),
     getCompanyStats: apiClient.getCompanyStats.bind(apiClient),

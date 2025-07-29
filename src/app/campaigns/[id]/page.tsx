@@ -1,4 +1,4 @@
-// src/app/campaigns/[id]/page.tsx - CONTENT GENERATION FOCUSED
+// src/app/campaigns/[id]/page.tsx - FIXED: Updated for cleaned API
 'use client'
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { useParams, useRouter } from 'next/navigation'
@@ -59,10 +59,11 @@ export default function CampaignDetailPage() {
   const [isActiveSession, setIsActiveSession] = useState(false)
   const [intelligenceData, setIntelligenceData] = useState<IntelligenceSource[]>([])
 
+  // 🔧 FIXED: Updated to use new API methods
   const stableApi = useMemo(() => ({
     getCampaign: api.getCampaign,
     getCampaignIntelligence: api.getCampaignIntelligence,
-    saveProgress: api.saveProgress,
+    saveWorkflowProgress: api.saveWorkflowProgress, // ✅ Use the correct method
     generateContent: api.generateContent
   }), [api])
 
@@ -151,19 +152,23 @@ export default function CampaignDetailPage() {
     return () => clearInterval(interval)
   }, [isActiveSession])
 
+  // 🔧 FIXED: Updated to use new workflow progress method
   const saveProgress = useCallback(async (data: any = {}) => {
     if (!autoSave || !campaignId) return
     
     try {
-      await stableApi.saveProgress(campaignId, {
-        session_data: data,
-        timestamp: new Date().toISOString()
+      await stableApi.saveWorkflowProgress(campaignId, {
+        step_data: {
+          session_data: data,
+          timestamp: new Date().toISOString()
+        },
+        completion_percentage: campaign?.completion_percentage || 50
       })
       setLastSaved(new Date())
     } catch (error) {
       console.error('Auto-save failed:', error)
     }
-  }, [campaignId, autoSave, stableApi])
+  }, [campaignId, autoSave, campaign?.completion_percentage, stableApi])
 
   useEffect(() => {
     if (!autoSave || !isActiveSession) return
@@ -747,7 +752,7 @@ function ContentGenerationStep({
                       </div>
                       <div className="flex space-x-2 ml-4">
                         <button 
-                          onClick={() => router.push(`/campaigns/${campaignId}/content`)}
+                          onClick={() => router.push(`/dashboard/content-library`)}
                           className="px-3 py-1 bg-black text-white rounded-lg hover:bg-gray-900 transition-colors text-sm font-medium"
                         >
                           View All
@@ -779,7 +784,7 @@ function ContentGenerationStep({
                 
                 <div className="flex justify-center space-x-4">
                   <button 
-                    onClick={() => router.push(`/campaigns/${campaignId}/content`)}
+                    onClick={() => router.push(`/dashboard/content-library`)}
                     className="px-6 py-3 bg-black text-white rounded-lg hover:bg-gray-900 transition-colors font-medium"
                   >
                     View All Content
