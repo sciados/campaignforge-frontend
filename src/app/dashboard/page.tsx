@@ -44,6 +44,7 @@ export default function DashboardPage() {
   const [user, setUser] = useState<User | null>(null)
   const [stats, setStats] = useState<CompanyStats | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [retryCount, setRetryCount] = useState(0)
   const router = useRouter()
   const searchParams = useSearchParams()
   const api = useApi()
@@ -90,6 +91,13 @@ export default function DashboardPage() {
       } catch (error) {
         console.error('❌ Dashboard data loading failed:', error)
         setError('Failed to load dashboard data')
+        setRetryCount(prev => prev + 1)
+        
+        // Prevent infinite retry loop
+        if (retryCount >= 3) {
+          console.error('❌ Max retries reached, stopping')
+          return
+        }
         
         // If auth fails, redirect to login
         const errorMessage = error instanceof Error ? error.message : String(error)
@@ -104,7 +112,7 @@ export default function DashboardPage() {
     }
 
     loadDashboardData()
-  }, [router, searchParams, api])
+  }, [router, searchParams, api, retryCount])
 
   const handleLogout = () => {
     if (typeof window !== 'undefined') {
