@@ -1,4 +1,4 @@
-// /src/app/dashboard/page.tsx - FIXED VERSION with Admin Override
+// /src/app/dashboard/page.tsx - FIXED VERSION with Live Data
 'use client'
 
 import { useEffect, useState } from 'react'
@@ -8,6 +8,7 @@ import {
   Plus, Calendar, ArrowRight, 
   Home, Shield
 } from 'lucide-react'
+import { useApi } from '@/lib/api'
 
 export const dynamic = 'force-dynamic'
 
@@ -42,11 +43,13 @@ export default function DashboardPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [user, setUser] = useState<User | null>(null)
   const [stats, setStats] = useState<CompanyStats | null>(null)
+  const [error, setError] = useState<string | null>(null)
   const router = useRouter()
   const searchParams = useSearchParams()
+  const api = useApi()
 
   useEffect(() => {
-    const checkAuth = async () => {
+    const loadDashboardData = async () => {
       if (typeof window === 'undefined') return
 
       const token = localStorage.getItem('authToken')
@@ -56,63 +59,52 @@ export default function DashboardPage() {
       }
 
       try {
-        const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://campaign-backend-production-e2db.up.railway.app'
+        setIsLoading(true)
+        setError(null)
         
-        const authResponse = await fetch(`${API_BASE_URL}/api/auth/profile`, {
-          headers: { 'Authorization': `Bearer ${token}` }
-        })
-
-        if (authResponse.ok) {
-          const userData: User = await authResponse.json()
-          
-          // ✅ FIXED: Check for admin override parameter
-          const adminOverride = searchParams.get('admin_override')
-          
-          if (userData.role === 'admin' && !adminOverride) {
-            console.log('👑 Admin detected, redirecting to admin dashboard...')
-            router.push('/admin')
-            return
-          }
-          
-          // ✅ FIXED: Log when admin is using user dashboard
-          if (userData.role === 'admin' && adminOverride) {
-            console.log('🔄 Admin using user dashboard with override')
-          }
-          
-          setUser(userData)
-          
-          // Mock stats for design purposes
-          const mockStats: CompanyStats = {
-            company_name: userData.company.company_name,
-            subscription_tier: userData.company.subscription_tier,
-            monthly_credits_used: userData.company.monthly_credits_used,
-            monthly_credits_limit: userData.company.monthly_credits_limit,
-            credits_remaining: userData.company.monthly_credits_limit - userData.company.monthly_credits_used,
-            total_campaigns_created: 12,
-            active_campaigns: 4,
-            team_members: 3,
-            campaigns_this_month: 5,
-            usage_percentage: userData.company.monthly_credits_limit > 0 ? 
-              (userData.company.monthly_credits_used / userData.company.monthly_credits_limit * 100) : 0
-          }
-          
-          setStats(mockStats)
-        } else {
+        // Get user profile
+        const userData = await api.getUserProfile()
+        
+        // Check for admin override parameter
+        const adminOverride = searchParams.get('admin_override')
+        
+        if (userData.role === 'admin' && !adminOverride) {
+          console.log('👑 Admin detected, redirecting to admin dashboard...')
+          router.push('/admin')
+          return
+        }
+        
+        if (userData.role === 'admin' && adminOverride) {
+          console.log('🔄 Admin using user dashboard with override')
+        }
+        
+        setUser(userData)
+        
+        // ✅ FIXED: Get real stats from backend instead of mock data
+        console.log('📊 Loading live company stats...')
+        const companyStats = await api.getCompanyStats()
+        console.log('✅ Company stats loaded:', companyStats)
+        
+        setStats(companyStats)
+        
+      } catch (error) {
+        console.error('❌ Dashboard data loading failed:', error)
+        setError('Failed to load dashboard data')
+        
+        // If auth fails, redirect to login
+        const errorMessage = error instanceof Error ? error.message : String(error)
+        if (errorMessage.includes('Authentication') || errorMessage.includes('401')) {
           localStorage.removeItem('authToken')
           router.push('/login')
           return
         }
-      } catch (error) {
-        console.error('Auth check failed:', error)
-        router.push('/login')
-        return
+      } finally {
+        setIsLoading(false)
       }
-
-      setIsLoading(false)
     }
 
-    checkAuth()
-  }, [router, searchParams])
+    loadDashboardData()
+  }, [router, searchParams, api])
 
   const handleLogout = () => {
     if (typeof window !== 'undefined') {
@@ -121,7 +113,6 @@ export default function DashboardPage() {
     router.push('/login')
   }
 
-  // ✅ FIXED: Add function to switch back to admin
   const handleSwitchToAdmin = () => {
     console.log('🔄 Switching back to admin dashboard...')
     router.push('/admin')
@@ -130,12 +121,37 @@ export default function DashboardPage() {
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-white">
-        <div className="w-6 h-6 border-2 border-black border-t-transparent rounded-full animate-spin"></div>
+        <div className="text-center">
+          <div className="w-6 h-6 border-2 border-black border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading dashboard...</p>
+        </div>
       </div>
     )
   }
 
-  // ✅ FIXED: Check if user is admin with override
+  if (error) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-white">
+        <div className="text-center">
+          <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <svg className="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </div>
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">Dashboard Error</h3>
+          <p className="text-gray-600 mb-4">{error}</p>
+          <button 
+            onClick={() => window.location.reload()}
+            className="bg-black text-white px-4 py-2 rounded-lg hover:bg-gray-900 transition-colors"
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  // Check if user is admin with override
   const isAdminWithOverride = user?.role === 'admin' && searchParams.get('admin_override')
 
   return (
@@ -148,14 +164,13 @@ export default function DashboardPage() {
               <div className="w-8 h-8 bg-black rounded-lg flex items-center justify-center">
                 <span className="text-white font-medium">C</span>
               </div>
-              <h1 className="text-xl font-semibold text-black">RodgersDigital</h1>
+              <h1 className="text-xl font-semibold text-black">CampaignForge</h1>
             </div>
             {stats && (
               <div className="hidden md:flex items-center space-x-1 text-sm text-gray-500">
                 <span>{stats.company_name}</span>
                 <span>/</span>
                 <span className="text-black">Dashboard</span>
-                {/* ✅ FIXED: Show admin indicator */}
                 {isAdminWithOverride && (
                   <>
                     <span>/</span>
@@ -167,7 +182,6 @@ export default function DashboardPage() {
           </div>
           
           <div className="flex items-center space-x-4">
-            {/* ✅ FIXED: Add admin switch button in header */}
             {isAdminWithOverride && (
               <button
                 onClick={handleSwitchToAdmin}
@@ -194,7 +208,6 @@ export default function DashboardPage() {
       <div className="flex">
         {/* Sidebar */}
         <aside className="w-64 bg-white border-r border-gray-200 min-h-screen">
-          {/* ✅ FIXED: Add admin switch button in sidebar */}
           {isAdminWithOverride && (
             <div className="p-6 border-b border-gray-200">
               <button
@@ -261,6 +274,9 @@ export default function DashboardPage() {
                       style={{ width: `${Math.min(stats.usage_percentage, 100)}%` }}
                     ></div>
                   </div>
+                  <div className="text-xs text-gray-500 mt-1">
+                    {stats.credits_remaining.toLocaleString()} credits remaining
+                  </div>
                 </div>
                 
                 <button
@@ -282,7 +298,6 @@ export default function DashboardPage() {
               <div>
                 <h2 className="text-3xl font-light text-black mb-2">
                   Good morning, {user?.full_name?.split(' ')[0] || 'User'}.
-                  {/* ✅ FIXED: Show admin indicator in welcome */}
                   {isAdminWithOverride && (
                     <span className="text-red-600 font-medium text-lg ml-2">(Admin View)</span>
                   )}
@@ -303,7 +318,7 @@ export default function DashboardPage() {
               </button>
             </div>
 
-            {/* Stats Grid */}
+            {/* Stats Grid - Now using LIVE data */}
             {stats && (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 <div className="bg-white rounded-2xl p-6 border border-gray-200">
@@ -389,6 +404,35 @@ export default function DashboardPage() {
                 </div>
               </div>
             </div>
+
+            {/* Additional Stats Cards */}
+            {stats && (
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="bg-gray-50 rounded-2xl p-6">
+                  <h4 className="text-sm font-medium text-gray-900 mb-4">Subscription</h4>
+                  <div className="space-y-2">
+                    <p className="text-lg font-semibold text-black capitalize">{stats.subscription_tier}</p>
+                    <p className="text-sm text-gray-600">Current plan</p>
+                  </div>
+                </div>
+
+                <div className="bg-gray-50 rounded-2xl p-6">
+                  <h4 className="text-sm font-medium text-gray-900 mb-4">Usage Rate</h4>
+                  <div className="space-y-2">
+                    <p className="text-lg font-semibold text-black">{stats.usage_percentage.toFixed(1)}%</p>
+                    <p className="text-sm text-gray-600">Of monthly credits</p>
+                  </div>
+                </div>
+
+                <div className="bg-gray-50 rounded-2xl p-6">
+                  <h4 className="text-sm font-medium text-gray-900 mb-4">This Month</h4>
+                  <div className="space-y-2">
+                    <p className="text-lg font-semibold text-black">{stats.campaigns_this_month}</p>
+                    <p className="text-sm text-gray-600">New campaigns created</p>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </main>
       </div>
