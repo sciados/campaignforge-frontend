@@ -111,6 +111,7 @@ export default function CampaignsPage() {
         return
       }
       
+      
       console.log('🚀 Starting loadInitialData...')
       isLoadingData.current = true
       
