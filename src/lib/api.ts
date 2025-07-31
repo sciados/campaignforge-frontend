@@ -740,7 +740,7 @@ class ApiClient {
     console.log('🔍 getGeneratedContent called for campaign:', campaignId)
     
     try {
-      const response = await fetch(`${this.baseURL}/api/campaigns/${campaignId}/content`, {
+      const response = await fetch(`${this.baseURL}/api/intelligence/content/${campaignId}`, {
         headers: this.getHeaders()
       })
       
@@ -774,7 +774,7 @@ class ApiClient {
     if (includeBody) params.set('include_body', 'true')
     if (contentType) params.set('content_type', contentType)
     
-    const response = await fetch(`${this.baseURL}/api/campaigns/${campaignId}/content?${params}`, {
+    const response = await fetch(`${this.baseURL}/api/intelligence/content/${campaignId}?${params}`, {
       headers: this.getHeaders()
     })
     
@@ -782,7 +782,7 @@ class ApiClient {
   }
 
   async getContentDetail(campaignId: string, contentId: string): Promise<ContentDetailResponse> {
-    const response = await fetch(`${this.baseURL}/api/campaigns/${campaignId}/content/${contentId}`, {
+    const response = await fetch(`${this.baseURL}/api/intelligence/content/${campaignId}/content/${contentId}`, {
       headers: this.getHeaders()
     })
     
@@ -794,7 +794,7 @@ class ApiClient {
     message: string
     updated_at: string
   }> {
-    const response = await fetch(`${this.baseURL}/api/campaigns/${campaignId}/content/${contentId}`, {
+    const response = await fetch(`${this.baseURL}/api/intelligence/content/${campaignId}/content/${contentId}`, {
       method: 'PUT',
       headers: this.getHeaders(),
       body: JSON.stringify(updateData)
@@ -804,7 +804,7 @@ class ApiClient {
   }
 
   async deleteContent(campaignId: string, contentId: string): Promise<{ message: string }> {
-    const response = await fetch(`${this.baseURL}/api/campaigns/${campaignId}/content/${contentId}`, {
+    const response = await fetch(`${this.baseURL}/api/intelligence/content/${campaignId}/content/${contentId}`, {
       method: 'DELETE',
       headers: this.getHeaders()
     })
@@ -1015,7 +1015,7 @@ class ApiClient {
     generated_at: string
   }> {
     // 🔧 FIXED: Use correct endpoint path matching backend
-    const response = await fetch(`${this.baseURL}/api/campaigns/dashboard/stats`, {
+    const response = await fetch(`${this.baseURL}/api/campaigns/stats/stats`, {
       headers: this.getHeaders()
     })
     
@@ -1031,7 +1031,7 @@ class ApiClient {
     total_content: number
     avg_completion: number
   }> {
-    const response = await fetch(`${this.baseURL}/api/campaigns/stats/overview`, {
+    const response = await fetch(`${this.baseURL}/api/campaigns/stats/stats`, {
       headers: this.getHeaders()
     })
     
