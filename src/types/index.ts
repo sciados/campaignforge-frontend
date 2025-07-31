@@ -191,7 +191,7 @@ export interface GeneratedContent {
   is_published: boolean;
   published_at?: string;
   campaign_id: string;
-  intelligence_source_id?: string;
+  intelligence_id?: string;
   user_id: string;
   company_id: string;
   created_at: string;
