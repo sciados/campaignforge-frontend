@@ -99,7 +99,8 @@ export default function UserDashboard() {
     }
 
     loadUserDashboard()
-  }, [router, api])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []) // ✅ FIXED: Empty dependency array to run only once
 
   const handleRetry = () => {
     setIsLoading(true)
