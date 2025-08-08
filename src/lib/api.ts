@@ -960,7 +960,7 @@ class ApiClient {
     preferences?: Record<string, any>
     campaign_id: string
   }): Promise<GeneratedContent> {
-    const response = await fetch(`${this.baseURL}/api/intelligence/content/generate`, {
+    const response = await fetch(`${this.baseURL}/api/intelligence/generate`, {
       method: 'POST',
       headers: this.getHeaders(),
       body: JSON.stringify(data)
