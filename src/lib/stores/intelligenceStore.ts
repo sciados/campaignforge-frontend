@@ -42,7 +42,8 @@ interface IntelligenceStore {
   loadCampaignIntelligence: (campaignId: string) => Promise<void>
   analyzeURL: (campaignId: string, url: string) => Promise<IntelligenceSource>
   uploadDocument: (campaignId: string, file: File) => Promise<IntelligenceSource>
-  generateContent: (intelligenceId: string, contentType: string, preferences?: any) => Promise<any>
+  // 🔧 FIXED: Updated generateContent signature to match new API
+  generateContent: (campaignId: string, contentType: string, preferences?: any) => Promise<any>
   updateKeywords: (campaignId: string, keywords: string[]) => Promise<void>
   clearError: () => void
   resetAnalysis: () => void
@@ -277,15 +278,16 @@ export const useIntelligenceStore = create<IntelligenceStore>()(
         }
       },
 
-      generateContent: async (intelligenceId: string, contentType: string, preferences = {}) => {
+      // 🔧 FIXED: Updated generateContent to match new API signature
+      generateContent: async (campaignId: string, contentType: string, preferences = {}) => {
         set({ isGenerating: true, error: null })
         
         try {
+          // 🔧 FIXED: Use new API signature without intelligence_id
           const result = await apiClient.generateContent({
-            intelligence_id: intelligenceId,
             content_type: contentType,
-            preferences,
-            campaign_id: ''
+            campaign_id: campaignId,
+            preferences
           })
 
           set({ isGenerating: false })
@@ -390,4 +392,23 @@ export const useAnalysisState = () => {
     currentStep: state.currentAnalysisStep,
     error: state.error
   }))
+}
+
+// 🔧 NEW: Updated hook for content generation with new API
+export const useContentGeneration = () => {
+  const { generateContent, isGenerating, error } = useIntelligenceStore()
+  
+  const generateContentForCampaign = async (
+    campaignId: string,
+    contentType: string,
+    preferences?: Record<string, any>
+  ) => {
+    return generateContent(campaignId, contentType, preferences)
+  }
+  
+  return {
+    generateContent: generateContentForCampaign,
+    isGenerating,
+    error
+  }
 }
