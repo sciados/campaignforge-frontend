@@ -111,6 +111,7 @@ export default function Step2ContentGeneration({
   const [isGenerating, setIsGenerating] = useState(false)
   const [generatingType, setGeneratingType] = useState<string | null>(null)
   
+  // 🔧 FIXED: Updated handleGenerateContent to match backend expectations
   const handleGenerateContent = async (contentType: string) => {
     setIsGenerating(true)
     setGeneratingType(contentType)
@@ -118,17 +119,8 @@ export default function Step2ContentGeneration({
     try {
       console.log('🎯 Generating content:', contentType)
       
-      // Get campaign intelligence to use first source
-      const intelligence = await api.getCampaignIntelligence(campaignId)
-      
-      if (!intelligence.intelligence_entries || intelligence.intelligence_entries.length === 0) {
-        throw new Error('No intelligence sources available')
-      }
-      
-      const firstSource = intelligence.intelligence_entries[0]
-      
+      // 🔧 FIXED: Use simplified API call that matches backend
       const result = await api.generateContent({
-        intelligence_id: firstSource.id,
         content_type: contentType,
         campaign_id: campaignId,
         preferences: {
@@ -149,13 +141,25 @@ export default function Step2ContentGeneration({
       }
       
       setGeneratedContent(prev => [...prev, newContent])
-      
-      // Notify parent component
       onContentGenerated()
       
     } catch (error) {
       console.error('❌ Content generation failed:', error)
-      alert(`Failed to generate content: ${error instanceof Error ? error.message : 'Unknown error'}`)
+      
+      // 🔧 BETTER ERROR HANDLING
+      let errorMessage = 'Unknown error'
+      if (error instanceof Error) {
+        errorMessage = error.message
+      }
+      
+      // Show specific error messages
+      if (errorMessage.includes('No analysis data found')) {
+        alert('Please run analysis first by adding a competitor URL in Step 1.')
+      } else if (errorMessage.includes('Campaign') && errorMessage.includes('not found')) {
+        alert('Campaign not found. Please refresh the page and try again.')
+      } else {
+        alert(`Failed to generate content: ${errorMessage}`)
+      }
     } finally {
       setIsGenerating(false)
       setGeneratingType(null)

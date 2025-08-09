@@ -4,6 +4,7 @@
  * 🆕 NEW: Demo preference management system with smart user control
  * 🔧 UPDATED: Cleaned legacy 4-step workflow references
  * 🧹 CLEANED: Removed old workflow interfaces and methods
+ * 🔧 FIXED: Updated generateContent method to match backend expectations
  */
 
 import { useState, useCallback, useEffect } from 'react'
@@ -954,19 +955,50 @@ class ApiClient {
     return this.handleResponse(response)
   }
 
+  // 🔧 FIXED: Updated generateContent method to match backend expectations
   async generateContent(data: {
-    intelligence_id: string
     content_type: string
-    preferences?: Record<string, any>
     campaign_id: string
+    preferences?: Record<string, any>
   }): Promise<GeneratedContent> {
+    console.log('🎯 Generating content with data:', data)
+    
+    // 🔧 FIXED: Use correct backend endpoint and data structure
+    const requestData = {
+      content_type: data.content_type,
+      campaign_id: data.campaign_id,
+      preferences: data.preferences || {},
+      prompt: `Generate ${data.content_type} content` // Backend expects this
+    }
+    
+    console.log('📡 Sending request to backend:', requestData)
+    
     const response = await fetch(`${this.baseURL}/api/intelligence/content/generate`, {
       method: 'POST',
       headers: this.getHeaders(),
-      body: JSON.stringify(data)
+      body: JSON.stringify(requestData)
     })
     
-    return this.handleResponse<GeneratedContent>(response)
+    const result = await this.handleResponse<any>(response)
+    console.log('✅ Backend response:', result)
+    
+    // 🔧 FIXED: Handle both success and error responses
+    if (!result.success) {
+      throw new Error(result.error || 'Content generation failed')
+    }
+    
+    // 🔧 FIXED: Transform backend response to match frontend expectations
+    return {
+      content_id: result.content_id,
+      content_type: result.content_type,
+      generated_content: {
+        title: result.generated_content?.title || `Generated ${data.content_type}`,
+        content: result.generated_content?.content || result.generated_content,
+        metadata: result.metadata
+      },
+      smart_url: result.smart_url || null,
+      performance_predictions: result.performance_predictions || {}
+    }
   }
 
   // 🔧 UPDATED: Campaign intelligence method with proper parameters
