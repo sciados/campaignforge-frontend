@@ -224,7 +224,6 @@ export default function ContentLibraryRedesign() {
         count: items.length
       }
     }).sort((a, b) => b.count - a.count) // Sort by count descending
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const formatContentType = useCallback((type: string): string => {
@@ -503,14 +502,133 @@ export default function ContentLibraryRedesign() {
       
       console.log('🔍 Loading content detail for:', content.id)
 
-      // Load full content detail
-      const fullContent = await apiClient.getContentDetail(content.campaign_id, content.id)
-      console.log('✅ Full content detail loaded')
-      
-      setSelectedContentItem(fullContent)
-      setShowContentModal(true)
+      try {
+        // First try to load full content detail via the specific endpoint
+        const fullContent = await apiClient.getContentDetail(content.campaign_id, content.id)
+        console.log('✅ Full content detail loaded via getContentDetail')
+        
+        setSelectedContentItem(fullContent)
+        setShowContentModal(true)
+      } catch (detailError) {
+        console.warn('⚠️ getContentDetail failed, falling back to content item data:', detailError)
+        
+        // Fallback: Use the content item data we already have
+        // Transform it to match the expected format for the modal
+        const fallbackContent = {
+          ...content,
+          id: content.id,
+          campaign_id: content.campaign_id,
+          content_type: content.content_type,
+          content_title: content.content_title,
+          content_body: content.content_body,
+          content_metadata: content.content_metadata || {},
+          created_at: content.created_at,
+          updated_at: content.updated_at,
+          user_rating: content.user_rating,
+          is_published: content.is_published,
+          published_at: content.published_at,
+          
+          // Add fields expected by the modal
+          type: 'generated_content',
+          title: content.content_title,
+          confidence_score: 0.85,
+          is_amplified_content: false,
+          
+          // Parse content for display
+          parsed_content: (() => {
+            try {
+              return typeof content.content_body === 'string' 
+                ? JSON.parse(content.content_body)
+                : content.content_body
+            } catch {
+              return { content: content.content_body }
+            }
+          })(),
+          
+          // Create formatted content for display
+          formatted_content: (() => {
+            try {
+              const parsed = typeof content.content_body === 'string' 
+                ? JSON.parse(content.content_body) 
+                : content.content_body
+              
+              // Handle different content structures
+              if (parsed.emails && Array.isArray(parsed.emails)) {
+                return parsed.emails.map((email: any, index: number) => ({
+                  title: email.subject || `Email ${index + 1}`,
+                  content: email.body || email.content || '',
+                  metadata: {
+                    subject: email.subject,
+                    type: 'email'
+                  }
+                }))
+              } else if (parsed.posts && Array.isArray(parsed.posts)) {
+                return parsed.posts.map((post: any, index: number) => ({
+                  title: `Social Post ${index + 1}`,
+                  content: post.content || post.text || '',
+                  metadata: {
+                    platform: post.platform,
+                    hashtags: post.hashtags
+                  }
+                }))
+              } else if (parsed.ads && Array.isArray(parsed.ads)) {
+                return parsed.ads.map((ad: any, index: number) => ({
+                  title: ad.headline || `Ad ${index + 1}`,
+                  content: `**${ad.headline}**\n\n${ad.body}\n\n*CTA: ${ad.cta}*`,
+                  metadata: {
+                    headline: ad.headline,
+                    cta: ad.cta
+                  }
+                }))
+              } else if (typeof parsed === 'string') {
+                return [{
+                  title: content.content_title,
+                  content: parsed,
+                  metadata: {}
+                }]
+              } else if (parsed.content) {
+                return [{
+                  title: content.content_title,
+                  content: parsed.content,
+                  metadata: parsed.metadata || {}
+                }]
+              } else {
+                return [{
+                  title: content.content_title,
+                  content: JSON.stringify(parsed, null, 2),
+                  metadata: {}
+                }]
+              }
+            } catch {
+              return [{
+                title: content.content_title,
+                content: typeof content.content_body === 'string' 
+                  ? content.content_body 
+                  : 'Content available',
+                metadata: {}
+              }]
+            }
+          })(),
+          
+          has_valid_content: true,
+          editable_text: (() => {
+            try {
+              const parsed = typeof content.content_body === 'string' 
+                ? JSON.parse(content.content_body) 
+                : content.content_body
+              return JSON.stringify(parsed, null, 2)
+            } catch {
+              return content.content_body
+            }
+          })()
+        }
+        
+        console.log('✅ Using fallback content data for modal')
+        setSelectedContentItem(fallbackContent)
+        setShowContentModal(true)
+      }
     } catch (error) {
-      console.error('❌ Failed to load content detail:', error)
+      console.error('❌ Failed to load content:', error)
       setContentModalError(error instanceof Error ? error.message : 'Failed to load content')
     } finally {
       setContentModalLoading(false)
