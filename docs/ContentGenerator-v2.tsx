@@ -1,12 +1,12 @@
-// frontend/src/components/ContentGenerator.tsx - FIXED WITH CONTENT LIST
+// src/components/intelligence/ContentGenerator.tsx
 import React, { useState, useCallback, useEffect } from 'react'
-import { 
-  Wand2, 
-  Mail, 
-  MessageSquare, 
-  FileText, 
-  Globe, 
-  Video, 
+import {
+  Wand2,
+  Mail,
+  MessageSquare,
+  FileText,
+  Globe,
+  Video,
   Megaphone,
   Settings,
   Copy,
@@ -14,16 +14,13 @@ import {
   Eye,
   TrendingUp,
   Star,
-  Loader2,
   CheckCircle,
   Lightbulb,
-  AlertCircle,
-  Calendar,
-  Edit3
+  AlertCircle
 } from 'lucide-react'
-
-import ContentViewEditModal from '../campaigns/ContentViewEditModal'
-import { useApi } from '../../lib/api'
+import ContentViewEditModal from '@/components/campaigns/ContentViewEditModal'
+import { useApi } from '@/lib/api'
+import type { ContentDetailResponse, GeneratedContentItem } from '@/lib/api'
 
 interface IntelligenceSource {
   id: string
@@ -48,18 +45,6 @@ interface GeneratedContent {
   }
   smart_url?: string
   performance_predictions: any
-}
-
-// 🆕 NEW: Content item interface for list display
-interface ContentItem {
-  id: string
-  content_type: string
-  title: string
-  created_at: string
-  confidence_score?: number
-  is_published?: boolean
-  user_rating?: number
-  preview_text?: string
 }
 
 const CONTENT_TYPES = [
@@ -115,21 +100,14 @@ const CONTENT_TYPES = [
 
 export default function ContentGenerator({ campaignId, intelligenceSources }: ContentGeneratorProps) {
   const api = useApi()
-  
-  // Generation state
+
   const [selectedContentType, setSelectedContentType] = useState<string | null>(null)
-  const [selectedIntelligence, setSelectedIntelligence] = useState<string>('')
+  const [selectedIntelligence, setSelectedIntelligence] = useState<string>('') // kept for UI compatibility
   const [isGenerating, setIsGenerating] = useState(false)
   const [generatedContent, setGeneratedContent] = useState<GeneratedContent | null>(null)
   const [showPreferences, setShowPreferences] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  
-  // 🆕 NEW: Content list state
-  const [contentItems, setContentItems] = useState<ContentItem[]>([])
-  const [isLoadingContent, setIsLoadingContent] = useState(false)
-  const [selectedContentItem, setSelectedContentItem] = useState<any>(null)
-  const [showContentModal, setShowContentModal] = useState(false)
-  
+
   // Content preferences state
   const [preferences, setPreferences] = useState({
     tone: 'conversational',
@@ -139,121 +117,174 @@ export default function ContentGenerator({ campaignId, intelligenceSources }: Co
     platform: 'general'
   })
 
-  // 🆕 NEW: Load existing content when component mounts
-  const loadContentItems = useCallback(async () => {
-    setIsLoadingContent(true)
+  // Content list state
+  const [contentItems, setContentItems] = useState<GeneratedContentItem[]>([])
+  const [isLoadingList, setIsLoadingList] = useState(false)
+  const [listError, setListError] = useState<string | null>(null)
+
+  // Modal state
+  const [isModalOpen, setIsModalOpen] = useState(false)
+  const [selectedContentDetail, setSelectedContentDetail] = useState<ContentDetailResponse | null>(null)
+
+  const loadContentList = useCallback(async () => {
+    setIsLoadingList(true)
+    setListError(null)
     try {
-      const content = await api.getGeneratedContent(campaignId)
-      console.log('📋 Loaded content items:', content)
-      
-      // Transform API response to ContentItem format
-      const transformedItems: ContentItem[] = content.map((item: any) => ({
-        id: item.id || item.content_id,
-        content_type: item.content_type,
-        title: item.content_title || item.title || `${formatContentType(item.content_type)} Content`,
-        created_at: item.created_at,
-        confidence_score: item.confidence_score,
-        is_published: item.is_published,
-        user_rating: item.user_rating,
-        preview_text: item.content_metadata?.preview || getPreviewText(item.content_body)
-      }))
-      
-      setContentItems(transformedItems)
-    } catch (error) {
-      console.error('❌ Failed to load content items:', error)
-      // Don't show error for missing content - it's normal for new campaigns
-      setContentItems([])
+      // includeBody=true so previews render nicely
+      const resp = await api.getContentList(campaignId, true)
+      setContentItems(resp?.content_items || [])
+    } catch (e) {
+      console.error('Failed to load content list:', e)
+      setListError(e instanceof Error ? e.message : 'Failed to load content list')
     } finally {
-      setIsLoadingContent(false)
+      setIsLoadingList(false)
     }
-  }, [campaignId, api])
+  }, [api, campaignId])
 
-  // Load content on component mount
   useEffect(() => {
-    loadContentItems()
-  }, [loadContentItems])
+    loadContentList()
+  }, [loadContentList])
 
-  // 🆕 NEW: Handle content item click
-  const handleContentItemClick = async (contentItem: ContentItem) => {
-    try {
-      console.log('🔍 Loading content detail for:', contentItem.id)
-      
-      // Load full content detail
-      const fullContent = await api.getContentDetail(campaignId, contentItem.id)
-      console.log('✅ Loaded full content:', fullContent)
-      
-      setSelectedContentItem(fullContent)
-      setShowContentModal(true)
-    } catch (error) {
-      console.error('❌ Failed to load content detail:', error)
-      setError(error instanceof Error ? error.message : 'Failed to load content')
-    }
-  }
+  const openContentModal = useCallback(
+    async (contentId: string) => {
+      try {
+        const detail = await api.getContentDetail(campaignId, contentId)
+        setSelectedContentDetail(detail)
+        setIsModalOpen(true)
+      } catch (e) {
+        console.error('Failed to load content detail:', e)
+      }
+    },
+    [api, campaignId]
+  )
 
-  // 🆕 NEW: Handle content save
-  const handleContentSave = async (contentId: string, newContent: string) => {
-    try {
+  const onModalSave = useCallback(
+    async (contentId: string, newContent: string) => {
+      // Persist edits and refresh list
       await api.updateContent(campaignId, contentId, { content_body: newContent })
-      console.log('✅ Content saved successfully')
-      
-      // Refresh content list
-      await loadContentItems()
-    } catch (error) {
-      console.error('❌ Failed to save content:', error)
-      throw error
-    }
-  }
+      await loadContentList()
+      setIsModalOpen(false)
+      setSelectedContentDetail(null)
+    },
+    [api, campaignId, loadContentList]
+  )
 
-  // 🆕 NEW: Format content type for display
-  const formatContentType = (type: string): string => {
-    const typeMap: Record<string, string> = {
-      'email_sequence': 'Email Sequence',
-      'SOCIAL_POSTS': 'Social Posts',
-      'ad_copy': 'Ad Copy',
-      'blog_post': 'Blog Post',
-      'LANDING_PAGE': 'Landing Page',
-      'video_script': 'Video Script'
+  const onModalRefresh = useCallback(async () => {
+    if (!selectedContentDetail) return
+    try {
+      const refreshed = await api.getContentDetail(campaignId, selectedContentDetail.id)
+      setSelectedContentDetail(refreshed)
+    } catch (e) {
+      console.error('Failed to refresh content detail:', e)
     }
-    return typeMap[type] || type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
-  }
+  }, [api, campaignId, selectedContentDetail])
 
-  // 🆕 NEW: Get preview text from content
-  const getPreviewText = (content: any): string => {
-    if (typeof content === 'string') {
-      return content.substring(0, 100) + (content.length > 100 ? '...' : '')
+  const formatContentType = useCallback((type: string) => {
+    return type.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())
+  }, [])
+
+  const formatContentForModal = useCallback((item: ContentDetailResponse) => {
+    // Derive a simple formatted_content array from parsed_content when possible.
+    const formattedFromParsed = (() => {
+      const pc = item.parsed_content
+      if (!pc) return null
+
+      // Common structures
+      if (Array.isArray(pc.emails)) {
+        return pc.emails.map((e: any, idx: number) => ({
+          title: e.subject || `Email ${idx + 1}`,
+          content: e.body || '',
+          metadata: { email_number: idx + 1 }
+        }))
+      }
+      if (Array.isArray(pc.posts)) {
+        return pc.posts.map((p: any, idx: number) => ({
+          title: p.title || `Post ${idx + 1}`,
+          content: p.content || p.text || '',
+          metadata: { hashtags: p.hashtags || [] }
+        }))
+      }
+      if (Array.isArray(pc.ads)) {
+        return pc.ads.map((ad: any, idx: number) => ({
+          title: ad.headline || `Ad ${idx + 1}`,
+          content: [ad.headline, ad.body, ad.cta].filter(Boolean).join('\n\n'),
+          metadata: { cta: ad.cta }
+        }))
+      }
+      if (Array.isArray(pc.sections)) {
+        return pc.sections.map((s: any, idx: number) => ({
+          title: s.title || s.heading || `Section ${idx + 1}`,
+          content: s.content || '',
+          metadata: {}
+        }))
+      }
+      if (pc.script) {
+        return [
+          {
+            title: item.content_title || 'Script',
+            content: pc.script,
+            metadata: {}
+          }
+        ]
+      }
+      return null
+    })()
+
+    const fallbackFormatted = [
+      {
+        title: item.content_title || 'Content',
+        content: typeof item.content_body === 'string' ? item.content_body : JSON.stringify(item.content_body, null, 2),
+        metadata: {}
+      }
+    ]
+
+    const formatted_content = formattedFromParsed && formattedFromParsed.length > 0 ? formattedFromParsed : fallbackFormatted
+    const has_valid_content = formatted_content.length > 0
+
+    return {
+      id: item.id,
+      content_type: item.content_type,
+      title: item.content_title || 'Untitled Content',
+      editable_text: typeof item.content_body === 'string' ? item.content_body : JSON.stringify(item.content_body, null, 2),
+      raw_content_body: typeof item.content_body === 'string' ? item.content_body : JSON.stringify(item.content_body, null, 2),
+      parsed_content: item.parsed_content,
+      formatted_content,
+      has_valid_content,
+      created_at: item.created_at,
+      is_published: item.is_published,
+      user_rating: item.user_rating,
+      confidence_score: item.intelligence_source?.confidence_score || 0.9,
+      source_url: item.intelligence_source?.source_url,
+      type: 'generated_content'
     }
-    if (content && typeof content === 'object') {
-      const text = JSON.stringify(content).substring(0, 100)
-      return text + (text.length >= 100 ? '...' : '')
-    }
-    return 'No preview available'
-  }
+  }, [])
 
   const generateContent = useCallback(async () => {
-    if (!selectedContentType || !selectedIntelligence) return
-    
+    if (!selectedContentType || !campaignId) return
+
     setIsGenerating(true)
     setError(null)
-    
+
     try {
-      const response = await api.generateContent({
+      // Use robust API client
+      const result = await api.generateContent({
         content_type: selectedContentType,
         campaign_id: campaignId,
-        preferences: preferences
+        preferences
       })
-      
-      setGeneratedContent(response)
-      
-      // 🆕 NEW: Refresh content list after generation
-      await loadContentItems()
-      
-    } catch (error) {
-      console.error('Content generation error:', error)
-      setError(error instanceof Error ? error.message : 'Content generation failed')
+
+      // Show the just-generated content in the preview section
+      setGeneratedContent(result)
+
+      // Refresh the list so the new item appears
+      await loadContentList()
+    } catch (e) {
+      console.error('Content generation error:', e)
+      setError(e instanceof Error ? e.message : 'Content generation failed')
     } finally {
       setIsGenerating(false)
     }
-  }, [selectedContentType, selectedIntelligence, preferences, campaignId, api, loadContentItems])
+  }, [api, selectedContentType, campaignId, preferences, loadContentList])
 
   const copyToClipboard = useCallback(async (text: string) => {
     try {
@@ -298,9 +329,7 @@ export default function ContentGenerator({ campaignId, intelligenceSources }: Co
               <Wand2 className="h-6 w-6 mr-3 text-black" />
               Content Generator
             </h2>
-            <p className="text-gray-600 mt-2">
-              Generate marketing content using competitive intelligence
-            </p>
+            <p className="text-gray-600 mt-2">Generate marketing content using competitive intelligence</p>
           </div>
           <button
             onClick={() => setShowPreferences(!showPreferences)}
@@ -320,7 +349,7 @@ export default function ContentGenerator({ campaignId, intelligenceSources }: Co
                 <label className="block text-sm font-medium text-black mb-3">Tone</label>
                 <select
                   value={preferences.tone}
-                  onChange={(e) => setPreferences({...preferences, tone: e.target.value})}
+                  onChange={(e) => setPreferences({ ...preferences, tone: e.target.value })}
                   className="w-full px-4 py-3 bg-gray-100 border-none rounded-lg focus:outline-none focus:bg-white focus:ring-2 focus:ring-blue-500/20 transition-all text-sm"
                 >
                   <option value="professional">Professional</option>
@@ -334,7 +363,7 @@ export default function ContentGenerator({ campaignId, intelligenceSources }: Co
                 <label className="block text-sm font-medium text-black mb-3">Length</label>
                 <select
                   value={preferences.length}
-                  onChange={(e) => setPreferences({...preferences, length: e.target.value})}
+                  onChange={(e) => setPreferences({ ...preferences, length: e.target.value })}
                   className="w-full px-4 py-3 bg-gray-100 border-none rounded-lg focus:outline-none focus:bg-white focus:ring-2 focus:ring-blue-500/20 transition-all text-sm"
                 >
                   <option value="short">Short</option>
@@ -346,7 +375,7 @@ export default function ContentGenerator({ campaignId, intelligenceSources }: Co
                 <label className="block text-sm font-medium text-black mb-3">Audience</label>
                 <select
                   value={preferences.audience}
-                  onChange={(e) => setPreferences({...preferences, audience: e.target.value})}
+                  onChange={(e) => setPreferences({ ...preferences, audience: e.target.value })}
                   className="w-full px-4 py-3 bg-gray-100 border-none rounded-lg focus:outline-none focus:bg-white focus:ring-2 focus:ring-blue-500/20 transition-all text-sm"
                 >
                   <option value="general">General</option>
@@ -359,7 +388,7 @@ export default function ContentGenerator({ campaignId, intelligenceSources }: Co
                 <label className="block text-sm font-medium text-black mb-3">Style</label>
                 <select
                   value={preferences.style}
-                  onChange={(e) => setPreferences({...preferences, style: e.target.value})}
+                  onChange={(e) => setPreferences({ ...preferences, style: e.target.value })}
                   className="w-full px-4 py-3 bg-gray-100 border-none rounded-lg focus:outline-none focus:bg-white focus:ring-2 focus:ring-blue-500/20 transition-all text-sm"
                 >
                   <option value="engaging">Engaging</option>
@@ -372,7 +401,7 @@ export default function ContentGenerator({ campaignId, intelligenceSources }: Co
                 <label className="block text-sm font-medium text-black mb-3">Platform</label>
                 <select
                   value={preferences.platform}
-                  onChange={(e) => setPreferences({...preferences, platform: e.target.value})}
+                  onChange={(e) => setPreferences({ ...preferences, platform: e.target.value })}
                   className="w-full px-4 py-3 bg-gray-100 border-none rounded-lg focus:outline-none focus:bg-white focus:ring-2 focus:ring-blue-500/20 transition-all text-sm"
                 >
                   <option value="general">General</option>
@@ -453,9 +482,7 @@ export default function ContentGenerator({ campaignId, intelligenceSources }: Co
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-xs text-gray-500">{contentType.credits} credits</span>
-                  {selectedContentType === contentType.id && (
-                    <CheckCircle className="h-4 w-4 text-black" />
-                  )}
+                  {selectedContentType === contentType.id && <CheckCircle className="h-4 w-4 text-black" />}
                 </div>
               </button>
             )
@@ -479,99 +506,48 @@ export default function ContentGenerator({ campaignId, intelligenceSources }: Co
         </button>
       </div>
 
-      {/* 🆕 NEW: Existing Content List */}
+      {/* Existing Content List */}
       <div className="bg-white rounded-2xl border border-gray-200 p-8 shadow-sm">
-        <div className="flex items-center justify-between mb-8">
-          <h3 className="text-xl font-medium text-black">Generated Content</h3>
-          <div className="flex items-center space-x-4">
-            <span className="text-sm text-gray-600">
-              {contentItems.length} item{contentItems.length !== 1 ? 's' : ''}
-            </span>
-            <button
-              onClick={loadContentItems}
-              disabled={isLoadingContent}
-              className="flex items-center px-4 py-2 bg-gray-100 text-black rounded-lg hover:bg-gray-200 transition-colors text-sm font-medium"
-            >
-              {isLoadingContent ? (
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-              ) : (
-                <Eye className="h-4 w-4 mr-2" />
-              )}
-              Refresh
-            </button>
-          </div>
+        <div className="flex items-center justify-between mb-6">
+          <h3 className="font-medium text-black">Existing Content</h3>
+          {isLoadingList && <span className="text-sm text-gray-500">Loading...</span>}
         </div>
 
-        {isLoadingContent ? (
-          <div className="flex items-center justify-center py-12">
-            <div className="flex items-center space-x-3">
-              <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
-              <span className="text-gray-600">Loading content...</span>
-            </div>
+        {listError && (
+          <div className="bg-red-50 border border-red-200 rounded-xl p-4 mb-6">
+            <p className="text-sm text-red-700">{listError}</p>
           </div>
-        ) : contentItems.length === 0 ? (
-          <div className="text-center py-12">
-            <FileText className="h-12 w-12 text-gray-300 mx-auto mb-4" />
-            <h4 className="text-lg font-medium text-gray-600 mb-2">No Content Generated Yet</h4>
-            <p className="text-gray-500">
-              Generate your first piece of content using the form above.
-            </p>
-          </div>
+        )}
+
+        {!isLoadingList && contentItems.length === 0 ? (
+          <p className="text-sm text-gray-600">No content found for this campaign yet. Generate something to get started.</p>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
             {contentItems.map((item) => (
               <button
                 key={item.id}
-                onClick={() => handleContentItemClick(item)}
-                className="p-6 border border-gray-200 rounded-2xl text-left hover:border-gray-300 hover:shadow-sm transition-all group"
+                onClick={() => openContentModal(item.id)}
+                className="w-full text-left border-2 border-gray-200 hover:border-gray-300 hover:shadow-sm rounded-2xl p-6 transition-all"
               >
-                <div className="flex items-center justify-between mb-4">
-                  <h4 className="font-medium text-black group-hover:text-gray-700 truncate">
-                    {item.title}
-                  </h4>
-                  <Edit3 className="h-4 w-4 text-gray-400 group-hover:text-gray-600" />
-                </div>
-                
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium text-gray-600">
-                      {formatContentType(item.content_type)}
-                    </span>
-                    {item.confidence_score && (
-                      <div className="flex items-center">
-                        <Star className="h-3 w-3 text-yellow-400 mr-1" />
-                        <span className="text-xs text-gray-600">
-                          {Math.round(item.confidence_score * 100)}%
-                        </span>
-                      </div>
+                <div className="flex items-start justify-between">
+                  <div className="flex-1 pr-4">
+                    <h4 className="font-medium text-black line-clamp-1">{item.content_title || 'Untitled'}</h4>
+                    <p className="text-xs text-gray-500 mt-1 uppercase tracking-wide">
+                      {item.content_type.replace(/_/g, ' ')}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    {item.created_at && (
+                      <span className="text-xs text-gray-500">{new Date(item.created_at).toLocaleDateString()}</span>
                     )}
                   </div>
-                  
-                  {item.preview_text && (
-                    <p className="text-sm text-gray-500 line-clamp-2">
-                      {item.preview_text}
-                    </p>
-                  )}
-                  
-                  <div className="flex items-center justify-between text-xs text-gray-400">
-                    <div className="flex items-center">
-                      <Calendar className="h-3 w-3 mr-1" />
-                      {new Date(item.created_at).toLocaleDateString()}
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      {item.is_published && (
-                        <span className="bg-green-100 text-green-700 px-2 py-1 rounded-full text-xs font-medium">
-                          Published
-                        </span>
-                      )}
-                      {item.user_rating && (
-                        <div className="flex items-center">
-                          <Star className="h-3 w-3 text-yellow-400 fill-current mr-1" />
-                          <span>{item.user_rating}</span>
-                        </div>
-                      )}
-                    </div>
-                  </div>
+                </div>
+
+                <div className="mt-4 text-sm text-gray-700 line-clamp-3">
+                  {typeof item.content_body === 'string'
+                    ? item.content_body
+                    : JSON.stringify(item.content_body)?.slice(0, 220)}
+                  {typeof item.content_body !== 'string' && '…'}
                 </div>
               </button>
             ))}
@@ -579,7 +555,7 @@ export default function ContentGenerator({ campaignId, intelligenceSources }: Co
         )}
       </div>
 
-      {/* Generated Content Display (for newly generated content) */}
+      {/* Generated Content Display */}
       {generatedContent && (
         <div className="bg-white rounded-2xl border border-gray-200 p-8 shadow-sm">
           <div className="flex items-center justify-between mb-8">
@@ -595,7 +571,9 @@ export default function ContentGenerator({ campaignId, intelligenceSources }: Co
                 Copy
               </button>
               <button
-                onClick={() => downloadContent(generatedContent.generated_content, `${generatedContent.content_type}.json`)}
+                onClick={() =>
+                  downloadContent(generatedContent.generated_content, `${generatedContent.content_type}.json`)
+                }
                 className="flex items-center px-4 py-3 bg-gray-100 text-black rounded-lg hover:bg-gray-200 transition-colors text-sm font-medium"
               >
                 <Download className="h-4 w-4 mr-2" />
@@ -617,13 +595,9 @@ export default function ContentGenerator({ campaignId, intelligenceSources }: Co
                   return (
                     <div key={key} className="text-center">
                       <div className="text-lg font-semibold text-black">
-                        {typeof value === 'number' 
-                          ? `${Math.round(value * 100)}%` 
-                          : String(value)}
+                        {typeof value === 'number' ? `${Math.round(value * 100)}%` : String(value)}
                       </div>
-                      <div className="text-sm text-gray-600 capitalize">
-                        {key.replace(/_/g, ' ')}
-                      </div>
+                      <div className="text-sm text-gray-600 capitalize">{key.replace(/_/g, ' ')}</div>
                     </div>
                   )
                 })}
@@ -655,6 +629,169 @@ export default function ContentGenerator({ campaignId, intelligenceSources }: Co
             </div>
           )}
 
+          {/* Content Display */}
+          <div className="space-y-6">
+            {/* Email Sequence Display */}
+            {generatedContent.content_type === 'email_sequence' && (
+              <div className="space-y-6">
+                {generatedContent.generated_content.content?.map((email: any, index: number) => (
+                  <div key={index} className="border border-gray-200 rounded-2xl p-6">
+                    <div className="flex items-center justify-between mb-4">
+                      <h5 className="font-medium text-black">Email #{email.email_number || index + 1}</h5>
+                      <button
+                        onClick={() =>
+                          copyToClipboard(`Subject: ${email.subject || 'No subject'}\n\n${email.body || 'No content'}`)
+                        }
+                        className="text-sm text-black hover:text-gray-600 font-medium"
+                      >
+                        Copy Email
+                      </button>
+                    </div>
+                    <div className="bg-gray-50 rounded-xl p-4 mb-4">
+                      <strong className="text-sm text-black">Subject: </strong>
+                      <span className="text-sm text-gray-700">{email.subject || 'No subject'}</span>
+                    </div>
+                    <div className="whitespace-pre-wrap text-sm text-gray-700 leading-relaxed">
+                      {email.body || 'No content available'}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Social Posts Display */}
+            {generatedContent.content_type === 'SOCIAL_POSTS' && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {generatedContent.generated_content.content?.map((post: any, index: number) => (
+                  <div key={index} className="border border-gray-200 rounded-2xl p-6">
+                    <div className="flex items-center justify-between mb-4">
+                      <h5 className="font-medium text-black">Post #{index + 1}</h5>
+                      <button
+                        onClick={() => copyToClipboard(post.text || '')}
+                        className="text-sm text-black hover:text-gray-600 font-medium"
+                      >
+                        Copy
+                      </button>
+                    </div>
+                    <div className="whitespace-pre-wrap text-sm text-gray-700 mb-4">
+                      {post.text || 'No content available'}
+                    </div>
+                    {post.hashtags && post.hashtags.length > 0 && (
+                      <div className="flex flex-wrap gap-2">
+                        {post.hashtags.map((hashtag: string, idx: number) => (
+                          <span key={idx} className="text-xs bg-gray-100 text-gray-700 px-3 py-1 rounded-full">
+                            {hashtag}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Ad Copy Display */}
+            {generatedContent.content_type === 'ad_copy' && (
+              <div className="space-y-8">
+                {Object.entries(generatedContent.generated_content.content || {}).map(([section, items]) => (
+                  <div key={section} className="border border-gray-200 rounded-2xl p-6">
+                    <h5 className="font-medium text-black mb-4 capitalize">{section.replace(/_/g, ' ')}</h5>
+                    <div className="space-y-3">
+                      {Array.isArray(items) &&
+                        items.map((item: string, index: number) => (
+                          <div key={index} className="flex items-center justify-between bg-gray-50 rounded-xl p-4">
+                            <span className="text-sm text-gray-700">{item}</span>
+                            <button
+                              onClick={() => copyToClipboard(item)}
+                              className="text-xs text-black hover:text-gray-600 font-medium"
+                            >
+                              Copy
+                            </button>
+                          </div>
+                        ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Blog Post Display */}
+            {generatedContent.content_type === 'blog_post' && (
+              <div className="space-y-6">
+                <div className="border border-gray-200 rounded-2xl p-8">
+                  <h5 className="font-medium text-black mb-6">Blog Post Content</h5>
+                  <div className="prose max-w-none">
+                    <h1 className="text-2xl font-semibold mb-6 text-black">
+                      {generatedContent.generated_content.content?.headline || 'Blog Post Title'}
+                    </h1>
+                    {generatedContent.generated_content.content?.sections?.map((section: any, index: number) => (
+                      <div key={index} className="mb-8">
+                        <h2 className="text-xl font-medium mb-3 text-black">
+                          {section.title || `Section ${index + 1}`}
+                        </h2>
+                        <div className="whitespace-pre-wrap text-gray-700">
+                          {section.content || 'No content available'}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Landing Page Display */}
+            {generatedContent.content_type === 'LANDING_PAGE' && (
+              <div className="space-y-6">
+                <div className="border border-gray-200 rounded-2xl p-8">
+                  <h5 className="font-medium text-black mb-6">Landing Page Sections</h5>
+                  <div className="space-y-6">
+                    <div className="bg-gray-50 rounded-2xl p-6">
+                      <h3 className="text-xl font-semibold text-black">
+                        {generatedContent.generated_content.content?.headline || 'Landing Page Headline'}
+                      </h3>
+                      {generatedContent.generated_content.content?.subheadline && (
+                        <p className="text-gray-600 mt-3">
+                          {generatedContent.generated_content.content.subheadline}
+                        </p>
+                      )}
+                    </div>
+                    {generatedContent.generated_content.content?.sections?.map((section: string, index: number) => (
+                      <div key={index} className="bg-gray-50 rounded-xl p-4">
+                        <h4 className="font-medium text-black">{section}</h4>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Video Script Display */}
+            {generatedContent.content_type === 'video_script' && (
+              <div className="border border-gray-200 rounded-2xl p-8">
+                <h5 className="font-medium text-black mb-6">Video Script</h5>
+                <div className="whitespace-pre-wrap text-sm text-gray-700 leading-relaxed">
+                  {generatedContent.generated_content.content?.script ||
+                    generatedContent.generated_content.content ||
+                    'No script content available'}
+                </div>
+              </div>
+            )}
+
+            {/* Generic Content Display */}
+            {!['email_sequence', 'SOCIAL_POSTS', 'ad_copy', 'blog_post', 'LANDING_PAGE', 'video_script'].includes(
+              generatedContent.content_type
+            ) && (
+              <div className="border border-gray-200 rounded-2xl p-8">
+                <h5 className="font-medium text-black mb-6">Generated Content</h5>
+                <div className="whitespace-pre-wrap text-sm text-gray-700 leading-relaxed">
+                  {typeof generatedContent.generated_content.content === 'string'
+                    ? generatedContent.generated_content.content
+                    : JSON.stringify(generatedContent.generated_content.content, null, 2)}
+                </div>
+              </div>
+            )}
+          </div>
+
           {/* Usage Tips */}
           {generatedContent.generated_content.usage_tips && generatedContent.generated_content.usage_tips.length > 0 && (
             <div className="mt-8 bg-gray-50 rounded-2xl p-6">
@@ -675,29 +812,24 @@ export default function ContentGenerator({ campaignId, intelligenceSources }: Co
 
           {/* Action Buttons */}
           <div className="mt-8 flex space-x-4 pt-6 border-t border-gray-200">
-            <button 
+            <button
               onClick={() => {
-                // Save content to campaign
                 console.log('Saving content to campaign:', generatedContent)
-                // Refresh content list to show the newly saved content
-                loadContentItems()
               }}
               className="flex-1 bg-black text-white py-4 px-6 rounded-lg font-medium hover:bg-gray-900 transition-colors"
             >
               Save to Campaign
             </button>
-            <button 
+            <button
               onClick={() => {
-                // Generate more variations with same settings
                 generateContent()
               }}
               className="flex-1 bg-gray-100 text-black py-4 px-6 rounded-lg font-medium hover:bg-gray-200 transition-colors"
             >
               Generate More Variations
             </button>
-            <button 
+            <button
               onClick={() => {
-                // Preview content in new window or modal
                 console.log('Previewing content:', generatedContent)
               }}
               className="px-8 py-4 bg-gray-100 text-black rounded-lg font-medium hover:bg-gray-200 transition-colors flex items-center"
@@ -709,17 +841,17 @@ export default function ContentGenerator({ campaignId, intelligenceSources }: Co
         </div>
       )}
 
-      {/* 🆕 NEW: Content View/Edit Modal */}
-      {showContentModal && selectedContentItem && (
+      {/* View/Edit Modal */}
+      {selectedContentDetail && (
         <ContentViewEditModal
-          content={selectedContentItem}
-          isOpen={showContentModal}
+          content={formatContentForModal(selectedContentDetail)}
+          isOpen={isModalOpen}
           onClose={() => {
-            setShowContentModal(false)
-            setSelectedContentItem(null)
+            setIsModalOpen(false)
+            setSelectedContentDetail(null)
           }}
-          onSave={handleContentSave}
-          onRefresh={loadContentItems}
+          onSave={onModalSave}
+          onRefresh={onModalRefresh}
           formatContentType={formatContentType}
         />
       )}
