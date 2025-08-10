@@ -1,10 +1,11 @@
-// src/lib/api.ts - CLEANED FOR 2-STEP WORKFLOW
+// src/lib/api.ts - COMPLETE FIXED VERSION WITH ROBUST RESPONSE HANDLING
 /**
  * Enhanced API client for CampaignForge with streamlined 2-step workflow
  * 🆕 NEW: Demo preference management system with smart user control
  * 🔧 UPDATED: Cleaned legacy 4-step workflow references
  * 🧹 CLEANED: Removed old workflow interfaces and methods
- * 🔧 FIXED: Updated generateContent method to match backend expectations
+ * 🔧 FIXED: Robust response handling for all backend response formats
+ * 🎯 FIXED: generateContent method handles both success/error response formats
  */
 
 import { useState, useCallback, useEffect } from 'react'
@@ -15,6 +16,41 @@ console.log('🔍 Environment check:')
 console.log('- process.env.NEXT_PUBLIC_API_URL:', process.env.NEXT_PUBLIC_API_URL)
 console.log('- API_BASE_URL being used:', API_BASE_URL)
 console.log('- Window location:', typeof window !== 'undefined' ? window.location.href : 'SSR')
+
+// ============================================================================
+// 🎯 ROBUST RESPONSE TYPES - Handles Multiple Backend Response Formats
+// ============================================================================
+
+export interface StandardResponse<T = any> {
+  success: boolean
+  status?: 'success' | 'error' | 'partial' | 'pending'
+  message?: string
+  data?: T
+  error?: string
+  error_code?: string
+  timestamp?: string
+  request_id?: string
+  warnings?: string[]
+  error_details?: {
+    error_type: string
+    description: string
+    suggestions: string[]
+    debug_info?: Record<string, any>
+  }
+}
+
+export interface LegacyResponse {
+  content_id?: string
+  content_type?: string
+  generated_content?: any
+  smart_url?: string
+  performance_predictions?: any
+  intelligence_sources_used?: number
+  generation_metadata?: any
+  ultra_cheap_stats?: any
+  error?: string
+  message?: string
+}
 
 // ============================================================================
 // 🔧 UPDATED TYPES FOR 2-STEP WORKFLOW
@@ -321,7 +357,10 @@ export class ApiError extends Error {
   constructor(
     message: string,
     public statusCode?: number,
-    public data?: any
+    public data?: any,
+    public errorCode?: string,
+    public suggestions?: string[],
+    public requestId?: string
   ) {
     super(message)
     this.name = 'ApiError'
@@ -336,7 +375,42 @@ export class CreditError extends Error {
 }
 
 // ============================================================================
-// API CLIENT CLASS (Enhanced with Demo Preferences & 2-Step Workflow)
+// 🎯 ROBUST RESPONSE DETECTION UTILITIES
+// ============================================================================
+
+function isStandardResponse(response: any): response is StandardResponse {
+  return response && typeof response === 'object' && 'success' in response
+}
+
+function isLegacyResponse(response: any): response is LegacyResponse {
+  return response && typeof response === 'object' && (
+    'content_id' in response || 
+    'generated_content' in response ||
+    'content_type' in response
+  )
+}
+
+function hasErrorIndicators(response: any): boolean {
+  if (!response || typeof response !== 'object') return false
+  
+  return (
+    response.error ||
+    response.success === false ||
+    response.status === 'error' ||
+    (response.message && response.message.toLowerCase().includes('error')) ||
+    (response.message && response.message.toLowerCase().includes('failed'))
+  )
+}
+
+function extractErrorMessage(response: any): string {
+  if (response.error) return response.error
+  if (response.message && hasErrorIndicators(response)) return response.message
+  if (response.detail) return response.detail
+  return 'Unknown error occurred'
+}
+
+// ============================================================================
+// API CLIENT CLASS (Enhanced with Robust Response Handling)
 // ============================================================================
 
 class ApiClient {
@@ -363,11 +437,50 @@ class ApiClient {
     }
   }
 
+  // 🎯 ROBUST RESPONSE HANDLER - Handles Multiple Backend Response Formats
   private async handleResponse<T>(response: Response): Promise<T> {
     if (response.ok) {
       try {
-        return await response.json()
-      } catch {
+        const responseData = await response.json()
+        
+        // 🎯 ROBUST: Handle standardized responses
+        if (isStandardResponse(responseData)) {
+          if (!responseData.success) {
+            throw new ApiError(
+              responseData.error || responseData.message || 'Operation failed',
+              response.status,
+              responseData,
+              responseData.error_code,
+              responseData.error_details?.suggestions,
+              responseData.request_id
+            )
+          }
+          // Return the data portion for standardized responses
+          return responseData.data as T
+        }
+        
+        // 🎯 ROBUST: Handle legacy responses
+        if (isLegacyResponse(responseData)) {
+          // Check for error indicators in legacy format
+          if (hasErrorIndicators(responseData)) {
+            throw new ApiError(
+              extractErrorMessage(responseData),
+              response.status,
+              responseData
+            )
+          }
+          // Return the whole object for legacy responses
+          return responseData as T
+        }
+        
+        // 🎯 ROBUST: Handle plain JSON responses
+        return responseData as T
+        
+      } catch (jsonError) {
+        if (jsonError instanceof ApiError) {
+          throw jsonError
+        }
+        // If JSON parsing fails, return empty object
         return {} as T
       }
     }
@@ -402,6 +515,94 @@ class ApiClient {
       response.status,
       errorData
     )
+  }
+
+  // 🎯 ROBUST CONTENT GENERATION HANDLER
+  private async handleContentGenerationResponse(response: Response): Promise<GeneratedContent> {
+    let responseData: any
+    
+    try {
+      responseData = await response.json()
+      console.log('🔍 Raw backend response:', responseData)
+    } catch (jsonError) {
+      console.error('❌ JSON parsing failed:', jsonError)
+      throw new ApiError(`Invalid JSON response: ${jsonError}`)
+    }
+
+    // 🎯 ROBUST: Check for error conditions first
+    if (!response.ok) {
+      const errorMessage = extractErrorMessage(responseData)
+      throw new ApiError(errorMessage, response.status, responseData)
+    }
+
+    // 🎯 ROBUST: Handle standardized success response
+    if (isStandardResponse(responseData)) {
+      if (!responseData.success) {
+        throw new ApiError(
+          responseData.error || responseData.message || 'Content generation failed',
+          response.status,
+          responseData,
+          responseData.error_code,
+          responseData.error_details?.suggestions,
+          responseData.request_id
+        )
+      }
+      
+      // Extract data from standardized response
+      const data = responseData.data
+      return {
+        content_id: data.content_id,
+        content_type: data.content_type,
+        generated_content: {
+          title: data.generated_content?.title || `Generated ${data.content_type}`,
+          content: data.generated_content?.content || data.generated_content,
+          metadata: data.generation_metadata
+        },
+                  smart_url: data.smart_url || undefined,
+        performance_predictions: data.performance_predictions || {}
+      }
+    }
+
+    // 🎯 ROBUST: Handle legacy response format
+    if (isLegacyResponse(responseData)) {
+      // Check for error indicators
+      if (hasErrorIndicators(responseData)) {
+        throw new ApiError(extractErrorMessage(responseData), response.status, responseData)
+      }
+
+      // Check for required fields
+      if (!responseData.content_id && !responseData.generated_content) {
+        throw new ApiError('Invalid response: missing content data', response.status, responseData)
+      }
+
+      // Transform legacy response to expected format
+      return {
+        content_id: responseData.content_id || 'legacy-content-id',
+        content_type: responseData.content_type || 'unknown',
+        generated_content: {
+          title: responseData.generated_content?.title || `Generated Content`,
+          content: responseData.generated_content?.content || responseData.generated_content || {},
+          metadata: responseData.generation_metadata || {}
+        },
+                  smart_url: responseData.smart_url || undefined,
+        performance_predictions: responseData.performance_predictions || {}
+      }
+    }
+
+    // 🎯 ROBUST: Fallback for unexpected response format
+    console.warn('⚠️ Unexpected response format, attempting to extract content:', responseData)
+    
+    return {
+      content_id: responseData.id || responseData.content_id || 'unknown-id',
+      content_type: responseData.content_type || 'unknown',
+      generated_content: {
+        title: 'Generated Content',
+        content: responseData.content || responseData.generated_content || responseData,
+        metadata: responseData.metadata || {}
+      },
+                smart_url: undefined,
+      performance_predictions: {}
+    }
   }
 
   setAuthToken(token: string) {
@@ -955,7 +1156,7 @@ class ApiClient {
     return this.handleResponse(response)
   }
 
-  // 🔧 FIXED: Updated generateContent method to match backend expectations
+  // 🎯 ROBUST CONTENT GENERATION METHOD - Handles All Backend Response Formats
   async generateContent(data: {
     content_type: string
     campaign_id: string
@@ -963,12 +1164,11 @@ class ApiClient {
   }): Promise<GeneratedContent> {
     console.log('🎯 Generating content with data:', data)
     
-    // 🔧 FIXED: Use correct backend endpoint and data structure
     const requestData = {
       content_type: data.content_type,
       campaign_id: data.campaign_id,
       preferences: data.preferences || {},
-      prompt: `Generate ${data.content_type} content` // Backend expects this
+      prompt: `Generate ${data.content_type} content`
     }
     
     console.log('📡 Sending request to backend:', requestData)
@@ -979,26 +1179,11 @@ class ApiClient {
       body: JSON.stringify(requestData)
     })
     
-    const result = await this.handleResponse<any>(response)
-    console.log('✅ Backend response:', result)
+    // 🎯 ROBUST: Use specialized content generation response handler
+    const result = await this.handleContentGenerationResponse(response)
+    console.log('✅ Content generation successful:', result)
     
-    // 🔧 FIXED: Handle both success and error responses
-    if (!result.success) {
-      throw new Error(result.error || 'Content generation failed')
-    }
-    
-    // 🔧 FIXED: Transform backend response to match frontend expectations
-    return {
-      content_id: result.content_id,
-      content_type: result.content_type,
-      generated_content: {
-        title: result.generated_content?.title || `Generated ${data.content_type}`,
-        content: result.generated_content?.content || result.generated_content,
-        metadata: result.metadata
-      },
-      smart_url: result.smart_url || null,
-      performance_predictions: result.performance_predictions || {}
-    }
+    return result
   }
 
   // 🔧 UPDATED: Campaign intelligence method with proper parameters
