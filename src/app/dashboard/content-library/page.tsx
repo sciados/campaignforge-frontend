@@ -224,6 +224,7 @@ export default function ContentLibraryRedesign() {
         count: items.length
       }
     }).sort((a, b) => b.count - a.count) // Sort by count descending
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const formatContentType = useCallback((type: string): string => {
@@ -505,12 +506,131 @@ export default function ContentLibraryRedesign() {
       try {
         // First try to load full content detail via the specific endpoint
         const fullContent = await apiClient.getContentDetail(content.campaign_id, content.id)
-        console.log('✅ Full content detail loaded via getContentDetail')
+        console.log('✅ Full content detail loaded via getContentDetail:', fullContent)
         
-        setSelectedContentItem(fullContent)
-        setShowContentModal(true)
+        // Transform the response to ensure it has the expected structure
+        const transformedContent = {
+          ...fullContent,
+          
+          // Map actual API fields to expected modal fields
+          type: 'generated_content',
+          title: fullContent.content_title || 'Generated Content',
+          confidence_score: fullContent.intelligence_source?.confidence_score || 0.85,
+          is_amplified_content: false, // Default to false since is_amplified isn't in the API response yet
+          
+          // Enhanced content parsing for the modal
+          has_valid_content: true,
+          
+          // Parse and format content for display
+          formatted_content: (() => {
+            try {
+              let parsedContent;
+              
+              // Try to use parsed_content first, then fall back to content_body
+              if (fullContent.parsed_content && typeof fullContent.parsed_content === 'object') {
+                parsedContent = fullContent.parsed_content;
+              } else if (fullContent.content_body) {
+                parsedContent = typeof fullContent.content_body === 'string' 
+                  ? JSON.parse(fullContent.content_body)
+                  : fullContent.content_body;
+              } else {
+                throw new Error('No content available');
+              }
+              
+              console.log('📄 Parsed content structure:', parsedContent);
+              
+              // Handle different content structures
+              if (parsedContent.emails && Array.isArray(parsedContent.emails)) {
+                return parsedContent.emails.map((email: any, index: number) => ({
+                  title: email.subject || `Email ${index + 1}`,
+                  content: email.body || email.content || '',
+                  metadata: {
+                    subject: email.subject,
+                    type: 'email',
+                    send_delay: email.send_delay
+                  }
+                }));
+              } else if (parsedContent.posts && Array.isArray(parsedContent.posts)) {
+                return parsedContent.posts.map((post: any, index: number) => ({
+                  title: `Social Post ${index + 1}`,
+                  content: post.content || post.text || '',
+                  metadata: {
+                    platform: post.platform,
+                    hashtags: post.hashtags
+                  }
+                }));
+              } else if (parsedContent.ads && Array.isArray(parsedContent.ads)) {
+                return parsedContent.ads.map((ad: any, index: number) => ({
+                  title: ad.headline || `Ad ${index + 1}`,
+                  content: `**${ad.headline}**\n\n${ad.body}\n\n*CTA: ${ad.cta}*`,
+                  metadata: {
+                    headline: ad.headline,
+                    cta: ad.cta
+                  }
+                }));
+              } else if (typeof parsedContent === 'string') {
+                return [{
+                  title: fullContent.content_title || 'Generated Content',
+                  content: parsedContent,
+                  metadata: {}
+                }];
+              } else if (parsedContent.content) {
+                return [{
+                  title: fullContent.content_title || 'Generated Content',
+                  content: parsedContent.content,
+                  metadata: parsedContent.metadata || {}
+                }];
+              } else {
+                // Handle any other structure
+                return [{
+                  title: fullContent.content_title || 'Generated Content',
+                  content: JSON.stringify(parsedContent, null, 2),
+                  metadata: { type: 'json_content' }
+                }];
+              }
+            } catch (parseError) {
+              console.warn('⚠️ Content parsing failed, using raw content:', parseError);
+              return [{
+                title: fullContent.content_title || 'Generated Content',
+                content: fullContent.content_body || 'Content available but parsing failed',
+                metadata: { parsing_error: true }
+              }];
+            }
+          })(),
+          
+          // Editable text for the modal
+          editable_text: (() => {
+            try {
+              if (fullContent.parsed_content && typeof fullContent.parsed_content === 'object') {
+                return JSON.stringify(fullContent.parsed_content, null, 2);
+              } else if (fullContent.content_body) {
+                const parsed = typeof fullContent.content_body === 'string' 
+                  ? JSON.parse(fullContent.content_body) 
+                  : fullContent.content_body;
+                return JSON.stringify(parsed, null, 2);
+              } else {
+                return fullContent.content_body || '';
+              }
+            } catch {
+              return fullContent.content_body || '';
+            }
+          })(),
+          
+          // Add intelligence source info if available
+          intelligence_source_info: fullContent.intelligence_source ? {
+            source_title: fullContent.intelligence_source.source_title,
+            source_url: fullContent.intelligence_source.source_url,
+            confidence_score: fullContent.intelligence_source.confidence_score,
+            is_amplified: false // Default to false since is_amplified isn't in the API response yet
+          } : null
+        };
+        
+        console.log('✅ Content transformed for modal:', transformedContent);
+        setSelectedContentItem(transformedContent);
+        setShowContentModal(true);
+        
       } catch (detailError) {
-        console.warn('⚠️ getContentDetail failed, falling back to content item data:', detailError)
+        console.warn('⚠️ getContentDetail failed, using content item data:', detailError);
         
         // Fallback: Use the content item data we already have
         // Transform it to match the expected format for the modal
