@@ -386,81 +386,99 @@ export default function ContentGenerator({ campaignId, intelligenceSources }: Co
   }, [loadContentItems])
 
   // 🔥 FIXED: Handle content item click with enhanced debugging
-  const handleContentItemClick = async (contentItem: ContentItem) => {
-    try {
-      console.log('🔍 === DEBUGGING CONTENT CLICK ===');
-      console.log('1. ContentItem clicked:', contentItem.id);
-      console.log('2. ContentItem type:', contentItem.content_type);
-      
-      // Load full content detail
-      const fullContent = await api.getContentDetail(campaignId, contentItem.id);
-      console.log('3. API returned fullContent:', fullContent);
-      console.log('4. content_body type:', typeof fullContent.content_body);
-      console.log('5. content_body value (first 200 chars):', 
-        typeof fullContent.content_body === 'string' 
-          ? fullContent.content_body.substring(0, 200) + '...'
-          : fullContent.content_body
-      );
-      console.log('6. parsed_content exists:', !!fullContent.parsed_content);
-      console.log('7. parsed_content type:', typeof fullContent.parsed_content);
-      
-      // 🔥 NEW: Enhanced content_body parsing with detailed logging
-      if (typeof fullContent.content_body === 'string') {
-        try {
-          const manualParse = JSON.parse(fullContent.content_body);
-          console.log('8. Manual parse success:', !!manualParse);
-          console.log('9. Parsed structure keys:', Object.keys(manualParse));
-          
-          if (manualParse.ads && Array.isArray(manualParse.ads)) {
-            console.log('10. Ads array length:', manualParse.ads.length);
-            console.log('11. First ad structure:', Object.keys(manualParse.ads[0] || {}));
-            if (manualParse.ads[0]) {
-              const firstAd = manualParse.ads[0];
-              console.log('12. First ad headline:', firstAd.headline);
-              console.log('13. First ad description:', firstAd.description);
-              console.log('14. First ad cta:', firstAd.cta);
-              console.log('15. All fields in first ad:', Object.entries(firstAd));
-            }
-          }
-        } catch (parseError) {
-          console.error('8. Manual parse failed:', parseError);
-          console.log('9. Raw content sample:', fullContent.content_body.substring(0, 500));
+  // 🔍 ENHANCED DEBUGGING: Add this to handleContentItemClick function
+// Replace the existing handleContentItemClick function with this enhanced debugging version
+
+const handleContentItemClick = async (contentItem: ContentItem) => {
+  try {
+    console.log('🔍 === DETAILED API DEBUGGING ===');
+    console.log('1. ContentItem clicked:', contentItem.id);
+    console.log('2. ContentItem type:', contentItem.content_type);
+    
+    // Load full content detail
+    const fullContent = await api.getContentDetail(campaignId, contentItem.id);
+    console.log('3. 🔍 RAW API RESPONSE:', fullContent);
+    console.log('4. 🔍 content_body RAW:', fullContent.content_body);
+    console.log('5. 🔍 content_body TYPE:', typeof fullContent.content_body);
+    console.log('6. 🔍 parsed_content RAW:', fullContent.parsed_content);
+    console.log('7. 🔍 parsed_content TYPE:', typeof fullContent.parsed_content);
+    
+    // 🔥 CRITICAL: Test manual JSON parsing of content_body
+    if (typeof fullContent.content_body === 'string') {
+      try {
+        const manualParse = JSON.parse(fullContent.content_body);
+        console.log('8. 🔍 MANUAL PARSE SUCCESS:', manualParse);
+        
+        if (manualParse.ads && Array.isArray(manualParse.ads)) {
+          console.log('9. 🔍 MANUAL PARSE - FIRST AD:', manualParse.ads[0]);
+          console.log('10. 🔍 MANUAL PARSE - FIRST AD DESCRIPTION:', manualParse.ads[0].description);
+          console.log('11. 🔍 MANUAL PARSE - DESCRIPTION TYPE:', typeof manualParse.ads[0].description);
+          console.log('12. 🔍 MANUAL PARSE - DESCRIPTION VALUE:', JSON.stringify(manualParse.ads[0].description));
         }
+      } catch (parseError) {
+        console.error('8. ❌ MANUAL PARSE FAILED:', parseError);
       }
-      
-      // 🔥 FIX: Ensure we use content_body if parsed_content is missing or invalid
-      if (!fullContent.parsed_content && fullContent.content_body) {
-        console.log('17. No parsed_content, attempting to parse content_body');
-        try {
-          if (typeof fullContent.content_body === 'string') {
-            fullContent.parsed_content = JSON.parse(fullContent.content_body);
-            console.log('18. Successfully parsed content_body into parsed_content');
-          } else {
-            fullContent.parsed_content = fullContent.content_body;
-            console.log('18. Used content_body as parsed_content (already object)');
-          }
-        } catch (error) {
-          console.error('18. Failed to parse content_body:', error);
-          fullContent.parsed_content = { error: 'Failed to parse content' };
-        }
-      }
-      
-      // Format content for proper display based on content type
-      const formattedContent = formatContentForDisplay(fullContent);
-      console.log('19. After formatContentForDisplay:', {
-        has_valid_content: formattedContent.has_valid_content,
-        formatted_content_length: formattedContent.formatted_content?.length,
-        first_item_preview: formattedContent.formatted_content?.[0]?.content?.substring(0, 100)
-      });
-      console.log('🔍 === END DEBUGGING CONTENT CLICK ===');
-      
-      setSelectedContentItem(formattedContent);
-      setShowContentModal(true);
-    } catch (error) {
-      console.error('❌ Failed to load content detail:', error);
-      setError(error instanceof Error ? error.message : 'Failed to load content');
     }
+    
+    // 🔥 CRITICAL: Compare parsed_content vs manual parse
+    if (fullContent.parsed_content) {
+      console.log('13. 🔍 API parsed_content exists');
+      if (fullContent.parsed_content.ads && Array.isArray(fullContent.parsed_content.ads)) {
+        console.log('14. 🔍 API PARSED - FIRST AD:', fullContent.parsed_content.ads[0]);
+        console.log('15. 🔍 API PARSED - FIRST AD DESCRIPTION:', fullContent.parsed_content.ads[0].description);
+        console.log('16. 🔍 API PARSED - DESCRIPTION TYPE:', typeof fullContent.parsed_content.ads[0].description);
+        console.log('17. 🔍 API PARSED - DESCRIPTION VALUE:', JSON.stringify(fullContent.parsed_content.ads[0].description));
+        
+        // 🔥 COMPARE: Manual vs API parsed
+        if (typeof fullContent.content_body === 'string') {
+          try {
+            const manualParse = JSON.parse(fullContent.content_body);
+            console.log('18. 🔍 COMPARISON - Manual vs API:');
+            console.log('    Manual description:', manualParse.ads[0].description);
+            console.log('    API description:', fullContent.parsed_content.ads[0].description);
+            console.log('    Are they equal?:', manualParse.ads[0].description === fullContent.parsed_content.ads[0].description);
+          } catch (e) {
+            console.log('18. ❌ Could not compare due to parse error');
+          }
+        }
+      }
+    } else {
+      console.log('13. ⚠️ No API parsed_content - will use manual parse');
+    }
+    
+    // 🔥 FIX: Ensure we use content_body if parsed_content is missing or invalid
+    if (!fullContent.parsed_content && fullContent.content_body) {
+      console.log('19. 🔧 No parsed_content, attempting to parse content_body');
+      try {
+        if (typeof fullContent.content_body === 'string') {
+          fullContent.parsed_content = JSON.parse(fullContent.content_body);
+          console.log('20. ✅ Successfully parsed content_body into parsed_content');
+        } else {
+          fullContent.parsed_content = fullContent.content_body;
+          console.log('20. ✅ Used content_body as parsed_content (already object)');
+        }
+      } catch (error) {
+        console.error('20. ❌ Failed to parse content_body:', error);
+        fullContent.parsed_content = { error: 'Failed to parse content' };
+      }
+    }
+    
+    // Format content for proper display based on content type
+    const formattedContent = formatContentForDisplay(fullContent);
+    console.log('21. 🔍 FINAL FORMATTED CONTENT:', {
+      has_valid_content: formattedContent.has_valid_content,
+      formatted_content_length: formattedContent.formatted_content?.length,
+      first_item_preview: formattedContent.formatted_content?.[0]?.content?.substring(0, 100)
+    });
+    console.log('🔍 === END DETAILED API DEBUGGING ===');
+    
+    setSelectedContentItem(formattedContent);
+    setShowContentModal(true);
+  } catch (error) {
+    console.error('❌ Failed to load content detail:', error);
+    setError(error instanceof Error ? error.message : 'Failed to load content');
   }
+};
 
   // 🆕 NEW: Handle content save
   const handleContentSave = async (contentId: string, newContent: string) => {
