@@ -27,9 +27,19 @@ import { useApi } from '../../lib/api'
 
 interface IntelligenceSource {
   id: string
-  source_title: string
-  source_type: string
+  source_title?: string
   confidence_score: number
+  source_type: string
+  source_url?: string
+  analysis_status: string
+  offer_intelligence: Record<string, any>
+  psychology_intelligence: Record<string, any>
+  processing_metadata: Record<string, any>
+  created_at: string
+  updated_at?: string
+  insights_extracted?: number
+  intelligence_type?: string
+  [key: string]: any
 }
 
 interface ContentGeneratorProps {
@@ -788,15 +798,15 @@ export default function ContentGenerator({ campaignId, intelligenceSources }: Co
               }`}
             >
               <div className="flex items-center justify-between mb-3">
-                <h4 className="font-medium text-black truncate">{source.source_title}</h4>
+                <h4 className="font-medium text-black truncate">{source.source_title || 'Intelligence Source'}</h4>
                 <div className="flex items-center">
                   <Star className="h-4 w-4 text-black mr-1" />
                   <span className="text-sm font-medium text-gray-600">
-                    {Math.round(source.confidence_score * 100)}%
+                    {Math.round((source.confidence_score || 0) * 100)}%
                   </span>
                 </div>
               </div>
-              <p className="text-sm text-gray-600 capitalize">{source.source_type.replace('_', ' ')}</p>
+              <p className="text-sm text-gray-600 capitalize">{(source.source_type || 'unknown').replace('_', ' ')}</p>
             </button>
           ))}
         </div>
