@@ -141,7 +141,8 @@ export default function ContentGenerator({ campaignId, intelligenceSources }: Co
 
   // 🔥 FIXED: Format ad copy content for proper display in modal
   const formatAdCopyForDisplay = (adData: any) => {
-    console.log('🔧 Formatting ad copy for display:', adData);
+    console.log('🔍 formatAdCopyForDisplay received:', adData);
+    console.log('🔍 adData.ads:', adData.ads);
     
     if (!adData.ads || !Array.isArray(adData.ads)) {
       console.warn('⚠️ No ads array found in data');
@@ -159,31 +160,30 @@ export default function ContentGenerator({ campaignId, intelligenceSources }: Co
     
     // Format each ad for proper display
     const formattedAds = adData.ads.map((ad: any, index: number) => {
-      // 🔍 DEBUGGING: Detailed description analysis
-      console.log(`🔍 Ad ${index + 1} description analysis:`, {
-        raw_description: ad.description,
-        description_type: typeof ad.description,
-        description_value: JSON.stringify(ad.description),
-        is_undefined_string: ad.description === 'undefined',
-        is_undefined_value: ad.description === undefined,
-        is_null: ad.description === null,
-        is_empty: ad.description === '',
-        truthy_check: !!ad.description,
-        all_ad_fields: Object.keys(ad)
-      });
+      console.log(`🔍 Processing ad ${index + 1}:`, ad);
+      console.log(`📝 Ad fields available:`, Object.keys(ad));
+      console.log(`📝 Ad description raw:`, ad.description);
+      console.log(`📝 Ad description type:`, typeof ad.description);
+      console.log(`📝 Ad description === 'undefined':`, ad.description === 'undefined');
+      console.log(`📝 Ad description === undefined:`, ad.description === undefined);
       
-      // 🔥 FIX: Simplified description handling
+      // 🔥 THE ACTUAL FIX: Check if description is the string "undefined"
+      let description = ad.description;
+      if (description === 'undefined' || description === undefined || description === null || description === '') {
+        description = 'No Description Available';
+        console.log(`🔧 Fixed description for ad ${index + 1}: changed from "${ad.description}" to "${description}"`);
+      }
+      
       const headline = ad.headline || `Ad ${index + 1}`;
-      const description = ad.description || 'No Description Available';
       const cta = ad.cta || 'Learn More';
       
       const formattedContent = `**${headline}**\n\n${description}\n\n*CTA: ${cta}*`;
       
-      console.log(`✅ Formatted ad ${index + 1}:`, {
+      console.log(`✅ Final formatted ad ${index + 1}:`, {
         headline,
-        description_preview: description.substring(0, 50) + '...',
+        description: description.substring(0, 50) + '...',
         cta,
-        total_length: formattedContent.length
+        content_length: formattedContent.length
       });
       
       return {
@@ -195,7 +195,6 @@ export default function ContentGenerator({ campaignId, intelligenceSources }: Co
           angle: ad.angle || 'Unknown',
           target_audience: ad.target_audience || 'Unknown',
           product_name: ad.product_name || 'Unknown',
-          product_name_source: ad.product_name_source || 'Unknown',
           ad_number: ad.ad_number || index + 1
         }
       };
