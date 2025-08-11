@@ -562,7 +562,7 @@ export default function ContentLibraryRedesign() {
               } else if (parsedContent.ads && Array.isArray(parsedContent.ads)) {
                 return parsedContent.ads.map((ad: any, index: number) => ({
                   title: ad.headline || `Ad ${index + 1}`,
-                  content: `**${ad.headline}**\n\n${ad.body}\n\n*CTA: ${ad.cta}*`,
+                  content: `**${ad.headline}**\n\n${ad.description}\n\n*CTA: ${ad.cta}*`,
                   metadata: {
                     headline: ad.headline,
                     cta: ad.cta
@@ -694,7 +694,7 @@ export default function ContentLibraryRedesign() {
               } else if (parsed.ads && Array.isArray(parsed.ads)) {
                 return parsed.ads.map((ad: any, index: number) => ({
                   title: ad.headline || `Ad ${index + 1}`,
-                  content: `**${ad.headline}**\n\n${ad.body}\n\n*CTA: ${ad.cta}*`,
+                  content: `**${ad.headline}**\n\n${ad.description}\n\n*CTA: ${ad.cta}*`,
                   metadata: {
                     headline: ad.headline,
                     cta: ad.cta
