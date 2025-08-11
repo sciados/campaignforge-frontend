@@ -139,13 +139,10 @@ export default function ContentGenerator({ campaignId, intelligenceSources }: Co
     platform: 'general'
   })
 
-  // 🔥 DIRECT EXTRACTION: Format ad copy like email sequences
+  // 🔥 ALERT-BASED DEBUG: Format ad copy with step-by-step alerts
   const formatAdCopyForDisplay = (adData: any) => {
-    console.log('🔧 DIRECT EXTRACTION: Processing ad copy like email sequences');
-    console.log('🔍 Raw adData:', adData);
-    
-    if (!adData.ads || !Array.isArray(adData.ads)) {
-      console.warn('⚠️ No ads array found in data');
+    if (!adData?.ads) {
+      alert('🚨 No ads in adData!');
       return {
         ...adData,
         has_valid_content: false,
@@ -156,36 +153,26 @@ export default function ContentGenerator({ campaignId, intelligenceSources }: Co
       };
     }
     
-    console.log(`📊 Processing ${adData.ads.length} ads with direct extraction`);
+    // Check the first ad specifically
+    const firstAd = adData.ads[0];
+    alert(`🔍 formatAdCopyForDisplay - First ad description: "${firstAd.description}"`);
     
-    // 🔥 DIRECT EXTRACTION: Just like email.body extraction
     const formattedAds = adData.ads.map((ad: any, index: number) => {
-      console.log(`🔍 Ad ${index + 1} - Direct field extraction:`);
-      console.log('  - headline:', ad.headline);
-      console.log('  - description:', ad.description);
-      console.log('  - cta:', ad.cta);
-      console.log('  - description type:', typeof ad.description);
-      console.log('  - description length:', ad.description?.length);
-      
-      // 🔥 CRITICAL: Direct extraction just like email.subject and email.body
       const title = ad.headline || `Ad ${index + 1}`;
       const description = ad.description || 'No description available';
-      const cta = ad.cta || 'No CTA';
       
-      // 🔥 NO STRING MANIPULATION - store each field separately
-      console.log(`✅ Extracted ad ${index + 1}:`, {
-        title: title,
-        description: description,
-        cta: cta
-      });
+      // 🎯 CRITICAL: Check if we're corrupting the description here
+      if (ad.description !== description) {
+        alert(`🚨 Description changed! Original: "${ad.description}" → Formatted: "${description}"`);
+      }
       
       return {
         title: title,
-        content: description, // 🔥 JUST THE DESCRIPTION - like email.body
+        content: description, // Direct field extraction
         metadata: {
           headline: title,
           description: description,
-          cta: cta,
+          cta: ad.cta || 'No CTA',
           platform: ad.platform || 'Unknown',
           objective: ad.objective || 'Unknown',
           angle: ad.angle || 'Unknown',
@@ -196,7 +183,7 @@ export default function ContentGenerator({ campaignId, intelligenceSources }: Co
       };
     });
     
-    console.log('✅ Direct extraction complete - formatted ads:', formattedAds);
+    alert(`🔍 formatAdCopyForDisplay complete - first formatted content: "${formattedAds[0].content}"`);
     
     return {
       ...adData,
