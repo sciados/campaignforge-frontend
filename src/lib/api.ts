@@ -555,11 +555,20 @@ class ApiClient {
         content_type: data.content_type,
         generated_content: {
           title: data.generated_content?.title || `Generated ${data.content_type}`,
-          content: data.generated_content?.content || data.generated_content,
-          metadata: data.generation_metadata
-        },
-                  smart_url: data.smart_url || undefined,
-        performance_predictions: data.performance_predictions || {}
+          content: (() => {
+            // Handle different response formats properly
+            if (data.generated_content?.content) {
+              return data.generated_content.content;
+            }
+            if (data.generated_content && typeof data.generated_content === 'object') {
+              return data.generated_content;
+        }
+        return {};
+      })(),
+      metadata: data.generation_metadata
+    },
+    smart_url: data.smart_url || undefined,
+      performance_predictions: data.performance_predictions || {}
       }
     }
 
