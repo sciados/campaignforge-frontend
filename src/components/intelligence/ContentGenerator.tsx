@@ -374,16 +374,44 @@ export default function ContentGenerator({ campaignId, intelligenceSources }: Co
   }
 
   // 🆕 NEW: Get preview text from content
-  const getPreviewText = (content: any): string => {
-    if (typeof content === 'string') {
-      return content.substring(0, 100) + (content.length > 100 ? '...' : '')
+  // 🆕 NEW: Get preview text from content with safe JSON parsing
+const getPreviewText = (content: any): string => {
+  if (typeof content === 'string') {
+    // Handle the case where content_body is the string "undefined"
+    if (content === 'undefined' || content === 'null') {
+      return 'No content available'
     }
-    if (content && typeof content === 'object') {
-      const text = JSON.stringify(content).substring(0, 100)
-      return text + (text.length >= 100 ? '...' : '')
+    
+    // Try to parse JSON string
+    try {
+      const parsed = JSON.parse(content)
+      if (parsed && typeof parsed === 'object') {
+        if (parsed.ads) {
+          return `${parsed.ads.length} ad variations`
+        }
+        if (parsed.emails) {
+          return `${parsed.emails.length} email sequence`
+        }
+        if (parsed.posts) {
+          return `${parsed.posts.length} social posts`
+        }
+        return 'Generated content available'
+      }
+    } catch (jsonError) {
+      // If JSON parsing fails, return safe preview of the string
+      console.warn('⚠️ JSON parsing failed in preview, using string preview')
     }
-    return 'No preview available'
+    
+    return content.substring(0, 100) + (content.length > 100 ? '...' : '')
   }
+  
+  if (content && typeof content === 'object') {
+    const text = JSON.stringify(content).substring(0, 100)
+    return text + (text.length >= 100 ? '...' : '')
+  }
+  
+  return 'No preview available'
+}
 
   const generateContent = useCallback(async () => {
     if (!selectedContentType || !selectedIntelligence) return
