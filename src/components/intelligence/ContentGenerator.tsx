@@ -1,4 +1,4 @@
-// frontend/src/components/ContentGenerator.tsx - FIXED WITH CONTENT LIST
+// src/components/intelligence/ContentGenerator.tsx - FIXED WITH AD COPY DISPLAY FIX
 import React, { useState, useCallback, useEffect } from 'react'
 import { 
   Wand2, 
@@ -139,6 +139,145 @@ export default function ContentGenerator({ campaignId, intelligenceSources }: Co
     platform: 'general'
   })
 
+  // 🔥 NEW: Format ad copy content for proper display in modal
+  const formatAdCopyForDisplay = (adData: any) => {
+    if (!adData.ads) return adData;
+    
+    console.log('🔧 Formatting ad copy for display:', adData);
+    
+    // Format each ad for proper display
+    const formattedAds = adData.ads.map((ad: any, index: number) => ({
+      title: ad.headline || `Ad ${index + 1}`,
+      content: `**${ad.headline || 'No Headline'}**\n\n${ad.description || 'No Description'}\n\n*CTA: ${ad.cta || 'No CTA'}*`,
+      metadata: {
+        platform: ad.platform || 'Unknown',
+        objective: ad.objective || 'Unknown',
+        angle: ad.angle || 'Unknown',
+        target_audience: ad.target_audience || 'Unknown',
+        product_name: ad.product_name || 'Unknown',
+        product_name_source: ad.product_name_source || 'Unknown'
+      }
+    }));
+    
+    console.log('✅ Formatted ads for display:', formattedAds);
+    
+    return {
+      ...adData,
+      formatted_content: formattedAds,
+      has_valid_content: true
+    };
+  };
+
+  // 🔥 NEW: Format email sequence content for proper display in modal
+  const formatEmailSequenceForDisplay = (emailData: any) => {
+    if (!emailData.emails) return emailData;
+    
+    console.log('🔧 Formatting email sequence for display:', emailData);
+    
+    // Format each email for proper display
+    const formattedEmails = emailData.emails.map((email: any, index: number) => ({
+      title: email.subject || `Email ${index + 1}`,
+      content: `**Subject: ${email.subject || 'No Subject'}**\n\n${email.body || 'No Content'}`,
+      metadata: {
+        email_number: email.email_number || index + 1,
+        send_delay: email.send_delay || 'Unknown',
+        strategic_angle: email.strategic_angle || 'Unknown',
+        campaign_focus: email.campaign_focus || 'Unknown'
+      }
+    }));
+    
+    console.log('✅ Formatted emails for display:', formattedEmails);
+    
+    return {
+      ...emailData,
+      formatted_content: formattedEmails,
+      has_valid_content: true
+    };
+  };
+
+  // 🔥 NEW: Format social posts content for proper display in modal
+  const formatSocialPostsForDisplay = (socialData: any) => {
+    if (!socialData.posts) return socialData;
+    
+    console.log('🔧 Formatting social posts for display:', socialData);
+    
+    // Format each post for proper display
+    const formattedPosts = socialData.posts.map((post: any, index: number) => ({
+      title: `${post.platform || 'Social'} Post ${index + 1}`,
+      content: post.content || 'No Content',
+      metadata: {
+        platform: post.platform || 'Unknown',
+        post_number: post.post_number || index + 1,
+        hashtags: post.hashtags || [],
+        estimated_reach: post.estimated_reach || 'Unknown'
+      }
+    }));
+    
+    console.log('✅ Formatted social posts for display:', formattedPosts);
+    
+    return {
+      ...socialData,
+      formatted_content: formattedPosts,
+      has_valid_content: true
+    };
+  };
+
+  // 🔥 NEW: Universal content formatter for different content types
+  const formatContentForDisplay = (contentDetail: any) => {
+    const contentType = contentDetail.content_type;
+    const parsedContent = contentDetail.parsed_content;
+    
+    console.log('🔧 Formatting content for display:', { contentType, parsedContent });
+    
+    if (!parsedContent) {
+      console.warn('⚠️ No parsed content available');
+      return {
+        ...contentDetail,
+        has_valid_content: false,
+        parse_result: {
+          error: 'No parsed content available',
+          isEmpty: true,
+          suggestion: 'Try regenerating this content'
+        }
+      };
+    }
+    
+    let formattedData = parsedContent;
+    
+    // Apply content-type specific formatting
+    switch (contentType) {
+      case 'ad_copy':
+        formattedData = formatAdCopyForDisplay(parsedContent);
+        break;
+      case 'email_sequence':
+        formattedData = formatEmailSequenceForDisplay(parsedContent);
+        break;
+      case 'social_posts':
+      case 'SOCIAL_POSTS':
+        formattedData = formatSocialPostsForDisplay(parsedContent);
+        break;
+      default:
+        // For other content types, create a simple single-item view
+        formattedData = {
+          ...parsedContent,
+          formatted_content: [{
+            title: contentDetail.content_title || `${contentType} Content`,
+            content: typeof parsedContent === 'string' ? parsedContent : JSON.stringify(parsedContent, null, 2),
+            metadata: {
+              content_type: contentType,
+              generated_at: contentDetail.created_at
+            }
+          }],
+          has_valid_content: true
+        };
+    }
+    
+    return {
+      ...contentDetail,
+      ...formattedData
+    };
+  };
+
   // 🆕 NEW: Load existing content when component mounts
   const loadContentItems = useCallback(async () => {
     setIsLoadingContent(true)
@@ -173,7 +312,7 @@ export default function ContentGenerator({ campaignId, intelligenceSources }: Co
     loadContentItems()
   }, [loadContentItems])
 
-  // 🆕 NEW: Handle content item click
+  // 🔥 FIXED: Handle content item click with proper formatting
   const handleContentItemClick = async (contentItem: ContentItem) => {
     try {
       console.log('🔍 Loading content detail for:', contentItem.id)
@@ -182,7 +321,11 @@ export default function ContentGenerator({ campaignId, intelligenceSources }: Co
       const fullContent = await api.getContentDetail(campaignId, contentItem.id)
       console.log('✅ Loaded full content:', fullContent)
       
-      setSelectedContentItem(fullContent)
+      // 🔥 FIX: Format content for proper display based on content type
+      const formattedContent = formatContentForDisplay(fullContent);
+      console.log('✅ Formatted content for modal:', formattedContent)
+      
+      setSelectedContentItem(formattedContent)
       setShowContentModal(true)
     } catch (error) {
       console.error('❌ Failed to load content detail:', error)
@@ -709,7 +852,7 @@ export default function ContentGenerator({ campaignId, intelligenceSources }: Co
         </div>
       )}
 
-      {/* 🆕 NEW: Content View/Edit Modal */}
+      {/* 🔥 FIXED: Content View/Edit Modal with proper formatting */}
       {showContentModal && selectedContentItem && (
         <ContentViewEditModal
           content={selectedContentItem}
