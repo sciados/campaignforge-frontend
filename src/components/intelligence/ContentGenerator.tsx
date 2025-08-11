@@ -141,14 +141,29 @@ export default function ContentGenerator({ campaignId, intelligenceSources }: Co
 
   // 🔥 NEW: Format ad copy content for proper display in modal
   const formatAdCopyForDisplay = (adData: any) => {
-    if (!adData.ads) return adData;
+  console.log('=== formatAdCopyForDisplay DEBUG ===');
+  console.log('Input adData:', adData);
+  console.log('adData.ads exists:', !!adData.ads);
+  console.log('adData.ads length:', adData.ads?.length);
+  
+  if (!adData.ads) {
+    console.log('❌ No ads array found, returning original data');
+    return adData;
+  }
+  
+  console.log('✅ Processing ads array...');
+  
+  // Format each ad for proper display
+  const formattedAds = adData.ads.map((ad: any, index: number) => {
+    console.log(`--- Processing ad ${index + 1} ---`);
+    console.log('Ad object:', ad);
+    console.log('Ad headline:', ad.headline);
+    console.log('Ad description:', ad.description);
+    console.log('Ad description type:', typeof ad.description);
     
-    console.log('🔧 Formatting ad copy for display:', adData);
-    
-    // Format each ad for proper display
-    const formattedAds = adData.ads.map((ad: any, index: number) => ({
+    const formattedAd = {
       title: ad.headline || `Ad ${index + 1}`,
-      content: `**${ad.headline || 'No Headline'}**\n\n${ad.description || 'No Description'}\n\n*CTA: ${ad.cta || 'No CTA'}*`,
+      content: `**${ad.headline || 'No Headline'}**\n\n${ad.description || 'MISSING DESCRIPTION'}\n\n*CTA: ${ad.cta || 'No CTA'}*`,
       metadata: {
         platform: ad.platform || 'Unknown',
         objective: ad.objective || 'Unknown',
@@ -157,16 +172,25 @@ export default function ContentGenerator({ campaignId, intelligenceSources }: Co
         product_name: ad.product_name || 'Unknown',
         product_name_source: ad.product_name_source || 'Unknown'
       }
-    }));
-    
-    console.log('✅ Formatted ads for display:', formattedAds);
-    
-    return {
-      ...adData,
-      formatted_content: formattedAds,
-      has_valid_content: true
     };
+    
+    console.log('Formatted ad:', formattedAd);
+    return formattedAd;
+  });
+  
+  console.log('All formatted ads:', formattedAds);
+  
+  const result = {
+    ...adData,
+    formatted_content: formattedAds,
+    has_valid_content: true
   };
+  
+  console.log('Final result:', result);
+  console.log('=== formatAdCopyForDisplay DEBUG END ===');
+  
+  return result;
+};
 
   // 🔥 NEW: Format email sequence content for proper display in modal
   const formatEmailSequenceForDisplay = (emailData: any) => {
