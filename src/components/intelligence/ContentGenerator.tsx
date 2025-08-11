@@ -139,47 +139,76 @@ export default function ContentGenerator({ campaignId, intelligenceSources }: Co
     platform: 'general'
   })
 
-  // 🔥 NEW: Format ad copy content for proper display in modal
+  // 🔥 FIXED: Format ad copy content for proper display in modal
   const formatAdCopyForDisplay = (adData: any) => {
-  if (!adData.ads) return adData;
-  
-  console.log('🔧 Formatting ad copy for display:', adData);
-  
-  // Format each ad for proper display
-  const formattedAds = adData.ads.map((ad: any, index: number) => {
-    console.log(`🔍 Ad ${index + 1} description:`, ad.description, typeof ad.description);
+    console.log('🔧 Formatting ad copy for display:', adData);
     
-    // Fix: Ensure we handle undefined values properly
-    const headline = ad.headline || `Ad ${index + 1}`;
-    const description = ad.description && ad.description !== 'undefined' ? ad.description : 'No Description';
-    const cta = ad.cta && ad.cta !== 'undefined' ? ad.cta : 'No CTA';
+    if (!adData.ads || !Array.isArray(adData.ads)) {
+      console.warn('⚠️ No ads array found in data');
+      return {
+        ...adData,
+        has_valid_content: false,
+        parse_result: {
+          error: 'No ads found in content',
+          isEmpty: true
+        }
+      };
+    }
     
-    const formattedContent = `**${headline}**\n\n${description}\n\n*CTA: ${cta}*`;
+    console.log(`📊 Processing ${adData.ads.length} ads`);
     
-    console.log(`✅ Formatted ad ${index + 1}:`, formattedContent);
+    // Format each ad for proper display
+    const formattedAds = adData.ads.map((ad: any, index: number) => {
+      // 🔍 DEBUGGING: Detailed description analysis
+      console.log(`🔍 Ad ${index + 1} description analysis:`, {
+        raw_description: ad.description,
+        description_type: typeof ad.description,
+        description_value: JSON.stringify(ad.description),
+        is_undefined_string: ad.description === 'undefined',
+        is_undefined_value: ad.description === undefined,
+        is_null: ad.description === null,
+        is_empty: ad.description === '',
+        truthy_check: !!ad.description,
+        all_ad_fields: Object.keys(ad)
+      });
+      
+      // 🔥 FIX: Simplified description handling
+      const headline = ad.headline || `Ad ${index + 1}`;
+      const description = ad.description || 'No Description Available';
+      const cta = ad.cta || 'Learn More';
+      
+      const formattedContent = `**${headline}**\n\n${description}\n\n*CTA: ${cta}*`;
+      
+      console.log(`✅ Formatted ad ${index + 1}:`, {
+        headline,
+        description_preview: description.substring(0, 50) + '...',
+        cta,
+        total_length: formattedContent.length
+      });
+      
+      return {
+        title: headline,
+        content: formattedContent,
+        metadata: {
+          platform: ad.platform || 'Unknown',
+          objective: ad.objective || 'Unknown',
+          angle: ad.angle || 'Unknown',
+          target_audience: ad.target_audience || 'Unknown',
+          product_name: ad.product_name || 'Unknown',
+          product_name_source: ad.product_name_source || 'Unknown',
+          ad_number: ad.ad_number || index + 1
+        }
+      };
+    });
+    
+    console.log('✅ All ads formatted successfully:', formattedAds.length);
     
     return {
-      title: headline,
-      content: formattedContent,
-      metadata: {
-        platform: ad.platform || 'Unknown',
-        objective: ad.objective || 'Unknown',
-        angle: ad.angle || 'Unknown',
-        target_audience: ad.target_audience || 'Unknown',
-        product_name: ad.product_name || 'Unknown',
-        product_name_source: ad.product_name_source || 'Unknown'
-      }
+      ...adData,
+      formatted_content: formattedAds,
+      has_valid_content: true
     };
-  });
-  
-  console.log('✅ All formatted ads:', formattedAds);
-  
-  return {
-    ...adData,
-    formatted_content: formattedAds,
-    has_valid_content: true
   };
-};
 
   // 🔥 NEW: Format email sequence content for proper display in modal
   const formatEmailSequenceForDisplay = (emailData: any) => {
@@ -235,12 +264,41 @@ export default function ContentGenerator({ campaignId, intelligenceSources }: Co
     };
   };
 
-  // 🔥 NEW: Universal content formatter for different content types
+  // 🔥 FIXED: Universal content formatter for different content types
   const formatContentForDisplay = (contentDetail: any) => {
     const contentType = contentDetail.content_type;
-    const parsedContent = contentDetail.parsed_content;
+    let parsedContent = contentDetail.parsed_content;
     
-    console.log('🔧 Formatting content for display:', { contentType, parsedContent });
+    console.log('🔧 Formatting content for display:', { 
+      contentType, 
+      has_parsed_content: !!parsedContent,
+      content_body_type: typeof contentDetail.content_body 
+    });
+    
+    // 🔥 FIX: If no parsed_content, parse the content_body
+    if (!parsedContent && contentDetail.content_body) {
+      console.log('🔄 No parsed_content, parsing content_body...');
+      try {
+        if (typeof contentDetail.content_body === 'string') {
+          parsedContent = JSON.parse(contentDetail.content_body);
+          console.log('✅ Successfully parsed content_body');
+        } else {
+          parsedContent = contentDetail.content_body;
+          console.log('✅ Used content_body directly (already object)');
+        }
+      } catch (error) {
+        console.error('❌ Failed to parse content_body:', error);
+        return {
+          ...contentDetail,
+          has_valid_content: false,
+          parse_result: {
+            error: 'Failed to parse content data',
+            isEmpty: true,
+            suggestion: 'Try regenerating this content'
+          }
+        };
+      }
+    }
     
     if (!parsedContent) {
       console.warn('⚠️ No parsed content available');
@@ -254,6 +312,8 @@ export default function ContentGenerator({ campaignId, intelligenceSources }: Co
         }
       };
     }
+    
+    console.log('📊 Parsed content structure:', Object.keys(parsedContent));
     
     let formattedData = parsedContent;
     
@@ -287,6 +347,7 @@ export default function ContentGenerator({ campaignId, intelligenceSources }: Co
     
     return {
       ...contentDetail,
+      parsed_content: parsedContent, // Ensure this is set
       ...formattedData
     };
   };
@@ -325,24 +386,80 @@ export default function ContentGenerator({ campaignId, intelligenceSources }: Co
     loadContentItems()
   }, [loadContentItems])
 
-  // 🔥 FIXED: Handle content item click with proper formatting
+  // 🔥 FIXED: Handle content item click with enhanced debugging
   const handleContentItemClick = async (contentItem: ContentItem) => {
     try {
-      console.log('🔍 Loading content detail for:', contentItem.id)
+      console.log('🔍 === DEBUGGING CONTENT CLICK ===');
+      console.log('1. ContentItem clicked:', contentItem.id);
+      console.log('2. ContentItem type:', contentItem.content_type);
       
       // Load full content detail
-      const fullContent = await api.getContentDetail(campaignId, contentItem.id)
-      console.log('✅ Loaded full content:', fullContent)
+      const fullContent = await api.getContentDetail(campaignId, contentItem.id);
+      console.log('3. API returned fullContent:', fullContent);
+      console.log('4. content_body type:', typeof fullContent.content_body);
+      console.log('5. content_body value (first 200 chars):', 
+        typeof fullContent.content_body === 'string' 
+          ? fullContent.content_body.substring(0, 200) + '...'
+          : fullContent.content_body
+      );
+      console.log('6. parsed_content exists:', !!fullContent.parsed_content);
+      console.log('7. parsed_content type:', typeof fullContent.parsed_content);
       
-      // 🔥 FIX: Format content for proper display based on content type
+      // 🔥 NEW: Enhanced content_body parsing with detailed logging
+      if (typeof fullContent.content_body === 'string') {
+        try {
+          const manualParse = JSON.parse(fullContent.content_body);
+          console.log('8. Manual parse success:', !!manualParse);
+          console.log('9. Parsed structure keys:', Object.keys(manualParse));
+          
+          if (manualParse.ads && Array.isArray(manualParse.ads)) {
+            console.log('10. Ads array length:', manualParse.ads.length);
+            console.log('11. First ad structure:', Object.keys(manualParse.ads[0] || {}));
+            if (manualParse.ads[0]) {
+              const firstAd = manualParse.ads[0];
+              console.log('12. First ad headline:', firstAd.headline);
+              console.log('13. First ad description:', firstAd.description);
+              console.log('14. First ad cta:', firstAd.cta);
+              console.log('15. All fields in first ad:', Object.entries(firstAd));
+            }
+          }
+        } catch (parseError) {
+          console.error('8. Manual parse failed:', parseError);
+          console.log('9. Raw content sample:', fullContent.content_body.substring(0, 500));
+        }
+      }
+      
+      // 🔥 FIX: Ensure we use content_body if parsed_content is missing or invalid
+      if (!fullContent.parsed_content && fullContent.content_body) {
+        console.log('17. No parsed_content, attempting to parse content_body');
+        try {
+          if (typeof fullContent.content_body === 'string') {
+            fullContent.parsed_content = JSON.parse(fullContent.content_body);
+            console.log('18. Successfully parsed content_body into parsed_content');
+          } else {
+            fullContent.parsed_content = fullContent.content_body;
+            console.log('18. Used content_body as parsed_content (already object)');
+          }
+        } catch (error) {
+          console.error('18. Failed to parse content_body:', error);
+          fullContent.parsed_content = { error: 'Failed to parse content' };
+        }
+      }
+      
+      // Format content for proper display based on content type
       const formattedContent = formatContentForDisplay(fullContent);
-      console.log('✅ Formatted content for modal:', formattedContent)
+      console.log('19. After formatContentForDisplay:', {
+        has_valid_content: formattedContent.has_valid_content,
+        formatted_content_length: formattedContent.formatted_content?.length,
+        first_item_preview: formattedContent.formatted_content?.[0]?.content?.substring(0, 100)
+      });
+      console.log('🔍 === END DEBUGGING CONTENT CLICK ===');
       
-      setSelectedContentItem(formattedContent)
-      setShowContentModal(true)
+      setSelectedContentItem(formattedContent);
+      setShowContentModal(true);
     } catch (error) {
-      console.error('❌ Failed to load content detail:', error)
-      setError(error instanceof Error ? error.message : 'Failed to load content')
+      console.error('❌ Failed to load content detail:', error);
+      setError(error instanceof Error ? error.message : 'Failed to load content');
     }
   }
 
@@ -373,45 +490,59 @@ export default function ContentGenerator({ campaignId, intelligenceSources }: Co
     return typeMap[type] || type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
   }
 
-  // 🆕 NEW: Get preview text from content
-  // 🆕 NEW: Get preview text from content with safe JSON parsing
-const getPreviewText = (content: any): string => {
-  if (typeof content === 'string') {
-    // Handle the case where content_body is the string "undefined"
-    if (content === 'undefined' || content === 'null') {
-      return 'No content available'
-    }
-    
-    // Try to parse JSON string
-    try {
-      const parsed = JSON.parse(content)
-      if (parsed && typeof parsed === 'object') {
-        if (parsed.ads) {
-          return `${parsed.ads.length} ad variations`
-        }
-        if (parsed.emails) {
-          return `${parsed.emails.length} email sequence`
-        }
-        if (parsed.posts) {
-          return `${parsed.posts.length} social posts`
-        }
-        return 'Generated content available'
+  // 🔥 FIXED: Get preview text from content with safe JSON parsing
+  const getPreviewText = (content: any): string => {
+    if (typeof content === 'string') {
+      // Handle the case where content_body is the string "undefined"
+      if (content === 'undefined' || content === 'null') {
+        return 'No content available'
       }
-    } catch (jsonError) {
-      // If JSON parsing fails, return safe preview of the string
-      console.warn('⚠️ JSON parsing failed in preview, using string preview')
+      
+      // Try to parse JSON string
+      try {
+        const parsed = JSON.parse(content)
+        if (parsed && typeof parsed === 'object') {
+          if (parsed.ads && Array.isArray(parsed.ads)) {
+            const validAds = parsed.ads.filter((ad: any) => 
+              (ad.description && ad.description !== 'undefined') ||
+              (ad.body && ad.body !== 'undefined') ||
+              (ad.content && ad.content !== 'undefined')
+            );
+            return `${parsed.ads.length} ad variations (${validAds.length} valid)`
+          }
+          if (parsed.emails && Array.isArray(parsed.emails)) {
+            return `${parsed.emails.length} email sequence`
+          }
+          if (parsed.posts && Array.isArray(parsed.posts)) {
+            return `${parsed.posts.length} social posts`
+          }
+          return 'Generated content available'
+        }
+      } catch (jsonError) {
+        // If JSON parsing fails, return safe preview of the string
+        console.warn('⚠️ JSON parsing failed in preview, using string preview')
+      }
+      
+      return content.substring(0, 100) + (content.length > 100 ? '...' : '')
     }
     
-    return content.substring(0, 100) + (content.length > 100 ? '...' : '')
+    if (content && typeof content === 'object') {
+      if (content.ads && Array.isArray(content.ads)) {
+        return `${content.ads.length} ad variations`
+      }
+      if (content.emails && Array.isArray(content.emails)) {
+        return `${content.emails.length} email sequence`
+      }
+      if (content.posts && Array.isArray(content.posts)) {
+        return `${content.posts.length} social posts`
+      }
+      
+      const text = JSON.stringify(content).substring(0, 100)
+      return text + (text.length >= 100 ? '...' : '')
+    }
+    
+    return 'No preview available'
   }
-  
-  if (content && typeof content === 'object') {
-    const text = JSON.stringify(content).substring(0, 100)
-    return text + (text.length >= 100 ? '...' : '')
-  }
-  
-  return 'No preview available'
-}
 
   const generateContent = useCallback(async () => {
     if (!selectedContentType || !selectedIntelligence) return
