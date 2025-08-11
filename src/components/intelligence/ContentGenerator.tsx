@@ -185,6 +185,11 @@ export default function ContentGenerator({ campaignId, intelligenceSources }: Co
         cta,
         content_length: formattedContent.length
       });
+
+      // 🔍 CRITICAL TEST: Log the exact content being created
+      console.log(`🎯 FORMATTED CONTENT FOR AD ${index + 1}:`);
+      console.log('Raw content string:', formattedContent);
+      console.log('Contains undefined?:', formattedContent.includes('undefined'));
       
       return {
         title: headline,
@@ -201,6 +206,13 @@ export default function ContentGenerator({ campaignId, intelligenceSources }: Co
     });
     
     console.log('✅ All ads formatted successfully:', formattedAds.length);
+
+    console.log('🎯 FINAL FORMATTED_ADS ARRAY:', formattedAds);
+
+    // Then check what the actual content string looks like
+      formattedAds.forEach((ad: any, index: number) => {
+        console.log(`🎯 AD ${index + 1} FINAL CONTENT:`, ad.content);
+    });
     
     return {
       ...adData,
