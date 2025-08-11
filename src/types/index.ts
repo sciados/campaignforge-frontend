@@ -228,7 +228,7 @@ export interface SmartURL {
 export interface AnalyzeURLRequest {
   url: string;
   campaign_id: string;
-  analysis_type?: 'sales_page' | 'website' | 'competitor';
+  analysis_type?: 'sales_page' | 'website' | 'salespage';
 }
 
 export interface AnalysisResponse {
@@ -357,7 +357,7 @@ export interface CampaignFormData {
 
 export interface AnalysisFormData {
   url: string;
-  analysis_type: 'sales_page' | 'website' | 'competitor';
+  analysis_type: 'sales_page' | 'website' | 'salespage';
 }
 
 export interface ContentGenerationFormData {

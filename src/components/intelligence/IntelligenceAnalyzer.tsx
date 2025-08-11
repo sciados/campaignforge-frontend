@@ -191,7 +191,7 @@ export default function IntelligenceAnalyzer({ campaignId, onAnalysisComplete }:
           Intelligence Analyzer
         </h2>
         <p className="text-gray-600 mt-2">
-          Analyze competitor content to extract marketing intelligence and opportunities
+          Analyze salespage content to extract marketing intelligence and opportunities
         </p>
       </div>
 
@@ -278,7 +278,7 @@ export default function IntelligenceAnalyzer({ campaignId, onAnalysisComplete }:
             >
               <option value="sales_page">Sales Page Analysis</option>
               <option value="website">General Website Analysis</option>
-              <option value="competitor">Competitor Analysis</option>
+              <option value="salespage">salespage Analysis</option>
             </select>
           </div>
 
@@ -291,7 +291,7 @@ export default function IntelligenceAnalyzer({ campaignId, onAnalysisComplete }:
                 type="url"
                 value={url}
                 onChange={(e) => setUrl(e.target.value)}
-                placeholder="https://competitor-sales-page.com"
+                placeholder="https://salespage-sales-page.com"
                 className="flex-1 px-4 py-3 bg-gray-100 border-none rounded-lg focus:outline-none focus:bg-white focus:ring-2 focus:ring-blue-500/20 transition-all"
                 disabled={isAnalyzing}
                 onKeyPress={(e) => e.key === 'Enter' && !isAnalyzing && analyzeUrl()}
@@ -401,7 +401,7 @@ export default function IntelligenceAnalyzer({ campaignId, onAnalysisComplete }:
             </div>
             <div className="bg-gray-50 rounded-2xl p-6">
               <TrendingUp className="h-6 w-6 text-black mb-3" />
-              <h3 className="font-medium text-black">Competitor Materials</h3>
+              <h3 className="font-medium text-black">salespage Materials</h3>
               <p className="text-sm text-gray-600">Sales decks, product guides, presentations</p>
             </div>
           </div>

@@ -602,7 +602,7 @@ export default function CampaignDashboard() {
               <ArrowUpRight className="w-6 h-6 opacity-75" />
             </div>
             <h3 className="text-lg font-medium mb-2">Video Intelligence</h3>
-            <p className="text-gray-300 text-sm mb-4">Analyze competitor videos and create powerful campaigns</p>
+            <p className="text-gray-300 text-sm mb-4">Analyze salespage videos and create powerful campaigns</p>
             <button 
               onClick={() => router.push('/campaigns')}
               className="w-full bg-white bg-opacity-20 hover:bg-opacity-30 text-white py-3 px-4 rounded-lg transition-colors font-medium"
@@ -632,7 +632,7 @@ export default function CampaignDashboard() {
               <ArrowUpRight className="w-6 h-6 opacity-75" />
             </div>
             <h3 className="text-lg font-medium mb-2">Website Intelligence</h3>
-            <p className="text-gray-300 text-sm mb-4">Analyze competitor sites and extract winning strategies</p>
+            <p className="text-gray-300 text-sm mb-4">Analyze salespage sites and extract winning strategies</p>
             <button 
               onClick={() => router.push('/campaigns')}
               className="w-full bg-white bg-opacity-20 hover:bg-opacity-30 text-white py-3 px-4 rounded-lg transition-colors font-medium"
@@ -652,7 +652,7 @@ export default function CampaignDashboard() {
                 </div>
                 <div>
                   <h3 className="text-lg font-medium mb-1">Unlock Advanced Intelligence</h3>
-                  <p className="text-gray-300 text-sm">Get unlimited campaigns, competitor analysis, and priority AI processing</p>
+                  <p className="text-gray-300 text-sm">Get unlimited campaigns, salespage analysis, and priority AI processing</p>
                 </div>
               </div>
               <button className="bg-white text-black px-6 py-3 rounded-lg font-medium hover:bg-gray-100 transition-colors">

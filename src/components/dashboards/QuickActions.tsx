@@ -18,7 +18,7 @@ const INTELLIGENCE_ACTIONS = [
   {
     id: 'video',
     title: 'Video Intelligence',
-    description: 'Analyze competitor videos and extract winning strategies',
+    description: 'Analyze salespage videos and extract winning strategies',
     icon: Video,
     gradient: 'from-purple-500 to-blue-600',
     hoverGradient: 'from-purple-600 to-blue-700',
@@ -36,7 +36,7 @@ const INTELLIGENCE_ACTIONS = [
   {
     id: 'website',
     title: 'Website Intelligence',
-    description: 'Analyze competitor sites and extract winning copy',
+    description: 'Analyze salespage sites and extract winning copy',
     icon: Globe,
     gradient: 'from-orange-500 to-red-600',
     hoverGradient: 'from-orange-600 to-red-700',
@@ -146,7 +146,7 @@ export default function QuickActions({
         <div className="flex items-center justify-between mb-6">
           <div>
             <h3 className="text-lg font-semibold text-gray-900">Start with Intelligence</h3>
-            <p className="text-gray-600 text-sm">Analyze competitor content to extract winning strategies</p>
+            <p className="text-gray-600 text-sm">Analyze salespage content to extract winning strategies</p>
           </div>
           <div className="flex items-center space-x-2 text-sm text-gray-500">
             <Zap className="w-4 h-4" />
@@ -229,7 +229,7 @@ export default function QuickActions({
         <div className="space-y-2">
           {[
             { icon: Video, label: 'Analyze YouTube video', time: '2 hours ago' },
-            { icon: FileText, label: 'Upload competitor PDF', time: '1 day ago' },
+            { icon: FileText, label: 'Upload salespage PDF', time: '1 day ago' },
             { icon: Target, label: 'Create social campaign', time: '3 days ago' }
           ].map((shortcut, index) => {
             const Icon = shortcut.icon
@@ -256,7 +256,7 @@ export default function QuickActions({
           <div className="flex-1">
             <h4 className="font-medium text-gray-900 mb-1">💡 Pro Tip</h4>
             <p className="text-sm text-gray-600 mb-3">
-              Start with intelligence analysis for better campaign results. Our AI can extract winning strategies from competitor content.
+              Start with intelligence analysis for better campaign results. Our AI can extract winning strategies from salespage content.
             </p>
             <button className="text-blue-600 hover:text-blue-800 text-sm font-medium">
               Learn more →

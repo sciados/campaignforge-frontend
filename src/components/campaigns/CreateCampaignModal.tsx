@@ -85,7 +85,7 @@ export default function AppleCreateCampaignModal({
                 Start with Intelligence Analysis
               </h4>
               <p className="text-sm text-apple-gray mb-6 font-medium">
-                Analyze competitor content to extract winning strategies and generate unique campaign angles
+                Analyze salespage content to extract winning strategies and generate unique campaign angles
               </p>
               <div className="space-y-3">
                 {INTELLIGENCE_METHODS.map((method) => {

@@ -154,7 +154,7 @@ export default function Step2ContentGeneration({
       
       // Show specific error messages
       if (errorMessage.includes('No analysis data found')) {
-        alert('Please run analysis first by adding a competitor URL in Step 1.')
+        alert('Please run analysis first by adding a salespage URL in Step 1.')
       } else if (errorMessage.includes('Campaign') && errorMessage.includes('not found')) {
         alert('Campaign not found. Please refresh the page and try again.')
       } else {
@@ -214,12 +214,12 @@ export default function Step2ContentGeneration({
         </div>
         <h3 className="text-lg font-medium text-gray-900 mb-2">Auto-Analysis in Progress</h3>
         <p className="text-gray-600 mb-4">
-          Your competitor URL is being analyzed automatically. This usually takes 1-3 minutes.
+          Your salespage URL is being analyzed automatically. This usually takes 1-3 minutes.
         </p>
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 max-w-md mx-auto">
           <div className="text-sm text-blue-700">
             <div className="flex items-center justify-between mb-2">
-              <span>Analyzing competitor page...</span>
+              <span>Analyzing salespage page...</span>
               <Loader2 className="h-4 w-4 animate-spin" />
             </div>
             <div className="w-full bg-blue-200 rounded-full h-2">
@@ -242,7 +242,7 @@ export default function Step2ContentGeneration({
         </div>
         <div>
           <h2 className="text-2xl font-bold text-gray-900">Step 2: Generate Content</h2>
-          <p className="text-gray-600">Create marketing content using AI analysis from your competitor</p>
+          <p className="text-gray-600">Create marketing content using AI analysis from your salespage</p>
         </div>
       </div>
 
@@ -250,7 +250,7 @@ export default function Step2ContentGeneration({
       <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
         <h3 className="font-medium text-green-900 mb-1">Campaign: {campaignTitle}</h3>
         <p className="text-sm text-green-700">
-          ✅ Auto-analysis complete! Your competitor has been analyzed and intelligence extracted. 
+          ✅ Auto-analysis complete! Your salespage has been analyzed and intelligence extracted. 
           Choose content types below to create your marketing materials using the insights.
         </p>
         {sourcesAnalyzed > 0 && (
@@ -631,7 +631,7 @@ export default function Step2ContentGeneration({
           <Sparkles className="h-16 w-16 text-gray-400 mx-auto mb-4" />
           <h3 className="text-lg font-medium text-gray-900 mb-2">Ready to Generate Content</h3>
           <p className="text-gray-600 mb-4 max-w-md mx-auto">
-            Choose a content type above to generate your first marketing material using the AI analysis from your competitor.
+            Choose a content type above to generate your first marketing material using the AI analysis from your salespage.
           </p>
           <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 max-w-sm mx-auto">
             <p className="text-sm font-medium text-gray-700 mb-1">💡 Pro Tip</p>

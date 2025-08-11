@@ -388,7 +388,7 @@ export default function CampaignStep2({ campaignId }: CampaignStep2Props) {
                 <h3 className="font-medium text-blue-900 mb-2">What we can analyze:</h3>
                 <ul className="text-sm text-blue-700 space-y-1">
                   <li>• Sales pages and landing pages</li>
-                  <li>• Competitor websites and product pages</li>
+                  <li>• salespage websites and product pages</li>
                   <li>• Marketing campaigns and promotions</li>
                   <li>• Blog posts and content pages</li>
                 </ul>

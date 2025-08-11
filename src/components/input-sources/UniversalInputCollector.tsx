@@ -352,7 +352,7 @@ export default function UniversalInputCollector({
                 type="url"
                 value={urlInput}
                 onChange={(e) => setUrlInput(e.target.value)}
-                placeholder="https://competitor-site.com/sales-page"
+                placeholder="https://salespage-site.com/sales-page"
                 className="flex-1 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                 disabled={isProcessing}
                 onKeyPress={(e) => e.key === 'Enter' && !isProcessing && urlInput.trim() && processUrl(urlInput.trim())}

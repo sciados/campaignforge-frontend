@@ -210,7 +210,7 @@ export default function DemoPreferenceControl({
           <div className="font-medium mb-2">About Demo Campaigns</div>
           <div className="text-gray-300 space-y-2">
             <p>
-              Demo campaigns showcase our platforms capabilities with real examples of competitor analysis and generated content.
+              Demo campaigns showcase our platforms capabilities with real examples of salespage analysis and generated content.
             </p>
             <p>
               Many experienced users keep them visible as reference material, especially when training team members or comparing analysis quality.

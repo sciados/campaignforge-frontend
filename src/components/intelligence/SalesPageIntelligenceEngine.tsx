@@ -434,7 +434,7 @@ export default function SalesPageIntelligenceEngine({
           Sales Page Intelligence Engine
         </h2>
         <p className="text-gray-600 mt-1">
-          Advanced competitor analysis with campaign angle generation and VSL detection
+          Advanced salespage analysis with campaign angle generation and VSL detection
         </p>
       </div>
 
@@ -453,7 +453,7 @@ export default function SalesPageIntelligenceEngine({
                     type="url"
                     value={url}
                     onChange={(e) => setUrl(e.target.value)}
-                    placeholder="https://competitor-sales-page.com"
+                    placeholder="https://salespage-sales-page.com"
                     className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                     disabled={isAnalyzing}
                     onKeyPress={(e) => e.key === 'Enter' && !isAnalyzing && analyzeUrl()}
