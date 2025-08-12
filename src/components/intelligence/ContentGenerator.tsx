@@ -1,5 +1,5 @@
-// src/components/intelligence/ContentGenerator.tsx - UPDATED WITH ALL 10 GENERATORS
-import React, { useState, useCallback, useEffect } from 'react'
+// src/components/intelligence/ContentGenerator.tsx - FIXED INFINITE LOOP ISSUE
+import React, { useState, useCallback, useEffect, useMemo, useRef } from 'react'
 import { 
   Wand2, 
   Mail, 
@@ -60,7 +60,6 @@ interface GeneratedContent {
   performance_predictions: any
 }
 
-// 🆕 NEW: Content item interface for list display
 interface ContentItem {
   id: string
   content_type: string
@@ -72,7 +71,6 @@ interface ContentItem {
   preview_text?: string
 }
 
-// Define types for content type icons
 type ContentTypeIcon = React.ComponentType<{ className?: string }> | string;
 
 interface ContentTypeConfig {
@@ -85,7 +83,6 @@ interface ContentTypeConfig {
   category: string;
 }
 
-// 🎯 ALL 10 GENERATORS - Organized by Categories (Phase 2.3 Complete)
 const TEXT_CONTENT_TYPES: ContentTypeConfig[] = [
   {
     id: 'email_sequence',
@@ -176,10 +173,8 @@ const COMPOSITE_CONTENT_TYPES: ContentTypeConfig[] = [
   }
 ]
 
-// Legacy flat array for backward compatibility
 const CONTENT_TYPES: ContentTypeConfig[] = [...TEXT_CONTENT_TYPES, ...MEDIA_CONTENT_TYPES, ...COMPOSITE_CONTENT_TYPES]
 
-// Helper function to render icons consistently
 const renderIcon = (icon: ContentTypeIcon, className: string = "h-6 w-6 text-gray-700") => {
   if (typeof icon === 'string') {
     return <span className="text-xl">{icon}</span>;
@@ -200,7 +195,7 @@ export default function ContentGenerator({ campaignId, intelligenceSources }: Co
   const [showPreferences, setShowPreferences] = useState(false)
   const [error, setError] = useState<string | null>(null)
   
-  // 🆕 NEW: Content list state
+  // Content list state
   const [contentItems, setContentItems] = useState<ContentItem[]>([])
   const [isLoadingContent, setIsLoadingContent] = useState(false)
   const [selectedContentItem, setSelectedContentItem] = useState<any>(null)
@@ -215,7 +210,76 @@ export default function ContentGenerator({ campaignId, intelligenceSources }: Co
     platform: 'general'
   })
 
-  // 🔥 ALERT-BASED DEBUG: Format ad copy with step-by-step alerts
+  // 🔥 CRITICAL FIX: Stable API methods with useMemo to prevent recreation
+  const stableApiMethods = useMemo(() => ({
+    getGeneratedContent: api.getGeneratedContent,
+    getContentDetail: api.getContentDetail,
+    updateContent: api.updateContent,
+    generateContent: api.generateContent
+  }), [api.getGeneratedContent, api.getContentDetail, api.updateContent, api.generateContent])
+
+  // 🔥 FIXED: Use stable API methods to prevent infinite loop
+  const loadContentItems = useCallback(async () => {
+    if (isLoadingContent || !campaignId) {
+      console.log('⏸️ Skipping loadContentItems - already loading or no campaignId')
+      return
+    }
+    
+    console.log('🔄 Loading content items for campaign:', campaignId)
+    setIsLoadingContent(true)
+    
+    try {
+      const response = await stableApiMethods.getGeneratedContent(campaignId)
+      console.log('📋 Loaded content response:', response)
+      
+      let contentArray: any[] = [];
+      
+      const apiResponse = response as any;
+      
+      if (apiResponse && apiResponse.content_items && Array.isArray(apiResponse.content_items)) {
+        contentArray = apiResponse.content_items;
+      } else if (Array.isArray(apiResponse)) {
+        contentArray = apiResponse;
+      } else {
+        console.warn('⚠️ Unexpected response format:', apiResponse);
+        contentArray = [];
+      }
+      
+      console.log('📋 Processing content array:', contentArray.length, 'items')
+      
+      const transformedItems: ContentItem[] = contentArray.map((item: any) => ({
+        id: item.id || item.content_id,
+        content_type: item.content_type,
+        title: item.content_title || item.title || `${formatContentType(item.content_type)} Content`,
+        created_at: item.created_at,
+        confidence_score: item.confidence_score,
+        is_published: item.is_published,
+        user_rating: item.user_rating,
+        preview_text: item.content_metadata?.preview || getPreviewText(item.content_body)
+      }))
+      
+      setContentItems(transformedItems)
+      console.log('✅ Successfully set content items:', transformedItems.length)
+    } catch (error) {
+      console.error('❌ Failed to load content items:', error)
+      setContentItems([])
+    } finally {
+      setIsLoadingContent(false)
+    }
+  }, [campaignId, isLoadingContent, stableApiMethods])
+
+  // 🔥 FIXED: Use ref to track if initial load has happened
+  const hasLoadedRef = useRef(false)
+
+  useEffect(() => {
+    if (campaignId && !hasLoadedRef.current && !isLoadingContent) {
+      console.log('🎯 Initial load for campaignId:', campaignId)
+      hasLoadedRef.current = true
+      loadContentItems()
+    }
+  }, [campaignId, loadContentItems, isLoadingContent])
+
+  // Format ad copy with step-by-step alerts
   const formatAdCopyForDisplay = (adData: any) => {
     if (!adData?.ads) {
       alert('🚨 No ads in adData!');
@@ -229,7 +293,6 @@ export default function ContentGenerator({ campaignId, intelligenceSources }: Co
       };
     }
     
-    // Check the first ad specifically
     const firstAd = adData.ads[0];
     alert(`🔍 formatAdCopyForDisplay - First ad description: "${firstAd.description}"`);
     
@@ -237,14 +300,13 @@ export default function ContentGenerator({ campaignId, intelligenceSources }: Co
       const title = ad.headline || `Ad ${index + 1}`;
       const description = ad.description || 'No description available';
       
-      // 🎯 CRITICAL: Check if we're corrupting the description here
       if (ad.description !== description) {
         alert(`🚨 Description changed! Original: "${ad.description}" → Formatted: "${description}"`);
       }
       
       return {
         title: title,
-        content: description, // Direct field extraction
+        content: description,
         metadata: {
           headline: title,
           description: description,
@@ -268,7 +330,6 @@ export default function ContentGenerator({ campaignId, intelligenceSources }: Co
     };
   };
 
-  // 🔥 CONSISTENT: Format email sequence with direct extraction
   const formatEmailSequenceForDisplay = (emailData: any) => {
     if (!emailData.emails || !Array.isArray(emailData.emails)) {
       return emailData;
@@ -276,7 +337,6 @@ export default function ContentGenerator({ campaignId, intelligenceSources }: Co
     
     console.log('🔧 EMAIL SEQUENCE: Direct extraction');
     
-    // Direct extraction just like we're doing for ads now
     const formattedEmails = emailData.emails.map((email: any, index: number) => {
       console.log(`📧 Email ${index + 1} - Direct extraction:`);
       console.log('  - subject:', email.subject);
@@ -284,7 +344,7 @@ export default function ContentGenerator({ campaignId, intelligenceSources }: Co
       
       return {
         title: email.subject || `Email ${index + 1}`,
-        content: email.body || 'No Content', // 🔥 DIRECT: email.body
+        content: email.body || 'No Content',
         metadata: {
           subject: email.subject || 'No Subject',
           body: email.body || 'No Content',
@@ -305,13 +365,11 @@ export default function ContentGenerator({ campaignId, intelligenceSources }: Co
     };
   };
 
-  // 🔥 NEW: Format social posts content for proper display in modal
   const formatSocialPostsForDisplay = (socialData: any) => {
     if (!socialData.posts) return socialData;
     
     console.log('🔧 Formatting social posts for display:', socialData);
     
-    // Format each post for proper display
     const formattedPosts = socialData.posts.map((post: any, index: number) => ({
       title: `${post.platform || 'Social'} Post ${index + 1}`,
       content: post.content || 'No Content',
@@ -332,7 +390,6 @@ export default function ContentGenerator({ campaignId, intelligenceSources }: Co
     };
   };
 
-  // 🔥 FIXED: Universal content formatter for different content types
   const formatContentForDisplay = (contentDetail: any) => {
     const contentType = contentDetail.content_type;
     let parsedContent = contentDetail.parsed_content;
@@ -343,7 +400,6 @@ export default function ContentGenerator({ campaignId, intelligenceSources }: Co
       content_body_type: typeof contentDetail.content_body 
     });
     
-    // 🔥 FIX: If no parsed_content, parse the content_body
     if (!parsedContent && contentDetail.content_body) {
       console.log('🔄 No parsed_content, parsing content_body...');
       try {
@@ -385,7 +441,6 @@ export default function ContentGenerator({ campaignId, intelligenceSources }: Co
     
     let formattedData = parsedContent;
     
-    // Apply content-type specific formatting
     switch (contentType) {
       case 'ad_copy':
         formattedData = formatAdCopyForDisplay(parsedContent);
@@ -398,7 +453,6 @@ export default function ContentGenerator({ campaignId, intelligenceSources }: Co
         formattedData = formatSocialPostsForDisplay(parsedContent);
         break;
       default:
-        // For other content types, create a simple single-item view
         formattedData = {
           ...parsedContent,
           formatted_content: [{
@@ -415,86 +469,18 @@ export default function ContentGenerator({ campaignId, intelligenceSources }: Co
     
     return {
       ...contentDetail,
-      parsed_content: parsedContent, // Ensure this is set
+      parsed_content: parsedContent,
       ...formattedData
     };
   };
 
-  // 🆕 NEW: Load existing content when component mounts
-  const loadContentItems = useCallback(async () => {
-    if (isLoadingContent) return; // Prevent overlapping calls
-    
-    setIsLoadingContent(true)
-    try {
-      const response = await api.getGeneratedContent(campaignId)
-      console.log('📋 Loaded content response:', response)
-      
-      // 🔥 FIX: Handle the nested response structure with proper typing
-      let contentArray: any[] = [];
-      
-      // Type assertion to handle the actual API response structure
-      const apiResponse = response as any;
-      
-      if (apiResponse && apiResponse.content_items && Array.isArray(apiResponse.content_items)) {
-        contentArray = apiResponse.content_items;
-      } else if (Array.isArray(apiResponse)) {
-        contentArray = apiResponse;
-      } else {
-        console.warn('⚠️ Unexpected response format:', apiResponse);
-        contentArray = [];
-      }
-      
-      console.log('📋 Processing content array:', contentArray.length, 'items')
-      
-      // Transform API response to ContentItem format
-      const transformedItems: ContentItem[] = contentArray.map((item: any) => ({
-        id: item.id || item.content_id,
-        content_type: item.content_type,
-        title: item.content_title || item.title || `${formatContentType(item.content_type)} Content`,
-        created_at: item.created_at,
-        confidence_score: item.confidence_score,
-        is_published: item.is_published,
-        user_rating: item.user_rating,
-        preview_text: item.content_metadata?.preview || getPreviewText(item.content_body)
-      }))
-      
-      setContentItems(transformedItems)
-      console.log('✅ Successfully set content items:', transformedItems.length)
-    } catch (error) {
-      console.error('❌ Failed to load content items:', error)
-      // Don't show error for missing content - it's normal for new campaigns
-      setContentItems([])
-    } finally {
-      setIsLoadingContent(false)
-    }
-  }, [campaignId, api, isLoadingContent]) // Fixed all dependencies
-
-  // Load content on component mount - with proper dependency control
-  useEffect(() => {
-    let mounted = true;
-    
-    const loadInitialContent = async () => {
-      if (mounted && campaignId && !isLoadingContent) {
-        await loadContentItems();
-      }
-    };
-    
-    loadInitialContent();
-    
-    return () => {
-      mounted = false;
-    };
-  }, [campaignId, isLoadingContent, loadContentItems]) // Include all dependencies
-
-  // 🔥 FIXED: Handle content item click with enhanced debugging
   const handleContentItemClick = async (contentItem: ContentItem) => {
     try {
       console.log('🔍 === DEBUGGING CONTENT CLICK ===');
       console.log('1. ContentItem clicked:', contentItem.id);
       console.log('2. ContentItem type:', contentItem.content_type);
       
-      // Load full content detail
-      const fullContent = await api.getContentDetail(campaignId, contentItem.id);
+      const fullContent = await stableApiMethods.getContentDetail(campaignId, contentItem.id);
       console.log('3. API returned fullContent:', fullContent);
       console.log('4. content_body type:', typeof fullContent.content_body);
       console.log('5. content_body value (first 200 chars):', 
@@ -505,7 +491,6 @@ export default function ContentGenerator({ campaignId, intelligenceSources }: Co
       console.log('6. parsed_content exists:', !!fullContent.parsed_content);
       console.log('7. parsed_content type:', typeof fullContent.parsed_content);
       
-      // 🔥 NEW: Enhanced content_body parsing with detailed logging
       if (typeof fullContent.content_body === 'string') {
         try {
           const manualParse = JSON.parse(fullContent.content_body);
@@ -529,7 +514,6 @@ export default function ContentGenerator({ campaignId, intelligenceSources }: Co
         }
       }
       
-      // 🔥 FIX: Ensure we use content_body if parsed_content is missing or invalid
       if (!fullContent.parsed_content && fullContent.content_body) {
         console.log('17. No parsed_content, attempting to parse content_body');
         try {
@@ -546,7 +530,6 @@ export default function ContentGenerator({ campaignId, intelligenceSources }: Co
         }
       }
       
-      // Format content for proper display based on content type
       const formattedContent = formatContentForDisplay(fullContent);
       console.log('19. After formatContentForDisplay:', {
         has_valid_content: formattedContent.has_valid_content,
@@ -563,13 +546,12 @@ export default function ContentGenerator({ campaignId, intelligenceSources }: Co
     }
   }
 
-  // 🆕 NEW: Handle content save
   const handleContentSave = async (contentId: string, newContent: string) => {
     try {
-      await api.updateContent(campaignId, contentId, { content_body: newContent })
+      await stableApiMethods.updateContent(campaignId, contentId, { content_body: newContent })
       console.log('✅ Content saved successfully')
       
-      // Refresh content list
+      // 🔥 FIX: Call loadContentItems directly
       await loadContentItems()
     } catch (error) {
       console.error('❌ Failed to save content:', error)
@@ -577,7 +559,6 @@ export default function ContentGenerator({ campaignId, intelligenceSources }: Co
     }
   }
 
-  // 🆕 NEW: Format content type for display
   const formatContentType = (type: string): string => {
     const typeMap: Record<string, string> = {
       'email_sequence': 'Email Sequence',
@@ -593,15 +574,12 @@ export default function ContentGenerator({ campaignId, intelligenceSources }: Co
     return typeMap[type] || type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
   }
 
-  // 🔥 FIXED: Get preview text from content with safe JSON parsing
   const getPreviewText = (content: any): string => {
     if (typeof content === 'string') {
-      // Handle the case where content_body is the string "undefined"
       if (content === 'undefined' || content === 'null') {
         return 'No content available'
       }
       
-      // Try to parse JSON string
       try {
         const parsed = JSON.parse(content)
         if (parsed && typeof parsed === 'object') {
@@ -622,7 +600,6 @@ export default function ContentGenerator({ campaignId, intelligenceSources }: Co
           return 'Generated content available'
         }
       } catch (jsonError) {
-        // If JSON parsing fails, return safe preview of the string
         console.warn('⚠️ JSON parsing failed in preview, using string preview')
       }
       
@@ -647,6 +624,7 @@ export default function ContentGenerator({ campaignId, intelligenceSources }: Co
     return 'No preview available'
   }
 
+  // 🔥 FIX: Update generateContent to use stable API methods
   const generateContent = useCallback(async () => {
     if (!selectedContentType || !selectedIntelligence) return
     
@@ -654,7 +632,7 @@ export default function ContentGenerator({ campaignId, intelligenceSources }: Co
     setError(null)
     
     try {
-      const response = await api.generateContent({
+      const response = await stableApiMethods.generateContent({
         content_type: selectedContentType,
         campaign_id: campaignId,
         preferences: preferences
@@ -662,7 +640,7 @@ export default function ContentGenerator({ campaignId, intelligenceSources }: Co
       
       setGeneratedContent(response)
       
-      // 🆕 NEW: Refresh content list after generation
+      // 🔥 FIX: Call loadContentItems directly
       await loadContentItems()
       
     } catch (error) {
@@ -671,7 +649,7 @@ export default function ContentGenerator({ campaignId, intelligenceSources }: Co
     } finally {
       setIsGenerating(false)
     }
-  }, [selectedContentType, selectedIntelligence, preferences, campaignId, api, loadContentItems])
+  }, [selectedContentType, selectedIntelligence, preferences, campaignId, loadContentItems, stableApiMethods])
 
   const copyToClipboard = useCallback(async (text: string) => {
     try {
@@ -796,7 +774,6 @@ export default function ContentGenerator({ campaignId, intelligenceSources }: Co
                   <option value="general">General</option>
                   <option value="facebook">Facebook</option>
                   <option value="instagram">Instagram</option>
-                  <option value="linkedin">LinkedIn</option>
                   <option value="twitter">Twitter</option>
                 </select>
               </div>
