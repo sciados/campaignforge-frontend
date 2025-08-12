@@ -424,11 +424,28 @@ export default function ContentGenerator({ campaignId, intelligenceSources }: Co
   const loadContentItems = useCallback(async () => {
     setIsLoadingContent(true)
     try {
-      const content = await api.getGeneratedContent(campaignId)
-      console.log('📋 Loaded content items:', content)
+      const response = await api.getGeneratedContent(campaignId)
+      console.log('📋 Loaded content response:', response)
+      
+      // 🔥 FIX: Handle the nested response structure with proper typing
+      let contentArray: any[] = [];
+      
+      // Type assertion to handle the actual API response structure
+      const apiResponse = response as any;
+      
+      if (apiResponse && apiResponse.content_items && Array.isArray(apiResponse.content_items)) {
+        contentArray = apiResponse.content_items;
+      } else if (Array.isArray(apiResponse)) {
+        contentArray = apiResponse;
+      } else {
+        console.warn('⚠️ Unexpected response format:', apiResponse);
+        contentArray = [];
+      }
+      
+      console.log('📋 Processing content array:', contentArray.length, 'items')
       
       // Transform API response to ContentItem format
-      const transformedItems: ContentItem[] = content.map((item: any) => ({
+      const transformedItems: ContentItem[] = contentArray.map((item: any) => ({
         id: item.id || item.content_id,
         content_type: item.content_type,
         title: item.content_title || item.title || `${formatContentType(item.content_type)} Content`,
@@ -440,6 +457,7 @@ export default function ContentGenerator({ campaignId, intelligenceSources }: Co
       }))
       
       setContentItems(transformedItems)
+      console.log('✅ Successfully set content items:', transformedItems.length)
     } catch (error) {
       console.error('❌ Failed to load content items:', error)
       // Don't show error for missing content - it's normal for new campaigns
