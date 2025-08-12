@@ -422,6 +422,8 @@ export default function ContentGenerator({ campaignId, intelligenceSources }: Co
 
   // 🆕 NEW: Load existing content when component mounts
   const loadContentItems = useCallback(async () => {
+    if (isLoadingContent) return; // Prevent overlapping calls
+    
     setIsLoadingContent(true)
     try {
       const response = await api.getGeneratedContent(campaignId)
@@ -465,12 +467,24 @@ export default function ContentGenerator({ campaignId, intelligenceSources }: Co
     } finally {
       setIsLoadingContent(false)
     }
-  }, [campaignId, api])
+  }, [campaignId, api, isLoadingContent]) // Fixed all dependencies
 
-  // Load content on component mount
+  // Load content on component mount - with proper dependency control
   useEffect(() => {
-    loadContentItems()
-  }, [loadContentItems])
+    let mounted = true;
+    
+    const loadInitialContent = async () => {
+      if (mounted && campaignId && !isLoadingContent) {
+        await loadContentItems();
+      }
+    };
+    
+    loadInitialContent();
+    
+    return () => {
+      mounted = false;
+    };
+  }, [campaignId, isLoadingContent, loadContentItems]) // Include all dependencies
 
   // 🔥 FIXED: Handle content item click with enhanced debugging
   const handleContentItemClick = async (contentItem: ContentItem) => {
