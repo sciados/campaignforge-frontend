@@ -279,6 +279,26 @@ export default function ContentGenerator({ campaignId, intelligenceSources }: Co
     }
   }, [campaignId, loadContentItems, isLoadingContent])
 
+  // 🆕 NEW: Auto-select intelligence source when there's only one
+  useEffect(() => {
+    if (intelligenceSources.length === 1 && !selectedIntelligence) {
+      const singleSource = intelligenceSources[0]
+      console.log('🎯 Auto-selecting single intelligence source:', singleSource.id)
+      setSelectedIntelligence(singleSource.id)
+    } else if (intelligenceSources.length === 0 && selectedIntelligence) {
+      // Clear selection if no sources available
+      console.log('🧹 Clearing intelligence selection - no sources available')
+      setSelectedIntelligence('')
+    } else if (intelligenceSources.length > 1 && selectedIntelligence) {
+      // Verify the selected source still exists
+      const sourceExists = intelligenceSources.some(source => source.id === selectedIntelligence)
+      if (!sourceExists) {
+        console.log('🧹 Clearing invalid intelligence selection:', selectedIntelligence)
+        setSelectedIntelligence('')
+      }
+    }
+  }, [intelligenceSources, selectedIntelligence])
+
   // Format ad copy with step-by-step alerts
   const formatAdCopyForDisplay = (adData: any) => {
     if (!adData?.ads) {
@@ -794,31 +814,71 @@ export default function ContentGenerator({ campaignId, intelligenceSources }: Co
 
       {/* Intelligence Source Selection */}
       <div className="bg-white rounded-2xl border border-gray-200 p-8 shadow-sm">
-        <h3 className="font-medium text-black mb-6">Select Intelligence Source</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {intelligenceSources.map((source) => (
-            <button
-              key={source.id}
-              onClick={() => setSelectedIntelligence(source.id)}
-              className={`p-6 border-2 rounded-2xl text-left transition-all ${
-                selectedIntelligence === source.id
-                  ? 'border-gray-300 bg-gray-50'
-                  : 'border-gray-200 hover:border-gray-300 hover:shadow-sm'
-              }`}
-            >
-              <div className="flex items-center justify-between mb-3">
-                <h4 className="font-medium text-black truncate">{source.source_title || 'Intelligence Source'}</h4>
-                <div className="flex items-center">
-                  <Star className="h-4 w-4 text-black mr-1" />
-                  <span className="text-sm font-medium text-gray-600">
-                    {Math.round((source.confidence_score || 0) * 100)}%
-                  </span>
-                </div>
-              </div>
-              <p className="text-sm text-gray-600 capitalize">{(source.source_type || 'unknown').replace('_', ' ')}</p>
-            </button>
-          ))}
+        <div className="flex items-center justify-between mb-6">
+          <h3 className="font-medium text-black">Select Intelligence Source</h3>
+          {intelligenceSources.length === 1 && (
+            <span className="text-sm text-green-600 font-medium flex items-center">
+              <CheckCircle className="h-4 w-4 mr-1" />
+              Auto-selected
+            </span>
+          )}
         </div>
+        
+        {intelligenceSources.length === 0 ? (
+          <div className="text-center py-8">
+            <div className="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center mx-auto mb-4">
+              <span className="text-gray-400 text-xl">📊</span>
+            </div>
+            <h4 className="text-lg font-medium text-gray-600 mb-2">No Intelligence Sources</h4>
+            <p className="text-gray-500">
+              This campaign needs intelligence analysis before content can be generated.
+            </p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {intelligenceSources.map((source) => (
+              <button
+                key={source.id}
+                onClick={() => {
+                  console.log('🎯 Intelligence source selected:', source.id)
+                  setSelectedIntelligence(source.id)
+                }}
+                className={`p-6 border-2 rounded-2xl text-left transition-all ${
+                  selectedIntelligence === source.id
+                    ? 'border-blue-500 bg-blue-50'
+                    : 'border-gray-200 hover:border-gray-300 hover:shadow-sm'
+                }`}
+              >
+                <div className="flex items-center justify-between mb-3">
+                  <h4 className="font-medium text-black truncate">{source.source_title || 'Intelligence Source'}</h4>
+                  <div className="flex items-center">
+                    <Star className="h-4 w-4 text-black mr-1" />
+                    <span className="text-sm font-medium text-gray-600">
+                      {Math.round((source.confidence_score || 0) * 100)}%
+                    </span>
+                  </div>
+                </div>
+                <p className="text-sm text-gray-600 capitalize">{(source.source_type || 'unknown').replace('_', ' ')}</p>
+                {selectedIntelligence === source.id && (
+                  <div className="mt-3 flex items-center text-blue-600 text-sm font-medium">
+                    <CheckCircle className="h-4 w-4 mr-2" />
+                    {intelligenceSources.length === 1 ? 'Auto-selected' : 'Selected'}
+                  </div>
+                )}
+              </button>
+            ))}
+          </div>
+        )}
+        
+        {/* Debug Info */}
+        {process.env.NODE_ENV === 'development' && (
+          <div className="mt-4 p-4 bg-gray-100 rounded-lg text-sm font-mono">
+            <p>🔍 Debug: intelligenceSources.length = {intelligenceSources.length}</p>
+            <p>🔍 Debug: selectedIntelligence = &quot;{selectedIntelligence}&quot;</p>
+            <p>🔍 Debug: selectedContentType = &quot;{selectedContentType}&quot;</p>
+            <p>🔍 Debug: Button should be enabled = {selectedContentType && selectedIntelligence ? 'true' : 'false'}</p>
+          </div>
+        )}
       </div>
 
       {/* Content Type Selection - Organized by Categories */}
@@ -987,9 +1047,19 @@ export default function ContentGenerator({ campaignId, intelligenceSources }: Co
       {/* Generate Button */}
       <div className="flex justify-center">
         <button
-          onClick={generateContent}
+          onClick={() => {
+            console.log('🎯 Generate button clicked')
+            console.log('- selectedContentType:', selectedContentType)
+            console.log('- selectedIntelligence:', selectedIntelligence)
+            console.log('- isGenerating:', isGenerating)
+            generateContent()
+          }}
           disabled={!selectedContentType || !selectedIntelligence || isGenerating}
-          className="px-12 py-4 bg-black text-white rounded-lg font-medium hover:bg-gray-900 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center text-lg"
+          className={`px-12 py-4 rounded-lg font-medium transition-colors flex items-center text-lg ${
+            !selectedContentType || !selectedIntelligence || isGenerating
+              ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+              : 'bg-black text-white hover:bg-gray-900 cursor-pointer'
+          }`}
         >
           {isGenerating ? (
             <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-3" />
@@ -999,6 +1069,45 @@ export default function ContentGenerator({ campaignId, intelligenceSources }: Co
           {isGenerating ? 'Generating Content...' : 'Generate Content'}
         </button>
       </div>
+
+      {/* Debug Panel for Button State */}
+      {process.env.NODE_ENV === 'development' && (
+        <div className="bg-yellow-50 border border-yellow-200 rounded-2xl p-6">
+          <h4 className="font-medium text-yellow-800 mb-4">🔍 Debug: Button State</h4>
+          <div className="grid grid-cols-2 gap-4 text-sm font-mono">
+            <div>
+              <span className="text-yellow-700">selectedContentType:</span>
+              <div className="bg-white p-2 rounded mt-1">
+                {selectedContentType || '(not selected)'}
+              </div>
+            </div>
+            <div>
+              <span className="text-yellow-700">selectedIntelligence:</span>
+              <div className="bg-white p-2 rounded mt-1">
+                {selectedIntelligence || '(not selected)'}
+              </div>
+            </div>
+            <div>
+              <span className="text-yellow-700">isGenerating:</span>
+              <div className="bg-white p-2 rounded mt-1">
+                {isGenerating ? 'true' : 'false'}
+              </div>
+            </div>
+            <div>
+              <span className="text-yellow-700">Button Enabled:</span>
+              <div className="bg-white p-2 rounded mt-1">
+                {!selectedContentType || !selectedIntelligence || isGenerating ? 'false' : 'true'}
+              </div>
+            </div>
+          </div>
+          <div className="mt-4 p-3 bg-white rounded">
+            <span className="text-yellow-700">Intelligence Sources Available:</span>
+            <div className="mt-1">
+              {intelligenceSources.length} sources ({intelligenceSources.map(s => s.id).join(', ')})
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* 🆕 NEW: Existing Content List */}
       <div className="bg-white rounded-2xl border border-gray-200 p-8 shadow-sm">
