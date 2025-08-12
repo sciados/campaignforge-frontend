@@ -1,11 +1,13 @@
-// src/lib/api.ts - COMPLETE FIXED VERSION WITH ROBUST RESPONSE HANDLING
+// src/lib/api.ts - COMPLETE FIXED VERSION WITH ROBUST RESPONSE HANDLING + ENHANCED EMAIL GENERATION
 /**
  * Enhanced API client for CampaignForge with streamlined 2-step workflow
  * 🆕 NEW: Demo preference management system with smart user control
+ * 🆕 NEW: Enhanced email generation with AI learning system
  * 🔧 UPDATED: Cleaned legacy 4-step workflow references
  * 🧹 CLEANED: Removed old workflow interfaces and methods
  * 🔧 FIXED: Robust response handling for all backend response formats
  * 🎯 FIXED: generateContent method handles both success/error response formats
+ * 📧 NEW: Complete enhanced email generation API integration
  */
 
 import { useState, useCallback, useEffect } from 'react'
@@ -48,6 +50,140 @@ export interface LegacyResponse {
   intelligence_sources_used?: number
   generation_metadata?: any
   ultra_cheap_stats?: any
+  error?: string
+  message?: string
+}
+
+// ============================================================================
+// 📧 NEW: ENHANCED EMAIL GENERATION TYPES
+// ============================================================================
+
+export interface EmailGenerationRequest {
+  campaign_id: string
+  preferences?: Record<string, any>
+  use_database_templates?: boolean
+  enable_learning?: boolean
+}
+
+export interface EmailData {
+  email_number: number
+  subject: string
+  body: string
+  send_delay: string
+  strategic_angle: string
+  angle_name?: string
+  subject_metadata?: {
+    performance_record_id: string
+    method: string
+    category_used: string
+    reference_count?: number
+    is_fallback?: boolean
+  }
+  campaign_focus?: string
+  product_name?: string
+}
+
+export interface LearningMetadata {
+  email_number: number
+  performance_record_id: string
+  can_learn_from: boolean
+  template_version?: string
+}
+
+export interface EmailGenerationResponse {
+  success: boolean
+  emails: EmailData[]
+  learning_metadata?: LearningMetadata[]
+  generation_info: {
+    database_enhanced: boolean
+    unique_subjects: number
+    total_emails: number
+    learning_enabled?: boolean
+    generation_method: string
+  }
+  message: string
+}
+
+export interface PerformanceTrackingRequest {
+  performance_data: Array<{
+    performance_record_id: string
+    emails_sent: number
+    emails_opened: number
+    click_rate?: number
+  }>
+}
+
+export interface PerformanceTrackingResponse {
+  success: boolean
+  performance_updates: Array<{
+    performance_record_id: string
+    open_rate: number
+    updated: boolean
+    high_performer: boolean
+    error?: string
+  }>
+  learning_results: {
+    evaluated_count: number
+    stored_as_templates: number
+    promoted_to_high_performing: number
+    promoted_to_top_tier: number
+    new_templates: Array<{
+      template_text: string
+      category: string
+      performance_level: string
+      open_rate: number
+    }>
+  }
+  message: string
+}
+
+export interface LearningAnalyticsResponse {
+  template_stats: Array<{
+    source: string
+    performance_level: string
+    count: number
+    avg_open_rate: number
+  }>
+  ai_performance: {
+    total_ai_subjects: number
+    avg_ai_open_rate: number
+    high_performing_count: number
+    top_tier_count: number
+  }
+  top_templates: Array<{
+    template_text: string
+    avg_open_rate: number
+    performance_level: string
+    source: string
+  }>
+  learning_active: boolean
+  system_status: string
+}
+
+export interface EmailSystemHealthResponse {
+  status: 'healthy' | 'error' | 'unavailable'
+  enhanced_email_system?: {
+    router_available: boolean
+    models_available: boolean
+    generator_ready: boolean
+    template_database: {
+      total_templates: number
+      active_templates: number
+      templates_seeded: boolean
+    }
+  }
+  capabilities?: {
+    ai_subject_generation: boolean
+    database_learning: boolean
+    performance_tracking: boolean
+    self_improvement: boolean
+    universal_product_support: boolean
+  }
+  expected_performance?: {
+    open_rates: string
+    continuous_improvement: string
+    template_growth: string
+  }
   error?: string
   message?: string
 }
@@ -410,7 +546,7 @@ function extractErrorMessage(response: any): string {
 }
 
 // ============================================================================
-// API CLIENT CLASS (Enhanced with Robust Response Handling)
+// API CLIENT CLASS (Enhanced with Robust Response Handling + Enhanced Email Generation)
 // ============================================================================
 
 class ApiClient {
@@ -691,6 +827,224 @@ class ApiClient {
   }
 
   // ============================================================================
+  // 📧 NEW: ENHANCED EMAIL GENERATION METHODS
+  // ============================================================================
+
+  /**
+   * Generate enhanced email sequence with AI learning
+   */
+  async generateEnhancedEmails(request: EmailGenerationRequest): Promise<EmailGenerationResponse> {
+    console.log('📧 Generating enhanced emails:', request)
+    
+    try {
+      const response = await fetch(`${this.baseURL}/api/intelligence/emails/enhanced-emails/generate`, {
+        method: 'POST',
+        headers: this.getHeaders(),
+        body: JSON.stringify(request)
+      })
+      
+      if (!response.ok) {
+        throw new Error(`Enhanced email generation failed: ${response.statusText}`)
+      }
+      
+      const result = await response.json()
+      console.log('✅ Enhanced emails generated successfully:', result)
+      
+      return result
+    } catch (error) {
+      console.error('❌ Enhanced email generation error:', error)
+      throw error
+    }
+  }
+
+  /**
+   * Track email performance for learning system
+   */
+  async trackEmailPerformance(request: PerformanceTrackingRequest): Promise<PerformanceTrackingResponse> {
+    console.log('📊 Tracking email performance:', request)
+    
+    try {
+      const response = await fetch(`${this.baseURL}/api/intelligence/emails/enhanced-emails/track-performance`, {
+        method: 'POST',
+        headers: this.getHeaders(),
+        body: JSON.stringify(request)
+      })
+      
+      if (!response.ok) {
+        throw new Error(`Performance tracking failed: ${response.statusText}`)
+      }
+      
+      const result = await response.json()
+      console.log('✅ Performance tracking successful:', result)
+      
+      return result
+    } catch (error) {
+      console.error('❌ Performance tracking error:', error)
+      throw error
+    }
+  }
+
+  /**
+   * Get learning analytics from email system
+   */
+  async getEmailLearningAnalytics(): Promise<LearningAnalyticsResponse> {
+    try {
+      const response = await fetch(`${this.baseURL}/api/intelligence/emails/enhanced-emails/learning-analytics`, {
+        method: 'GET',
+        headers: this.getHeaders()
+      })
+      
+      if (!response.ok) {
+        throw new Error(`Learning analytics failed: ${response.statusText}`)
+      }
+      
+      return response.json()
+    } catch (error) {
+      console.error('❌ Learning analytics error:', error)
+      throw error
+    }
+  }
+
+  /**
+   * Get email system health status
+   */
+  async getEmailSystemHealth(): Promise<EmailSystemHealthResponse> {
+    try {
+      const response = await fetch(`${this.baseURL}/api/emails/system-health`, {
+        method: 'GET',
+        headers: this.getHeaders()
+      })
+      
+      if (!response.ok) {
+        throw new Error(`Email system health check failed: ${response.statusText}`)
+      }
+      
+      return response.json()
+    } catch (error) {
+      console.error('❌ Email system health check error:', error)
+      throw error
+    }
+  }
+
+  /**
+   * Seed email templates database
+   */
+  async seedEmailTemplates(forceReseed: boolean = false): Promise<{
+    success: boolean
+    message: string
+    templates_seeded: number
+    total_templates: number
+  }> {
+    try {
+      const response = await fetch(`${this.baseURL}/api/intelligence/emails/enhanced-emails/seed-templates`, {
+        method: 'POST',
+        headers: this.getHeaders(),
+        body: JSON.stringify({ force_reseed: forceReseed })
+      })
+      
+      if (!response.ok) {
+        throw new Error(`Template seeding failed: ${response.statusText}`)
+      }
+      
+      return response.json()
+    } catch (error) {
+      console.error('❌ Template seeding error:', error)
+      throw error
+    }
+  }
+
+  /**
+   * Manually trigger learning evaluation
+   */
+  async triggerEmailLearning(daysBack: number = 7): Promise<{
+    success: boolean
+    learning_results: any
+    message: string
+  }> {
+    try {
+      const response = await fetch(`${this.baseURL}/api/intelligence/emails/enhanced-emails/trigger-learning`, {
+        method: 'POST',
+        headers: this.getHeaders(),
+        body: JSON.stringify({ days_back: daysBack })
+      })
+      
+      if (!response.ok) {
+        throw new Error(`Learning trigger failed: ${response.statusText}`)
+      }
+      
+      return response.json()
+    } catch (error) {
+      console.error('❌ Learning trigger error:', error)
+      throw error
+    }
+  }
+
+  /**
+   * Test enhanced email generation system
+   */
+  async testEnhancedEmailGeneration(
+    productName: string = 'TestProduct',
+    sequenceLength: number = 3,
+    useLearning: boolean = true
+  ): Promise<{
+    success: boolean
+    test_result: string
+    emails_generated: number
+    sample_subjects: string[]
+    generation_method: string
+    features_tested: any
+    expected_performance: any
+  }> {
+    try {
+      const response = await fetch(`${this.baseURL}/api/intelligence/emails/test-enhanced-generation`, {
+        method: 'POST',
+        headers: this.getHeaders(),
+        body: JSON.stringify({
+          product_name: productName,
+          sequence_length: sequenceLength,
+          use_learning: useLearning
+        })
+      })
+      
+      if (!response.ok) {
+        throw new Error(`Enhanced email test failed: ${response.statusText}`)
+      }
+      
+      return response.json()
+    } catch (error) {
+      console.error('❌ Enhanced email test error:', error)
+      throw error
+    }
+  }
+
+  /**
+   * Get enhanced email system status
+   */
+  async getEnhancedEmailSystemStatus(): Promise<{
+    system_ready: boolean
+    learning_active: boolean
+    template_database: any
+    performance_tracking: any
+    status_message: string
+  }> {
+    try {
+      const response = await fetch(`${this.baseURL}/api/intelligence/emails/enhanced-emails/system-status`, {
+        method: 'GET',
+        headers: this.getHeaders()
+      })
+      
+      if (!response.ok) {
+        throw new Error(`System status check failed: ${response.statusText}`)
+      }
+      
+      return response.json()
+    } catch (error) {
+      console.error('❌ System status check error:', error)
+      throw error
+    }
+  }
+
+  // ============================================================================
   // 🆕 DEMO PREFERENCE MANAGEMENT METHODS
   // ============================================================================
 
@@ -718,14 +1072,12 @@ class ApiClient {
   /**
    * Update user's demo campaign preferences
    */
-  async updateDemoPreferences(showDemo: boolean): Promise<DemoPreference> {
+  async updateDemoPreferences(preferences: Partial<DemoPreference>): Promise<DemoPreference> {
     try {
       const response = await fetch(`${this.baseURL}/api/campaigns/demo/preferences`, {
-        method: 'PUT',
+        method: 'POST',
         headers: this.getHeaders(),
-        body: JSON.stringify({
-          show_demo_campaigns: showDemo
-        })
+        body: JSON.stringify(preferences)
       })
       
       if (!response.ok) {
@@ -1365,6 +1717,134 @@ class ApiClient {
 export const apiClient = new ApiClient()
 
 // ============================================================================
+// 📧 NEW: ENHANCED EMAIL GENERATION REACT HOOK
+// ============================================================================
+
+export function useEnhancedEmailGeneration() {
+  const [isGenerating, setIsGenerating] = useState(false)
+  const [isTracking, setIsTracking] = useState(false)
+  const [systemHealth, setSystemHealth] = useState<EmailSystemHealthResponse | null>(null)
+  const [analytics, setAnalytics] = useState<LearningAnalyticsResponse | null>(null)
+  const [error, setError] = useState<string | null>(null)
+  const api = useApi()
+
+  const generateEmails = useCallback(async (request: EmailGenerationRequest) => {
+    try {
+      setIsGenerating(true)
+      setError(null)
+      const result = await api.generateEnhancedEmails(request)
+      return result
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Email generation failed'
+      setError(errorMessage)
+      throw err
+    } finally {
+      setIsGenerating(false)
+    }
+  }, [api])
+
+  const trackPerformance = useCallback(async (request: PerformanceTrackingRequest) => {
+    try {
+      setIsTracking(true)
+      setError(null)
+      const result = await api.trackEmailPerformance(request)
+      return result
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Performance tracking failed'
+      setError(errorMessage)
+      throw err
+    } finally {
+      setIsTracking(false)
+    }
+  }, [api])
+
+  const loadSystemHealth = useCallback(async () => {
+    try {
+      setError(null)
+      const health = await api.getEmailSystemHealth()
+      setSystemHealth(health)
+      return health
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'System health check failed')
+      throw err
+    }
+  }, [api])
+
+  const loadAnalytics = useCallback(async () => {
+    try {
+      setError(null)
+      const analyticsData = await api.getEmailLearningAnalytics()
+      setAnalytics(analyticsData)
+      return analyticsData
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Analytics loading failed')
+      throw err
+    }
+  }, [api])
+
+  const seedTemplates = useCallback(async (forceReseed = false) => {
+    try {
+      setError(null)
+      const result = await api.seedEmailTemplates(forceReseed)
+      return result
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Template seeding failed')
+      throw err
+    }
+  }, [api])
+
+  const triggerLearning = useCallback(async (daysBack = 7) => {
+    try {
+      setError(null)
+      const result = await api.triggerEmailLearning(daysBack)
+      return result
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Learning trigger failed')
+      throw err
+    }
+  }, [api])
+
+  const testSystem = useCallback(async (productName = 'TestProduct', sequenceLength = 3) => {
+    try {
+      setError(null)
+      const result = await api.testEnhancedEmailGeneration(productName, sequenceLength, true)
+      return result
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'System test failed')
+      throw err
+    }
+  }, [api])
+
+  useEffect(() => {
+    // Load system health on mount
+    loadSystemHealth().catch(console.error)
+  }, [loadSystemHealth])
+
+  return {
+    // State
+    isGenerating,
+    isTracking,
+    systemHealth,
+    analytics,
+    error,
+    
+    // Actions
+    generateEmails,
+    trackPerformance,
+    loadSystemHealth,
+    loadAnalytics,
+    seedTemplates,
+    triggerLearning,
+    testSystem,
+    
+    // Utils
+    isSystemReady: systemHealth?.status === 'healthy',
+    hasTemplates: systemHealth?.enhanced_email_system?.template_database?.templates_seeded ?? false,
+    templateCount: systemHealth?.enhanced_email_system?.template_database?.total_templates ?? 0
+  }
+}
+
+// ============================================================================
 // 🆕 NEW: DEMO PREFERENCE REACT HOOK
 // ============================================================================
 
@@ -1391,7 +1871,7 @@ export function useDemoPreferences() {
   const updatePreferences = useCallback(async (showDemo: boolean) => {
     try {
       setError(null)
-      const updatedPrefs = await api.updateDemoPreferences(showDemo)
+      const updatedPrefs = await api.updateDemoPreferences({ show_demo_campaigns: showDemo })
       setPreferences(updatedPrefs)
       return updatedPrefs
     } catch (err) {
@@ -1528,7 +2008,7 @@ export function getErrorMessage(error: unknown): string {
 }
 
 // ============================================================================
-// 🔧 UPDATED REACT HOOK FOR API ACCESS (Cleaned for 2-Step Workflow)
+// 🔧 UPDATED REACT HOOK FOR API ACCESS (Enhanced with Email Generation)
 // ============================================================================
 
 export const useApi = () => {
@@ -1538,6 +2018,16 @@ export const useApi = () => {
     register: apiClient.register.bind(apiClient),
     logout: apiClient.logout.bind(apiClient),
     getUserProfile: apiClient.getUserProfile.bind(apiClient),
+    
+    // 📧 NEW: Enhanced email generation methods
+    generateEnhancedEmails: apiClient.generateEnhancedEmails.bind(apiClient),
+    trackEmailPerformance: apiClient.trackEmailPerformance.bind(apiClient),
+    getEmailLearningAnalytics: apiClient.getEmailLearningAnalytics.bind(apiClient),
+    getEmailSystemHealth: apiClient.getEmailSystemHealth.bind(apiClient),
+    seedEmailTemplates: apiClient.seedEmailTemplates.bind(apiClient),
+    triggerEmailLearning: apiClient.triggerEmailLearning.bind(apiClient),
+    testEnhancedEmailGeneration: apiClient.testEnhancedEmailGeneration.bind(apiClient),
+    getEnhancedEmailSystemStatus: apiClient.getEnhancedEmailSystemStatus.bind(apiClient),
     
     // 🆕 Demo preference methods
     getDemoPreferences: apiClient.getDemoPreferences.bind(apiClient),
@@ -1596,4 +2086,172 @@ export const useApi = () => {
   }
 }
 
-export default apiClient
+// ============================================================================
+// 📧 NEW: EMAIL GENERATION UTILITY FUNCTIONS
+// ============================================================================
+
+export const emailUtils = {
+  /**
+   * Calculate estimated open rate improvement
+   */
+  calculateOpenRateImprovement: (currentRate: number, systemRate: number = 30): number => {
+    return Math.max(0, systemRate - currentRate)
+  },
+
+  /**
+   * Get email generation benefits
+   */
+  getEmailBenefits: () => [
+    "25-35% open rates using proven subject line templates",
+    "AI learns from your successful emails automatically", 
+    "Continuous improvement without manual work",
+    "Universal product support for any sales page",
+    "Database of high-converting psychology patterns",
+    "Performance tracking and learning analytics"
+  ],
+
+  /**
+   * Format learning metadata for display
+   */
+  formatLearningMetadata: (metadata: LearningMetadata[]): string => {
+    const learningCount = metadata.filter(m => m.can_learn_from).length
+    const totalCount = metadata.length
+    
+    if (learningCount === 0) {
+      return "Standard generation (no learning enabled)"
+    }
+    
+    return `${learningCount}/${totalCount} emails can improve AI performance`
+  },
+
+  /**
+   * Get performance level color
+   */
+  getPerformanceLevelColor: (level: string): string => {
+    switch (level.toLowerCase()) {
+      case 'top_tier': return 'text-green-600'
+      case 'high_performing': return 'text-blue-600'
+      case 'good': return 'text-yellow-600'
+      case 'experimental': return 'text-gray-600'
+      default: return 'text-gray-500'
+    }
+  },
+
+  /**
+   * Format open rate for display
+   */
+  formatOpenRate: (rate: number): string => {
+    return `${rate.toFixed(1)}%`
+  },
+
+  /**
+   * Determine if system needs seeding
+   */
+  needsSeeding: (health: EmailSystemHealthResponse): boolean => {
+    return health.enhanced_email_system?.template_database?.templates_seeded === false
+  },
+
+  /**
+   * Get system readiness status
+   */
+  getReadinessStatus: (health: EmailSystemHealthResponse): {
+    ready: boolean
+    message: string
+    action?: string
+  } => {
+    if (health.status !== 'healthy') {
+      return {
+        ready: false,
+        message: 'Enhanced email system not available',
+        action: 'Check system configuration'
+      }
+    }
+
+    if (!health.enhanced_email_system?.models_available) {
+      return {
+        ready: false,
+        message: 'Email models not loaded',
+        action: 'Contact support'
+      }
+    }
+
+    if (!health.enhanced_email_system?.template_database?.templates_seeded) {
+      return {
+        ready: false,
+        message: 'Templates need to be seeded',
+        action: 'Seed templates database'
+      }
+    }
+
+    return {
+      ready: true,
+      message: 'Enhanced email system ready'
+    }
+  },
+
+  /**
+   * Get learning progress summary
+   */
+  getLearningProgress: (analytics: LearningAnalyticsResponse): {
+    totalTemplates: number
+    aiGenerated: number
+    topPerformers: number
+    averageOpenRate: number
+  } => {
+    const totalTemplates = analytics.template_stats.reduce((sum, stat) => sum + stat.count, 0)
+    const aiGenerated = analytics.template_stats
+      .filter(stat => stat.source.includes('ai_learned'))
+      .reduce((sum, stat) => sum + stat.count, 0)
+    
+    return {
+      totalTemplates,
+      aiGenerated,
+      topPerformers: analytics.ai_performance.top_tier_count || 0,
+      averageOpenRate: analytics.ai_performance.avg_ai_open_rate || 0
+    }
+  }
+}
+
+// ============================================================================
+// 📧 NEW: EMAIL GENERATION CONSTANTS
+// ============================================================================
+
+export const EMAIL_CONSTANTS = {
+  PERFORMANCE_THRESHOLDS: {
+    EXCELLENT: 35,
+    GOOD: 25,
+    POOR: 15
+  },
+  
+  SEQUENCE_LENGTHS: {
+    SHORT: 3,
+    STANDARD: 5,
+    LONG: 7
+  },
+  
+  LEARNING_SETTINGS: {
+    MIN_SENDS_FOR_LEARNING: 50,
+    MIN_OPEN_RATE_FOR_STORAGE: 25,
+    HIGH_PERFORMANCE_THRESHOLD: 30,
+    TOP_TIER_THRESHOLD: 35
+  },
+  
+  STRATEGIC_ANGLES: [
+    'scientific_authority',
+    'emotional_transformation', 
+    'community_social_proof',
+    'urgency_scarcity',
+    'lifestyle_confidence'
+  ],
+  
+  TEMPLATE_CATEGORIES: [
+    'curiosity_gap',
+    'urgency_scarcity',
+    'social_proof',
+    'personal_benefit',
+    'transformation',
+    'authority_scientific',
+    'emotional_triggers',
+    'value_promise'
+  ]
+}
