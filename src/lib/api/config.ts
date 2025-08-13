@@ -79,9 +79,9 @@ export const ENDPOINTS = {
   
   // Content Management
   CONTENT: {
-    LIST: (campaignId: string) => `/api/intelligence/content/${campaignId}`,
-    DETAIL: (campaignId: string, contentId: string) => `/api/intelligence/content/${campaignId}/content/${contentId}`,
-    GENERATE: '/api/intelligence/content/generate',
+    LIST: (campaignId: string) => `/api/intelligence/content/${campaignId}`,  // ✅ CORRECTED
+    DETAIL: (campaignId: string, contentId: string) => `/api/intelligence/content/${campaignId}/content/${contentId}`,  // ✅ CORRECTED
+    GENERATE: '/api/intelligence/content/generate',  // ✅ CORRECTED
     RATE: (campaignId: string, contentId: string) => `/api/campaigns/${campaignId}/content/${contentId}/rate`,
     PUBLISH: (campaignId: string, contentId: string) => `/api/campaigns/${campaignId}/content/${contentId}/publish`,
     BULK_ACTION: (campaignId: string) => `/api/campaigns/${campaignId}/content/bulk-action`,
