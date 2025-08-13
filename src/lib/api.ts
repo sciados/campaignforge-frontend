@@ -1,10 +1,12 @@
-// src/lib/api.ts - Working Bridge API (Fixed)
+// src/lib/api.ts - Working Bridge API (Fixed with DashboardService)
 /**
  * WORKING BRIDGE API - Maintains backward compatibility
  * 
  * This file provides a working bridge between the old monolithic API
  * and the new modular service structure. It uses the actual services
  * under the hood while maintaining the old interface.
+ * 
+ * ✅ FIXED: Added DashboardService for proper company data handling
  */
 
 // Import the actual services
@@ -13,6 +15,7 @@ import { CampaignService } from './api/services/campaigns.service'
 import { IntelligenceService } from './api/services/intelligence.service'
 import { AuthService } from './api/services/auth.service'
 import { ContentService } from './api/services/content.service'
+import { DashboardService } from './api/services/dashboard.service'  // ✅ NEW
 
 // Import types
 import type { 
@@ -44,6 +47,7 @@ class WorkingApiClient {
   private intelligenceService = new IntelligenceService()
   private authService = new AuthService()
   private contentService = new ContentService()
+  private dashboardService = new DashboardService()  // ✅ NEW
 
   // ============================================================================
   // EMAIL GENERATION METHODS
@@ -211,27 +215,34 @@ class WorkingApiClient {
   }
 
   // ============================================================================
-// DASHBOARD METHODS - FIXED TO USE CORRECT ENDPOINTS
-// ============================================================================
+  // DASHBOARD METHODS - FIXED WITH PROPER SERVICE ARCHITECTURE
+  // ============================================================================
 
-async getDashboardStats() {
-  return this.campaignService.getDashboardStats()  // Uses correct /api/campaigns/stats
-}
+  async getDashboardStats() {
+    return this.campaignService.getDashboardStats()  // Campaign-specific stats
+  }
 
-async getCampaignStats() {
-  return this.campaignService.getCampaignStats()   // Uses correct /api/campaigns/stats
-}
+  async getCampaignStats() {
+    return this.campaignService.getCampaignStats()   // Campaign-specific stats
+  }
 
-// FIXED: Remove hardcoded fetch calls and use proper service
-async getCompanyStats() {
-  // Use the campaigns service which has the correct endpoint
-  return this.campaignService.getDashboardStats()
-}
+  // ✅ FIXED: Use DashboardService for company data
+  async getCompanyStats() {
+    return this.dashboardService.getCompanyStats()   // Uses /api/dashboard/stats
+  }
 
-async getCompanyDetails() {
-  // Use the campaigns service which has the correct endpoint  
-  return this.campaignService.getDashboardStats()
-}
+  async getCompanyDetails() {
+    return this.dashboardService.getCompanyDetails() // Uses /api/dashboard/company
+  }
+
+  // ✅ NEW: Additional system methods
+  async getSystemHealth() {
+    return this.dashboardService.getSystemHealth()
+  }
+
+  async getSystemStatus() {
+    return this.dashboardService.getSystemStatus()
+  }
 
   // ============================================================================
   // DEMO METHODS
@@ -331,11 +342,13 @@ export const useApi = () => {
     generateContent: apiClient.generateContent.bind(apiClient),
     getCampaignIntelligence: apiClient.getCampaignIntelligence.bind(apiClient),
     
-    // Dashboard
+    // Dashboard - proper service architecture
     getDashboardStats: apiClient.getDashboardStats.bind(apiClient),
     getCampaignStats: apiClient.getCampaignStats.bind(apiClient),
-    getCompanyStats: apiClient.getCompanyStats.bind(apiClient),
-    getCompanyDetails: apiClient.getCompanyDetails.bind(apiClient),
+    getCompanyStats: apiClient.getCompanyStats.bind(apiClient),      // ✅ Now uses DashboardService
+    getCompanyDetails: apiClient.getCompanyDetails.bind(apiClient),  // ✅ Now uses DashboardService
+    getSystemHealth: apiClient.getSystemHealth.bind(apiClient),      // ✅ NEW
+    getSystemStatus: apiClient.getSystemStatus.bind(apiClient),      // ✅ NEW
     
     // Token management
     setAuthToken: apiClient.setAuthToken,

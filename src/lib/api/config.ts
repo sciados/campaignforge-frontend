@@ -1,4 +1,4 @@
-// src/lib/api/config.ts - API Configuration (Merged with existing patterns)
+// src/lib/api/config.ts - API Configuration (Merged with existing patterns + Dashboard endpoints)
 
 export const API_CONFIG = {
   BASE_URL: 'https://campaign-backend-production-e2db.up.railway.app',
@@ -95,10 +95,24 @@ export const ENDPOINTS = {
     UPLOAD_DOCUMENT: '/api/intelligence/upload-document',
   },
   
-  // Dashboard & Stats
+  // Dashboard & Company Stats ✅ ENHANCED
   DASHBOARD: {
     STATS: '/api/dashboard/stats',
     COMPANY: '/api/dashboard/company',
+    ANALYTICS: '/api/dashboard/analytics',
+    TRENDS: '/api/dashboard/trends',
+    BILLING: '/api/dashboard/billing',
+    CREDITS: '/api/dashboard/credits',
+    TEAM: '/api/dashboard/team',
+    SETTINGS: '/api/dashboard/settings',
+  },
+  
+  // System Health & Monitoring ✅ NEW
+  SYSTEM: {
+    HEALTH: '/api/health',
+    STATUS: '/api/status',
+    DEBUG_ROUTES: '/api/debug/routes',
+    DEBUG_CORS: '/api/debug/cors-test',
   },
   
   // Demo Management
