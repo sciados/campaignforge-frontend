@@ -152,14 +152,14 @@ class WorkingApiClient {
   }
   
   async getGeneratedContent(campaignId: string): Promise<any[]> {
-    const response = await this.contentService.getContentList(campaignId)
-    // Extract just the content_items array from the response
-    return response.content_items || []
-  }
+  // ✅ FIX: Use the direct method that works
+  return this.contentService.getGeneratedContent(campaignId)  // This method uses direct fetch
+}
 
-  async getContentList(campaignId: string, includeBody = false, contentType?: string) {
-    return this.contentService.getContentList(campaignId, includeBody, contentType)
-  }
+async getContentList(campaignId: string, includeBody = false, contentType?: string) {
+  // ✅ FIX: Use the proper service method
+  return this.contentService.getContentList(campaignId, includeBody, contentType)
+}
 
   async getContentDetail(campaignId: string, contentId: string) {
     return this.contentService.getContentDetail(campaignId, contentId)
