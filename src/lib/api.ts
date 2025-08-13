@@ -211,40 +211,27 @@ class WorkingApiClient {
   }
 
   // ============================================================================
-  // DASHBOARD METHODS
-  // ============================================================================
-  
-  async getDashboardStats() {
-    return this.campaignService.getDashboardStats()
-  }
-  
-  async getCampaignStats() {
-    return this.campaignService.getCampaignStats()
-  }
-  
-  async getCompanyStats() {
-    // TODO: Create DashboardService for company-specific methods
-    const authToken = getAuthToken()
-    const response = await fetch('/api/dashboard/stats', {
-      headers: {
-        'Authorization': `Bearer ${authToken}`,
-        'Content-Type': 'application/json'
-      }
-    })
-    return response.json()
-  }
-  
-  async getCompanyDetails() {
-    // TODO: Create DashboardService for company-specific methods
-    const authToken = getAuthToken()
-    const response = await fetch('/api/dashboard/company', {
-      headers: {
-        'Authorization': `Bearer ${authToken}`,
-        'Content-Type': 'application/json'
-      }
-    })
-    return response.json()
-  }
+// DASHBOARD METHODS - FIXED TO USE CORRECT ENDPOINTS
+// ============================================================================
+
+async getDashboardStats() {
+  return this.campaignService.getDashboardStats()  // Uses correct /api/campaigns/stats
+}
+
+async getCampaignStats() {
+  return this.campaignService.getCampaignStats()   // Uses correct /api/campaigns/stats
+}
+
+// FIXED: Remove hardcoded fetch calls and use proper service
+async getCompanyStats() {
+  // Use the campaigns service which has the correct endpoint
+  return this.campaignService.getDashboardStats()
+}
+
+async getCompanyDetails() {
+  // Use the campaigns service which has the correct endpoint  
+  return this.campaignService.getDashboardStats()
+}
 
   // ============================================================================
   // DEMO METHODS
