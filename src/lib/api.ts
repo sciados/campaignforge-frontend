@@ -1,4 +1,4 @@
-// src/lib/api.ts - Working Bridge API (Fixed with DashboardService)
+// src/lib/api.ts - Working Bridge API (Fixed with Direct Fetch Content Methods)
 /**
  * WORKING BRIDGE API - Maintains backward compatibility
  * 
@@ -7,6 +7,7 @@
  * under the hood while maintaining the old interface.
  * 
  * ✅ FIXED: Added DashboardService for proper company data handling
+ * ✅ FIXED: Reverted content methods to direct fetch (original working pattern)
  */
 
 // Import the actual services
@@ -140,7 +141,7 @@ class WorkingApiClient {
   }
 
   // ============================================================================
-  // CONTENT METHODS
+  // CONTENT METHODS - REVERTED TO ORIGINAL WORKING PATTERN
   // ============================================================================
   
   async generateContent(data: {
@@ -148,29 +149,158 @@ class WorkingApiClient {
     campaign_id: string
     preferences?: Record<string, any>
   }): Promise<GeneratedContent> {
-    return this.contentService.generateContent(data)
+    console.log('🎯 Generating content with data:', data)
+    
+    const requestData = {
+      content_type: data.content_type,
+      campaign_id: data.campaign_id,
+      preferences: data.preferences || {},
+      prompt: `Generate ${data.content_type} content`
+    }
+    
+    console.log('📡 Sending request to backend:', requestData)
+    
+    // ✅ REVERT: Use direct fetch like the original working code
+    const response = await fetch(`https://campaign-backend-production-e2db.up.railway.app/api/intelligence/content/generate`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(getAuthToken() && { Authorization: `Bearer ${getAuthToken()}` })
+      },
+      body: JSON.stringify(requestData)
+    })
+    
+    if (!response.ok) {
+      const errorText = await response.text().catch(() => 'Unknown error')
+      throw new Error(`HTTP ${response.status}: ${errorText}`)
+    }
+    
+    const result = await response.json()
+    console.log('✅ Content generation successful:', result)
+    
+    // Transform response to match expected GeneratedContent format
+    return {
+      content_id: result.content_id || 'generated-content-id',
+      content_type: result.content_type || data.content_type,
+      campaign_id: data.campaign_id,
+      generated_content: {
+        title: result.generated_content?.title || `Generated ${data.content_type}`,
+        content: result.generated_content?.content || result.generated_content || {},
+        metadata: result.generation_metadata || {}
+      },
+      smart_url: result.smart_url || undefined,
+      performance_predictions: result.performance_predictions || {}
+    }
   }
   
   async getGeneratedContent(campaignId: string): Promise<any[]> {
-  // ✅ FIX: Use the direct method that works
-  return this.contentService.getGeneratedContent(campaignId)  // This method uses direct fetch
-}
+    console.log('🔍 Getting generated content for campaign:', campaignId)
+    
+    try {
+      // ✅ REVERT: Use direct fetch like the original working code
+      const response = await fetch(`https://campaign-backend-production-e2db.up.railway.app/api/intelligence/content/${campaignId}`, {
+        headers: {
+          'Content-Type': 'application/json',
+          ...(getAuthToken() && { Authorization: `Bearer ${getAuthToken()}` })
+        }
+      })
+      
+      console.log('✅ Content response status:', response.status)
+      
+      if (!response.ok) {
+        if (response.status === 404) {
+          console.warn('⚠️ Content endpoint not found, returning empty array')
+          return []
+        }
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`)
+      }
+      
+      const data = await response.json()
+      console.log('✅ Retrieved', Array.isArray(data) ? data.length : 'unknown', 'content items')
+      
+      // Handle different response formats
+      if (Array.isArray(data)) {
+        return data
+      } else if (data && data.content_items && Array.isArray(data.content_items)) {
+        return data.content_items
+      } else {
+        return []
+      }
+    } catch (error) {
+      console.error('❌ getGeneratedContent error:', error)
+      return []
+    }
+  }
 
-async getContentList(campaignId: string, includeBody = false, contentType?: string) {
-  // ✅ FIX: Use the proper service method
-  return this.contentService.getContentList(campaignId, includeBody, contentType)
-}
+  async getContentList(campaignId: string, includeBody = false, contentType?: string) {
+    const params = new URLSearchParams()
+    if (includeBody) params.set('include_body', 'true')
+    if (contentType) params.set('content_type', contentType)
+    
+    // ✅ REVERT: Use direct fetch like the original working code
+    const response = await fetch(`https://campaign-backend-production-e2db.up.railway.app/api/intelligence/content/${campaignId}?${params}`, {
+      headers: {
+        'Content-Type': 'application/json',
+        ...(getAuthToken() && { Authorization: `Bearer ${getAuthToken()}` })
+      }
+    })
+    
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`)
+    }
+    
+    return response.json()
+  }
 
   async getContentDetail(campaignId: string, contentId: string) {
-    return this.contentService.getContentDetail(campaignId, contentId)
+    // ✅ REVERT: Use direct fetch like the original working code
+    const response = await fetch(`https://campaign-backend-production-e2db.up.railway.app/api/intelligence/content/${campaignId}/content/${contentId}`, {
+      headers: {
+        'Content-Type': 'application/json',
+        ...(getAuthToken() && { Authorization: `Bearer ${getAuthToken()}` })
+      }
+    })
+    
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`)
+    }
+    
+    return response.json()
   }
 
   async updateContent(campaignId: string, contentId: string, updateData: any) {
-    return this.contentService.updateContent(campaignId, contentId, updateData)
+    // ✅ REVERT: Use direct fetch like the original working code
+    const response = await fetch(`https://campaign-backend-production-e2db.up.railway.app/api/intelligence/content/${campaignId}/content/${contentId}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(getAuthToken() && { Authorization: `Bearer ${getAuthToken()}` })
+      },
+      body: JSON.stringify(updateData)
+    })
+    
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`)
+    }
+    
+    return response.json()
   }
 
   async deleteContent(campaignId: string, contentId: string) {
-    return this.contentService.deleteContent(campaignId, contentId)
+    // ✅ REVERT: Use direct fetch like the original working code
+    const response = await fetch(`https://campaign-backend-production-e2db.up.railway.app/api/intelligence/content/${campaignId}/content/${contentId}`, {
+      method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(getAuthToken() && { Authorization: `Bearer ${getAuthToken()}` })
+      }
+    })
+    
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`)
+    }
+    
+    return response.json()
   }
 
   // ============================================================================
@@ -325,7 +455,7 @@ export const useApi = () => {
     deleteCampaign: apiClient.deleteCampaign.bind(apiClient),
     duplicateCampaign: apiClient.duplicateCampaign.bind(apiClient),
     
-    // Content management
+    // Content management - reverted to direct fetch
     getGeneratedContent: apiClient.getGeneratedContent.bind(apiClient),
     getContentList: apiClient.getContentList.bind(apiClient),
     getContentDetail: apiClient.getContentDetail.bind(apiClient),
