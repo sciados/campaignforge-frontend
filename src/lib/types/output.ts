@@ -1,6 +1,6 @@
 // File: src/lib/types/output.ts
 
-export interface GeneratedContent {
+/* export interface GeneratedContent {
   id: string
   campaign_id: string
   content_type: ContentType
@@ -14,6 +14,20 @@ export interface GeneratedContent {
   created_at: string
   updated_at: string
   published_at?: string
+} */
+
+export interface GeneratedContent {
+  content_id: string     // ✅ Added
+  campaign_id: string    // ✅ Added (was missing)
+  content_type: string   // ✅ Added
+  generated_content: {   // ✅ Added
+    title: string
+    content: any
+    metadata?: any
+    usage_tips?: string[]
+  }
+  smart_url?: string           // ✅ Added
+  performance_predictions: any // ✅ Added
 }
 
 export interface ContentStructure {

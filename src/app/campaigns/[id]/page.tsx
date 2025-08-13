@@ -7,7 +7,6 @@ import {
   Save, 
   FileText,
   Brain,
-  Sparkles,
   Settings,
   Clock,
   CheckCircle,
@@ -20,7 +19,7 @@ import {
   Activity
 } from 'lucide-react'
 import { useApi } from '@/lib/api'
-import { Campaign, WorkflowStateResponse } from '@/lib/api'
+import { Campaign } from '@/lib/api'
 import ContentGenerator from '@/components/intelligence/ContentGenerator'
 
 // Import the IntelligenceSource type from ContentGenerator instead of defining it here

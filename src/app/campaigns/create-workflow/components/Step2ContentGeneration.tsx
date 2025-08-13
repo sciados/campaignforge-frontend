@@ -3,6 +3,7 @@
 import React, { useState } from 'react'
 import { Sparkles, Mail, MessageSquare, FileText, Video, Megaphone, ExternalLink, BookOpen, Check, Target, Loader2 } from 'lucide-react'
 import { useApi } from '@/lib/api'
+import { GeneratedContent } from '@/lib/types/output'
 
 interface ContentType {
   id: string

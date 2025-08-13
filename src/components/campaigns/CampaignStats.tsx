@@ -14,7 +14,7 @@ export default function AppleCampaignStats({ campaigns, user }: CampaignStatsPro
   // Calculate stats from campaigns
   const totalCampaigns = safeCampaigns.length
   const activeCampaigns = safeCampaigns.filter(c => c.status === 'active').length
-  const inProgressCampaigns = safeCampaigns.filter(c => c.status === 'in_progress').length
+  const inProgressCampaigns = safeCampaigns.filter(c => c.status === 'processing').length
   const totalIntelligenceSources = safeCampaigns.reduce((sum, c) => sum + (c.intelligence_count || 0), 0)
   const totalGeneratedContent = safeCampaigns.reduce((sum, c) => sum + (c.generated_content_count || 0), 0)
   const avgConfidenceScore = safeCampaigns.length > 0 

@@ -1,4 +1,4 @@
-// File: src/lib/types/campaign.ts
+// File: src/lib/types/campaign.ts - Updated with missing properties
 
 import { InputSource } from './inputSource'
 import { CampaignIntelligence } from './intelligence'
@@ -20,13 +20,31 @@ export interface Campaign {
   user_id: string
   company_id: string
   
+  // Missing properties from original api.ts (restored)
+  is_demo?: boolean
+  auto_analysis_enabled?: boolean
+  auto_analysis_status?: string
+  analysis_confidence_score?: number
+  salespage_url?: string
+  content_types?: string[]
+  content_tone?: string
+  content_style?: string
+  generate_content_after_analysis?: boolean
+  
+  // Enhanced workflow fields for 2-step process
+  workflow_state?: string
+  completion_percentage?: number
+  sources_count?: number
+  intelligence_count?: number
+  content_count?: number
+  total_steps?: number
+  
   // Related data (populated via joins or separate queries)
   input_sources?: InputSource[]
   intelligence?: CampaignIntelligence[]
   generated_content?: GeneratedContent[]
   
   // Computed fields
-  intelligence_count?: number
   generated_content_count?: number
   confidence_score?: number
   last_activity?: string
@@ -101,6 +119,14 @@ export interface CampaignCreateRequest {
   tone?: string
   style?: string
   settings?: Partial<CampaignSettings>
+  
+  // Auto-analysis fields for streamlined workflow
+  salespage_url?: string
+  auto_analysis_enabled?: boolean
+  content_types?: string[]
+  content_tone?: string
+  content_style?: string
+  generate_content_after_analysis?: boolean
 }
 
 export interface CampaignUpdateRequest {
@@ -112,6 +138,13 @@ export interface CampaignUpdateRequest {
   style?: string
   settings?: Partial<CampaignSettings>
   status?: CampaignStatus
+  
+  // Auto-analysis updates
+  auto_analysis_enabled?: boolean
+  content_types?: string[]
+  content_tone?: string
+  content_style?: string
+  generate_content_after_analysis?: boolean
 }
 
 export interface CampaignStats {

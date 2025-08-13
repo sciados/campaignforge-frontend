@@ -2,7 +2,8 @@
 'use client'
 import { create } from 'zustand'
 import { devtools } from 'zustand/middleware'
-import { Campaign, apiClient } from "../api"
+import { apiClient } from "../api"
+import { Campaign } from "../types/campaign"
 
 interface CampaignCreateRequest {
   title: string
@@ -163,7 +164,7 @@ export const useCampaignStore = create<CampaignStore>()(
       // Computed properties
       activeCampaigns: () => {
         return get().campaigns.filter(c => 
-          c.status === 'active' || c.status === 'in_progress'
+          c.status === 'active' || c.status === 'processing'
         )
       },
 
@@ -197,7 +198,7 @@ export const useCampaignStats = () => {
   
   return {
     total: campaigns.length,
-    active: campaigns.filter(c => c.status === 'active' || c.status === 'in_progress').length,
+    active: campaigns.filter(c => c.status === 'active' || c.status === 'processing').length,
     draft: campaigns.filter(c => c.status === 'draft').length,
     completed: campaigns.filter(c => c.status === 'completed').length,
     archived: campaigns.filter(c => c.status === 'archived').length

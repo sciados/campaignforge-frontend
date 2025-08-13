@@ -2,7 +2,8 @@
 'use client'
 import { create } from 'zustand'
 import { devtools } from 'zustand/middleware'
-import { apiClient, CampaignIntelligenceResponse } from "../api"
+import { apiClient } from "../api"
+import { CampaignIntelligenceResponse } from "../types/intelligence-api"
 
 interface IntelligenceSource {
   id: string
