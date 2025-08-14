@@ -1,328 +1,182 @@
-// src/lib/api/services/content.service.ts - TARGETED FIX for path construction
-// 🎯 MINIMAL CHANGES - Only fixing the URL construction issues
+// src/lib/api/services/content.service.ts - FIXED to match original working backend
 
-import { BaseApiClient } from "../core/client";
-import { ENDPOINTS, getAuthToken, getApiBaseUrl } from "../config"; // ✅ ADD: getApiBaseUrl
-import { handleContentGenerationResponse } from "../core/response-handler";
-import type { GeneratedContent } from "../../types/output";
-import type { BulkActionResponse } from "../../types/api";
+import { getAuthToken } from '../config'
 
 /**
- * Content Service - FIXED URL construction
- * 🎯 TARGETED FIX: Use direct fetch with correct URLs like the working main API
+ * Content Service - Matches original working backend exactly
+ * Uses same patterns as api.ts.backup that was working
  */
-export class ContentService extends BaseApiClient {
-  // ✅ FIX: Override base URL construction to match working pattern
-  private getContentBaseUrl(): string {
-    return "https://campaign-backend-production-e2db.up.railway.app"; // Use exact working URL
-  }
+export class ContentService {
+  private baseURL = 'https://campaign-backend-production-e2db.up.railway.app'
 
-  private getContentHeaders(): Record<string, string> {
+  private getHeaders(): Record<string, string> {
     return {
-      "Content-Type": "application/json",
-      ...(getAuthToken() && { Authorization: `Bearer ${getAuthToken()}` }),
-    };
+      'Content-Type': 'application/json',
+      ...(getAuthToken() && { Authorization: `Bearer ${getAuthToken()}` })
+    }
   }
-
-  // ============================================================================
-  // FIXED CONTENT GENERATION - Use direct fetch pattern that works
-  // ============================================================================
 
   /**
-   * ✅ FIXED: Generate content using direct fetch (matching working main API pattern)
+   * ✅ Generate content - matches original working api.ts.backup exactly
    */
   async generateContent(data: {
-    content_type: string;
-    campaign_id: string;
-    preferences?: Record<string, any>;
-  }): Promise<GeneratedContent> {
-    console.log("🎯 ContentService: Generating content with data:", data);
+    content_type: string
+    campaign_id: string
+    preferences?: Record<string, any>
+  }) {
+    console.log('🎯 Generating content with data:', data)
 
     const requestData = {
       content_type: data.content_type,
       campaign_id: data.campaign_id,
       preferences: data.preferences || {},
-      prompt: `Generate ${data.content_type} content`,
-    };
-
-    console.log("📡 ContentService: Sending request to backend:", requestData);
-
-    // ✅ FIXED: Use direct fetch pattern that works (from main API)
-    const response = await fetch(
-      `${this.getContentBaseUrl()}/api/intelligence/content/generate`,
-      {
-        method: "POST",
-        headers: this.getContentHeaders(),
-        body: JSON.stringify(requestData),
-      }
-    );
-
-    console.log("📥 ContentService: Response status:", response.status);
-
-    if (!response.ok) {
-      const errorText = await response.text().catch(() => "Unknown error");
-      console.error(
-        "❌ ContentService: Request failed:",
-        response.status,
-        errorText
-      );
-      throw new Error(`HTTP ${response.status}: ${errorText}`);
+      prompt: `Generate ${data.content_type} content`
     }
 
-    const result = await response.json();
-    console.log("✅ ContentService: Content generation successful:", result);
+    console.log('📡 Sending request to backend:', requestData)
 
-    // ✅ FIXED: Transform response to match expected GeneratedContent format
+    // ✅ Exact same URL as working api.ts.backup
+    const response = await fetch(`${this.baseURL}/api/intelligence/content/generate`, {
+      method: 'POST',
+      headers: this.getHeaders(),
+      body: JSON.stringify(requestData)
+    })
+
+    if (!response.ok) {
+      const errorText = await response.text().catch(() => 'Unknown error')
+      throw new Error(`HTTP ${response.status}: ${errorText}`)
+    }
+
+    const result = await response.json()
+    console.log('✅ Content generation successful:', result)
+
+    // ✅ Exact same response transformation as working api.ts.backup
     return {
-      content_id: result.content_id || "generated-content-id",
+      content_id: result.content_id || 'generated-content-id',
       content_type: result.content_type || data.content_type,
       campaign_id: data.campaign_id,
       generated_content: {
-        title:
-          result.generated_content?.title || `Generated ${data.content_type}`,
-        content:
-          result.generated_content?.content || result.generated_content || {},
-        metadata: result.generation_metadata || {},
+        title: result.generated_content?.title || `Generated ${data.content_type}`,
+        content: result.generated_content?.content || result.generated_content || {},
+        metadata: result.generation_metadata || {}
       },
       smart_url: result.smart_url || undefined,
-      performance_predictions: result.performance_predictions || {},
-    };
+      performance_predictions: result.performance_predictions || {}
+    }
   }
 
-  // ============================================================================
-  // FIXED CONTENT RETRIEVAL - Use direct fetch pattern that works
-  // ============================================================================
-
   /**
-   * ✅ FIXED: Get generated content using direct fetch (matching working main API pattern)
+   * ✅ Get generated content - matches original working api.ts.backup exactly
    */
   async getGeneratedContent(campaignId: string): Promise<any[]> {
-    console.log("🔍 ContentService: Getting content for campaign:", campaignId);
+    console.log('🔍 Getting generated content for campaign:', campaignId)
 
     try {
-      // ✅ FIXED: Use direct fetch pattern that works (from main API)
-      const response = await fetch(
-        `${this.getContentBaseUrl()}/api/intelligence/content/${campaignId}`,
-        {
-          headers: this.getContentHeaders(),
-        }
-      );
+      // ✅ Exact same URL as working api.ts.backup
+      const response = await fetch(`${this.baseURL}/api/intelligence/content/${campaignId}`, {
+        headers: this.getHeaders()
+      })
 
-      console.log("📥 ContentService: Response status:", response.status);
+      console.log('✅ Content response status:', response.status)
 
       if (!response.ok) {
         if (response.status === 404) {
-          console.warn(
-            "⚠️ ContentService: Content endpoint not found, returning empty array"
-          );
-          return [];
+          console.warn('⚠️ Content endpoint not found, returning empty array')
+          return []
         }
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`)
       }
 
-      const data = await response.json();
-      console.log(
-        "✅ ContentService: Retrieved",
-        Array.isArray(data) ? data.length : "unknown",
-        "content items"
-      );
+      const data = await response.json()
+      console.log('✅ Retrieved', Array.isArray(data) ? data.length : 'unknown', 'content items')
 
-      // Handle different response formats
+      // ✅ Exact same response handling as working api.ts.backup
       if (Array.isArray(data)) {
-        return data;
-      } else if (
-        data &&
-        data.content_items &&
-        Array.isArray(data.content_items)
-      ) {
-        return data.content_items;
+        return data
+      } else if (data && data.content_items && Array.isArray(data.content_items)) {
+        return data.content_items
       } else {
-        return [];
+        return []
       }
     } catch (error) {
-      console.error("❌ ContentService: getGeneratedContent error:", error);
-      return [];
+      console.error('❌ getGeneratedContent error:', error)
+      return []
     }
   }
 
   /**
-   * ✅ FIXED: Get content list using direct fetch pattern
+   * ✅ Get content list - matches working pattern
    */
-  async getContentList(
-    campaignId: string,
-    includeBody?: boolean,
-    contentType?: string | undefined,
-    options?: {
-      includeBody?: boolean;
-      contentType?: string;
-      limit?: number;
-      offset?: number;
-    }
-  ): Promise<{
-    campaign_id: string;
-    total_content: number;
-    content_items: any[];
-  }> {
-    const params = new URLSearchParams();
+  async getContentList(campaignId: string, includeBody = false, contentType?: string) {
+    const params = new URLSearchParams()
+    if (includeBody) params.set('include_body', 'true')
+    if (contentType) params.set('content_type', contentType)
 
-    if (options?.includeBody || includeBody) params.set("include_body", "true");
-    if (options?.contentType || contentType)
-      params.set("content_type", options?.contentType || contentType!);
-    if (options?.limit) params.set("limit", options.limit.toString());
-    if (options?.offset) params.set("offset", options.offset.toString());
-
-    // ✅ FIXED: Use direct fetch pattern
-    const url = `${this.getContentBaseUrl()}/api/intelligence/content/${campaignId}`;
-    const fullUrl = params.toString() ? `${url}?${params}` : url;
+    const url = `${this.baseURL}/api/intelligence/content/${campaignId}`
+    const fullUrl = params.toString() ? `${url}?${params}` : url
 
     const response = await fetch(fullUrl, {
-      headers: this.getContentHeaders(),
-    });
+      headers: this.getHeaders()
+    })
 
     if (!response.ok) {
-      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`)
     }
 
-    return response.json();
+    return response.json()
   }
 
   /**
-   * ✅ FIXED: Get content detail using direct fetch pattern
+   * ✅ Get content detail - matches working pattern
    */
-  async getContentDetail(campaignId: string, contentId: string): Promise<any> {
-    // ✅ FIXED: Use direct fetch pattern
-    const url = `${this.getContentBaseUrl()}/api/intelligence/content/${campaignId}/content/${contentId}`;
+  async getContentDetail(campaignId: string, contentId: string) {
+    const url = `${this.baseURL}/api/intelligence/content/${campaignId}/content/${contentId}`
 
     const response = await fetch(url, {
-      headers: this.getContentHeaders(),
-    });
+      headers: this.getHeaders()
+    })
 
     if (!response.ok) {
-      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`)
     }
 
-    return response.json();
+    return response.json()
   }
 
   /**
-   * ✅ FIXED: Update content using direct fetch pattern
+   * ✅ Update content - matches working pattern
    */
-  async updateContent(
-    campaignId: string,
-    contentId: string,
-    updateData: {
-      content_title?: string;
-      content_body?: string;
-      content_metadata?: any;
-      user_rating?: number;
-      is_published?: boolean;
-    }
-  ): Promise<{
-    id: string;
-    message: string;
-    updated_at: string;
-  }> {
-    // ✅ FIXED: Use direct fetch pattern
-    const url = `${this.getContentBaseUrl()}/api/intelligence/content/${campaignId}/content/${contentId}`;
+  async updateContent(campaignId: string, contentId: string, updateData: any) {
+    const url = `${this.baseURL}/api/intelligence/content/${campaignId}/content/${contentId}`
 
     const response = await fetch(url, {
-      method: "PUT",
-      headers: this.getContentHeaders(),
-      body: JSON.stringify(updateData),
-    });
+      method: 'PUT',
+      headers: this.getHeaders(),
+      body: JSON.stringify(updateData)
+    })
 
     if (!response.ok) {
-      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`)
     }
 
-    return response.json();
+    return response.json()
   }
 
   /**
-   * ✅ FIXED: Delete content using direct fetch pattern
+   * ✅ Delete content - matches working pattern
    */
-  async deleteContent(
-    campaignId: string,
-    contentId: string
-  ): Promise<{ message: string }> {
-    // ✅ FIXED: Use direct fetch pattern
-    const url = `${this.getContentBaseUrl()}/api/intelligence/content/${campaignId}/content/${contentId}`;
+  async deleteContent(campaignId: string, contentId: string) {
+    const url = `${this.baseURL}/api/intelligence/content/${campaignId}/content/${contentId}`
 
     const response = await fetch(url, {
-      method: "DELETE",
-      headers: this.getContentHeaders(),
-    });
+      method: 'DELETE',
+      headers: this.getHeaders()
+    })
 
     if (!response.ok) {
-      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`)
     }
 
-    return response.json();
+    return response.json()
   }
-
-  // ============================================================================
-  // KEEP ALL OTHER METHODS UNCHANGED
-  // (The rest of the methods from your original file go here unchanged)
-  // ============================================================================
-
-  // Enhanced response handler with proper error handling
-  protected async handleResponse<T>(response: Response): Promise<T> {
-    if (!response.ok) {
-      const errorText = await response.text().catch(() => "Unknown error");
-      throw new Error(`HTTP ${response.status}: ${errorText}`);
-    }
-
-    const contentType = response.headers.get("content-type");
-    if (contentType && contentType.includes("application/json")) {
-      return await response.json();
-    }
-
-    return (await response.text()) as unknown as T;
-  }
-
-  // Generate multiple content pieces in batch
-  async generateBatchContent(
-    requests: Array<{
-      content_type: string;
-      campaign_id: string;
-      preferences?: Record<string, any>;
-    }>
-  ): Promise<GeneratedContent[]> {
-    console.log("📄 Generating batch content:", requests.length, "items");
-
-    const results = await Promise.allSettled(
-      requests.map((request) => this.generateContent(request))
-    );
-
-    const successful: GeneratedContent[] = [];
-    const failed: any[] = [];
-
-    results.forEach((result, index) => {
-      if (result.status === "fulfilled") {
-        successful.push(result.value);
-      } else {
-        failed.push({
-          index,
-          request: requests[index],
-          error: result.reason,
-        });
-      }
-    });
-
-    if (failed.length > 0) {
-      console.warn(
-        `⚠️ ${failed.length}/${requests.length} content generations failed:`,
-        failed
-      );
-    }
-
-    console.log(
-      `✅ Batch generation completed: ${successful.length}/${requests.length} successful`
-    );
-    return successful;
-  }
-
-  // Keep all the other methods from your original file...
-  // (rate content, publish content, bulk operations, etc.)
-  // This is just a targeted fix for the URL construction issue
 }
