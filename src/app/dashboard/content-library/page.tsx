@@ -249,6 +249,14 @@ export default function ContentLibraryRedesign() {
   // UTILITY FUNCTIONS
   // ============================================================================
 
+  const formatContentType = useCallback((type: string): string => {
+    const config =
+      CONTENT_TYPE_CONFIG[type as keyof typeof CONTENT_TYPE_CONFIG];
+    if (config) return config.label;
+
+    return type.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase());
+  }, []);
+
   const groupContentByType = useCallback(
     (content: ContentItem[]): ContentGroup[] => {
       const groups: Record<string, ContentItem[]> = {};
@@ -287,16 +295,8 @@ export default function ContentLibraryRedesign() {
         .sort((a, b) => b.count - a.count); // Sort by count descending
       // eslint-disable-next-line react-hooks/exhaustive-deps
     },
-    []
+    [formatContentType]
   );
-
-  const formatContentType = useCallback((type: string): string => {
-    const config =
-      CONTENT_TYPE_CONFIG[type as keyof typeof CONTENT_TYPE_CONFIG];
-    if (config) return config.label;
-
-    return type.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase());
-  }, []);
 
   const formatTimeAgo = useCallback((dateString: string) => {
     const date = new Date(dateString);
