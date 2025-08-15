@@ -1,7 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   images: {
-    domains: ['localhost', 'cloudflare.com'],
+    domains: ["localhost", "cloudflare.com"],
   },
   env: {
     NEXTAUTH_URL: process.env.NEXTAUTH_URL,
@@ -17,11 +17,11 @@ const nextConfig = {
   // output: 'standalone',
   // Force dynamic rendering for all routes
   trailingSlash: false,
-  
+
   // 🔥 FORCE REBUILD: Add build ID to force cache invalidation
   generateBuildId: async () => {
-    return `build-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+    return `build-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
   },
-}
+};
 
-module.exports = nextConfig
+module.exports = nextConfig;

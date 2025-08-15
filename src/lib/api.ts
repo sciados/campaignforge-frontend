@@ -1,13 +1,15 @@
-export default apiClient// src/lib/api.ts - COMPLETE FIXED VERSION WITH ROBUST RESPONSE HANDLING + ENHANCED EMAIL GENERATION
+// src/lib/api.ts - COMPLETE CLEAN VERSION - NO DUPLICATE EXPORTS
 /**
  * Enhanced API client for CampaignForge with streamlined 2-step workflow
  * 🆕 NEW: Demo preference management system with smart user control
  * 🆕 NEW: Enhanced email generation with AI learning system
+ * 🆕 NEW: AI Discovery Service integration for provider optimization
  * 🔧 UPDATED: Cleaned legacy 4-step workflow references
  * 🧹 CLEANED: Removed old workflow interfaces and methods
  * 🔧 FIXED: Robust response handling for all backend response formats
  * 🎯 FIXED: generateContent method handles both success/error response formats
- * 📧 NEW: Complete enhanced email generation API integration
+ * 🔧 NEW: Complete enhanced email generation API integration
+ * ✅ FIXED: All duplicate exports removed
  */
 
 import { useState, useCallback, useEffect } from 'react'
@@ -55,7 +57,73 @@ export interface LegacyResponse {
 }
 
 // ============================================================================
-// 📧 NEW: ENHANCED EMAIL GENERATION TYPES
+// 🆕 NEW: AI DISCOVERY SERVICE TYPES
+// ============================================================================
+
+export interface AiProviderStatus {
+  provider_name: string
+  category: string
+  is_active: boolean
+  status: 'healthy' | 'degraded' | 'error'
+  response_time_ms: number
+  error_rate: number
+  last_check: string
+  capabilities: string[]
+  cost_per_request?: number
+}
+
+export interface AiOptimizationDashboard {
+  current_providers: Record<string, string>
+  provider_performance: AiProviderStatus[]
+  optimization_suggestions: Array<{
+    category: string
+    current_provider: string
+    suggested_provider: string
+    reason: string
+    potential_improvement: string
+    confidence_score: number
+  }>
+  cost_analysis: {
+    daily_cost: number
+    monthly_projection: number
+    potential_savings: number
+  }
+  performance_metrics: {
+    avg_response_time: number
+    success_rate: number
+    total_requests_today: number
+  }
+}
+
+export interface AiConnectionTest {
+  connection_status: 'success' | 'failed'
+  ai_discovery_available: boolean
+  providers_discovered: number
+  test_timestamp: string
+  error_details?: string
+  discovered_providers: Array<{
+    name: string
+    category: string
+    available: boolean
+  }>
+}
+
+export interface ProviderSwitchResult {
+  success: boolean
+  old_provider: string
+  new_provider: string
+  category: string
+  switch_timestamp: string
+  performance_impact: {
+    response_time_change: string
+    cost_change: string
+    quality_change: string
+  }
+  message: string
+}
+
+// ============================================================================
+// 🔧 NEW: ENHANCED EMAIL GENERATION TYPES
 // ============================================================================
 
 export interface EmailGenerationRequest {
@@ -208,13 +276,13 @@ export interface Campaign {
   updated_at: string
   user_id: string
   company_id: string
-  
+
   // 🆕 NEW: Auto-Analysis Fields (matching backend CampaignResponse)
   salespage_url?: string
   auto_analysis_enabled?: boolean
   auto_analysis_status?: string
   analysis_confidence_score?: number
-  
+
   // Enhanced workflow fields for 2-step process
   workflow_state?: string
   completion_percentage?: number
@@ -222,16 +290,16 @@ export interface Campaign {
   intelligence_count?: number
   content_count?: number
   total_steps?: number
-  
+
   // 🆕 NEW: Auto-analysis workflow fields
   content_types?: string[]
   content_tone?: string
   content_style?: string
   generate_content_after_analysis?: boolean
-  
+
   // Demo campaign fields
   is_demo?: boolean
-  
+
   // Legacy fields for backward compatibility
   content?: any
   confidence_score?: number
@@ -247,7 +315,7 @@ interface CampaignCreateData {
   campaign_type?: string
   tone?: string
   style?: string
-  
+
   // 🆕 NEW: Auto-Analysis Fields for streamlined workflow
   salespage_url?: string
   auto_analysis_enabled?: boolean
@@ -255,7 +323,7 @@ interface CampaignCreateData {
   content_tone?: string
   content_style?: string
   generate_content_after_analysis?: boolean
-  
+
   settings?: Record<string, any>
 }
 
@@ -281,13 +349,13 @@ export interface WorkflowStateResponse {
   completion_percentage: number
   total_steps: number  // Should be 2 for streamlined workflow
   current_step: number
-  
+
   metrics: {
     sources_count: number
     intelligence_count: number
     content_count: number
   }
-  
+
   auto_analysis: {
     enabled: boolean
     status: string
@@ -297,14 +365,14 @@ export interface WorkflowStateResponse {
     completed_at?: string
     error_message?: string
   }
-  
+
   next_steps: Array<{
     action: string
     label: string
     description: string
     priority: string
   }>
-  
+
   can_analyze: boolean
   can_generate_content: boolean
   is_demo: boolean
@@ -520,7 +588,7 @@ function isStandardResponse(response: any): response is StandardResponse {
 
 function isLegacyResponse(response: any): response is LegacyResponse {
   return response && typeof response === 'object' && (
-    'content_id' in response || 
+    'content_id' in response ||
     'generated_content' in response ||
     'content_type' in response
   )
@@ -528,7 +596,7 @@ function isLegacyResponse(response: any): response is LegacyResponse {
 
 function hasErrorIndicators(response: any): boolean {
   if (!response || typeof response !== 'object') return false
-  
+
   return (
     response.error ||
     response.success === false ||
@@ -546,1379 +614,34 @@ function extractErrorMessage(response: any): string {
 }
 
 // ============================================================================
-// API CLIENT CLASS (Enhanced with Robust Response Handling + Enhanced Email Generation)
+// UTILITY FUNCTIONS
 // ============================================================================
 
-class ApiClient {
-  private baseURL: string
-  private defaultHeaders: Record<string, string>
-
-  constructor() {
-    this.baseURL = API_BASE_URL
-    this.defaultHeaders = {
-      'Content-Type': 'application/json',
-    }
-  }
-
-  private getAuthToken(): string | null {
-    if (typeof window === 'undefined') return null
-    return localStorage.getItem('access_token') || localStorage.getItem('authToken')
-  }
-
-  private getHeaders(): Record<string, string> {
-    const token = this.getAuthToken()
-    return {
-      ...this.defaultHeaders,
-      ...(token && { Authorization: `Bearer ${token}` })
-    }
-  }
-
-  // 🎯 ROBUST RESPONSE HANDLER - Handles Multiple Backend Response Formats
-  private async handleResponse<T>(response: Response): Promise<T> {
-    if (response.ok) {
-      try {
-        const responseData = await response.json()
-        
-        // 🎯 ROBUST: Handle standardized responses
-        if (isStandardResponse(responseData)) {
-          if (!responseData.success) {
-            throw new ApiError(
-              responseData.error || responseData.message || 'Operation failed',
-              response.status,
-              responseData,
-              responseData.error_code,
-              responseData.error_details?.suggestions,
-              responseData.request_id
-            )
-          }
-          // Return the data portion for standardized responses
-          return responseData.data as T
-        }
-        
-        // 🎯 ROBUST: Handle legacy responses
-        if (isLegacyResponse(responseData)) {
-          // Check for error indicators in legacy format
-          if (hasErrorIndicators(responseData)) {
-            throw new ApiError(
-              extractErrorMessage(responseData),
-              response.status,
-              responseData
-            )
-          }
-          // Return the whole object for legacy responses
-          return responseData as T
-        }
-        
-        // 🎯 ROBUST: Handle plain JSON responses
-        return responseData as T
-        
-      } catch (jsonError) {
-        if (jsonError instanceof ApiError) {
-          throw jsonError
-        }
-        // If JSON parsing fails, return empty object
-        return {} as T
-      }
-    }
-
-    // Handle error responses
-    let errorData: any
-    try {
-      errorData = await response.json()
-    } catch {
-      errorData = {
-        detail: `HTTP ${response.status}: ${response.statusText}`,
-        status_code: response.status,
-      }
-    }
-
-    // Special handling for different error types
-    if (response.status === 402) {
-      throw new CreditError(errorData)
-    }
-
-    if (response.status === 401) {
-      // Clear tokens and redirect to login
-      this.clearAuthToken()
-      if (typeof window !== 'undefined') {
-        window.location.href = '/login'
-      }
-      throw new ApiError('Authentication required', 401, errorData)
-    }
-
-    throw new ApiError(
-      errorData.detail || errorData.message || 'An error occurred',
-      response.status,
-      errorData
-    )
-  }
-
-  // 🎯 ROBUST CONTENT GENERATION HANDLER
-  private async handleContentGenerationResponse(response: Response): Promise<GeneratedContent> {
-    let responseData: any
-    
-    try {
-      responseData = await response.json()
-      console.log('🔍 Raw backend response:', responseData)
-    } catch (jsonError) {
-      console.error('❌ JSON parsing failed:', jsonError)
-      throw new ApiError(`Invalid JSON response: ${jsonError}`)
-    }
-
-    // 🎯 ROBUST: Check for error conditions first
-    if (!response.ok) {
-      const errorMessage = extractErrorMessage(responseData)
-      throw new ApiError(errorMessage, response.status, responseData)
-    }
-
-    // 🎯 ROBUST: Handle standardized success response
-    if (isStandardResponse(responseData)) {
-      if (!responseData.success) {
-        throw new ApiError(
-          responseData.error || responseData.message || 'Content generation failed',
-          response.status,
-          responseData,
-          responseData.error_code,
-          responseData.error_details?.suggestions,
-          responseData.request_id
-        )
-      }
-      
-      // Extract data from standardized response
-      const data = responseData.data
-      return {
-        content_id: data.content_id,
-        content_type: data.content_type,
-        generated_content: {
-          title: data.generated_content?.title || `Generated ${data.content_type}`,
-          content: (() => {
-            // Handle different response formats properly
-            if (data.generated_content?.content) {
-              return data.generated_content.content;
-            }
-            if (data.generated_content && typeof data.generated_content === 'object') {
-              return data.generated_content;
-        }
-        return {};
-      })(),
-      metadata: data.generation_metadata
-    },
-    smart_url: data.smart_url || undefined,
-      performance_predictions: data.performance_predictions || {}
-      }
-    }
-
-    // 🎯 ROBUST: Handle legacy response format
-    if (isLegacyResponse(responseData)) {
-      // Check for error indicators
-      if (hasErrorIndicators(responseData)) {
-        throw new ApiError(extractErrorMessage(responseData), response.status, responseData)
-      }
-
-      // Check for required fields
-      if (!responseData.content_id && !responseData.generated_content) {
-        throw new ApiError('Invalid response: missing content data', response.status, responseData)
-      }
-
-      // Transform legacy response to expected format
-      return {
-        content_id: responseData.content_id || 'legacy-content-id',
-        content_type: responseData.content_type || 'unknown',
-        generated_content: {
-          title: responseData.generated_content?.title || `Generated Content`,
-          content: responseData.generated_content?.content || responseData.generated_content || {},
-          metadata: responseData.generation_metadata || {}
-        },
-                  smart_url: responseData.smart_url || undefined,
-        performance_predictions: responseData.performance_predictions || {}
-      }
-    }
-
-    // 🎯 ROBUST: Fallback for unexpected response format
-    console.warn('⚠️ Unexpected response format, attempting to extract content:', responseData)
-    
-    return {
-      content_id: responseData.id || responseData.content_id || 'unknown-id',
-      content_type: responseData.content_type || 'unknown',
-      generated_content: {
-        title: 'Generated Content',
-        content: responseData.content || responseData.generated_content || responseData,
-        metadata: responseData.metadata || {}
-      },
-                smart_url: undefined,
-      performance_predictions: {}
-    }
-  }
-
-  setAuthToken(token: string) {
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('access_token', token)
-      localStorage.setItem('authToken', token)
-    }
-  }
-
-  clearAuthToken() {
-    if (typeof window !== 'undefined') {
-      localStorage.removeItem('access_token')
-      localStorage.removeItem('authToken')
-    }
-  }
-
-  // ============================================================================
-  // AUTHENTICATION METHODS
-  // ============================================================================
-
-  async login(credentials: { email: string; password: string }): Promise<{
-    access_token: string
-    token_type: string
-    expires_in: number
-    user_id: string
-  }> {
-    const response = await fetch(`${this.baseURL}/api/auth/login`, {
-      method: 'POST',
-      headers: this.defaultHeaders,
-      body: JSON.stringify(credentials)
-    })
-    
-    const result = await this.handleResponse<any>(response)
-    
-    if (result.access_token) {
-      this.setAuthToken(result.access_token)
-    }
-    
-    return result
-  }
-
-  async register(data: {
-    email: string
-    password: string
-    full_name: string
-  }): Promise<{
-    message: string
-    user_id: string
-    company_id: string
-  }> {
-    const response = await fetch(`${this.baseURL}/api/auth/register`, {
-      method: 'POST',
-      headers: this.defaultHeaders,
-      body: JSON.stringify(data)
-    })
-    
-    return this.handleResponse(response)
-  }
-
-  async logout(): Promise<void> {
-    try {
-      await fetch(`${this.baseURL}/api/auth/logout`, {
-        method: 'POST',
-        headers: this.getHeaders()
-      })
-    } finally {
-      this.clearAuthToken()
-    }
-  }
-
-  async getUserProfile(): Promise<User> {
-    const response = await fetch(`${this.baseURL}/api/auth/profile`, {
-      headers: this.getHeaders()
-    })
-    
-    return this.handleResponse<User>(response)
-  }
-
-  // ============================================================================
-  // 📧 NEW: ENHANCED EMAIL GENERATION METHODS
-  // ============================================================================
-
-  /**
-   * Generate enhanced email sequence with AI learning
-   */
-  async generateEnhancedEmails(request: EmailGenerationRequest): Promise<EmailGenerationResponse> {
-    console.log('📧 Generating enhanced emails:', request)
-    
-    try {
-      const response = await fetch(`${this.baseURL}/api/intelligence/emails/enhanced-emails/generate`, {
-        method: 'POST',
-        headers: this.getHeaders(),
-        body: JSON.stringify(request)
-      })
-      
-      if (!response.ok) {
-        throw new Error(`Enhanced email generation failed: ${response.statusText}`)
-      }
-      
-      const result = await response.json()
-      console.log('✅ Enhanced emails generated successfully:', result)
-      
-      return result
-    } catch (error) {
-      console.error('❌ Enhanced email generation error:', error)
-      throw error
-    }
-  }
-
-  /**
-   * Track email performance for learning system
-   */
-  async trackEmailPerformance(request: PerformanceTrackingRequest): Promise<PerformanceTrackingResponse> {
-    console.log('📊 Tracking email performance:', request)
-    
-    try {
-      const response = await fetch(`${this.baseURL}/api/intelligence/emails/enhanced-emails/track-performance`, {
-        method: 'POST',
-        headers: this.getHeaders(),
-        body: JSON.stringify(request)
-      })
-      
-      if (!response.ok) {
-        throw new Error(`Performance tracking failed: ${response.statusText}`)
-      }
-      
-      const result = await response.json()
-      console.log('✅ Performance tracking successful:', result)
-      
-      return result
-    } catch (error) {
-      console.error('❌ Performance tracking error:', error)
-      throw error
-    }
-  }
-
-  /**
-   * Get learning analytics from email system
-   */
-  async getEmailLearningAnalytics(): Promise<LearningAnalyticsResponse> {
-    try {
-      const response = await fetch(`${this.baseURL}/api/intelligence/emails/enhanced-emails/learning-analytics`, {
-        method: 'GET',
-        headers: this.getHeaders()
-      })
-      
-      if (!response.ok) {
-        throw new Error(`Learning analytics failed: ${response.statusText}`)
-      }
-      
-      return response.json()
-    } catch (error) {
-      console.error('❌ Learning analytics error:', error)
-      throw error
-    }
-  }
-
-  /**
-   * Get email system health status
-   */
-  async getEmailSystemHealth(): Promise<EmailSystemHealthResponse> {
-    try {
-      const response = await fetch(`${this.baseURL}/api/emails/system-health`, {
-        method: 'GET',
-        headers: this.getHeaders()
-      })
-      
-      if (!response.ok) {
-        throw new Error(`Email system health check failed: ${response.statusText}`)
-      }
-      
-      return response.json()
-    } catch (error) {
-      console.error('❌ Email system health check error:', error)
-      throw error
-    }
-  }
-
-  /**
-   * Seed email templates database
-   */
-  async seedEmailTemplates(forceReseed: boolean = false): Promise<{
-    success: boolean
-    message: string
-    templates_seeded: number
-    total_templates: number
-  }> {
-    try {
-      const response = await fetch(`${this.baseURL}/api/intelligence/emails/enhanced-emails/seed-templates`, {
-        method: 'POST',
-        headers: this.getHeaders(),
-        body: JSON.stringify({ force_reseed: forceReseed })
-      })
-      
-      if (!response.ok) {
-        throw new Error(`Template seeding failed: ${response.statusText}`)
-      }
-      
-      return response.json()
-    } catch (error) {
-      console.error('❌ Template seeding error:', error)
-      throw error
-    }
-  }
-
-  /**
-   * Manually trigger learning evaluation
-   */
-  async triggerEmailLearning(daysBack: number = 7): Promise<{
-    success: boolean
-    learning_results: any
-    message: string
-  }> {
-    try {
-      const response = await fetch(`${this.baseURL}/api/intelligence/emails/enhanced-emails/trigger-learning`, {
-        method: 'POST',
-        headers: this.getHeaders(),
-        body: JSON.stringify({ days_back: daysBack })
-      })
-      
-      if (!response.ok) {
-        throw new Error(`Learning trigger failed: ${response.statusText}`)
-      }
-      
-      return response.json()
-    } catch (error) {
-      console.error('❌ Learning trigger error:', error)
-      throw error
-    }
-  }
-
-  /**
-   * Test enhanced email generation system
-   */
-  async testEnhancedEmailGeneration(
-    productName: string = 'TestProduct',
-    sequenceLength: number = 3,
-    useLearning: boolean = true
-  ): Promise<{
-    success: boolean
-    test_result: string
-    emails_generated: number
-    sample_subjects: string[]
-    generation_method: string
-    features_tested: any
-    expected_performance: any
-  }> {
-    try {
-      const response = await fetch(`${this.baseURL}/api/intelligence/emails/test-enhanced-generation`, {
-        method: 'POST',
-        headers: this.getHeaders(),
-        body: JSON.stringify({
-          product_name: productName,
-          sequence_length: sequenceLength,
-          use_learning: useLearning
-        })
-      })
-      
-      if (!response.ok) {
-        throw new Error(`Enhanced email test failed: ${response.statusText}`)
-      }
-      
-      return response.json()
-    } catch (error) {
-      console.error('❌ Enhanced email test error:', error)
-      throw error
-    }
-  }
-
-  /**
-   * Get enhanced email system status
-   */
-  async getEnhancedEmailSystemStatus(): Promise<{
-    system_ready: boolean
-    learning_active: boolean
-    template_database: any
-    performance_tracking: any
-    status_message: string
-  }> {
-    try {
-      const response = await fetch(`${this.baseURL}/api/intelligence/emails/enhanced-emails/system-status`, {
-        method: 'GET',
-        headers: this.getHeaders()
-      })
-      
-      if (!response.ok) {
-        throw new Error(`System status check failed: ${response.statusText}`)
-      }
-      
-      return response.json()
-    } catch (error) {
-      console.error('❌ System status check error:', error)
-      throw error
-    }
-  }
-
-  // ============================================================================
-  // 🆕 DEMO PREFERENCE MANAGEMENT METHODS
-  // ============================================================================
-
-  /**
-   * Get user's current demo campaign preferences
-   */
-  async getDemoPreferences(): Promise<DemoPreference> {
-    try {
-      const response = await fetch(`${this.baseURL}/api/campaigns/demo/preferences`, {
-        method: 'GET',
-        headers: this.getHeaders(),
-      })
-      
-      if (!response.ok) {
-        throw new Error(`Failed to get demo preferences: ${response.statusText}`)
-      }
-      
-      return response.json()
-    } catch (error) {
-      console.error('Error getting demo preferences:', error)
-      throw error
-    }
-  }
-
-  /**
-   * Update user's demo campaign preferences
-   */
-  async updateDemoPreferences(preferences: Partial<DemoPreference>): Promise<DemoPreference> {
-    try {
-      const response = await fetch(`${this.baseURL}/api/campaigns/demo/preferences`, {
-        method: 'POST',
-        headers: this.getHeaders(),
-        body: JSON.stringify(preferences)
-      })
-      
-      if (!response.ok) {
-        throw new Error(`Failed to update demo preferences: ${response.statusText}`)
-      }
-      
-      return response.json()
-    } catch (error) {
-      console.error('Error updating demo preferences:', error)
-      throw error
-    }
-  }
-
-  /**
-   * Quick toggle demo campaign visibility
-   */
-  async toggleDemoVisibility(): Promise<DemoToggleResponse> {
-    try {
-      const response = await fetch(`${this.baseURL}/api/campaigns/demo/toggle`, {
-        method: 'POST',
-        headers: this.getHeaders(),
-      })
-      
-      if (!response.ok) {
-        throw new Error(`Failed to toggle demo visibility: ${response.statusText}`)
-      }
-      
-      return response.json()
-    } catch (error) {
-      console.error('Error toggling demo visibility:', error)
-      throw error
-    }
-  }
-
-  /**
-   * Get demo campaign management information (admin)
-   */
-  async getDemoManagementInfo(): Promise<any> {
-    try {
-      const response = await fetch(`${this.baseURL}/api/campaigns/demo/status`, {
-        method: 'GET',
-        headers: this.getHeaders(),
-      })
-      
-      if (!response.ok) {
-        throw new Error(`Failed to get demo management info: ${response.statusText}`)
-      }
-      
-      return response.json()
-    } catch (error) {
-      console.error('Error getting demo management info:', error)
-      throw error
-    }
-  }
-
-  /**
-   * Create demo campaign manually (admin/testing)
-   */
-  async createDemoManually(): Promise<any> {
-    try {
-      const response = await fetch(`${this.baseURL}/api/campaigns/demo/create`, {
-        method: 'POST',
-        headers: this.getHeaders(),
-      })
-      
-      if (!response.ok) {
-        throw new Error(`Failed to create demo campaign: ${response.statusText}`)
-      }
-      
-      return response.json()
-    } catch (error) {
-      console.error('Error creating demo campaign:', error)
-      throw error
-    }
-  }
-
-  /**
-   * Get campaigns including demo campaigns (admin view)
-   */
-  async getCampaignsWithDemo(skip = 0, limit = 100): Promise<Campaign[]> {
-    try {
-      const params = new URLSearchParams({
-        skip: skip.toString(),
-        limit: limit.toString()
-      })
-      
-      const response = await fetch(`${this.baseURL}/api/campaigns?${params}`, {
-        method: 'GET',
-        headers: this.getHeaders(),
-      })
-      
-      if (!response.ok) {
-        throw new Error(`Failed to get campaigns with demo: ${response.statusText}`)
-      }
-      
-      return response.json()
-    } catch (error) {
-      console.error('Error getting campaigns with demo:', error)
-      throw error
-    }
-  }
-
-  // ============================================================================
-  // 🔧 UPDATED CAMPAIGN METHODS FOR 2-STEP WORKFLOW
-  // ============================================================================
-
-  async createCampaign(campaignData: CampaignCreateData): Promise<Campaign> {
-    const dataWithDefaults = {
-      campaign_type: 'universal',
-      // 🆕 NEW: Auto-analysis defaults for streamlined workflow
-      auto_analysis_enabled: campaignData.auto_analysis_enabled ?? true,
-      content_types: campaignData.content_types || ["email", "social_post", "ad_copy"],
-      content_tone: campaignData.content_tone || "conversational",
-      content_style: campaignData.content_style || "modern",
-      generate_content_after_analysis: campaignData.generate_content_after_analysis ?? false,
-      ...campaignData
-    }
-    
-    console.log('🚀 Creating campaign with streamlined workflow data:', dataWithDefaults)
-    
-    const response = await fetch(`${this.baseURL}/api/campaigns`, {
-      method: 'POST',
-      headers: this.getHeaders(),
-      body: JSON.stringify(dataWithDefaults)
-    })
-    
-    return this.handleResponse<Campaign>(response)
-  }
-
-  // 🆕 ENHANCED: Updated getCampaigns method with demo awareness
-  async getCampaigns(params?: {
-    page?: number
-    limit?: number
-    status_filter?: string
-    search?: string
-    skip?: number
-  }): Promise<Campaign[]> {
-    const baseUrl = `${this.baseURL}/api/campaigns`
-    
-    const searchParams = new URLSearchParams()
-    if (params?.page) searchParams.set('page', params.page.toString())
-    if (params?.limit) searchParams.set('limit', params.limit.toString())
-    if (params?.skip) searchParams.set('skip', params.skip.toString())
-    if (params?.status_filter) searchParams.set('status_filter', params.status_filter)
-    if (params?.search) searchParams.set('search', params.search)
-
-    const fullUrl = searchParams.toString() 
-      ? `${baseUrl}?${searchParams.toString()}`
-      : baseUrl
-    
-    console.log('🔍 getCampaigns URL:', fullUrl)
-    
-    try {
-      const response = await fetch(fullUrl, {
-        headers: this.getHeaders()
-      })
-      
-      console.log('✅ getCampaigns response status:', response.status)
-      
-      if (!response.ok) {
-        console.error('❌ getCampaigns failed:', response.status, response.statusText)
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`)
-      }
-      
-      const data = await this.handleResponse<Campaign[]>(response)
-      console.log('✅ getCampaigns success, got', Array.isArray(data) ? data.length : 'unknown', 'campaigns')
-      
-      // Add helpful logging for demo campaigns and new workflow
-      if (Array.isArray(data)) {
-        const demoCampaigns = data.filter((c: any) => c.is_demo)
-        const realCampaigns = data.filter((c: any) => !c.is_demo)
-        const autoAnalysisEnabled = data.filter((c: any) => c.auto_analysis_enabled).length
-        
-        console.log(`📊 Campaigns loaded: ${realCampaigns.length} real, ${demoCampaigns.length} demo`)
-        console.log(`🔬 Auto-analysis enabled: ${autoAnalysisEnabled}/${data.length} campaigns`)
-      }
-      
-      return data
-      
-    } catch (error) {
-      console.error('❌ getCampaigns error:', error)
-      throw error
-    }
-  }
-
-  async getCampaign(campaignId: string): Promise<Campaign> {
-    const response = await fetch(`${this.baseURL}/api/campaigns/${campaignId}`, {
-      headers: this.getHeaders()
-    })
-    
-    return this.handleResponse<Campaign>(response)
-  }
-
-  async updateCampaign(campaignId: string, updates: Partial<Campaign>): Promise<Campaign> {
-    const response = await fetch(`${this.baseURL}/api/campaigns/${campaignId}`, {
-      method: 'PUT',
-      headers: this.getHeaders(),
-      body: JSON.stringify(updates)
-    })
-    
-    return this.handleResponse<Campaign>(response)
-  }
-
-  async deleteCampaign(campaignId: string): Promise<{ message: string }> {
-    const response = await fetch(`${this.baseURL}/api/campaigns/${campaignId}`, {
-      method: 'DELETE',
-      headers: this.getHeaders()
-    })
-    
-    return this.handleResponse(response)
-  }
-
-  async duplicateCampaign(campaignId: string): Promise<Campaign> {
-    const response = await fetch(`${this.baseURL}/api/campaigns/${campaignId}/duplicate`, {
-      method: 'POST',
-      headers: this.getHeaders()
-    })
-    
-    return this.handleResponse<Campaign>(response)
-  }
-
-  async getGeneratedContent(campaignId: string): Promise<any[]> {
-    console.log('🔍 getGeneratedContent called for campaign:', campaignId)
-    
-    try {
-      const response = await fetch(`${this.baseURL}/api/intelligence/content/${campaignId}`, {
-        headers: this.getHeaders()
-      })
-      
-      console.log('✅ getGeneratedContent response status:', response.status)
-      
-      if (!response.ok) {
-        if (response.status === 404) {
-          console.warn('⚠️ Content endpoint not found, returning empty array')
-          return []
-        }
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`)
-      }
-      
-      const data = await this.handleResponse<any[]>(response)
-      console.log('✅ getGeneratedContent success, got', Array.isArray(data) ? data.length : 'unknown', 'content items')
-      
-      return data
-      
-    } catch (error) {
-      console.error('❌ getGeneratedContent error:', error)
-      return []
-    }
-  }
-
-  // ============================================================================
-  // CONTENT MANAGEMENT METHODS
-  // ============================================================================
-
-  async getContentList(campaignId: string, includeBody = false, contentType?: string): Promise<ContentListResponse> {
-    const params = new URLSearchParams()
-    if (includeBody) params.set('include_body', 'true')
-    if (contentType) params.set('content_type', contentType)
-    
-    const response = await fetch(`${this.baseURL}/api/intelligence/content/${campaignId}?${params}`, {
-      headers: this.getHeaders()
-    })
-    
-    return this.handleResponse<ContentListResponse>(response)
-  }
-
-  async getContentDetail(campaignId: string, contentId: string): Promise<ContentDetailResponse> {
-    const response = await fetch(`${this.baseURL}/api/intelligence/content/${campaignId}/content/${contentId}`, {
-      headers: this.getHeaders()
-    })
-    
-    return this.handleResponse<ContentDetailResponse>(response)
-  }
-
-  async updateContent(campaignId: string, contentId: string, updateData: any): Promise<{
-    id: string
-    message: string
-    updated_at: string
-  }> {
-    const response = await fetch(`${this.baseURL}/api/intelligence/content/${campaignId}/content/${contentId}`, {
-      method: 'PUT',
-      headers: this.getHeaders(),
-      body: JSON.stringify(updateData)
-    })
-    
-    return this.handleResponse(response)
-  }
-
-  async deleteContent(campaignId: string, contentId: string): Promise<{ message: string }> {
-    const response = await fetch(`${this.baseURL}/api/intelligence/content/${campaignId}/content/${contentId}`, {
-      method: 'DELETE',
-      headers: this.getHeaders()
-    })
-    
-    return this.handleResponse(response)
-  }
-
-  async rateContent(campaignId: string, contentId: string, rating: number): Promise<{
-    id: string
-    rating: number
-    message: string
-  }> {
-    const response = await fetch(`${this.baseURL}/api/campaigns/${campaignId}/content/${contentId}/rate`, {
-      method: 'POST',
-      headers: this.getHeaders(),
-      body: JSON.stringify({ rating })
-    })
-    
-    return this.handleResponse(response)
-  }
-
-  async publishContent(campaignId: string, contentId: string, publishedAt?: string): Promise<{
-    id: string
-    is_published: boolean
-    published_at: string
-    message: string
-  }> {
-    const response = await fetch(`${this.baseURL}/api/campaigns/${campaignId}/content/${contentId}/publish`, {
-      method: 'POST',
-      headers: this.getHeaders(),
-      body: JSON.stringify({ published_at: publishedAt || 'Manual' })
-    })
-    
-    return this.handleResponse(response)
-  }
-
-  async bulkContentAction(campaignId: string, contentIds: string[], action: string, params: any = {}): Promise<BulkActionResponse> {
-    const response = await fetch(`${this.baseURL}/api/campaigns/${campaignId}/content/bulk-action`, {
-      method: 'POST',
-      headers: this.getHeaders(),
-      body: JSON.stringify({ content_ids: contentIds, action, params })
-    })
-    
-    return this.handleResponse<BulkActionResponse>(response)
-  }
-
-  async getContentStats(campaignId: string): Promise<ContentStats> {
-    const response = await fetch(`${this.baseURL}/api/campaigns/${campaignId}/content/stats`, {
-      headers: this.getHeaders()
-    })
-    
-    return this.handleResponse<ContentStats>(response)
-  }
-
-  async duplicateContent(campaignId: string, contentId: string, title?: string): Promise<{
-    id: string
-    original_id: string
-    title: string
-    message: string
-  }> {
-    const response = await fetch(`${this.baseURL}/api/campaigns/${campaignId}/content/${contentId}/duplicate`, {
-      method: 'POST',
-      headers: this.getHeaders(),
-      body: JSON.stringify({ title })
-    })
-    
-    return this.handleResponse(response)
-  }
-
-  // ============================================================================
-  // 🔧 UPDATED WORKFLOW METHODS FOR 2-STEP PROCESS
-  // ============================================================================
-
-  async getWorkflowState(campaignId: string): Promise<WorkflowStateResponse> {
-    const response = await fetch(`${this.baseURL}/api/campaigns/${campaignId}/workflow-state`, {
-      headers: this.getHeaders()
-    })
-    
-    return this.handleResponse<WorkflowStateResponse>(response)
-  }
-
-  // 🆕 NEW: Save workflow progress for streamlined workflow
-  async saveWorkflowProgress(campaignId: string, progressData: WorkflowProgressData): Promise<{
-    success: boolean
-    message: string
-    campaign_id: string
-    updated_workflow_state: string
-    completion_percentage: number
-    step_states: Record<string, any>
-    auto_analysis_status: string
-    updated_at: string
-    is_demo: boolean
-  }> {
-    const response = await fetch(`${this.baseURL}/api/campaigns/${campaignId}/workflow/save-progress`, {
-      method: 'POST',
-      headers: this.getHeaders(),
-      body: JSON.stringify(progressData)
-    })
-    
-    return this.handleResponse(response)
-  }
-
-  // ============================================================================
-  // 🔧 UPDATED INTELLIGENCE METHODS
-  // ============================================================================
-
-  async analyzeURL(data: {
-    url: string
-    campaign_id: string
-    analysis_type?: string
-  }): Promise<{
-    intelligence_id: string
-    analysis_status: string
-    confidence_score: number
-    offer_intelligence: any
-    psychology_intelligence: any
-    competitive_opportunities: any[]
-    campaign_suggestions: string[]
-  }> {
-    const response = await fetch(`${this.baseURL}/api/intelligence/analysis/url`, {
-      method: 'POST',
-      headers: this.getHeaders(),
-      body: JSON.stringify(data)
-    })
-    
-    return this.handleResponse(response)
-  }
-
-  async uploadDocument(file: File, campaignId: string): Promise<{
-    intelligence_id: string
-    status: string
-    insights_extracted: number
-    content_opportunities: string[]
-  }> {
-    const formData = new FormData()
-    formData.append('file', file)
-    formData.append('campaign_id', campaignId)
-
-    const response = await fetch(`${this.baseURL}/api/intelligence/upload-document`, {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${this.getAuthToken()}`
-      },
-      body: formData
-    })
-    
-    return this.handleResponse(response)
-  }
-
-  // 🎯 ROBUST CONTENT GENERATION METHOD - Handles All Backend Response Formats
-  async generateContent(data: {
-    content_type: string
-    campaign_id: string
-    preferences?: Record<string, any>
-  }): Promise<GeneratedContent> {
-    console.log('🎯 Generating content with data:', data)
-    
-    const requestData = {
-      content_type: data.content_type,
-      campaign_id: data.campaign_id,
-      preferences: data.preferences || {},
-      prompt: `Generate ${data.content_type} content`
-    }
-    
-    console.log('📡 Sending request to backend:', requestData)
-    
-    const response = await fetch(`${this.baseURL}/api/intelligence/content/generate`, {
-      method: 'POST',
-      headers: this.getHeaders(),
-      body: JSON.stringify(requestData)
-    })
-    
-    // 🎯 ROBUST: Use specialized content generation response handler
-    const result = await this.handleContentGenerationResponse(response)
-    console.log('✅ Content generation successful:', result)
-    
-    return result
-  }
-
-  // 🔧 UPDATED: Campaign intelligence method with proper parameters
-  async getCampaignIntelligence(
-    campaignId: string, 
-    skip: number = 0, 
-    limit: number = 50,
-    intelligenceType?: string
-  ): Promise<CampaignIntelligenceResponse> {
-    const params = new URLSearchParams()
-    params.set('skip', skip.toString())
-    params.set('limit', limit.toString())
-    if (intelligenceType) params.set('intelligence_type', intelligenceType)
-    
-    const response = await fetch(`${this.baseURL}/api/campaigns/${campaignId}/intelligence?${params}`, {
-      headers: this.getHeaders()
-    })
-    
-    return this.handleResponse<CampaignIntelligenceResponse>(response)
-  }
-
-  // ============================================================================
-  // 🔧 UPDATED DASHBOARD METHODS (Enhanced with Demo Info & 2-Step Workflow)
-  // ============================================================================
-
-  async getDashboardStats(): Promise<{
-    total_campaigns_created: number
-    real_campaigns: number
-    demo_campaigns: number
-    workflow_type: string
-    demo_system?: {
-      demo_available: boolean
-      user_demo_preference: boolean
-      demo_visible_in_current_view: boolean
-      can_toggle_demo: boolean
-      helps_onboarding: boolean
-      user_control: string
-    }
-    user_experience?: {
-      is_new_user: boolean
-      demo_recommended: boolean
-      onboarding_complete: boolean
-    }
-    user_id: string
-    company_id: string
-    generated_at: string
-  }> {
-    // 🔧 FIXED: Use correct endpoint path matching backend
-    const response = await fetch(`${this.baseURL}/api/campaigns/stats/stats`, {
-      headers: this.getHeaders()
-    })
-    
-    return this.handleResponse(response)
-  }
-
-  async getCampaignStats(): Promise<{
-    total_campaigns_created: number
-    active_campaigns: number
-    draft_campaigns: number
-    completed_campaigns: number
-    total_sources: number
-    total_content: number
-    avg_completion: number
-  }> {
-    const response = await fetch(`${this.baseURL}/api/campaigns/stats/stats`, {
-      headers: this.getHeaders()
-    })
-    
-    return this.handleResponse(response)
-  }
-
-  async getCompanyStats(): Promise<{
-    company_name: string
-    subscription_tier: string
-    monthly_credits_used: number
-    monthly_credits_limit: number
-    credits_remaining: number
-    total_campaigns_created: number
-    active_campaigns: number
-    team_members: number
-    campaigns_this_month: number
-    usage_percentage: number
-  }> {
-    const response = await fetch(`${this.baseURL}/api/dashboard/stats`, {
-      headers: this.getHeaders()
-    })
-    
-    return this.handleResponse(response)
-  }
-
-  async getCompanyDetails(): Promise<{
-    id: string
-    company_name: string
-    company_slug: string
-    industry?: string
-    company_size?: string
-    website_url?: string
-    subscription_tier: string
-    subscription_status: string
-    monthly_credits_used: number
-    monthly_credits_limit: number
-    created_at: string
-  }> {
-    const response = await fetch(`${this.baseURL}/api/dashboard/company`, {
-      headers: this.getHeaders()
-    })
-    
-    return this.handleResponse(response)
-  }
-
-  // ============================================================================
-  // AFFILIATE METHODS
-  // ============================================================================
-
-  async getAffiliatePreferences(): Promise<any> {
-    const response = await fetch(`${this.baseURL}/api/affiliate/preferences`, {
-      headers: this.getHeaders()
-    })
-    
-    if (response.status === 404) {
-      return null
-    }
-    
-    return this.handleResponse(response)
-  }
-
-  async saveAffiliatePreferences(preferences: any): Promise<any> {
-    const response = await fetch(`${this.baseURL}/api/affiliate/preferences`, {
-      method: 'POST',
-      headers: this.getHeaders(),
-      body: JSON.stringify(preferences)
-    })
-    
-    return this.handleResponse(response)
-  }
-
-  async generateAffiliateLink(request: any): Promise<any> {
-    const response = await fetch(`${this.baseURL}/api/affiliate/generate-link`, {
-      method: 'POST',
-      headers: this.getHeaders(),
-      body: JSON.stringify(request)
-    })
-    
-    return this.handleResponse(response)
-  }
-
-  async trackAffiliateClick(clickData: any): Promise<any> {
-    const response = await fetch(`${this.baseURL}/api/affiliate/track-click`, {
-      method: 'POST',
-      headers: this.getHeaders(),
-      body: JSON.stringify(clickData)
-    })
-    
-    return this.handleResponse(response)
-  }
-
-  async getAffiliatePerformance(days: number = 30): Promise<any> {
-    const response = await fetch(`${this.baseURL}/api/affiliate/performance?days=${days}`, {
-      headers: this.getHeaders()
-    })
-    
-    return this.handleResponse(response)
-  }
+export function isApiError(error: unknown): error is ApiError {
+  return error instanceof ApiError
 }
 
-// ============================================================================
-// EXPORT SINGLETON INSTANCE
-// ============================================================================
-
-export const apiClient = new ApiClient()
-
-// ============================================================================
-// 📧 NEW: ENHANCED EMAIL GENERATION REACT HOOK
-// ============================================================================
-
-export function useEnhancedEmailGeneration() {
-  const [isGenerating, setIsGenerating] = useState(false)
-  const [isTracking, setIsTracking] = useState(false)
-  const [systemHealth, setSystemHealth] = useState<EmailSystemHealthResponse | null>(null)
-  const [analytics, setAnalytics] = useState<LearningAnalyticsResponse | null>(null)
-  const [error, setError] = useState<string | null>(null)
-  const api = useApi()
-
-  const generateEmails = useCallback(async (request: EmailGenerationRequest) => {
-    try {
-      setIsGenerating(true)
-      setError(null)
-      const result = await api.generateEnhancedEmails(request)
-      return result
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Email generation failed'
-      setError(errorMessage)
-      throw err
-    } finally {
-      setIsGenerating(false)
-    }
-  }, [api])
-
-  const trackPerformance = useCallback(async (request: PerformanceTrackingRequest) => {
-    try {
-      setIsTracking(true)
-      setError(null)
-      const result = await api.trackEmailPerformance(request)
-      return result
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Performance tracking failed'
-      setError(errorMessage)
-      throw err
-    } finally {
-      setIsTracking(false)
-    }
-  }, [api])
-
-  const loadSystemHealth = useCallback(async () => {
-    try {
-      setError(null)
-      const health = await api.getEmailSystemHealth()
-      setSystemHealth(health)
-      return health
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'System health check failed')
-      throw err
-    }
-  }, [api])
-
-  const loadAnalytics = useCallback(async () => {
-    try {
-      setError(null)
-      const analyticsData = await api.getEmailLearningAnalytics()
-      setAnalytics(analyticsData)
-      return analyticsData
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Analytics loading failed')
-      throw err
-    }
-  }, [api])
-
-  const seedTemplates = useCallback(async (forceReseed = false) => {
-    try {
-      setError(null)
-      const result = await api.seedEmailTemplates(forceReseed)
-      return result
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Template seeding failed')
-      throw err
-    }
-  }, [api])
-
-  const triggerLearning = useCallback(async (daysBack = 7) => {
-    try {
-      setError(null)
-      const result = await api.triggerEmailLearning(daysBack)
-      return result
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Learning trigger failed')
-      throw err
-    }
-  }, [api])
-
-  const testSystem = useCallback(async (productName = 'TestProduct', sequenceLength = 3) => {
-    try {
-      setError(null)
-      const result = await api.testEnhancedEmailGeneration(productName, sequenceLength, true)
-      return result
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'System test failed')
-      throw err
-    }
-  }, [api])
-
-  useEffect(() => {
-    // Load system health on mount
-    loadSystemHealth().catch(console.error)
-  }, [loadSystemHealth])
-
-  return {
-    // State
-    isGenerating,
-    isTracking,
-    systemHealth,
-    analytics,
-    error,
-    
-    // Actions
-    generateEmails,
-    trackPerformance,
-    loadSystemHealth,
-    loadAnalytics,
-    seedTemplates,
-    triggerLearning,
-    testSystem,
-    
-    // Utils
-    isSystemReady: systemHealth?.status === 'healthy',
-    hasTemplates: systemHealth?.enhanced_email_system?.template_database?.templates_seeded ?? false,
-    templateCount: systemHealth?.enhanced_email_system?.template_database?.total_templates ?? 0
-  }
+export function isCreditError(error: unknown): error is CreditError {
+  return error instanceof CreditError
 }
 
-// ============================================================================
-// 🆕 NEW: DEMO PREFERENCE REACT HOOK
-// ============================================================================
-
-export function useDemoPreferences() {
-  const [preferences, setPreferences] = useState<DemoPreference | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const api = useApi()
-
-  const loadPreferences = useCallback(async () => {
-    try {
-      setIsLoading(true)
-      setError(null)
-      const prefs = await api.getDemoPreferences()
-      setPreferences(prefs)
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load preferences')
-      console.error('Error loading demo preferences:', err)
-    } finally {
-      setIsLoading(false)
-    }
-  }, [api])
-
-  const updatePreferences = useCallback(async (showDemo: boolean) => {
-    try {
-      setError(null)
-      const updatedPrefs = await api.updateDemoPreferences(showDemo)
-      setPreferences(updatedPrefs)
-      return updatedPrefs
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to update preferences')
-      throw err
-    }
-  }, [api])
-
-  const toggleVisibility = useCallback(async () => {
-    try {
-      setError(null)
-      const result = await api.toggleDemoVisibility()
-      
-      // Update local preferences
-      if (preferences) {
-        setPreferences({
-          ...preferences,
-          show_demo_campaigns: result.show_demo_campaigns
-        })
-      }
-      
-      return result
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to toggle visibility')
-      throw err
-    }
-  }, [api, preferences])
-
-  useEffect(() => {
-    loadPreferences()
-  }, [loadPreferences])
-
-  return {
-    preferences,
-    isLoading,
-    error,
-    updatePreferences,
-    toggleVisibility,
-    reload: loadPreferences
+export function getErrorMessage(error: unknown): string {
+  if (isApiError(error) || isCreditError(error)) {
+    return error.message
   }
+
+  if (error instanceof Error) {
+    return error.message
+  }
+
+  return 'An unexpected error occurred'
 }
 
 // ============================================================================
 // 🆕 NEW: DEMO CAMPAIGN UTILITY FUNCTIONS
 // ============================================================================
 
-export const demoUtils = {
+const demoUtils = {
   /**
    * Check if a campaign is a demo campaign
    */
@@ -1943,7 +666,7 @@ export const demoUtils = {
     return campaigns.sort((a, b) => {
       const aIsDemo = demoUtils.isDemoCampaign(a)
       const bIsDemo = demoUtils.isDemoCampaign(b)
-      
+
       if (hasRealCampaigns) {
         // Real campaigns first, then demos
         if (aIsDemo !== bIsDemo) {
@@ -1955,7 +678,7 @@ export const demoUtils = {
           return aIsDemo ? -1 : 1
         }
       }
-      
+
       // Sort by updated_at within same type
       return new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
     })
@@ -1966,7 +689,7 @@ export const demoUtils = {
    */
   getDemoBenefits: () => [
     "Reference high-quality analysis examples",
-    "Compare your campaigns with best practices", 
+    "Compare your campaigns with best practices",
     "Learn from professionally written content",
     "Great for training new team members",
     "See the full platform capabilities",
@@ -1984,113 +707,10 @@ export const demoUtils = {
 }
 
 // ============================================================================
-// UTILITY FUNCTIONS
+// 🔧 NEW: EMAIL GENERATION UTILITY FUNCTIONS
 // ============================================================================
 
-export function isApiError(error: unknown): error is ApiError {
-  return error instanceof ApiError
-}
-
-export function isCreditError(error: unknown): error is CreditError {
-  return error instanceof CreditError
-}
-
-export function getErrorMessage(error: unknown): string {
-  if (isApiError(error) || isCreditError(error)) {
-    return error.message
-  }
-  
-  if (error instanceof Error) {
-    return error.message
-  }
-  
-  return 'An unexpected error occurred'
-}
-
-// ============================================================================
-// 🔧 UPDATED REACT HOOK FOR API ACCESS (Enhanced with Email Generation)
-// ============================================================================
-
-export const useApi = () => {
-  return {
-    // Authentication
-    login: apiClient.login.bind(apiClient),
-    register: apiClient.register.bind(apiClient),
-    logout: apiClient.logout.bind(apiClient),
-    getUserProfile: apiClient.getUserProfile.bind(apiClient),
-    
-    // 📧 NEW: Enhanced email generation methods
-    generateEnhancedEmails: apiClient.generateEnhancedEmails.bind(apiClient),
-    trackEmailPerformance: apiClient.trackEmailPerformance.bind(apiClient),
-    getEmailLearningAnalytics: apiClient.getEmailLearningAnalytics.bind(apiClient),
-    getEmailSystemHealth: apiClient.getEmailSystemHealth.bind(apiClient),
-    seedEmailTemplates: apiClient.seedEmailTemplates.bind(apiClient),
-    triggerEmailLearning: apiClient.triggerEmailLearning.bind(apiClient),
-    testEnhancedEmailGeneration: apiClient.testEnhancedEmailGeneration.bind(apiClient),
-    getEnhancedEmailSystemStatus: apiClient.getEnhancedEmailSystemStatus.bind(apiClient),
-    
-    // 🆕 Demo preference methods
-    getDemoPreferences: apiClient.getDemoPreferences.bind(apiClient),
-    updateDemoPreferences: apiClient.updateDemoPreferences.bind(apiClient),
-    toggleDemoVisibility: apiClient.toggleDemoVisibility.bind(apiClient),
-    getDemoManagementInfo: apiClient.getDemoManagementInfo.bind(apiClient),
-    createDemoManually: apiClient.createDemoManually.bind(apiClient),
-    getCampaignsWithDemo: apiClient.getCampaignsWithDemo.bind(apiClient),
-    
-    // 🔧 Campaign operations (enhanced for 2-step workflow)
-    createCampaign: apiClient.createCampaign.bind(apiClient),
-    getCampaigns: apiClient.getCampaigns.bind(apiClient),
-    getCampaign: apiClient.getCampaign.bind(apiClient),
-    updateCampaign: apiClient.updateCampaign.bind(apiClient),
-    deleteCampaign: apiClient.deleteCampaign.bind(apiClient),
-    duplicateCampaign: apiClient.duplicateCampaign.bind(apiClient),
-    
-    // Content management
-    getGeneratedContent: apiClient.getGeneratedContent.bind(apiClient),
-    getContentList: apiClient.getContentList.bind(apiClient),
-    getContentDetail: apiClient.getContentDetail.bind(apiClient),
-    updateContent: apiClient.updateContent.bind(apiClient),
-    deleteContent: apiClient.deleteContent.bind(apiClient),
-    rateContent: apiClient.rateContent.bind(apiClient),
-    publishContent: apiClient.publishContent.bind(apiClient),
-    bulkContentAction: apiClient.bulkContentAction.bind(apiClient),
-    getContentStats: apiClient.getContentStats.bind(apiClient),
-    duplicateContent: apiClient.duplicateContent.bind(apiClient),
-    
-    // 🔧 Workflow operations (updated for 2-step process)
-    getWorkflowState: apiClient.getWorkflowState.bind(apiClient),
-    saveWorkflowProgress: apiClient.saveWorkflowProgress.bind(apiClient),
-    
-    // 🔧 Intelligence operations (updated)
-    analyzeURL: apiClient.analyzeURL.bind(apiClient),
-    uploadDocument: apiClient.uploadDocument.bind(apiClient),
-    generateContent: apiClient.generateContent.bind(apiClient),
-    getCampaignIntelligence: apiClient.getCampaignIntelligence.bind(apiClient),
-    
-    // 🔧 Dashboard (enhanced with demo info & 2-step workflow)
-    getDashboardStats: apiClient.getDashboardStats.bind(apiClient),
-    getCampaignStats: apiClient.getCampaignStats.bind(apiClient),
-    getCompanyStats: apiClient.getCompanyStats.bind(apiClient),
-    getCompanyDetails: apiClient.getCompanyDetails.bind(apiClient),
-    
-    // Token management
-    setAuthToken: apiClient.setAuthToken.bind(apiClient),
-    clearAuthToken: apiClient.clearAuthToken.bind(apiClient),
-
-    // Affiliate methods
-    getAffiliatePreferences: apiClient.getAffiliatePreferences.bind(apiClient),
-    saveAffiliatePreferences: apiClient.saveAffiliatePreferences.bind(apiClient),
-    generateAffiliateLink: apiClient.generateAffiliateLink.bind(apiClient),
-    trackAffiliateClick: apiClient.trackAffiliateClick.bind(apiClient),
-    getAffiliatePerformance: apiClient.getAffiliatePerformance.bind(apiClient)
-  }
-}
-
-// ============================================================================
-// 📧 NEW: EMAIL GENERATION UTILITY FUNCTIONS
-// ============================================================================
-
-export const emailUtils = {
+const emailUtils = {
   /**
    * Calculate estimated open rate improvement
    */
@@ -2103,7 +723,7 @@ export const emailUtils = {
    */
   getEmailBenefits: () => [
     "25-35% open rates using proven subject line templates",
-    "AI learns from your successful emails automatically", 
+    "AI learns from your successful emails automatically",
     "Continuous improvement without manual work",
     "Universal product support for any sales page",
     "Database of high-converting psychology patterns",
@@ -2116,11 +736,11 @@ export const emailUtils = {
   formatLearningMetadata: (metadata: LearningMetadata[]): string => {
     const learningCount = metadata.filter(m => m.can_learn_from).length
     const totalCount = metadata.length
-    
+
     if (learningCount === 0) {
       return "Standard generation (no learning enabled)"
     }
-    
+
     return `${learningCount}/${totalCount} emails can improve AI performance`
   },
 
@@ -2202,7 +822,7 @@ export const emailUtils = {
     const aiGenerated = analytics.template_stats
       .filter(stat => stat.source.includes('ai_learned'))
       .reduce((sum, stat) => sum + stat.count, 0)
-    
+
     return {
       totalTemplates,
       aiGenerated,
@@ -2213,37 +833,165 @@ export const emailUtils = {
 }
 
 // ============================================================================
-// 📧 NEW: EMAIL GENERATION CONSTANTS
+// 🆕 NEW: AI DISCOVERY SERVICE UTILITY FUNCTIONS
 // ============================================================================
 
-export const EMAIL_CONSTANTS = {
+const aiDiscoveryUtils = {
+  /**
+   * Get status color for provider health
+   */
+  getStatusColor: (status: string): string => {
+    switch (status) {
+      case 'healthy': return 'text-green-600'
+      case 'degraded': return 'text-yellow-600'
+      case 'error': return 'text-red-600'
+      default: return 'text-gray-500'
+    }
+  },
+
+  /**
+   * Get status badge color
+   */
+  getStatusBadgeColor: (status: string): string => {
+    switch (status) {
+      case 'healthy': return 'bg-green-100 text-green-800'
+      case 'degraded': return 'bg-yellow-100 text-yellow-800'
+      case 'error': return 'bg-red-100 text-red-800'
+      default: return 'bg-gray-100 text-gray-800'
+    }
+  },
+
+  /**
+   * Format response time
+   */
+  formatResponseTime: (ms: number): string => {
+    if (ms < 1000) return `${ms}ms`
+    return `${(ms / 1000).toFixed(1)}s`
+  },
+
+  /**
+   * Format cost
+   */
+  formatCost: (cost: number): string => {
+    if (cost < 0.01) return `$${(cost * 1000).toFixed(2)}m`
+    return `$${cost.toFixed(3)}`
+  },
+
+  /**
+   * Get priority color for recommendations
+   */
+  getPriorityColor: (priority: string): string => {
+    switch (priority) {
+      case 'high': return 'text-red-600'
+      case 'medium': return 'text-yellow-600'
+      case 'low': return 'text-green-600'
+      default: return 'text-gray-500'
+    }
+  },
+
+  /**
+   * Calculate potential savings percentage
+   */
+  calculateSavingsPercentage: (current: number, potential: number): number => {
+    if (current === 0) return 0
+    return ((current - potential) / current) * 100
+  },
+
+  /**
+   * Get provider category display name
+   */
+  getCategoryDisplayName: (category: string): string => {
+    const categoryMap: Record<string, string> = {
+      'content_generation': 'Content Generation',
+      'image_generation': 'Image Generation',
+      'analysis': 'Analysis & Intelligence',
+      'email_optimization': 'Email Optimization',
+      'translation': 'Translation',
+      'summarization': 'Summarization'
+    }
+    return categoryMap[category] || category.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())
+  },
+
+  /**
+   * Sort providers by performance score
+   */
+  sortProvidersByPerformance: (providers: AiProviderStatus[]): AiProviderStatus[] => {
+    return [...providers].sort((a, b) => {
+      // Healthy status first
+      if (a.status !== b.status) {
+        const statusOrder = { healthy: 0, degraded: 1, error: 2 }
+        return statusOrder[a.status] - statusOrder[b.status]
+      }
+
+      // Then by response time (lower is better)
+      if (a.response_time_ms !== b.response_time_ms) {
+        return a.response_time_ms - b.response_time_ms
+      }
+
+      // Finally by error rate (lower is better)
+      return a.error_rate - b.error_rate
+    })
+  },
+
+  /**
+   * Get overall system health
+   */
+  getSystemHealth: (providers: AiProviderStatus[]): {
+    status: 'healthy' | 'degraded' | 'critical'
+    message: string
+  } => {
+    if (providers.length === 0) {
+      return { status: 'critical', message: 'No providers available' }
+    }
+
+    const healthyCount = providers.filter(p => p.status === 'healthy').length
+    const errorCount = providers.filter(p => p.status === 'error').length
+    const degradedCount = providers.filter(p => p.status === 'degraded').length
+
+    if (errorCount > providers.length * 0.5) {
+      return { status: 'critical', message: `${errorCount} providers are down` }
+    }
+
+    if (degradedCount > providers.length * 0.3) {
+      return { status: 'degraded', message: `${degradedCount} providers are degraded` }
+    }
+
+    return { status: 'healthy', message: `${healthyCount}/${providers.length} providers healthy` }
+  }
+}
+
+// ============================================================================
+// 🔧 NEW: EMAIL GENERATION CONSTANTS
+// ============================================================================
+
+const EMAIL_CONSTANTS = {
   PERFORMANCE_THRESHOLDS: {
     EXCELLENT: 35,
     GOOD: 25,
     POOR: 15
   },
-  
+
   SEQUENCE_LENGTHS: {
     SHORT: 3,
     STANDARD: 5,
     LONG: 7
   },
-  
+
   LEARNING_SETTINGS: {
     MIN_SENDS_FOR_LEARNING: 50,
     MIN_OPEN_RATE_FOR_STORAGE: 25,
     HIGH_PERFORMANCE_THRESHOLD: 30,
     TOP_TIER_THRESHOLD: 35
   },
-  
+
   STRATEGIC_ANGLES: [
     'scientific_authority',
-    'emotional_transformation', 
+    'emotional_transformation',
     'community_social_proof',
     'urgency_scarcity',
     'lifestyle_confidence'
   ],
-  
+
   TEMPLATE_CATEGORIES: [
     'curiosity_gap',
     'urgency_scarcity',
@@ -2255,3 +1003,1920 @@ export const EMAIL_CONSTANTS = {
     'value_promise'
   ]
 }
+
+// ============================================================================
+// API CLIENT CLASS (Enhanced with AI Discovery Service)
+// ============================================================================
+
+class ApiClient {
+  private baseURL: string
+  private defaultHeaders: Record<string, string>
+
+  constructor() {
+    this.baseURL = API_BASE_URL
+    this.defaultHeaders = {
+      'Content-Type': 'application/json',
+    }
+  }
+
+  private getAuthToken(): string | null {
+    if (typeof window === 'undefined') return null
+    return localStorage.getItem('access_token') || localStorage.getItem('authToken')
+  }
+
+  private getHeaders(): Record<string, string> {
+    const token = this.getAuthToken()
+    return {
+      ...this.defaultHeaders,
+      ...(token && { Authorization: `Bearer ${token}` })
+    }
+  }
+
+  // 🎯 ROBUST RESPONSE HANDLER - Handles Multiple Backend Response Formats
+  private async handleResponse<T>(response: Response): Promise<T> {
+    if (response.ok) {
+      try {
+        const responseData = await response.json()
+
+        // 🎯 ROBUST: Handle standardized responses
+        if (isStandardResponse(responseData)) {
+          if (!responseData.success) {
+            throw new ApiError(
+              responseData.error || responseData.message || 'Operation failed',
+              response.status,
+              responseData,
+              responseData.error_code,
+              responseData.error_details?.suggestions,
+              responseData.request_id
+            )
+          }
+          // Return the data portion for standardized responses
+          return responseData.data as T
+        }
+
+        // 🎯 ROBUST: Handle legacy responses
+        if (isLegacyResponse(responseData)) {
+          // Check for error indicators in legacy format
+          if (hasErrorIndicators(responseData)) {
+            throw new ApiError(
+              extractErrorMessage(responseData),
+              response.status,
+              responseData
+            )
+          }
+          // Return the whole object for legacy responses
+          return responseData as T
+        }
+
+        // 🎯 ROBUST: Handle plain JSON responses
+        return responseData as T
+
+      } catch (jsonError) {
+        if (jsonError instanceof ApiError) {
+          throw jsonError
+        }
+        // If JSON parsing fails, return empty object
+        return {} as T
+      }
+    }
+
+    // Handle error responses
+    let errorData: any
+    try {
+      errorData = await response.json()
+    } catch {
+      errorData = {
+        detail: `HTTP ${response.status}: ${response.statusText}`,
+        status_code: response.status,
+      }
+    }
+
+    // Special handling for different error types
+    if (response.status === 402) {
+      throw new CreditError(errorData)
+    }
+
+    if (response.status === 401) {
+      // Clear tokens and redirect to login
+      this.clearAuthToken()
+      if (typeof window !== 'undefined') {
+        window.location.href = '/login'
+      }
+      throw new ApiError('Authentication required', 401, errorData)
+    }
+
+    throw new ApiError(
+      errorData.detail || errorData.message || 'An error occurred',
+      response.status,
+      errorData
+    )
+  }
+
+  // 🎯 ROBUST CONTENT GENERATION HANDLER
+  private async handleContentGenerationResponse(response: Response): Promise<GeneratedContent> {
+    let responseData: any
+
+    try {
+      responseData = await response.json()
+      console.log('🔍 Raw backend response:', responseData)
+    } catch (jsonError) {
+      console.error('❌ JSON parsing failed:', jsonError)
+      throw new ApiError(`Invalid JSON response: ${jsonError}`)
+    }
+
+    // 🎯 ROBUST: Check for error conditions first
+    if (!response.ok) {
+      const errorMessage = extractErrorMessage(responseData)
+      throw new ApiError(errorMessage, response.status, responseData)
+    }
+
+    // 🎯 ROBUST: Handle standardized success response
+    if (isStandardResponse(responseData)) {
+      if (!responseData.success) {
+        throw new ApiError(
+          responseData.error || responseData.message || 'Content generation failed',
+          response.status,
+          responseData,
+          responseData.error_code,
+          responseData.error_details?.suggestions,
+          responseData.request_id
+        )
+      }
+
+      // Extract data from standardized response
+      const data = responseData.data
+      return {
+        content_id: data.content_id,
+        content_type: data.content_type,
+        generated_content: {
+          title: data.generated_content?.title || `Generated ${data.content_type}`,
+          content: (() => {
+            // Handle different response formats properly
+            if (data.generated_content?.content) {
+              return data.generated_content.content;
+            }
+            if (data.generated_content && typeof data.generated_content === 'object') {
+              return data.generated_content;
+            }
+            return {};
+          })(),
+          metadata: data.generation_metadata
+        },
+        smart_url: data.smart_url || undefined,
+        performance_predictions: data.performance_predictions || {}
+      }
+    }
+
+    // 🎯 ROBUST: Handle legacy response format
+    if (isLegacyResponse(responseData)) {
+      // Check for error indicators
+      if (hasErrorIndicators(responseData)) {
+        throw new ApiError(extractErrorMessage(responseData), response.status, responseData)
+      }
+
+      // Check for required fields
+      if (!responseData.content_id && !responseData.generated_content) {
+        throw new ApiError('Invalid response: missing content data', response.status, responseData)
+      }
+
+      // Transform legacy response to expected format
+      return {
+        content_id: responseData.content_id || 'legacy-content-id',
+        content_type: responseData.content_type || 'unknown',
+        generated_content: {
+          title: responseData.generated_content?.title || `Generated Content`,
+          content: responseData.generated_content?.content || responseData.generated_content || {},
+          metadata: responseData.generation_metadata || {}
+        },
+        smart_url: responseData.smart_url || undefined,
+        performance_predictions: responseData.performance_predictions || {}
+      }
+    }
+
+    // 🎯 ROBUST: Fallback for unexpected response format
+    console.warn('⚠️ Unexpected response format, attempting to extract content:', responseData)
+
+    return {
+      content_id: responseData.id || responseData.content_id || 'unknown-id',
+      content_type: responseData.content_type || 'unknown',
+      generated_content: {
+        title: 'Generated Content',
+        content: responseData.content || responseData.generated_content || responseData,
+        metadata: responseData.metadata || {}
+      },
+      smart_url: undefined,
+      performance_predictions: {}
+    }
+  }
+
+  setAuthToken(token: string) {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('access_token', token)
+      localStorage.setItem('authToken', token)
+    }
+  }
+
+  clearAuthToken() {
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('access_token')
+      localStorage.removeItem('authToken')
+    }
+  }
+
+  // ============================================================================
+  // AUTHENTICATION METHODS
+  // ============================================================================
+
+  async login(credentials: { email: string; password: string }): Promise<{
+    access_token: string
+    token_type: string
+    expires_in: number
+    user_id: string
+  }> {
+    const response = await fetch(`${this.baseURL}/api/auth/login`, {
+      method: 'POST',
+      headers: this.defaultHeaders,
+      body: JSON.stringify(credentials)
+    })
+
+    const result = await this.handleResponse<any>(response)
+
+    if (result.access_token) {
+      this.setAuthToken(result.access_token)
+    }
+
+    return result
+  }
+
+  async register(data: {
+    email: string
+    password: string
+    full_name: string
+  }): Promise<{
+    message: string
+    user_id: string
+    company_id: string
+  }> {
+    const response = await fetch(`${this.baseURL}/api/auth/register`, {
+      method: 'POST',
+      headers: this.defaultHeaders,
+      body: JSON.stringify(data)
+    })
+
+    return this.handleResponse(response)
+  }
+
+  async logout(): Promise<void> {
+    try {
+      await fetch(`${this.baseURL
+        } / api / auth / logout`, {
+        method: 'POST',
+        headers: this.getHeaders()
+      })
+    } finally {
+      this.clearAuthToken()
+    }
+  }
+
+  async getUserProfile(): Promise<User> {
+    const response = await fetch(`${this.baseURL} /api/auth / profile`, {
+      headers: this.getHeaders()
+    })
+
+    return this.handleResponse<User>(response)
+  }
+
+  // ============================================================================
+  // 🆕 NEW: AI DISCOVERY SERVICE METHODS
+  // ============================================================================
+
+  /**
+   * Test connection to AI Discovery Service
+   */
+  async testAiDiscoveryConnection(): Promise<AiConnectionTest> {
+    try {
+      const response = await fetch(`${this.baseURL} /admin/ai - optimization / test - connection`, {
+        method: 'GET',
+        headers: this.getHeaders(),
+      })
+
+      if (!response.ok) {
+        throw new Error(`AI Discovery connection test failed: ${response.statusText} `)
+      }
+
+      const result = await response.json()
+      console.log('✅ AI Discovery connection test successful:', result)
+      return result
+    } catch (error) {
+      console.error('❌ AI Discovery connection test error:', error)
+      throw error
+    }
+  }
+
+  /**
+   * Get AI optimization dashboard data
+   */
+  async getAiOptimizationDashboard(): Promise<AiOptimizationDashboard> {
+    try {
+      const response = await fetch(`${this.baseURL} /admin/ai - optimization / dashboard - data`, {
+        method: 'GET',
+        headers: this.getHeaders(),
+      })
+
+      if (!response.ok) {
+        throw new Error(`Failed to fetch AI optimization dashboard data: ${response.statusText} `)
+      }
+
+      const result = await response.json()
+      console.log('📊 AI optimization dashboard data loaded:', result)
+      return result
+    } catch (error) {
+      console.error('❌ AI optimization dashboard error:', error)
+      throw error
+    }
+  }
+
+  /**
+   * Get current AI provider status
+   */
+  async getAiProviderStatus(): Promise<{
+    providers: AiProviderStatus[]
+    last_updated: string
+    system_health: 'healthy' | 'degraded' | 'critical'
+  }> {
+    try {
+      const response = await fetch(`${this.baseURL} /admin/ai - optimization / provider - status`, {
+        method: 'GET',
+        headers: this.getHeaders(),
+      })
+
+      if (!response.ok) {
+        throw new Error(`Failed to fetch provider status: ${response.statusText} `)
+      }
+
+      const result = await response.json()
+      console.log('🔍 AI provider status loaded:', result)
+      return result
+    } catch (error) {
+      console.error('❌ AI provider status error:', error)
+      throw error
+    }
+  }
+
+  /**
+   * Switch AI provider for a specific category
+   */
+  async switchAiProvider(
+    category: string,
+    newProvider: string,
+    autoApply: boolean = true
+  ): Promise<ProviderSwitchResult> {
+    try {
+      console.log(`🔄 Switching AI provider for ${category} to ${newProvider} `)
+
+      const response = await fetch(`${this.baseURL} /admin/ai - optimization /switch-provider`, {
+        method: 'POST',
+        headers: this.getHeaders(),
+        body: JSON.stringify({
+          category,
+          new_provider: newProvider,
+          auto_apply: autoApply
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error(`Failed to switch provider: ${response.statusText} `)
+      }
+
+      const result = await response.json()
+      console.log('✅ AI provider switch successful:', result)
+      return result
+    } catch (error) {
+      console.error('❌ AI provider switch error:', error)
+      throw error
+    }
+  }
+
+  /**
+   * Get AI optimization recommendations
+   */
+  async getAiOptimizationRecommendations(): Promise<{
+    recommendations: Array<{
+      category: string
+      current_provider: string
+      recommended_provider: string
+      reason: string
+      estimated_improvement: string
+      confidence: number
+      priority: 'high' | 'medium' | 'low'
+    }>
+    last_analysis: string
+    next_analysis: string
+  }> {
+    try {
+      const response = await fetch(`${this.baseURL} /admin/ai - optimization / recommendations`, {
+        method: 'GET',
+        headers: this.getHeaders(),
+      })
+
+      if (!response.ok) {
+        throw new Error(`Failed to fetch AI recommendations: ${response.statusText} `)
+      }
+
+      return response.json()
+    } catch (error) {
+      console.error('❌ AI recommendations error:', error)
+      throw error
+    }
+  }
+
+  /**
+   * Apply multiple AI optimization recommendations at once
+   */
+  async applyOptimizationRecommendations(
+    recommendations: Array<{
+      category: string
+      new_provider: string
+    }>
+  ): Promise<{
+    success: boolean
+    applied_changes: number
+    failed_changes: number
+    results: ProviderSwitchResult[]
+    message: string
+  }> {
+    try {
+      const response = await fetch(`${this.baseURL} /admin/ai - optimization / apply - recommendations`, {
+        method: 'POST',
+        headers: this.getHeaders(),
+        body: JSON.stringify({ recommendations }),
+      })
+
+      if (!response.ok) {
+        throw new Error(`Failed to apply recommendations: ${response.statusText} `)
+      }
+
+      return response.json()
+    } catch (error) {
+      console.error('❌ Apply recommendations error:', error)
+      throw error
+    }
+  }
+
+  /**
+   * Get AI cost analysis and projections
+   */
+  async getAiCostAnalysis(days: number = 30): Promise<{
+    current_daily_cost: number
+    monthly_projection: number
+    cost_breakdown: Record<string, number>
+    optimization_potential: {
+      max_savings: number
+      recommended_savings: number
+      payback_period_days: number
+    }
+    cost_trends: Array<{
+      date: string
+      total_cost: number
+      requests: number
+    }>
+  }> {
+    try {
+      const response = await fetch(`${this.baseURL} /admin/ai - optimization / cost - analysis ? days = ${days} `, {
+        method: 'GET',
+        headers: this.getHeaders(),
+      })
+
+      if (!response.ok) {
+        throw new Error(`Failed to fetch cost analysis: ${response.statusText} `)
+      }
+
+      return response.json()
+    } catch (error) {
+      console.error('❌ AI cost analysis error:', error)
+      throw error
+    }
+  }
+
+  /**
+   * Enable/disable automatic AI optimization
+   */
+  async setAutoOptimization(enabled: boolean, preferences?: {
+    max_cost_increase_percent?: number
+    min_performance_improvement?: number
+    categories_to_optimize?: string[]
+  }): Promise<{
+    success: boolean
+    auto_optimization_enabled: boolean
+    preferences: any
+    message: string
+  }> {
+    try {
+      const response = await fetch(`${this.baseURL} /admin/ai - optimization / auto - optimization`, {
+        method: 'POST',
+        headers: this.getHeaders(),
+        body: JSON.stringify({
+          enabled,
+          preferences: preferences || {}
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error(`Failed to set auto optimization: ${response.statusText} `)
+      }
+
+      return response.json()
+    } catch (error) {
+      console.error('❌ Auto optimization setting error:', error)
+      throw error
+    }
+  }
+
+  // ============================================================================
+  // 🔧 NEW: ENHANCED EMAIL GENERATION METHODS
+  // ============================================================================
+
+  /**
+   * Generate enhanced email sequence with AI learning
+   */
+  async generateEnhancedEmails(request: EmailGenerationRequest): Promise<EmailGenerationResponse> {
+    console.log('🔧 Generating enhanced emails:', request)
+
+    try {
+      const response = await fetch(`${this.baseURL} /api/intelligence / emails / enhanced - emails / generate`, {
+        method: 'POST',
+        headers: this.getHeaders(),
+        body: JSON.stringify(request)
+      })
+
+      if (!response.ok) {
+        throw new Error(`Enhanced email generation failed: ${response.statusText} `)
+      }
+
+      const result = await response.json()
+      console.log('✅ Enhanced emails generated successfully:', result)
+
+      return result
+    } catch (error) {
+      console.error('❌ Enhanced email generation error:', error)
+      throw error
+    }
+  }
+
+  /**
+   * Track email performance for learning system
+   */
+  async trackEmailPerformance(request: PerformanceTrackingRequest): Promise<PerformanceTrackingResponse> {
+    console.log('📊 Tracking email performance:', request)
+
+    try {
+      const response = await fetch(`${this.baseURL} /api/intelligence / emails / enhanced - emails / track - performance`, {
+        method: 'POST',
+        headers: this.getHeaders(),
+        body: JSON.stringify(request)
+      })
+
+      if (!response.ok) {
+        throw new Error(`Performance tracking failed: ${response.statusText} `)
+      }
+
+      const result = await response.json()
+      console.log('✅ Performance tracking successful:', result)
+
+      return result
+    } catch (error) {
+      console.error('❌ Performance tracking error:', error)
+      throw error
+    }
+  }
+
+  /**
+   * Get learning analytics from email system
+   */
+  async getEmailLearningAnalytics(): Promise<LearningAnalyticsResponse> {
+    try {
+      const response = await fetch(`${this.baseURL} /api/intelligence / emails / enhanced - emails / learning - analytics`, {
+        method: 'GET',
+        headers: this.getHeaders()
+      })
+
+      if (!response.ok) {
+        throw new Error(`Learning analytics failed: ${response.statusText} `)
+      }
+
+      return response.json()
+    } catch (error) {
+      console.error('❌ Learning analytics error:', error)
+      throw error
+    }
+  }
+
+  /**
+   * Get email system health status
+   */
+  async getEmailSystemHealth(): Promise<EmailSystemHealthResponse> {
+    try {
+      const response = await fetch(`${this.baseURL} /api/emails / system - health`, {
+        method: 'GET',
+        headers: this.getHeaders()
+      })
+
+      if (!response.ok) {
+        throw new Error(`Email system health check failed: ${response.statusText} `)
+      }
+
+      return response.json()
+    } catch (error) {
+      console.error('❌ Email system health check error:', error)
+      throw error
+    }
+  }
+
+  /**
+   * Seed email templates database
+   */
+  async seedEmailTemplates(forceReseed: boolean = false): Promise<{
+    success: boolean
+    message: string
+    templates_seeded: number
+    total_templates: number
+  }> {
+    try {
+      const response = await fetch(`${this.baseURL} /api/intelligence / emails / enhanced - emails / seed - templates`, {
+        method: 'POST',
+        headers: this.getHeaders(),
+        body: JSON.stringify({ force_reseed: forceReseed })
+      })
+
+      if (!response.ok) {
+        throw new Error(`Template seeding failed: ${response.statusText} `)
+      }
+
+      return response.json()
+    } catch (error) {
+      console.error('❌ Template seeding error:', error)
+      throw error
+    }
+  }
+
+  /**
+   * Manually trigger learning evaluation
+   */
+  async triggerEmailLearning(daysBack: number = 7): Promise<{
+    success: boolean
+    learning_results: any
+    message: string
+  }> {
+    try {
+      const response = await fetch(`${this.baseURL} /api/intelligence / emails / enhanced - emails / trigger - learning`, {
+        method: 'POST',
+        headers: this.getHeaders(),
+        body: JSON.stringify({ days_back: daysBack })
+      })
+
+      if (!response.ok) {
+        throw new Error(`Learning trigger failed: ${response.statusText} `)
+      }
+
+      return response.json()
+    } catch (error) {
+      console.error('❌ Learning trigger error:', error)
+      throw error
+    }
+  }
+
+  /**
+   * Test enhanced email generation system
+   */
+  async testEnhancedEmailGeneration(
+    productName: string = 'TestProduct',
+    sequenceLength: number = 3,
+    useLearning: boolean = true
+  ): Promise<{
+    success: boolean
+    test_result: string
+    emails_generated: number
+    sample_subjects: string[]
+    generation_method: string
+    features_tested: any
+    expected_performance: any
+  }> {
+    try {
+      const response = await fetch(`${this.baseURL} /api/intelligence / emails / test - enhanced - generation`, {
+        method: 'POST',
+        headers: this.getHeaders(),
+        body: JSON.stringify({
+          product_name: productName,
+          sequence_length: sequenceLength,
+          use_learning: useLearning
+        })
+      })
+
+      if (!response.ok) {
+        throw new Error(`Enhanced email test failed: ${response.statusText} `)
+      }
+
+      return response.json()
+    } catch (error) {
+      console.error('❌ Enhanced email test error:', error)
+      throw error
+    }
+  }
+
+  /**
+   * Get enhanced email system status
+   */
+  async getEnhancedEmailSystemStatus(): Promise<{
+    system_ready: boolean
+    learning_active: boolean
+    template_database: any
+    performance_tracking: any
+    status_message: string
+  }> {
+    try {
+      const response = await fetch(`${this.baseURL} /api/intelligence / emails / enhanced - emails / system - status`, {
+        method: 'GET',
+        headers: this.getHeaders()
+      })
+
+      if (!response.ok) {
+        throw new Error(`System status check failed: ${response.statusText} `)
+      }
+
+      return response.json()
+    } catch (error) {
+      console.error('❌ System status check error:', error)
+      throw error
+    }
+  }
+
+  // ============================================================================
+  // 🆕 DEMO PREFERENCE MANAGEMENT METHODS
+  // ============================================================================
+
+  /**
+   * Get user's current demo campaign preferences
+   */
+  async getDemoPreferences(): Promise<DemoPreference> {
+    try {
+      const response = await fetch(`${this.baseURL} /api/campaigns / demo / preferences`, {
+        method: 'GET',
+        headers: this.getHeaders(),
+      })
+
+      if (!response.ok) {
+        throw new Error(`Failed to get demo preferences: ${response.statusText} `)
+      }
+
+      return response.json()
+    } catch (error) {
+      console.error('Error getting demo preferences:', error)
+      throw error
+    }
+  }
+
+  /**
+   * Update user's demo campaign preferences
+   */
+  async updateDemoPreferences(preferences: Partial<DemoPreference>): Promise<DemoPreference> {
+    try {
+      const response = await fetch(`${this.baseURL} /api/campaigns / demo / preferences`, {
+        method: 'POST',
+        headers: this.getHeaders(),
+        body: JSON.stringify(preferences)
+      })
+
+      if (!response.ok) {
+        throw new Error(`Failed to update demo preferences: ${response.statusText} `)
+      }
+
+      return response.json()
+    } catch (error) {
+      console.error('Error updating demo preferences:', error)
+      throw error
+    }
+  }
+
+  /**
+   * Quick toggle demo campaign visibility
+   */
+  async toggleDemoVisibility(): Promise<DemoToggleResponse> {
+    try {
+      const response = await fetch(`${this.baseURL} /api/campaigns / demo / toggle`, {
+        method: 'POST',
+        headers: this.getHeaders(),
+      })
+
+      if (!response.ok) {
+        throw new Error(`Failed to toggle demo visibility: ${response.statusText} `)
+      }
+
+      return response.json()
+    } catch (error) {
+      console.error('Error toggling demo visibility:', error)
+      throw error
+    }
+  }
+
+  /**
+   * Get demo campaign management information (admin)
+   */
+  async getDemoManagementInfo(): Promise<any> {
+    try {
+      const response = await fetch(`${this.baseURL} /api/campaigns / demo / status`, {
+        method: 'GET',
+        headers: this.getHeaders(),
+      })
+
+      if (!response.ok) {
+        throw new Error(`Failed to get demo management info: ${response.statusText} `)
+      }
+
+      return response.json()
+    } catch (error) {
+      console.error('Error getting demo management info:', error)
+      throw error
+    }
+  }
+
+  /**
+   * Create demo campaign manually (admin/testing)
+   */
+  async createDemoManually(): Promise<any> {
+    try {
+      const response = await fetch(`${this.baseURL} /api/campaigns / demo / create`, {
+        method: 'POST',
+        headers: this.getHeaders(),
+      })
+
+      if (!response.ok) {
+        throw new Error(`Failed to create demo campaign: ${response.statusText} `)
+      }
+
+      return response.json()
+    } catch (error) {
+      console.error('Error creating demo campaign:', error)
+      throw error
+    }
+  }
+
+  /**
+   * Get campaigns including demo campaigns (admin view)
+   */
+  async getCampaignsWithDemo(skip = 0, limit = 100): Promise<Campaign[]> {
+    try {
+      const params = new URLSearchParams({
+        skip: skip.toString(),
+        limit: limit.toString()
+      })
+
+      const response = await fetch(`${this.baseURL} /api/campaigns ? ${params} `, {
+        method: 'GET',
+        headers: this.getHeaders(),
+      })
+
+      if (!response.ok) {
+        throw new Error(`Failed to get campaigns with demo: ${response.statusText} `)
+      }
+
+      return response.json()
+    } catch (error) {
+      console.error('Error getting campaigns with demo:', error)
+      throw error
+    }
+  }
+
+  // ============================================================================
+  // 🔧 UPDATED CAMPAIGN METHODS FOR 2-STEP WORKFLOW
+  // ============================================================================
+
+  async createCampaign(campaignData: CampaignCreateData): Promise<Campaign> {
+    const dataWithDefaults = {
+      campaign_type: 'universal',
+      // 🆕 NEW: Auto-analysis defaults for streamlined workflow
+      auto_analysis_enabled: campaignData.auto_analysis_enabled ?? true,
+      content_types: campaignData.content_types || ["email", "social_post", "ad_copy"],
+      content_tone: campaignData.content_tone || "conversational",
+      content_style: campaignData.content_style || "modern",
+      generate_content_after_analysis: campaignData.generate_content_after_analysis ?? false,
+      ...campaignData
+    }
+
+    console.log('🚀 Creating campaign with streamlined workflow data:', dataWithDefaults)
+
+    const response = await fetch(`${this.baseURL} /api/campaigns`, {
+      method: 'POST',
+      headers: this.getHeaders(),
+      body: JSON.stringify(dataWithDefaults)
+    })
+
+    return this.handleResponse<Campaign>(response)
+  }
+
+  // 🆕 ENHANCED: Updated getCampaigns method with demo awareness
+  async getCampaigns(params?: {
+    page?: number
+    limit?: number
+    status_filter?: string
+    search?: string
+    skip?: number
+  }): Promise<Campaign[]> {
+    const baseUrl = `${this.baseURL} /api/campaigns`
+
+    const searchParams = new URLSearchParams()
+    if (params?.page) searchParams.set('page', params.page.toString())
+    if (params?.limit) searchParams.set('limit', params.limit.toString())
+    if (params?.skip) searchParams.set('skip', params.skip.toString())
+    if (params?.status_filter) searchParams.set('status_filter', params.status_filter)
+    if (params?.search) searchParams.set('search', params.search)
+
+    const fullUrl = searchParams.toString()
+      ? `${baseUrl}?${searchParams.toString()} `
+      : baseUrl
+
+    console.log('🔍 getCampaigns URL:', fullUrl)
+
+    try {
+      const response = await fetch(fullUrl, {
+        headers: this.getHeaders()
+      })
+
+      console.log('✅ getCampaigns response status:', response.status)
+
+      if (!response.ok) {
+        console.error('❌ getCampaigns failed:', response.status, response.statusText)
+        throw new Error(`HTTP ${response.status}: ${response.statusText} `)
+      }
+
+      const data = await this.handleResponse<Campaign[]>(response)
+      console.log('✅ getCampaigns success, got', Array.isArray(data) ? data.length : 'unknown', 'campaigns')
+
+      // Add helpful logging for demo campaigns and new workflow
+      if (Array.isArray(data)) {
+        const demoCampaigns = data.filter((c: any) => c.is_demo)
+        const realCampaigns = data.filter((c: any) => !c.is_demo)
+        const autoAnalysisEnabled = data.filter((c: any) => c.auto_analysis_enabled).length
+
+        console.log(`📊 Campaigns loaded: ${realCampaigns.length} real, ${demoCampaigns.length} demo`)
+        console.log(`🔬 Auto - analysis enabled: ${autoAnalysisEnabled}/${data.length} campaigns`)
+      }
+
+      return data
+
+    } catch (error) {
+      console.error('❌ getCampaigns error:', error)
+      throw error
+    }
+  }
+
+  async getCampaign(campaignId: string): Promise<Campaign> {
+    const response = await fetch(`${this.baseURL}/api/campaigns/${campaignId}`, {
+      headers: this.getHeaders()
+    })
+
+    return this.handleResponse<Campaign>(response)
+  }
+
+  async updateCampaign(campaignId: string, updates: Partial<Campaign>): Promise<Campaign> {
+    const response = await fetch(`${this.baseURL}/api/campaigns/${campaignId}`, {
+      method: 'PUT',
+      headers: this.getHeaders(),
+      body: JSON.stringify(updates)
+    })
+
+    return this.handleResponse<Campaign>(response)
+  }
+
+  async deleteCampaign(campaignId: string): Promise<{ message: string }> {
+    const response = await fetch(`${this.baseURL}/api/campaigns/${campaignId}`, {
+      method: 'DELETE',
+      headers: this.getHeaders()
+    })
+
+    return this.handleResponse(response)
+  }
+
+  async duplicateCampaign(campaignId: string): Promise<Campaign> {
+    const response = await fetch(`${this.baseURL}/api/campaigns/${campaignId}/duplicate`, {
+      method: 'POST',
+      headers: this.getHeaders()
+    })
+
+    return this.handleResponse<Campaign>(response)
+  }
+
+  async getGeneratedContent(campaignId: string): Promise<any[]> {
+    console.log('🔍 getGeneratedContent called for campaign:', campaignId)
+
+    try {
+      const response = await fetch(`${this.baseURL}/api/intelligence/content/${campaignId}`, {
+        headers: this.getHeaders()
+      })
+
+      console.log('✅ getGeneratedContent response status:', response.status)
+
+      if (!response.ok) {
+        if (response.status === 404) {
+          console.warn('⚠️ Content endpoint not found, returning empty array')
+          return []
+        }
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`)
+      }
+
+      const data = await this.handleResponse<any[]>(response)
+      console.log('✅ getGeneratedContent success, got', Array.isArray(data) ? data.length : 'unknown', 'content items')
+
+      return data
+
+    } catch (error) {
+      console.error('❌ getGeneratedContent error:', error)
+      return []
+    }
+  }
+
+  // ============================================================================
+  // CONTENT MANAGEMENT METHODS
+  // ============================================================================
+
+  async getContentList(campaignId: string, includeBody = false, contentType?: string): Promise<ContentListResponse> {
+    const params = new URLSearchParams()
+    if (includeBody) params.set('include_body', 'true')
+    if (contentType) params.set('content_type', contentType)
+
+    const response = await fetch(`${this.baseURL}/api/intelligence/content/${campaignId}?${params}`, {
+      headers: this.getHeaders()
+    })
+
+    return this.handleResponse<ContentListResponse>(response)
+  }
+
+  async getContentDetail(campaignId: string, contentId: string): Promise<ContentDetailResponse> {
+    const response = await fetch(`${this.baseURL}/api/intelligence/content/${campaignId}/content/${contentId}`, {
+      headers: this.getHeaders()
+    })
+
+    return this.handleResponse<ContentDetailResponse>(response)
+  }
+
+  async updateContent(campaignId: string, contentId: string, updateData: any): Promise<{
+    id: string
+    message: string
+    updated_at: string
+  }> {
+    const response = await fetch(`${this.baseURL}/api/intelligence/content/${campaignId}/content/${contentId}`, {
+      method: 'PUT',
+      headers: this.getHeaders(),
+      body: JSON.stringify(updateData)
+    })
+
+    return this.handleResponse(response)
+  }
+
+  async deleteContent(campaignId: string, contentId: string): Promise<{ message: string }> {
+    const response = await fetch(`${this.baseURL}/api/intelligence/content/${campaignId}/content/${contentId}`, {
+      method: 'DELETE',
+      headers: this.getHeaders()
+    })
+
+    return this.handleResponse(response)
+  }
+
+  async rateContent(campaignId: string, contentId: string, rating: number): Promise<{
+    id: string
+    rating: number
+    message: string
+  }> {
+    const response = await fetch(`${this.baseURL}/api/campaigns/${campaignId}/content/${contentId}/rate`, {
+      method: 'POST',
+      headers: this.getHeaders(),
+      body: JSON.stringify({ rating })
+    })
+
+    return this.handleResponse(response)
+  }
+
+  async publishContent(campaignId: string, contentId: string, publishedAt?: string): Promise<{
+    id: string
+    is_published: boolean
+    published_at: string
+    message: string
+  }> {
+    const response = await fetch(`${this.baseURL}/api/campaigns/${campaignId}/content/${contentId}/publish`, {
+      method: 'POST',
+      headers: this.getHeaders(),
+      body: JSON.stringify({ published_at: publishedAt || 'Manual' })
+    })
+
+    return this.handleResponse(response)
+  }
+
+  async bulkContentAction(campaignId: string, contentIds: string[], action: string, params: any = {}): Promise<BulkActionResponse> {
+    const response = await fetch(`${this.baseURL}/api/campaigns/${campaignId}/content/bulk-action`, {
+      method: 'POST',
+      headers: this.getHeaders(),
+      body: JSON.stringify({ content_ids: contentIds, action, params })
+    })
+
+    return this.handleResponse<BulkActionResponse>(response)
+  }
+
+  async getContentStats(campaignId: string): Promise<ContentStats> {
+    const response = await fetch(`${this.baseURL}/api/campaigns/${campaignId}/content/stats`, {
+      headers: this.getHeaders()
+    })
+
+    return this.handleResponse<ContentStats>(response)
+  }
+
+  async duplicateContent(campaignId: string, contentId: string, title?: string): Promise<{
+    id: string
+    original_id: string
+    title: string
+    message: string
+  }> {
+    const response = await fetch(`${this.baseURL}/api/campaigns/${campaignId}/content/${contentId}/duplicate`, {
+      method: 'POST',
+      headers: this.getHeaders(),
+      body: JSON.stringify({ title })
+    })
+
+    return this.handleResponse(response)
+  }
+
+  // ============================================================================
+  // 🔧 UPDATED WORKFLOW METHODS FOR 2-STEP PROCESS
+  // ============================================================================
+
+  async getWorkflowState(campaignId: string): Promise<WorkflowStateResponse> {
+    const response = await fetch(`${this.baseURL}/api/campaigns/${campaignId}/workflow-state`, {
+      headers: this.getHeaders()
+    })
+
+    return this.handleResponse<WorkflowStateResponse>(response)
+  }
+
+  // 🆕 NEW: Save workflow progress for streamlined workflow
+  async saveWorkflowProgress(campaignId: string, progressData: WorkflowProgressData): Promise<{
+    success: boolean
+    message: string
+    campaign_id: string
+    updated_workflow_state: string
+    completion_percentage: number
+    step_states: Record<string, any>
+    auto_analysis_status: string
+    updated_at: string
+    is_demo: boolean
+  }> {
+    const response = await fetch(`${this.baseURL}/api/campaigns/${campaignId}/workflow/save-progress`, {
+      method: 'POST',
+      headers: this.getHeaders(),
+      body: JSON.stringify(progressData)
+    })
+
+    return this.handleResponse(response)
+  }
+
+  // ============================================================================
+  // 🔧 UPDATED INTELLIGENCE METHODS
+  // ============================================================================
+
+  async analyzeURL(data: {
+    url: string
+    campaign_id: string
+    analysis_type?: string
+  }): Promise<{
+    intelligence_id: string
+    analysis_status: string
+    confidence_score: number
+    offer_intelligence: any
+    psychology_intelligence: any
+    competitive_opportunities: any[]
+    campaign_suggestions: string[]
+  }> {
+    const response = await fetch(`${this.baseURL}/api/intelligence/analysis/url`, {
+      method: 'POST',
+      headers: this.getHeaders(),
+      body: JSON.stringify(data)
+    })
+
+    return this.handleResponse(response)
+  }
+
+  async uploadDocument(file: File, campaignId: string): Promise<{
+    intelligence_id: string
+    status: string
+    insights_extracted: number
+    content_opportunities: string[]
+  }> {
+    const formData = new FormData()
+    formData.append('file', file)
+    formData.append('campaign_id', campaignId)
+
+    const response = await fetch(`${this.baseURL}/api/intelligence/upload-document`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${this.getAuthToken()}`
+      },
+      body: formData
+    })
+
+    return this.handleResponse(response)
+  }
+
+  // 🎯 ROBUST CONTENT GENERATION METHOD - Handles All Backend Response Formats
+  async generateContent(data: {
+    content_type: string
+    campaign_id: string
+    preferences?: Record<string, any>
+  }): Promise<GeneratedContent> {
+    console.log('🎯 Generating content with data:', data)
+
+    const requestData = {
+      content_type: data.content_type,
+      campaign_id: data.campaign_id,
+      preferences: data.preferences || {},
+      prompt: `Generate ${data.content_type} content`
+    }
+
+    console.log('📡 Sending request to backend:', requestData)
+
+    const response = await fetch(`${this.baseURL}/api/intelligence/content/generate`, {
+      method: 'POST',
+      headers: this.getHeaders(),
+      body: JSON.stringify(requestData)
+    })
+
+    // 🎯 ROBUST: Use specialized content generation response handler
+    const result = await this.handleContentGenerationResponse(response)
+    console.log('✅ Content generation successful:', result)
+
+    return result
+  }
+
+  // 🔧 UPDATED: Campaign intelligence method with proper parameters
+  async getCampaignIntelligence(
+    campaignId: string,
+    skip: number = 0,
+    limit: number = 50,
+    intelligenceType?: string
+  ): Promise<CampaignIntelligenceResponse> {
+    const params = new URLSearchParams()
+    params.set('skip', skip.toString())
+    params.set('limit', limit.toString())
+    if (intelligenceType) params.set('intelligence_type', intelligenceType)
+
+    const response = await fetch(`${this.baseURL}/api/campaigns/${campaignId}/intelligence?${params}`, {
+      headers: this.getHeaders()
+    })
+
+    return this.handleResponse<CampaignIntelligenceResponse>(response)
+  }
+
+  // ============================================================================
+  // 🔧 UPDATED DASHBOARD METHODS (Enhanced with Demo Info & 2-Step Workflow)
+  // ============================================================================
+
+  async getDashboardStats(): Promise<{
+    total_campaigns_created: number
+    real_campaigns: number
+    demo_campaigns: number
+    workflow_type: string
+    demo_system?: {
+      demo_available: boolean
+      user_demo_preference: boolean
+      demo_visible_in_current_view: boolean
+      can_toggle_demo: boolean
+      helps_onboarding: boolean
+      user_control: string
+    }
+    user_experience?: {
+      is_new_user: boolean
+      demo_recommended: boolean
+      onboarding_complete: boolean
+    }
+    user_id: string
+    company_id: string
+    generated_at: string
+  }> {
+    // 🔧 FIXED: Use correct endpoint path matching backend
+    const response = await fetch(`${this.baseURL}/api/campaigns/stats/stats`, {
+      headers: this.getHeaders()
+    })
+
+    return this.handleResponse(response)
+  }
+
+  async getCampaignStats(): Promise<{
+    total_campaigns_created: number
+    active_campaigns: number
+    draft_campaigns: number
+    completed_campaigns: number
+    total_sources: number
+    total_content: number
+    avg_completion: number
+  }> {
+    const response = await fetch(`${this.baseURL}/api/campaigns/stats/stats`, {
+      headers: this.getHeaders()
+    })
+
+    return this.handleResponse(response)
+  }
+
+  async getCompanyStats(): Promise<{
+    company_name: string
+    subscription_tier: string
+    monthly_credits_used: number
+    monthly_credits_limit: number
+    credits_remaining: number
+    total_campaigns_created: number
+    active_campaigns: number
+    team_members: number
+    campaigns_this_month: number
+    usage_percentage: number
+  }> {
+    const response = await fetch(`${this.baseURL}/api/dashboard/stats`, {
+      headers: this.getHeaders()
+    })
+
+    return this.handleResponse(response)
+  }
+
+  async getCompanyDetails(): Promise<{
+    id: string
+    company_name: string
+    company_slug: string
+    industry?: string
+    company_size?: string
+    website_url?: string
+    subscription_tier: string
+    subscription_status: string
+    monthly_credits_used: number
+    monthly_credits_limit: number
+    created_at: string
+  }> {
+    const response = await fetch(`${this.baseURL}/api/dashboard/company`, {
+      headers: this.getHeaders()
+    })
+
+    return this.handleResponse(response)
+  }
+
+  // ============================================================================
+  // AFFILIATE METHODS
+  // ============================================================================
+
+  async getAffiliatePreferences(): Promise<any> {
+    const response = await fetch(`${this.baseURL}/api/affiliate/preferences`, {
+      headers: this.getHeaders()
+    })
+
+    if (response.status === 404) {
+      return null
+    }
+
+    return this.handleResponse(response)
+  }
+
+  async saveAffiliatePreferences(preferences: any): Promise<any> {
+    const response = await fetch(`${this.baseURL}/api/affiliate/preferences`, {
+      method: 'POST',
+      headers: this.getHeaders(),
+      body: JSON.stringify(preferences)
+    })
+
+    return this.handleResponse(response)
+  }
+
+  async generateAffiliateLink(request: any): Promise<any> {
+    const response = await fetch(`${this.baseURL}/api/affiliate/generate-link`, {
+      method: 'POST',
+      headers: this.getHeaders(),
+      body: JSON.stringify(request)
+    })
+
+    return this.handleResponse(response)
+  }
+
+  async trackAffiliateClick(clickData: any): Promise<any> {
+    const response = await fetch(`${this.baseURL}/api/affiliate/track-click`, {
+      method: 'POST',
+      headers: this.getHeaders(),
+      body: JSON.stringify(clickData)
+    })
+
+    return this.handleResponse(response)
+  }
+
+  async getAffiliatePerformance(days: number = 30): Promise<any> {
+    const response = await fetch(`${this.baseURL}/api/affiliate/performance?days=${days}`, {
+      headers: this.getHeaders()
+    })
+
+    return this.handleResponse(response)
+  }
+}
+
+// ============================================================================
+// CREATE API CLIENT INSTANCE (SINGLE INSTANCE)
+// ============================================================================
+
+const apiClient = new ApiClient()
+
+// ============================================================================
+// 🆕 NEW: AI DISCOVERY SERVICE REACT HOOK
+// ============================================================================
+
+function useAiDiscoveryService() {
+  const [dashboardData, setDashboardData] = useState<AiOptimizationDashboard | null>(null)
+  const [providerStatus, setProviderStatus] = useState<AiProviderStatus[]>([])
+  const [connectionStatus, setConnectionStatus] = useState<AiConnectionTest | null>(null)
+  const [recommendations, setRecommendations] = useState<any>(null)
+  const [costAnalysis, setCostAnalysis] = useState<any>(null)
+  const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  const testConnection = useCallback(async () => {
+    try {
+      setIsLoading(true)
+      setError(null)
+      const result = await apiClient.testAiDiscoveryConnection()
+      setConnectionStatus(result)
+      return result
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Connection test failed'
+      setError(errorMessage)
+      throw err
+    } finally {
+      setIsLoading(false)
+    }
+  }, [])
+
+  const loadDashboard = useCallback(async () => {
+    try {
+      setIsLoading(true)
+      setError(null)
+      const data = await apiClient.getAiOptimizationDashboard()
+      setDashboardData(data)
+      return data
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Dashboard loading failed'
+      setError(errorMessage)
+      throw err
+    } finally {
+      setIsLoading(false)
+    }
+  }, [])
+
+  const loadProviderStatus = useCallback(async () => {
+    try {
+      setError(null)
+      const status = await apiClient.getAiProviderStatus()
+      setProviderStatus(status.providers || [])
+      return status
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Provider status loading failed'
+      setError(errorMessage)
+      throw err
+    }
+  }, [])
+
+  const switchProvider = useCallback(async (category: string, newProvider: string) => {
+    try {
+      setError(null)
+      const result = await apiClient.switchAiProvider(category, newProvider)
+
+      // Refresh provider status after switch
+      await loadProviderStatus()
+      await loadDashboard()
+
+      return result
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Provider switch failed'
+      setError(errorMessage)
+      throw err
+    }
+  }, [loadProviderStatus, loadDashboard])
+
+  const loadRecommendations = useCallback(async () => {
+    try {
+      setError(null)
+      const recs = await apiClient.getAiOptimizationRecommendations()
+      setRecommendations(recs)
+      return recs
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Recommendations loading failed'
+      setError(errorMessage)
+      throw err
+    }
+  }, [])
+
+  const applyRecommendations = useCallback(async (
+    recommendations: Array<{ category: string; new_provider: string }>
+  ) => {
+    try {
+      setIsLoading(true)
+      setError(null)
+      const result = await apiClient.applyOptimizationRecommendations(recommendations)
+
+      // Refresh all data after applying recommendations
+      await Promise.all([
+        loadProviderStatus(),
+        loadDashboard(),
+        loadRecommendations()
+      ])
+
+      return result
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to apply recommendations'
+      setError(errorMessage)
+      throw err
+    } finally {
+      setIsLoading(false)
+    }
+  }, [loadProviderStatus, loadDashboard, loadRecommendations])
+
+  const loadCostAnalysis = useCallback(async (days = 30) => {
+    try {
+      setError(null)
+      const analysis = await apiClient.getAiCostAnalysis(days)
+      setCostAnalysis(analysis)
+      return analysis
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Cost analysis loading failed'
+      setError(errorMessage)
+      throw err
+    }
+  }, [])
+
+  const setAutoOptimization = useCallback(async (enabled: boolean, preferences?: any) => {
+    try {
+      setError(null)
+      const result = await apiClient.setAutoOptimization(enabled, preferences)
+
+      // Refresh dashboard data
+      await loadDashboard()
+
+      return result
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Auto optimization setting failed'
+      setError(errorMessage)
+      throw err
+    }
+  }, [loadDashboard])
+
+  const refreshAll = useCallback(async () => {
+    try {
+      setIsLoading(true)
+      setError(null)
+
+      await Promise.all([
+        loadDashboard(),
+        loadProviderStatus(),
+        loadRecommendations(),
+        loadCostAnalysis()
+      ])
+    } catch (err) {
+      console.error('Error refreshing AI Discovery data:', err)
+    } finally {
+      setIsLoading(false)
+    }
+  }, [loadDashboard, loadProviderStatus, loadRecommendations, loadCostAnalysis])
+
+  // Auto-load data on mount
+  useEffect(() => {
+    refreshAll()
+  }, [refreshAll]) // Only run on mount, not when refreshAll changes
+
+  return {
+    // State
+    dashboardData,
+    providerStatus,
+    connectionStatus,
+    recommendations,
+    costAnalysis,
+    isLoading,
+    error,
+
+    // Actions
+    testConnection,
+    loadDashboard,
+    loadProviderStatus,
+    switchProvider,
+    loadRecommendations,
+    applyRecommendations,
+    loadCostAnalysis,
+    setAutoOptimization,
+    refreshAll,
+
+    // Computed values
+    isConnected: connectionStatus?.connection_status === 'success',
+    hasRecommendations: recommendations?.recommendations?.length > 0,
+    totalProviders: providerStatus.length,
+    healthyProviders: providerStatus.filter(p => p.status === 'healthy').length
+  }
+}
+
+// ============================================================================
+// 🔧 NEW: ENHANCED EMAIL GENERATION REACT HOOK
+// ============================================================================
+
+function useEnhancedEmailGeneration() {
+  const [isGenerating, setIsGenerating] = useState(false)
+  const [isTracking, setIsTracking] = useState(false)
+  const [systemHealth, setSystemHealth] = useState<EmailSystemHealthResponse | null>(null)
+  const [analytics, setAnalytics] = useState<LearningAnalyticsResponse | null>(null)
+  const [error, setError] = useState<string | null>(null)
+
+  const generateEmails = useCallback(async (request: EmailGenerationRequest) => {
+    try {
+      setIsGenerating(true)
+      setError(null)
+      const result = await apiClient.generateEnhancedEmails(request)
+      return result
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Email generation failed'
+      setError(errorMessage)
+      throw err
+    } finally {
+      setIsGenerating(false)
+    }
+  }, [])
+
+  const trackPerformance = useCallback(async (request: PerformanceTrackingRequest) => {
+    try {
+      setIsTracking(true)
+      setError(null)
+      const result = await apiClient.trackEmailPerformance(request)
+      return result
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Performance tracking failed'
+      setError(errorMessage)
+      throw err
+    } finally {
+      setIsTracking(false)
+    }
+  }, [])
+
+  const loadSystemHealth = useCallback(async () => {
+    try {
+      setError(null)
+      const health = await apiClient.getEmailSystemHealth()
+      setSystemHealth(health)
+      return health
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'System health check failed')
+      throw err
+    }
+  }, [])
+
+  const loadAnalytics = useCallback(async () => {
+    try {
+      setError(null)
+      const analyticsData = await apiClient.getEmailLearningAnalytics()
+      setAnalytics(analyticsData)
+      return analyticsData
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Analytics loading failed')
+      throw err
+    }
+  }, [])
+
+  const seedTemplates = useCallback(async (forceReseed = false) => {
+    try {
+      setError(null)
+      const result = await apiClient.seedEmailTemplates(forceReseed)
+      return result
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Template seeding failed')
+      throw err
+    }
+  }, [])
+
+  const triggerLearning = useCallback(async (daysBack = 7) => {
+    try {
+      setError(null)
+      const result = await apiClient.triggerEmailLearning(daysBack)
+      return result
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Learning trigger failed')
+      throw err
+    }
+  }, [])
+
+  const testSystem = useCallback(async (productName = 'TestProduct', sequenceLength = 3) => {
+    try {
+      setError(null)
+      const result = await apiClient.testEnhancedEmailGeneration(productName, sequenceLength, true)
+      return result
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'System test failed')
+      throw err
+    }
+  }, [])
+
+  useEffect(() => {
+    // Load system health on mount
+    loadSystemHealth().catch(console.error)
+  }, [loadSystemHealth])
+
+  return {
+    // State
+    isGenerating,
+    isTracking,
+    systemHealth,
+    analytics,
+    error,
+
+    // Actions
+    generateEmails,
+    trackPerformance,
+    loadSystemHealth,
+    loadAnalytics,
+    seedTemplates,
+    triggerLearning,
+    testSystem,
+
+    // Utils
+    isSystemReady: systemHealth?.status === 'healthy',
+    hasTemplates: systemHealth?.enhanced_email_system?.template_database?.templates_seeded ?? false,
+    templateCount: systemHealth?.enhanced_email_system?.template_database?.total_templates ?? 0
+  }
+}
+
+// ============================================================================
+// 🆕 NEW: DEMO PREFERENCE REACT HOOK
+// ============================================================================
+
+function useDemoPreferences() {
+  const [preferences, setPreferences] = useState<DemoPreference | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  const loadPreferences = useCallback(async () => {
+    try {
+      setIsLoading(true)
+      setError(null)
+      const prefs = await apiClient.getDemoPreferences()
+      setPreferences(prefs)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load preferences')
+      console.error('Error loading demo preferences:', err)
+    } finally {
+      setIsLoading(false)
+    }
+  }, [])
+
+  const updatePreferences = useCallback(async (updates: Partial<DemoPreference>) => {
+    try {
+      setError(null)
+      const updatedPrefs = await apiClient.updateDemoPreferences(updates)
+      setPreferences(updatedPrefs)
+      return updatedPrefs
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to update preferences')
+      throw err
+    }
+  }, [])
+
+  const toggleVisibility = useCallback(async () => {
+    try {
+      setError(null)
+      const result = await apiClient.toggleDemoVisibility()
+
+      // Update local preferences
+      if (preferences) {
+        setPreferences({
+          ...preferences,
+          show_demo_campaigns: result.show_demo_campaigns
+        })
+      }
+
+      return result
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to toggle visibility')
+      throw err
+    }
+  }, [preferences])
+
+  useEffect(() => {
+    loadPreferences()
+  }, [loadPreferences])
+
+  return {
+    preferences,
+    isLoading,
+    error,
+    updatePreferences,
+    toggleVisibility,
+    reload: loadPreferences
+  }
+}
+
+// ============================================================================
+// 🔧 UPDATED REACT HOOK FOR API ACCESS (Enhanced with AI Discovery Service)
+// ============================================================================
+
+function useApi() {
+  return {
+    // Authentication
+    login: apiClient.login.bind(apiClient),
+    register: apiClient.register.bind(apiClient),
+    logout: apiClient.logout.bind(apiClient),
+    getUserProfile: apiClient.getUserProfile.bind(apiClient),
+
+    // 🆕 NEW: AI Discovery Service methods
+    testAiDiscoveryConnection: apiClient.testAiDiscoveryConnection.bind(apiClient),
+    getAiOptimizationDashboard: apiClient.getAiOptimizationDashboard.bind(apiClient),
+    getAiProviderStatus: apiClient.getAiProviderStatus.bind(apiClient),
+    switchAiProvider: apiClient.switchAiProvider.bind(apiClient),
+    getAiOptimizationRecommendations: apiClient.getAiOptimizationRecommendations.bind(apiClient),
+    applyOptimizationRecommendations: apiClient.applyOptimizationRecommendations.bind(apiClient),
+    getAiCostAnalysis: apiClient.getAiCostAnalysis.bind(apiClient),
+    setAutoOptimization: apiClient.setAutoOptimization.bind(apiClient),
+
+    // 🔧 NEW: Enhanced email generation methods
+    generateEnhancedEmails: apiClient.generateEnhancedEmails.bind(apiClient),
+    trackEmailPerformance: apiClient.trackEmailPerformance.bind(apiClient),
+    getEmailLearningAnalytics: apiClient.getEmailLearningAnalytics.bind(apiClient),
+    getEmailSystemHealth: apiClient.getEmailSystemHealth.bind(apiClient),
+    seedEmailTemplates: apiClient.seedEmailTemplates.bind(apiClient),
+    triggerEmailLearning: apiClient.triggerEmailLearning.bind(apiClient),
+    testEnhancedEmailGeneration: apiClient.testEnhancedEmailGeneration.bind(apiClient),
+    getEnhancedEmailSystemStatus: apiClient.getEnhancedEmailSystemStatus.bind(apiClient),
+
+    // 🆕 Demo preference methods
+    getDemoPreferences: apiClient.getDemoPreferences.bind(apiClient),
+    updateDemoPreferences: apiClient.updateDemoPreferences.bind(apiClient),
+    toggleDemoVisibility: apiClient.toggleDemoVisibility.bind(apiClient),
+    getDemoManagementInfo: apiClient.getDemoManagementInfo.bind(apiClient),
+    createDemoManually: apiClient.createDemoManually.bind(apiClient),
+    getCampaignsWithDemo: apiClient.getCampaignsWithDemo.bind(apiClient),
+
+    // 🔧 Campaign operations (enhanced for 2-step workflow)
+    createCampaign: apiClient.createCampaign.bind(apiClient),
+    getCampaigns: apiClient.getCampaigns.bind(apiClient),
+    getCampaign: apiClient.getCampaign.bind(apiClient),
+    updateCampaign: apiClient.updateCampaign.bind(apiClient),
+    deleteCampaign: apiClient.deleteCampaign.bind(apiClient),
+    duplicateCampaign: apiClient.duplicateCampaign.bind(apiClient),
+
+    // Content management
+    getGeneratedContent: apiClient.getGeneratedContent.bind(apiClient),
+    getContentList: apiClient.getContentList.bind(apiClient),
+    getContentDetail: apiClient.getContentDetail.bind(apiClient),
+    updateContent: apiClient.updateContent.bind(apiClient),
+    deleteContent: apiClient.deleteContent.bind(apiClient),
+    rateContent: apiClient.rateContent.bind(apiClient),
+    publishContent: apiClient.publishContent.bind(apiClient),
+    bulkContentAction: apiClient.bulkContentAction.bind(apiClient),
+    getContentStats: apiClient.getContentStats.bind(apiClient),
+    duplicateContent: apiClient.duplicateContent.bind(apiClient),
+
+    // 🔧 Workflow operations (updated for 2-step process)
+    getWorkflowState: apiClient.getWorkflowState.bind(apiClient),
+    saveWorkflowProgress: apiClient.saveWorkflowProgress.bind(apiClient),
+
+    // 🔧 Intelligence operations (updated)
+    analyzeURL: apiClient.analyzeURL.bind(apiClient),
+    uploadDocument: apiClient.uploadDocument.bind(apiClient),
+    generateContent: apiClient.generateContent.bind(apiClient),
+    getCampaignIntelligence: apiClient.getCampaignIntelligence.bind(apiClient),
+
+    // 🔧 Dashboard (enhanced with demo info & 2-step workflow)
+    getDashboardStats: apiClient.getDashboardStats.bind(apiClient),
+    getCampaignStats: apiClient.getCampaignStats.bind(apiClient),
+    getCompanyStats: apiClient.getCompanyStats.bind(apiClient),
+    getCompanyDetails: apiClient.getCompanyDetails.bind(apiClient),
+
+    // Token management
+    setAuthToken: apiClient.setAuthToken.bind(apiClient),
+    clearAuthToken: apiClient.clearAuthToken.bind(apiClient),
+
+    // Affiliate methods
+    getAffiliatePreferences: apiClient.getAffiliatePreferences.bind(apiClient),
+    saveAffiliatePreferences: apiClient.saveAffiliatePreferences.bind(apiClient),
+    generateAffiliateLink: apiClient.generateAffiliateLink.bind(apiClient),
+    trackAffiliateClick: apiClient.trackAffiliateClick.bind(apiClient),
+    getAffiliatePerformance: apiClient.getAffiliatePerformance.bind(apiClient)
+  }
+}
+
+// ============================================================================
+// SINGLE CLEAN EXPORT SECTION - NO DUPLICATES (Following Original Structure)
+// ============================================================================
+
+// Export the main client instance
+export { apiClient }
+
+// Export hooks (using function declaration to avoid duplication)
+export { useEnhancedEmailGeneration, useDemoPreferences, useAiDiscoveryService, useApi }
+
+// Export utility functions
+export { demoUtils, emailUtils, aiDiscoveryUtils }
+
+// Export constants
+export { EMAIL_CONSTANTS }
+
+// Default export
+export default apiClient
+
