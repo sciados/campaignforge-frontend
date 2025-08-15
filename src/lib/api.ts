@@ -13,6 +13,8 @@
  */
 
 import { useState, useCallback, useEffect } from 'react'
+import type { Campaign, CampaignCreateRequest } from './types/campaign'
+
 
 const API_BASE_URL = 'https://campaign-backend-production-e2db.up.railway.app'
 
@@ -24,6 +26,18 @@ console.log('- Window location:', typeof window !== 'undefined' ? window.locatio
 // ============================================================================
 // 🎯 ROBUST RESPONSE TYPES - Handles Multiple Backend Response Formats
 // ============================================================================
+
+export async function createCampaign(data: CampaignCreateRequest): Promise<Campaign> {
+  const res = await fetch(`${API_BASE_URL}/campaigns`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  })
+  if (!res.ok) {
+    throw new Error(`Failed to create campaign: ${res.statusText}`)
+  }
+  return res.json() as Promise<Campaign>
+}
 
 export interface StandardResponse<T = any> {
   success: boolean
@@ -260,7 +274,7 @@ export interface EmailSystemHealthResponse {
 // 🔧 UPDATED TYPES FOR 2-STEP WORKFLOW
 // ============================================================================
 
-export interface Campaign {
+/** export interface Campaign {
   generated_content_count: number
   id: string
   title: string
@@ -304,7 +318,7 @@ export interface Campaign {
   content?: any
   confidence_score?: number
   last_activity?: string
-}
+} */
 
 // 🔧 UPDATED: Campaign creation interface
 interface CampaignCreateData {
