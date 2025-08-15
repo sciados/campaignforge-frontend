@@ -27,6 +27,7 @@ import {
 import UserEditModal from "@/components/admin/UserEditModal";
 import CompanyEditModal from "@/components/admin/CompanyEditModal";
 import { waitlistApi, waitlistUtils } from "@/lib/waitlist-api";
+import { useAiDiscoveryService } from "@/lib/api";
 
 // Import your existing components
 import UserManagement from "./components/UserManagement";
@@ -122,6 +123,24 @@ export default function AdminPage() {
     isOpen: false,
     company: null,
   });
+
+  // AI Discovery Service hook
+  const {
+    testConnection,
+    loadDashboard,
+    refreshAll,
+    isLoading: aiLoading,
+    error: aiError,
+    isConnected,
+    connectionStatus,
+    dashboardData,
+    providerStatus,
+    recommendations,
+    costAnalysis,
+    hasRecommendations,
+    totalProviders,
+    healthyProviders,
+  } = useAiDiscoveryService();
 
   const router = useRouter();
 
@@ -361,6 +380,44 @@ export default function AdminPage() {
     return colors[tier] || "bg-gray-100 text-gray-800";
   };
 
+  // AI Discovery handlers
+  const handleTestConnection = async () => {
+    try {
+      const result = await testConnection();
+      if (result.connection_status === "success") {
+        alert(
+          `✅ AI Discovery Service Connected Successfully!\n\n` +
+            `• Service: ${
+              result.ai_discovery_available ? "Available" : "Unavailable"
+            }\n` +
+            `• Providers: ${result.providers_discovered} discovered\n` +
+            `• Time: ${new Date(result.test_timestamp).toLocaleTimeString()}`
+        );
+      } else {
+        alert(
+          `❌ Connection Failed\n\n${result.error_details || "Unknown error"}`
+        );
+      }
+    } catch (err) {
+      alert(
+        "❌ Connection test failed:\n" +
+          (err instanceof Error ? err.message : "Unknown error")
+      );
+    }
+  };
+
+  const handleRefreshAI = async () => {
+    try {
+      await refreshAll();
+      alert("✅ AI Discovery data refreshed successfully!");
+    } catch (err) {
+      alert(
+        "❌ Refresh failed: " +
+          (err instanceof Error ? err.message : "Unknown error")
+      );
+    }
+  };
+
   // Loading states
   if (!mounted) {
     return (
@@ -570,7 +627,12 @@ export default function AdminPage() {
                   </svg>
                 )}
                 {item.highlight && (
-                  <Zap className="w-4 h-4 ml-auto text-blue-500" />
+                  <div className="ml-auto flex items-center space-x-1">
+                    {isConnected && (
+                      <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+                    )}
+                    <Zap className="w-4 h-4 text-blue-500" />
+                  </div>
                 )}
               </button>
             ))}
@@ -613,6 +675,21 @@ export default function AdminPage() {
                   {stats.total_campaigns_created} campaigns
                 </div>
               </div>
+
+              {/* AI Discovery Status */}
+              {totalProviders > 0 && (
+                <div className="pt-3 border-t border-gray-200">
+                  <div className="flex justify-between text-xs text-gray-600 mb-1">
+                    <span>AI Providers</span>
+                    <span>
+                      {healthyProviders}/{totalProviders}
+                    </span>
+                  </div>
+                  <div className="text-xs text-gray-500">
+                    Discovery {isConnected ? "active" : "offline"}
+                  </div>
+                </div>
+              )}
             </div>
 
             <button
@@ -830,100 +907,156 @@ export default function AdminPage() {
                 </div>
                 <div className="flex items-center space-x-3">
                   <button
-                    onClick={async () => {
-                      try {
-                        const token = localStorage.getItem("authToken");
-                        const API_BASE_URL =
-                          process.env.NEXT_PUBLIC_API_URL ||
-                          "https://campaign-backend-production-e2db.up.railway.app";
-                        const response = await fetch(
-                          `${API_BASE_URL}/api/admin/ai-optimization/test-connection`,
-                          {
-                            headers: { Authorization: `Bearer ${token}` },
-                          }
-                        );
-                        const result = await response.json();
-                        alert(result.message || "Connection test completed");
-                      } catch (err) {
-                        alert(
-                          "Connection test failed: " +
-                            (err instanceof Error
-                              ? err.message
-                              : "Unknown error")
-                        );
-                      }
-                    }}
-                    className="flex items-center space-x-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
+                    onClick={handleTestConnection}
+                    disabled={aiLoading}
+                    className={`flex items-center space-x-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 ${
+                      aiLoading ? "opacity-50 cursor-not-allowed" : ""
+                    } ${isConnected ? "border-green-300 bg-green-50" : ""}`}
                   >
-                    <Bot className="w-4 h-4" />
-                    <span>Test Connection</span>
+                    <Bot
+                      className={`w-4 h-4 ${aiLoading ? "animate-spin" : ""}`}
+                    />
+                    <span>
+                      {aiLoading
+                        ? "Testing..."
+                        : isConnected
+                        ? "Test Connection ✅"
+                        : "Test Connection"}
+                    </span>
                   </button>
                   <button
-                    onClick={() => window.location.reload()}
-                    className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                    onClick={handleRefreshAI}
+                    disabled={aiLoading}
+                    className={`flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 ${
+                      aiLoading ? "opacity-50 cursor-not-allowed" : ""
+                    }`}
                   >
-                    <RefreshCw className="w-4 h-4" />
+                    <RefreshCw
+                      className={`w-4 h-4 ${aiLoading ? "animate-spin" : ""}`}
+                    />
                     <span>Refresh</span>
                   </button>
                 </div>
               </div>
 
-              {/* Configuration Status */}
-              <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-6">
-                <div className="flex items-center space-x-3 mb-4">
-                  <Settings className="w-6 h-6 text-yellow-600" />
-                  <h3 className="text-lg font-semibold text-yellow-800">
-                    Configuration Required
-                  </h3>
-                </div>
-                <div className="space-y-3 text-yellow-700">
-                  <p className="font-medium">
-                    To enable AI Discovery & Optimization:
-                  </p>
-                  <div className="space-y-2 ml-4">
-                    <div className="flex items-center space-x-2">
-                      <span className="w-6 h-6 bg-yellow-600 text-white rounded-full flex items-center justify-center text-sm font-bold">
-                        1
-                      </span>
-                      <span>
-                        Set{" "}
-                        <code className="bg-yellow-100 px-2 py-1 rounded text-yellow-800">
-                          AI_DISCOVERY_SERVICE_URL
-                        </code>{" "}
-                        environment variable in Railway
-                      </span>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <span className="w-6 h-6 bg-yellow-600 text-white rounded-full flex items-center justify-center text-sm font-bold">
-                        2
-                      </span>
-                      <span>
-                        Deploy the AI Discovery Service (see handover document)
-                      </span>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <span className="w-6 h-6 bg-yellow-600 text-white rounded-full flex items-center justify-center text-sm font-bold">
-                        3
-                      </span>
-                      <span>
-                        Update environment variable to point to deployed service
-                      </span>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <span className="w-6 h-6 bg-yellow-600 text-white rounded-full flex items-center justify-center text-sm font-bold">
-                        4
-                      </span>
-                      <span>Restart backend service and test connection</span>
+              {/* Connection Status Alert */}
+              {!isConnected && !aiLoading && (
+                <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-6">
+                  <div className="flex items-center space-x-3 mb-4">
+                    <Settings className="w-6 h-6 text-yellow-600" />
+                    <h3 className="text-lg font-semibold text-yellow-800">
+                      Configuration Required
+                    </h3>
+                  </div>
+                  <div className="space-y-3 text-yellow-700">
+                    <p className="font-medium">
+                      To enable AI Discovery & Optimization:
+                    </p>
+                    <div className="space-y-2 ml-4">
+                      <div className="flex items-center space-x-2">
+                        <span className="w-6 h-6 bg-yellow-600 text-white rounded-full flex items-center justify-center text-sm font-bold">
+                          1
+                        </span>
+                        <span>
+                          Set{" "}
+                          <code className="bg-yellow-100 px-2 py-1 rounded text-yellow-800">
+                            AI_DISCOVERY_SERVICE_URL
+                          </code>{" "}
+                          environment variable in Railway
+                        </span>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <span className="w-6 h-6 bg-yellow-600 text-white rounded-full flex items-center justify-center text-sm font-bold">
+                          2
+                        </span>
+                        <span>
+                          Deploy the AI Discovery Service (see handover
+                          document)
+                        </span>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <span className="w-6 h-6 bg-yellow-600 text-white rounded-full flex items-center justify-center text-sm font-bold">
+                          3
+                        </span>
+                        <span>
+                          Update environment variable to point to deployed
+                          service
+                        </span>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <span className="w-6 h-6 bg-yellow-600 text-white rounded-full flex items-center justify-center text-sm font-bold">
+                          4
+                        </span>
+                        <span>Restart backend service and test connection</span>
+                      </div>
                     </div>
                   </div>
+                  <div className="mt-4 p-3 bg-yellow-100 rounded-lg">
+                    <p className="text-yellow-800 text-sm">
+                      <strong>📖 Documentation:</strong> Refer to the AI
+                      Discovery handover document for complete setup
+                      instructions.
+                    </p>
+                  </div>
                 </div>
-                <div className="mt-4 p-3 bg-yellow-100 rounded-lg">
-                  <p className="text-yellow-800 text-sm">
-                    <strong>📖 Documentation:</strong> Refer to the AI Discovery
-                    handover document for complete setup instructions.
-                  </p>
+              )}
+
+              {/* Connected Status */}
+              {isConnected && (
+                <div className="bg-green-50 border border-green-200 rounded-xl p-6">
+                  <div className="flex items-center space-x-3 mb-4">
+                    <Bot className="w-6 h-6 text-green-600" />
+                    <h3 className="text-lg font-semibold text-green-800">
+                      AI Discovery Service Connected
+                    </h3>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-green-700">
+                    <div>
+                      <p className="font-medium">Service Status</p>
+                      <p className="text-sm">✅ Connected and operational</p>
+                    </div>
+                    <div>
+                      <p className="font-medium">Providers Monitored</p>
+                      <p className="text-sm">
+                        🔍 {totalProviders} AI providers tracked
+                      </p>
+                    </div>
+                    <div>
+                      <p className="font-medium">System Health</p>
+                      <p className="text-sm">
+                        💚 {healthyProviders}/{totalProviders} providers healthy
+                      </p>
+                    </div>
+                  </div>
+                  {hasRecommendations && (
+                    <div className="mt-4 p-3 bg-green-100 rounded-lg">
+                      <p className="text-green-800 text-sm font-medium">
+                        🎯 {recommendations?.recommendations?.length || 0}{" "}
+                        optimization recommendations available
+                      </p>
+                    </div>
+                  )}
                 </div>
-              </div>
+              )}
+
+              {/* Error State */}
+              {aiError && (
+                <div className="bg-red-50 border border-red-200 rounded-xl p-6">
+                  <div className="flex items-center space-x-3 mb-4">
+                    <ExternalLink className="w-6 h-6 text-red-600" />
+                    <h3 className="text-lg font-semibold text-red-800">
+                      Connection Error
+                    </h3>
+                  </div>
+                  <p className="text-red-700">{aiError}</p>
+                  <button
+                    onClick={handleTestConnection}
+                    className="mt-3 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
+                  >
+                    Retry Connection
+                  </button>
+                </div>
+              )}
 
               {/* Feature Preview */}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -1009,24 +1142,53 @@ export default function AdminPage() {
                           <span className="text-sm text-gray-600">
                             Environment Variable
                           </span>
-                          <span className="inline-flex px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
-                            Not Set
+                          <span
+                            className={`inline-flex px-2 py-1 rounded-full text-xs font-medium ${
+                              process.env
+                                .NEXT_PUBLIC_AI_DISCOVERY_SERVICE_URL ||
+                              isConnected
+                                ? "bg-green-100 text-green-800"
+                                : "bg-red-100 text-red-800"
+                            }`}
+                          >
+                            {process.env.NEXT_PUBLIC_AI_DISCOVERY_SERVICE_URL ||
+                            isConnected
+                              ? "Set"
+                              : "Not Set"}
                           </span>
                         </div>
                         <div className="flex justify-between items-center">
                           <span className="text-sm text-gray-600">
                             Service Deployed
                           </span>
-                          <span className="inline-flex px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
-                            Pending
+                          <span
+                            className={`inline-flex px-2 py-1 rounded-full text-xs font-medium ${
+                              isConnected
+                                ? "bg-green-100 text-green-800"
+                                : connectionStatus
+                                ? "bg-red-100 text-red-800"
+                                : "bg-gray-100 text-gray-800"
+                            }`}
+                          >
+                            {isConnected
+                              ? "Active"
+                              : connectionStatus
+                              ? "Failed"
+                              : "Pending"}
                           </span>
                         </div>
                         <div className="flex justify-between items-center">
                           <span className="text-sm text-gray-600">
                             Integration Active
                           </span>
-                          <span className="inline-flex px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
-                            Waiting
+                          <span
+                            className={`inline-flex px-2 py-1 rounded-full text-xs font-medium ${
+                              isConnected
+                                ? "bg-green-100 text-green-800"
+                                : "bg-gray-100 text-gray-800"
+                            }`}
+                          >
+                            {isConnected ? "Ready" : "Waiting"}
                           </span>
                         </div>
                       </div>
@@ -1034,18 +1196,66 @@ export default function AdminPage() {
 
                     <div>
                       <h4 className="text-sm font-medium text-gray-900 mb-3">
-                        Expected Benefits
+                        {isConnected ? "Active Benefits" : "Expected Benefits"}
                       </h4>
                       <div className="space-y-2 text-sm text-gray-600">
-                        <div>• $1,500+ monthly savings (est.)</div>
+                        <div>
+                          • ${costAnalysis?.potential_savings || 1500}+ monthly
+                          savings (est.)
+                        </div>
                         <div>• 10+ new AIs discovered weekly</div>
                         <div>• 95% cost optimization</div>
                         <div>• Real-time market advantage</div>
+                        {isConnected && (
+                          <div className="text-green-600 font-medium">
+                            ✅ System is active!
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>
                 </div>
               </div>
+
+              {/* Live Dashboard Data */}
+              {isConnected && dashboardData && (
+                <div className="bg-white rounded-xl shadow-sm border border-gray-200">
+                  <div className="p-6 border-b border-gray-200">
+                    <h3 className="text-lg font-semibold text-gray-900">
+                      Live Optimization Data
+                    </h3>
+                  </div>
+                  <div className="p-6">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                      <div className="text-center p-4 bg-blue-50 rounded-lg">
+                        <p className="text-2xl font-bold text-blue-600">
+                          {dashboardData.optimization_suggestions?.length || 0}
+                        </p>
+                        <p className="text-sm text-blue-700">
+                          Active Recommendations
+                        </p>
+                      </div>
+                      <div className="text-center p-4 bg-green-50 rounded-lg">
+                        <p className="text-2xl font-bold text-green-600">
+                          ${dashboardData.cost_analysis?.potential_savings || 0}
+                        </p>
+                        <p className="text-sm text-green-700">
+                          Monthly Savings Potential
+                        </p>
+                      </div>
+                      <div className="text-center p-4 bg-purple-50 rounded-lg">
+                        <p className="text-2xl font-bold text-purple-600">
+                          {dashboardData.performance_metrics?.success_rate || 0}
+                          %
+                        </p>
+                        <p className="text-sm text-purple-700">
+                          System Success Rate
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* Documentation Links */}
               <div className="bg-gray-50 rounded-xl p-6">
@@ -1105,6 +1315,33 @@ export default function AdminPage() {
                   </h3>
                   <p className="text-gray-500">
                     Storage monitoring component not available.
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Images Tab */}
+          {activeTab === "images" && (
+            <div className="space-y-6">
+              <div>
+                <h2 className="text-2xl font-bold text-gray-900">
+                  AI Image Generation Monitoring
+                </h2>
+                <p className="text-gray-600">
+                  Monitor AI image generation usage and performance.
+                </p>
+              </div>
+              {ImageGenerationMonitoring ? (
+                <ImageGenerationMonitoring />
+              ) : (
+                <div className="bg-white rounded-xl shadow-sm p-8 border border-gray-200 text-center">
+                  <ImageIcon className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">
+                    Image Generation Monitoring
+                  </h3>
+                  <p className="text-gray-500">
+                    Image generation monitoring component not available.
                   </p>
                 </div>
               )}
