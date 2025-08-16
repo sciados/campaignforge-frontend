@@ -2601,6 +2601,8 @@ const apiClient = new ApiClient()
 // 🆕 NEW: AI DISCOVERY SERVICE REACT HOOK
 // ============================================================================
 
+// Replace the useAiDiscoveryService hook in your api.ts file with this improved version:
+
 function useAiDiscoveryService() {
   const [dashboardData, setDashboardData] = useState<AiOptimizationDashboard | null>(null)
   const [providerStatus, setProviderStatus] = useState<AiProviderStatus[]>([])
@@ -2609,6 +2611,7 @@ function useAiDiscoveryService() {
   const [costAnalysis, setCostAnalysis] = useState<any>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [autoLoadAttempted, setAutoLoadAttempted] = useState(false)
 
   const testConnection = useCallback(async () => {
     try {
@@ -2616,10 +2619,12 @@ function useAiDiscoveryService() {
       setError(null)
       const result = await apiClient.testAiDiscoveryConnection()
       setConnectionStatus(result)
+      setAutoLoadAttempted(true)
       return result
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Connection test failed'
       setError(errorMessage)
+      setAutoLoadAttempted(true)
       throw err
     } finally {
       setIsLoading(false)
@@ -2744,23 +2749,58 @@ function useAiDiscoveryService() {
       setIsLoading(true)
       setError(null)
 
-      await Promise.all([
+      // Try to load all data, but don't fail if some fail
+      const results = await Promise.allSettled([
         loadDashboard(),
         loadProviderStatus(),
         loadRecommendations(),
         loadCostAnalysis()
       ])
+
+      // Log any failures but don't throw
+      results.forEach((result, index) => {
+        if (result.status === 'rejected') {
+          console.warn(`AI Discovery data load ${index} failed:`, result.reason)
+        }
+      })
+
+      setAutoLoadAttempted(true)
     } catch (err) {
       console.error('Error refreshing AI Discovery data:', err)
+      // Don't throw error to prevent page crashes
     } finally {
       setIsLoading(false)
     }
   }, [loadDashboard, loadProviderStatus, loadRecommendations, loadCostAnalysis])
 
-  // Auto-load data on mount
+  // Graceful auto-loading - only attempt once and don't throw errors
   useEffect(() => {
-    refreshAll()
-  }, [refreshAll]) // Only run on mount, not when refreshAll changes
+    if (!autoLoadAttempted) {
+      // Delay auto-load to prevent page render issues
+      const timer = setTimeout(async () => {
+        try {
+          console.log('🤖 Attempting graceful AI Discovery auto-load...')
+
+          // Try a simple connection test first
+          const connectionResult = await apiClient.testAiDiscoveryConnection()
+          setConnectionStatus(connectionResult)
+
+          // If connection succeeds, load other data
+          if (connectionResult.connection_status === 'success') {
+            await refreshAll()
+          }
+        } catch (err) {
+          console.warn('🤖 AI Discovery auto-load failed (non-critical):', err)
+          // Set error but don't throw to prevent page crashes
+          setError('AI Discovery Service unavailable')
+        } finally {
+          setAutoLoadAttempted(true)
+        }
+      }, 1000) // 1 second delay
+
+      return () => clearTimeout(timer)
+    }
+  }, [autoLoadAttempted, refreshAll])
 
   return {
     // State

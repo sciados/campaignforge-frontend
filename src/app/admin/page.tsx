@@ -124,7 +124,7 @@ export default function AdminPage() {
     company: null,
   });
 
-  // AI Discovery Service hook
+  // AI Discovery Service hook with error handling
   const {
     testConnection,
     loadDashboard,
@@ -141,6 +141,9 @@ export default function AdminPage() {
     totalProviders,
     healthyProviders,
   } = useAiDiscoveryService();
+
+  // Disable auto-loading for AI Discovery to prevent page errors
+  const [aiAutoLoadDisabled, setAiAutoLoadDisabled] = useState(true);
 
   const router = useRouter();
 
@@ -383,6 +386,7 @@ export default function AdminPage() {
   // AI Discovery handlers
   const handleTestConnection = async () => {
     try {
+      setAiAutoLoadDisabled(false); // Enable AI loading after manual test
       const result = await testConnection();
       if (result.connection_status === "success") {
         alert(
@@ -399,6 +403,7 @@ export default function AdminPage() {
         );
       }
     } catch (err) {
+      console.error("Connection test error:", err);
       alert(
         "❌ Connection test failed:\n" +
           (err instanceof Error ? err.message : "Unknown error")
@@ -408,9 +413,11 @@ export default function AdminPage() {
 
   const handleRefreshAI = async () => {
     try {
+      setAiAutoLoadDisabled(false); // Enable AI loading after manual refresh
       await refreshAll();
       alert("✅ AI Discovery data refreshed successfully!");
     } catch (err) {
+      console.error("Refresh error:", err);
       alert(
         "❌ Refresh failed: " +
           (err instanceof Error ? err.message : "Unknown error")
