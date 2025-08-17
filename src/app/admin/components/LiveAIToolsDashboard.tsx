@@ -57,6 +57,11 @@ interface EnhancedProvider {
   recommended_for?: string[];
   integration_difficulty?: string;
   test_status?: string;
+  // 🆕 Railway Integration Fields
+  env_var_name?: string;
+  env_var_status?: "configured" | "missing";
+  integration_status?: "active" | "testing" | "disabled" | "pending";
+  railway_setup_instructions?: string[];
 }
 
 interface Recommendation {
@@ -342,6 +347,16 @@ const LiveAIToolsDashboard: React.FC = () => {
       recommended_for: ["Replace Groq for even cheaper costs"],
       integration_difficulty: "easy",
       test_status: "pending",
+      // 🛤️ Railway Integration
+      env_var_name: "FIREWORKS_API_KEY",
+      env_var_status: "missing",
+      integration_status: "pending",
+      railway_setup_instructions: [
+        "Go to Railway Dashboard → Your Project",
+        "Click 'Variables' tab",
+        "Add FIREWORKS_API_KEY with your API key",
+        "Deploy changes",
+      ],
     },
     {
       provider_name: "Perplexity API",
@@ -364,6 +379,17 @@ const LiveAIToolsDashboard: React.FC = () => {
       recommended_for: ["Replace DeepSeek for real-time analysis"],
       integration_difficulty: "easy",
       test_status: "pending",
+      // 🛤️ Railway Integration
+      env_var_name: "PERPLEXITY_API_KEY",
+      env_var_status: "missing",
+      integration_status: "pending",
+      railway_setup_instructions: [
+        "Go to Railway Dashboard → Your Project",
+        "Click 'Variables' tab",
+        "Add PERPLEXITY_API_KEY with your API key",
+        "Add PERPLEXITY_BASE_URL=https://api.perplexity.ai",
+        "Deploy changes",
+      ],
     },
   ];
 
@@ -842,6 +868,9 @@ const LiveAIToolsDashboard: React.FC = () => {
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Status & Tier
                 </th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Railway Integration
+                </th>
                 <th
                   className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
                   onClick={() => handleSort("monthly_usage")}
@@ -865,6 +894,108 @@ const LiveAIToolsDashboard: React.FC = () => {
                       : "opacity-60"
                   }`}
                 >
+                  <td className="px-4 py-4">
+                    {/* Railway Environment Variable Setup */}
+                    <div className="space-y-2">
+                      {/* Environment Variable Name */}
+                      <div className="bg-gray-50 rounded-lg p-3 border">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-xs font-medium text-gray-700">
+                            Railway Environment Variable:
+                          </span>
+                          <span
+                            className={`text-xs px-2 py-1 rounded-full ${
+                              provider.env_var_status === "configured"
+                                ? "bg-green-100 text-green-700"
+                                : "bg-yellow-100 text-yellow-700"
+                            }`}
+                          >
+                            {provider.env_var_status === "configured"
+                              ? "Configured"
+                              : "Missing"}
+                          </span>
+                        </div>
+
+                        <div className="space-y-1">
+                          <code className="text-xs bg-white border rounded px-2 py-1 block font-mono">
+                            {provider.env_var_name ||
+                              `${provider.provider_name
+                                .toUpperCase()
+                                .replace(/\s+/g, "_")}_API_KEY`}
+                          </code>
+
+                          {provider.source === "discovered" && (
+                            <div className="text-xs text-gray-600 space-y-1">
+                              <div>
+                                📋 <strong>Add to Railway:</strong>
+                              </div>
+                              <div className="bg-blue-50 p-2 rounded border text-blue-800">
+                                1. Go to Railway Dashboard
+                                <br />
+                                2. Select your project
+                                <br />
+                                3. Environment Variables tab
+                                <br />
+                                4. Add:{" "}
+                                <code className="bg-white px-1 rounded">
+                                  {provider.env_var_name ||
+                                    `${provider.provider_name
+                                      .toUpperCase()
+                                      .replace(/\s+/g, "_")}_API_KEY`}
+                                </code>
+                                <br />
+                                5. Value: Your API key from{" "}
+                                {provider.provider_name}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Additional Environment Variables (if needed) */}
+                      {provider.source === "discovered" && (
+                        <div className="space-y-1">
+                          <div className="text-xs text-gray-600">
+                            <strong>Optional Railway Variables:</strong>
+                          </div>
+                          <div className="space-y-1 text-xs">
+                            <code className="bg-gray-100 px-2 py-1 rounded block">
+                              {provider.provider_name
+                                .toUpperCase()
+                                .replace(/\s+/g, "_")}
+                              _BASE_URL
+                            </code>
+                            <code className="bg-gray-100 px-2 py-1 rounded block">
+                              {provider.provider_name
+                                .toUpperCase()
+                                .replace(/\s+/g, "_")}
+                              _MODEL_NAME
+                            </code>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Integration Status Indicator */}
+                      <div className="flex items-center gap-2 text-xs">
+                        {provider.env_var_status === "configured" ? (
+                          <>
+                            <CheckCircle className="w-4 h-4 text-green-600" />
+                            <span className="text-green-700">
+                              Ready for integration
+                            </span>
+                          </>
+                        ) : (
+                          <>
+                            <AlertCircle className="w-4 h-4 text-yellow-600" />
+                            <span className="text-yellow-700">
+                              Needs Railway setup
+                            </span>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  </td>
+
                   <td className="px-4 py-4">
                     <div>
                       <div className="flex items-center gap-2">
