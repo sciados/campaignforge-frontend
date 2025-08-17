@@ -28,10 +28,7 @@ import UserEditModal from "@/components/admin/UserEditModal";
 import CompanyEditModal from "@/components/admin/CompanyEditModal";
 import { waitlistApi, waitlistUtils } from "@/lib/waitlist-api";
 import costAnalysis from "@/lib/api";
-import {
-  useAiDiscoveryService,
-  useAIToolsMonitoring,
-} from "@/lib/ai-tools-api";
+import { useAiDiscoveryService } from "@/lib/ai-discovery-service";
 // Import your existing components
 import UserManagement from "./components/UserManagement";
 import CompanyManagement from "./components/CompanyManagement";

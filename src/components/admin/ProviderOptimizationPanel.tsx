@@ -11,7 +11,7 @@ import {
   TrendingDown,
 } from "lucide-react";
 
-import { useAiDiscoveryService } from "@/lib/ai-tools-api";
+import { useAiDiscoveryService } from "@/lib/ai-discovery-service";
 
 interface ProviderRecommendation {
   current_best: string;

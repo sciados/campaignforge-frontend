@@ -14,7 +14,10 @@ import {
   WifiOff,
 } from "lucide-react";
 
-import { useAiDiscoveryService, aiDiscoveryUtils } from "@/lib/ai-tools-api";
+import {
+  useAiDiscoveryService,
+  aiDiscoveryUtils,
+} from "@/lib/ai-discovery-service";
 
 interface Discovery {
   id: string;
