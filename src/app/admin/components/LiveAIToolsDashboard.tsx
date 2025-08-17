@@ -285,25 +285,39 @@ const LiveAIToolsDashboard: React.FC = () => {
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
   const [discoveryInProgress, setDiscoveryInProgress] = useState(false);
 
-  // Use baseline providers as fallback when service data isn't available
-  const allProviders =
+  // 🎯 PRIORITIZE YOUR PRIMARY PROVIDERS - Always show baseline providers first
+  // The AI Discovery Service might not know about your ultra-cheap providers
+  const allProviders = BASELINE_PROVIDERS; // Always use your configured providers as the primary data source
+
+  // Optional: Merge with AI Discovery Service data if available, but baseline takes priority
+  const aiServiceProviders =
     providerStatus.length > 0
       ? providerStatus.map(
           (p) =>
             ({
               ...p,
-              source: "existing", // AI Discovery Service providers are always "existing"
+              source: "ai_service", // Mark as coming from AI service
               cost_per_1k_tokens: p.cost_per_request
                 ? p.cost_per_request * 1000
                 : 0.001,
-              quality_score: 4.0, // Default quality score
-              api_key: "API_KEY", // Default API key placeholder
-              model: "model", // Default model placeholder
-              monthly_usage: 0, // Default monthly usage
-              priority_tier: "secondary", // Default priority tier
+              quality_score: 4.0,
+              api_key: "API_KEY",
+              model: "model",
+              monthly_usage: 0,
+              priority_tier: "ai_service",
             } as EnhancedProvider)
         )
-      : BASELINE_PROVIDERS;
+      : [];
+
+  // Only add AI service providers that aren't already in baseline (avoid duplicates)
+  const uniqueAiServiceProviders = aiServiceProviders.filter(
+    (aiProvider) =>
+      !BASELINE_PROVIDERS.some(
+        (baseProvider) =>
+          baseProvider.provider_name.toLowerCase() ===
+          aiProvider.provider_name.toLowerCase()
+      )
+  );
 
   // Simulate discovered providers (in real implementation, this would come from your AI Discovery Service)
   const discoveredProviders: EnhancedProvider[] = [
@@ -353,8 +367,12 @@ const LiveAIToolsDashboard: React.FC = () => {
     },
   ];
 
-  // Combine all providers
-  const combinedProviders = [...allProviders, ...discoveredProviders];
+  // Combine all providers with PRIORITY ORDER: Baseline First (your primary providers)
+  const combinedProviders = [
+    ...allProviders, // 🥇 Your primary ultra-cheap providers (Groq, DeepSeek, Together AI, etc.)
+    ...uniqueAiServiceProviders, // 🥈 Additional providers from AI Discovery Service (if any)
+    ...discoveredProviders, // 🥉 Newly discovered providers
+  ];
 
   // Calculate enhanced metrics
   const enhancedProviders = combinedProviders.map((provider) => {
@@ -391,7 +409,7 @@ const LiveAIToolsDashboard: React.FC = () => {
     };
   });
 
-  // Filter and sort providers
+  // 🎯 SMART SORTING: Primary providers first, then by cost efficiency
   const filteredProviders = enhancedProviders
     .filter((provider) => {
       const matchesSearch =
@@ -404,6 +422,17 @@ const LiveAIToolsDashboard: React.FC = () => {
       return matchesSearch && matchesTier && matchesStatus;
     })
     .sort((a, b) => {
+      // 🥇 PRIORITY 1: Primary tier providers first (your ultra-cheap ones)
+      if (a.priority_tier === "primary" && b.priority_tier !== "primary")
+        return -1;
+      if (b.priority_tier === "primary" && a.priority_tier !== "primary")
+        return 1;
+
+      // 🥈 PRIORITY 2: Discovered providers second (new opportunities)
+      if (a.source === "discovered" && b.source !== "discovered") return -1;
+      if (b.source === "discovered" && a.source !== "discovered") return 1;
+
+      // 🥉 PRIORITY 3: Then sort by selected field
       const multiplier = sortDirection === "asc" ? 1 : -1;
       const aValue = (a as any)[sortField] as number;
       const bValue = (b as any)[sortField] as number;
@@ -650,10 +679,15 @@ const LiveAIToolsDashboard: React.FC = () => {
         <div className="bg-white border border-gray-200 rounded-lg p-4">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-600">Your Providers</p>
+              <p className="text-sm text-gray-600">Your Primary Providers</p>
               <p className="text-xl font-bold text-blue-600">
-                {BASELINE_PROVIDERS.length}
+                {
+                  BASELINE_PROVIDERS.filter(
+                    (p) => p.priority_tier === "primary"
+                  ).length
+                }
               </p>
+              <p className="text-xs text-gray-500 mt-1">Ultra-cheap tier</p>
             </div>
             <Bot className="w-6 h-6 text-blue-600" />
           </div>
@@ -686,14 +720,11 @@ const LiveAIToolsDashboard: React.FC = () => {
         <div className="bg-white border border-gray-200 rounded-lg p-4">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-600">Best Current Cost</p>
+              <p className="text-sm text-gray-600">Ultra-Cheap Leader</p>
               <p className="text-xl font-bold text-gray-900">
-                {formatCost(
-                  Math.min(
-                    ...BASELINE_PROVIDERS.map((p) => p.cost_per_1k_tokens)
-                  )
-                )}
+                Groq @ {formatCost(0.0002)}
               </p>
+              <p className="text-xs text-green-600 mt-1">Your best cost</p>
             </div>
             <DollarSign className="w-6 h-6 text-green-600" />
           </div>
