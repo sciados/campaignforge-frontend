@@ -1,4 +1,4 @@
-// /src/app/admin/page.tsx - UPDATED VERSION WITH INTEGRATED AI TOOLS MONITORING
+// /src/app/admin/page.tsx - FIXED VERSION WITH WORKING MENU OPTIONS ONLY
 "use client";
 
 import React, { useState, useEffect, useCallback } from "react";
@@ -13,46 +13,26 @@ import {
   Filter,
   BarChart3,
   Settings,
-  Database,
   Activity,
   Shield,
   Sparkles,
-  Image as ImageIcon,
   ListChecks,
   Bot,
   Zap,
   RefreshCw,
-  ExternalLink,
 } from "lucide-react";
 import UserEditModal from "@/components/admin/UserEditModal";
 import CompanyEditModal from "@/components/admin/CompanyEditModal";
 import { waitlistApi, waitlistUtils } from "@/lib/waitlist-api";
-import costAnalysis from "@/lib/api";
 import { useAiDiscoveryService } from "@/lib/ai-discovery-service";
+
 // Import your existing components
 import UserManagement from "./components/UserManagement";
 import CompanyManagement from "./components/CompanyManagement";
 import WaitlistManagement from "./components/WaitlistManagement";
 
-// Import the new LiveAIToolsDashboard component
+// Import the fixed LiveAIToolsDashboard component
 import LiveAIToolsDashboard from "./components/LiveAIToolsDashboard";
-
-// Optional imports - handle gracefully if components don't exist
-let StorageMonitoring: React.ComponentType | null = null;
-let ImageGenerationMonitoring: React.ComponentType | null = null;
-
-try {
-  StorageMonitoring = require("./components/StorageMonitoring").default;
-} catch (error) {
-  console.log("StorageMonitoring component not found");
-}
-
-try {
-  ImageGenerationMonitoring =
-    require("./components/ImageGenerationMonitoring").default;
-} catch (error) {
-  console.log("ImageGenerationMonitoring component not found");
-}
 
 // Force this page to never be statically rendered
 export const dynamic = "force-dynamic";
@@ -102,7 +82,7 @@ interface TabConfig {
   highlight?: boolean;
 }
 
-// Updated tabs configuration with AI Tools Monitoring
+// Updated tabs configuration - removed problematic options
 const tabs: Record<string, TabConfig> = {
   overview: {
     label: "Platform Overview",
@@ -124,33 +104,18 @@ const tabs: Record<string, TabConfig> = {
     icon: ListChecks,
     description: "Manage waitlist entries and approvals",
   },
-  "ai-tools": {
-    label: "AI Tools Monitoring",
-    icon: Activity,
+  "ai-providers": {
+    label: "AI Provider Dashboard",
+    icon: Bot,
     component: LiveAIToolsDashboard,
     description: "Monitor and optimize AI provider performance",
     highlight: true,
   },
   "ai-discovery": {
     label: "AI Discovery & Optimization",
-    icon: Bot,
+    icon: Activity,
     description: "AI market discovery and cost optimization",
     highlight: true,
-  },
-  storage: {
-    label: "Storage Monitoring",
-    icon: Database,
-    description: "Monitor platform storage usage",
-  },
-  images: {
-    label: "AI Image Generation",
-    icon: ImageIcon,
-    description: "Monitor AI image generation usage",
-  },
-  analytics: {
-    label: "Analytics",
-    icon: Activity,
-    description: "Detailed analytics and insights",
   },
   revenue: {
     label: "Revenue Analytics",
@@ -214,10 +179,9 @@ export default function AdminPage() {
     hasRecommendations,
     totalProviders,
     healthyProviders,
+    healthStatus,
+    loadHealthStatus,
   } = useAiDiscoveryService();
-
-  // Disable auto-loading for AI Discovery to prevent page errors
-  const [aiAutoLoadDisabled, setAiAutoLoadDisabled] = useState(true);
 
   const router = useRouter();
 
@@ -460,7 +424,6 @@ export default function AdminPage() {
   // AI Discovery handlers
   const handleTestConnection = async () => {
     try {
-      setAiAutoLoadDisabled(false); // Enable AI loading after manual test
       const result = await testConnection();
       if (result.connection_status === "success") {
         alert(
@@ -487,7 +450,6 @@ export default function AdminPage() {
 
   const handleRefreshAI = async () => {
     try {
-      setAiAutoLoadDisabled(false); // Enable AI loading after manual refresh
       await refreshAll();
       alert("✅ AI Discovery data refreshed successfully!");
     } catch (err) {
@@ -499,7 +461,7 @@ export default function AdminPage() {
     }
   };
 
-  // Enhanced render tab content with AI Tools support
+  // Enhanced render tab content
   const renderTabContent = () => {
     const tab = tabs[activeTab];
 
@@ -551,12 +513,6 @@ export default function AdminPage() {
         );
       case "ai-discovery":
         return renderAiDiscoveryTab();
-      case "storage":
-        return renderStorageTab();
-      case "images":
-        return renderImagesTab();
-      case "analytics":
-        return renderAnalyticsTab();
       case "revenue":
         return renderRevenueTab();
       case "settings":
@@ -674,6 +630,50 @@ export default function AdminPage() {
         </div>
       </div>
 
+      {/* AI Discovery Status if connected */}
+      {isConnected && (
+        <div className="bg-blue-50 border border-blue-200 rounded-xl p-6">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center space-x-3">
+              <Bot className="w-6 h-6 text-blue-600" />
+              <h3 className="text-lg font-semibold text-blue-800">
+                AI Discovery Service
+              </h3>
+            </div>
+            <div className="flex items-center space-x-2">
+              <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+              <span className="text-blue-700 font-medium">Connected</span>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+            <div>
+              <p className="text-blue-600 font-medium">Total Providers</p>
+              <p className="text-blue-900 text-lg font-bold">
+                {totalProviders}
+              </p>
+            </div>
+            <div>
+              <p className="text-blue-600 font-medium">Healthy</p>
+              <p className="text-blue-900 text-lg font-bold">
+                {healthyProviders}
+              </p>
+            </div>
+            <div>
+              <p className="text-blue-600 font-medium">Recommendations</p>
+              <p className="text-blue-900 text-lg font-bold">
+                {recommendations?.recommendations?.length || 0}
+              </p>
+            </div>
+            <div>
+              <p className="text-blue-600 font-medium">Daily Cost</p>
+              <p className="text-blue-900 text-lg font-bold">
+                ${costAnalysis?.current_daily_cost?.toFixed(2) || "0.00"}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Subscription Breakdown */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-200">
         <div className="p-6 border-b border-gray-200">
@@ -749,7 +749,7 @@ export default function AdminPage() {
         </div>
       </div>
 
-      {/* Connection Status Alert */}
+      {/* Connection Status */}
       {!isConnected && !aiLoading && (
         <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-6">
           <div className="flex items-center space-x-3 mb-4">
@@ -767,33 +767,23 @@ export default function AdminPage() {
                 <span className="w-6 h-6 bg-yellow-600 text-white rounded-full flex items-center justify-center text-sm font-bold">
                   1
                 </span>
-                <span>
-                  Set{" "}
-                  <code className="bg-yellow-100 px-2 py-1 rounded text-yellow-800">
-                    AI_DISCOVERY_SERVICE_URL
-                  </code>{" "}
-                  environment variable in Railway
-                </span>
+                <span>Deploy the AI Discovery Service to Railway</span>
               </div>
               <div className="flex items-center space-x-2">
                 <span className="w-6 h-6 bg-yellow-600 text-white rounded-full flex items-center justify-center text-sm font-bold">
                   2
                 </span>
                 <span>
-                  Deploy the AI Discovery Service (see handover document)
+                  Set{" "}
+                  <code className="bg-yellow-100 px-2 py-1 rounded text-yellow-800">
+                    AI_DISCOVERY_SERVICE_URL
+                  </code>{" "}
+                  environment variable
                 </span>
               </div>
               <div className="flex items-center space-x-2">
                 <span className="w-6 h-6 bg-yellow-600 text-white rounded-full flex items-center justify-center text-sm font-bold">
                   3
-                </span>
-                <span>
-                  Update environment variable to point to deployed service
-                </span>
-              </div>
-              <div className="flex items-center space-x-2">
-                <span className="w-6 h-6 bg-yellow-600 text-white rounded-full flex items-center justify-center text-sm font-bold">
-                  4
                 </span>
                 <span>Restart backend service and test connection</span>
               </div>
@@ -808,73 +798,75 @@ export default function AdminPage() {
         </div>
       )}
 
-      {/* Continue with existing AI Discovery content... */}
-    </div>
-  );
-
-  // Other tab render functions
-  const renderStorageTab = () => (
-    <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-bold text-gray-900">Storage Monitoring</h2>
-        <p className="text-gray-600">
-          Monitor platform storage usage and performance.
-        </p>
-      </div>
-      {StorageMonitoring ? (
-        <StorageMonitoring />
-      ) : (
-        <div className="bg-white rounded-xl shadow-sm p-8 border border-gray-200 text-center">
-          <Database className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-gray-900 mb-2">
-            Storage Monitoring
-          </h3>
-          <p className="text-gray-500">
-            Storage monitoring component not available.
-          </p>
+      {/* Connected Status */}
+      {isConnected && (
+        <div className="bg-green-50 border border-green-200 rounded-xl p-6">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-3">
+              <Bot className="w-6 h-6 text-green-600" />
+              <div>
+                <h3 className="text-lg font-semibold text-green-800">
+                  AI Discovery Service Connected
+                </h3>
+                <p className="text-green-700">
+                  Monitoring {totalProviders} providers, {healthyProviders}{" "}
+                  healthy
+                </p>
+              </div>
+            </div>
+            <div className="text-right">
+              <p className="text-green-600 font-medium">
+                {hasRecommendations
+                  ? recommendations?.recommendations?.length
+                  : 0}{" "}
+                recommendations available
+              </p>
+              <p className="text-green-600 text-sm">
+                Daily cost: $
+                {costAnalysis?.current_daily_cost?.toFixed(2) || "0.00"}
+              </p>
+            </div>
+          </div>
         </div>
       )}
-    </div>
-  );
 
-  const renderImagesTab = () => (
-    <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-bold text-gray-900">
-          AI Image Generation Monitoring
-        </h2>
-        <p className="text-gray-600">
-          Monitor AI image generation usage and performance.
-        </p>
-      </div>
-      {ImageGenerationMonitoring ? (
-        <ImageGenerationMonitoring />
-      ) : (
-        <div className="bg-white rounded-xl shadow-sm p-8 border border-gray-200 text-center">
-          <ImageIcon className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-gray-900 mb-2">
-            Image Generation Monitoring
-          </h3>
-          <p className="text-gray-500">
-            Image generation monitoring component not available.
+      {/* Service Status Info */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
+          <h4 className="font-semibold text-gray-900 mb-2">Service Health</h4>
+          <p className="text-gray-600 text-sm">
+            Status: {healthStatus?.status || "Unknown"}
+          </p>
+          <p className="text-gray-600 text-sm">
+            Last Check:{" "}
+            {connectionStatus?.test_timestamp
+              ? new Date(connectionStatus.test_timestamp).toLocaleString()
+              : "Never"}
           </p>
         </div>
-      )}
-    </div>
-  );
 
-  const renderAnalyticsTab = () => (
-    <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-bold text-gray-900">Platform Analytics</h2>
-        <p className="text-gray-600">Detailed analytics and insights.</p>
-      </div>
-      <div className="bg-white rounded-xl shadow-sm p-8 border border-gray-200 text-center">
-        <Activity className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-        <h3 className="text-lg font-medium text-gray-900 mb-2">
-          Analytics Dashboard
-        </h3>
-        <p className="text-gray-500">Advanced analytics coming soon.</p>
+        <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
+          <h4 className="font-semibold text-gray-900 mb-2">
+            Provider Overview
+          </h4>
+          <p className="text-gray-600 text-sm">
+            Total Providers: {totalProviders}
+          </p>
+          <p className="text-gray-600 text-sm">Healthy: {healthyProviders}</p>
+        </div>
+
+        <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
+          <h4 className="font-semibold text-gray-900 mb-2">Optimization</h4>
+          <p className="text-gray-600 text-sm">
+            Recommendations: {recommendations?.recommendations?.length || 0}
+          </p>
+          <p className="text-gray-600 text-sm">
+            Potential Savings: $
+            {costAnalysis?.optimization_potential?.recommended_savings?.toFixed(
+              2
+            ) || "0.00"}
+          </p>
+        </div>
       </div>
     </div>
   );
@@ -1091,18 +1083,10 @@ export default function AdminPage() {
               return (
                 <button
                   key={key}
-                  onClick={() => {
-                    if (key === "campaigns") {
-                      router.push("/campaigns");
-                    } else {
-                      setActiveTab(key);
-                    }
-                  }}
+                  onClick={() => setActiveTab(key)}
                   className={`w-full flex items-center space-x-3 px-3 py-2 text-left rounded-lg transition-colors ${
                     activeTab === key
                       ? "bg-red-50 text-red-700 border border-red-200"
-                      : key === "campaigns"
-                      ? "text-purple-600 hover:bg-purple-50 border border-purple-200"
                       : tab.highlight
                       ? "bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100"
                       : "text-gray-600 hover:bg-gray-50"
@@ -1112,24 +1096,9 @@ export default function AdminPage() {
                     <Icon className="w-5 h-5" />
                   </div>
                   <span className="font-medium">{tab.label}</span>
-                  {key === "campaigns" && (
-                    <svg
-                      className="w-4 h-4 ml-auto"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
-                      />
-                    </svg>
-                  )}
                   {tab.highlight && (
                     <div className="ml-auto flex items-center space-x-1">
-                      {(key === "ai-tools" ||
+                      {((key === "ai-providers" && totalProviders > 0) ||
                         (key === "ai-discovery" && isConnected)) && (
                         <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
                       )}

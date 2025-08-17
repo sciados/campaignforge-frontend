@@ -1,3 +1,6 @@
+// src/app/admin/components/LiveAIToolsDashboard.tsx
+// FIXED: Updated to use actual AI Discovery Service endpoints
+
 import React, { useState, useEffect, useCallback } from "react";
 import {
   Star,
@@ -8,159 +11,102 @@ import {
   CheckCircle,
   AlertCircle,
   Clock,
+  Bot,
+  Zap,
+  Settings,
 } from "lucide-react";
+import { useAiDiscoveryService } from "@/lib/ai-discovery-service";
 
-// Types
-interface AITool {
-  id: string;
-  name: string;
+// Updated types to match actual AI Discovery Service
+interface AIProvider {
   provider_name: string;
-  quality_rating: number;
-  cost_rating: number;
-  overall_rating: number;
-  is_currently_used: boolean;
-  capabilities: string[];
-  pricing_model: Record<string, any>;
-  last_checked?: string;
-  performance_metrics: Record<string, any>;
-}
-
-interface AIToolsDashboardData {
-  success: boolean;
-  top_tools_by_category: Record<string, AITool[]>;
-  summary: {
-    total_active_tools: number;
-    currently_used_tools: number;
-    average_rating: number;
-    categories: string[];
-    last_updated: string;
-  };
-  monitoring_status: {
-    is_running: boolean;
-    last_check: string;
-  };
-}
-
-interface AIMonitoringStatus {
-  success: boolean;
-  is_running: boolean;
-  configuration: {
-    test_interval_minutes: number;
-    rating_update_interval_minutes: number;
-    discovery_interval_hours: number;
-  };
+  category: string;
+  is_active: boolean;
+  status: "healthy" | "degraded" | "error";
+  response_time_ms: number;
+  error_rate: number;
   last_check: string;
+  capabilities: string[];
+  cost_per_request?: number;
+}
+
+interface ProviderRecommendation {
+  category: string;
+  current_provider: string;
+  recommended_provider: string;
+  reason: string;
+  estimated_improvement: string;
+  confidence: number;
+  priority: "high" | "medium" | "low";
 }
 
 const LiveAIToolsDashboard: React.FC = () => {
-  const [dashboardData, setDashboardData] =
-    useState<AIToolsDashboardData | null>(null);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string | null>(null);
-  const [monitoringStatus, setMonitoringStatus] =
-    useState<AIMonitoringStatus | null>(null);
+  const {
+    connectionStatus,
+    recommendations,
+    recentDiscoveries,
+    healthStatus,
+    dashboardData,
+    providerStatus,
+    costAnalysis,
+    isLoading,
+    error,
+    isConnected,
+    hasRecommendations,
+    totalProviders,
+    healthyProviders,
+    testConnection,
+    loadDashboard,
+    loadProviderStatus,
+    loadRecommendations,
+    refreshAll,
+    switchProvider,
+  } = useAiDiscoveryService();
+
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+  const [switching, setSwitching] = useState<string | null>(null);
 
-  // API base URL for AI Discovery Service
-  const AI_DISCOVERY_URL =
-    "https://ai-discovery-service-production.up.railway.app";
-
-  // Fetch dashboard data
-  const fetchDashboard = useCallback(async () => {
-    try {
-      setIsLoading(true);
-      const response = await fetch(
-        `${AI_DISCOVERY_URL}/api/v1/ai-tools/dashboard`
-      );
-      if (!response.ok) throw new Error("Failed to fetch dashboard data");
-
-      const data: AIToolsDashboardData = await response.json();
-      setDashboardData(data);
-      setLastUpdated(new Date());
-      setError(null);
-    } catch (err) {
-      console.error("Dashboard fetch error:", err);
-      const errorMessage =
-        err instanceof Error ? err.message : "Unknown error occurred";
-      setError(errorMessage);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [AI_DISCOVERY_URL]);
-
-  // Fetch monitoring status
-  const fetchMonitoringStatus = useCallback(async () => {
-    try {
-      const response = await fetch(
-        `${AI_DISCOVERY_URL}/api/v1/ai-tools/monitoring/status`
-      );
-      if (!response.ok) throw new Error("Failed to fetch monitoring status");
-
-      const data: AIMonitoringStatus = await response.json();
-      setMonitoringStatus(data);
-    } catch (err) {
-      console.error("Monitoring status error:", err);
-    }
-  }, [AI_DISCOVERY_URL]);
-
-  // Start monitoring
-  const startMonitoring = useCallback(async () => {
-    try {
-      const response = await fetch(
-        `${AI_DISCOVERY_URL}/api/v1/ai-tools/monitoring/start`,
-        {
-          method: "POST",
-        }
-      );
-      if (!response.ok) throw new Error("Failed to start monitoring");
-
-      await fetchMonitoringStatus();
-    } catch (err) {
-      console.error("Start monitoring error:", err);
-      const errorMessage =
-        err instanceof Error ? err.message : "Failed to start monitoring";
-      setError(errorMessage);
-    }
-  }, [AI_DISCOVERY_URL, fetchMonitoringStatus]);
-
-  // Initialize system
-  const initializeSystem = useCallback(async () => {
-    try {
-      setIsLoading(true);
-      const response = await fetch(
-        `${AI_DISCOVERY_URL}/api/v1/ai-tools/setup/full-initialization`,
-        {
-          method: "POST",
-        }
-      );
-      if (!response.ok) throw new Error("Failed to initialize system");
-
-      const result = await response.json();
-      console.log("System initialized:", result);
-
-      // Refresh dashboard after initialization
-      await fetchDashboard();
-      await fetchMonitoringStatus();
-    } catch (err) {
-      console.error("Initialize error:", err);
-      const errorMessage =
-        err instanceof Error ? err.message : "Failed to initialize system";
-      setError(errorMessage);
-    }
-  }, [AI_DISCOVERY_URL, fetchDashboard, fetchMonitoringStatus]);
-
-  // Auto-refresh dashboard
+  // Auto-refresh every 30 seconds
   useEffect(() => {
-    fetchDashboard();
-    fetchMonitoringStatus();
-
     const interval = setInterval(() => {
-      fetchDashboard();
-      fetchMonitoringStatus();
-    }, 30000); // Refresh every 30 seconds
+      refreshAll();
+      setLastUpdated(new Date());
+    }, 30000);
 
     return () => clearInterval(interval);
-  }, [fetchDashboard, fetchMonitoringStatus]);
+  }, [refreshAll]);
+
+  // Update last updated when data changes
+  useEffect(() => {
+    if (connectionStatus || dashboardData || providerStatus.length > 0) {
+      setLastUpdated(new Date());
+    }
+  }, [connectionStatus, dashboardData, providerStatus]);
+
+  // Handle provider switch
+  const handleProviderSwitch = async (
+    category: string,
+    newProvider: string
+  ) => {
+    try {
+      setSwitching(`${category}-${newProvider}`);
+      const result = await switchProvider(category, newProvider);
+
+      if (result.success) {
+        alert(`✅ Successfully switched ${category} to ${newProvider}`);
+      } else {
+        alert(`❌ Failed to switch provider: ${result.message}`);
+      }
+    } catch (err) {
+      console.error("Provider switch error:", err);
+      alert(
+        "❌ Provider switch failed: " +
+          (err instanceof Error ? err.message : "Unknown error")
+      );
+    } finally {
+      setSwitching(null);
+    }
+  };
 
   // Star rating component
   const StarRating: React.FC<{ rating: number; size?: string }> = ({
@@ -201,170 +147,248 @@ const LiveAIToolsDashboard: React.FC = () => {
     );
   };
 
-  // Tool card component
-  const ToolCard: React.FC<{ tool: AITool; rank: number }> = ({
-    tool,
-    rank,
-  }) => (
-    <div className="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
-      <div className="flex items-start justify-between mb-3">
-        <div className="flex items-center gap-2">
-          <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center text-xs font-bold text-blue-600">
-            {rank}
-          </div>
+  // Status badge component
+  const StatusBadge: React.FC<{ status: string }> = ({ status }) => {
+    const getStatusConfig = (status: string) => {
+      switch (status) {
+        case "healthy":
+          return { color: "bg-green-100 text-green-800", icon: CheckCircle };
+        case "degraded":
+          return { color: "bg-yellow-100 text-yellow-800", icon: AlertCircle };
+        case "error":
+          return { color: "bg-red-100 text-red-800", icon: AlertCircle };
+        default:
+          return { color: "bg-gray-100 text-gray-800", icon: Settings };
+      }
+    };
+
+    const config = getStatusConfig(status);
+    const Icon = config.icon;
+
+    return (
+      <span
+        className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${config.color}`}
+      >
+        <Icon className="w-3 h-3 mr-1" />
+        {status.charAt(0).toUpperCase() + status.slice(1)}
+      </span>
+    );
+  };
+
+  // Provider card component
+  const ProviderCard: React.FC<{ provider: AIProvider }> = ({ provider }) => {
+    // Calculate a simple rating based on performance
+    const performanceRating = Math.max(
+      1,
+      Math.min(
+        5,
+        5 - provider.response_time_ms / 1000 - provider.error_rate / 2
+      )
+    );
+
+    const costRating = provider.cost_per_request
+      ? Math.max(1, Math.min(5, 5 - provider.cost_per_request * 1000))
+      : 3.5;
+
+    const overallRating = (performanceRating + costRating) / 2;
+
+    return (
+      <div className="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
+        <div className="flex items-start justify-between mb-3">
           <div>
-            <h3 className="font-semibold text-gray-900">{tool.name}</h3>
-            <p className="text-sm text-gray-500">{tool.provider_name}</p>
+            <h3 className="font-semibold text-gray-900">
+              {provider.provider_name}
+            </h3>
+            <p className="text-sm text-gray-500 capitalize">
+              {provider.category.replace("_", " ")}
+            </p>
+          </div>
+          <div className="flex flex-col items-end gap-1">
+            <StatusBadge status={provider.status} />
+            {provider.is_active && (
+              <span className="text-xs text-blue-600 font-medium">Active</span>
+            )}
           </div>
         </div>
-        {tool.is_currently_used && (
-          <CheckCircle
-            className="w-5 h-5 text-green-500"
-            aria-label="Currently Used"
-          />
-        )}
-      </div>
 
-      <div className="space-y-2">
-        <div className="flex items-center justify-between">
-          <span className="text-sm text-gray-600">Overall Rating</span>
-          <StarRating rating={tool.overall_rating} />
+        <div className="space-y-2 mb-3">
+          <div className="flex items-center justify-between">
+            <span className="text-sm text-gray-600">Overall</span>
+            <StarRating rating={overallRating} />
+          </div>
+
+          <div className="flex items-center justify-between">
+            <span className="text-sm text-gray-600">Performance</span>
+            <StarRating rating={performanceRating} size="w-3 h-3" />
+          </div>
+
+          <div className="flex items-center justify-between">
+            <span className="text-sm text-gray-600">Cost</span>
+            <StarRating rating={costRating} size="w-3 h-3" />
+          </div>
         </div>
 
-        <div className="flex items-center justify-between">
-          <span className="text-sm text-gray-600">Quality</span>
-          <StarRating rating={tool.quality_rating} size="w-3 h-3" />
+        <div className="space-y-1 text-xs text-gray-500">
+          <div>Response: {provider.response_time_ms}ms</div>
+          <div>Error Rate: {provider.error_rate.toFixed(1)}%</div>
+          {provider.cost_per_request && (
+            <div>Cost: ${provider.cost_per_request.toFixed(4)}/req</div>
+          )}
         </div>
 
-        <div className="flex items-center justify-between">
-          <span className="text-sm text-gray-600">Cost</span>
-          <StarRating rating={tool.cost_rating} size="w-3 h-3" />
-        </div>
-      </div>
-
-      {tool.capabilities && tool.capabilities.length > 0 && (
-        <div className="mt-3">
-          <div className="flex flex-wrap gap-1">
-            {tool.capabilities
-              .slice(0, 3)
-              .map((capability: string, idx: number) => (
+        {provider.capabilities && provider.capabilities.length > 0 && (
+          <div className="mt-3">
+            <div className="flex flex-wrap gap-1">
+              {provider.capabilities.slice(0, 3).map((capability, idx) => (
                 <span
                   key={idx}
-                  className="text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded"
+                  className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded"
                 >
                   {capability.replace("_", " ")}
                 </span>
               ))}
-            {tool.capabilities.length > 3 && (
-              <span className="text-xs text-gray-500">
-                +{tool.capabilities.length - 3} more
-              </span>
-            )}
+              {provider.capabilities.length > 3 && (
+                <span className="text-xs text-gray-500">
+                  +{provider.capabilities.length - 3} more
+                </span>
+              )}
+            </div>
           </div>
-        </div>
-      )}
-    </div>
-  );
+        )}
+      </div>
+    );
+  };
 
-  // Category section component
-  const CategorySection: React.FC<{
-    categoryName: string;
-    tools: AITool[];
-  }> = ({ categoryName, tools }) => {
-    const displayName = categoryName
-      .replace("_", " ")
-      .replace(/\b\w/g, (l) => l.toUpperCase());
+  // Recommendation card component
+  const RecommendationCard: React.FC<{
+    recommendation: ProviderRecommendation;
+    onSwitch: (category: string, provider: string) => void;
+  }> = ({ recommendation, onSwitch }) => {
+    const isProcessing =
+      switching ===
+      `${recommendation.category}-${recommendation.recommended_provider}`;
 
     return (
-      <div className="mb-8">
-        <div className="flex items-center gap-2 mb-4">
-          <h2 className="text-xl font-bold text-gray-900">{displayName}</h2>
-          <span className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full">
-            Top {tools.length}
+      <div className="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
+        <div className="flex items-start justify-between mb-3">
+          <div>
+            <h3 className="font-semibold text-gray-900 capitalize">
+              {recommendation.category.replace("_", " ")}
+            </h3>
+            <div className="text-sm text-gray-600 mt-1">
+              <span className="text-red-600">
+                {recommendation.current_provider}
+              </span>
+              <span className="mx-2">→</span>
+              <span className="text-green-600">
+                {recommendation.recommended_provider}
+              </span>
+            </div>
+          </div>
+          <span
+            className={`px-2 py-1 rounded-full text-xs font-medium ${
+              recommendation.priority === "high"
+                ? "bg-red-100 text-red-800"
+                : recommendation.priority === "medium"
+                ? "bg-yellow-100 text-yellow-800"
+                : "bg-green-100 text-green-800"
+            }`}
+          >
+            {recommendation.priority} priority
           </span>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {tools.map((tool, index) => (
-            <ToolCard key={tool.id} tool={tool} rank={index + 1} />
-          ))}
+        <div className="space-y-2 mb-4">
+          <p className="text-sm text-gray-700">{recommendation.reason}</p>
+          <p className="text-sm text-blue-600 font-medium">
+            {recommendation.estimated_improvement}
+          </p>
+          <div className="flex items-center gap-2 text-sm">
+            <span className="text-gray-600">Confidence:</span>
+            <div className="flex items-center">
+              <div className="w-20 bg-gray-200 rounded-full h-2">
+                <div
+                  className="bg-blue-600 h-2 rounded-full"
+                  style={{ width: `${recommendation.confidence}%` }}
+                ></div>
+              </div>
+              <span className="ml-2 text-gray-600">
+                {recommendation.confidence}%
+              </span>
+            </div>
+          </div>
         </div>
-      </div>
-    );
-  };
 
-  // Status indicator component
-  const StatusIndicator: React.FC<{
-    status: boolean | string;
-    label: string;
-  }> = ({ status, label }) => {
-    const getStatusColor = (status: boolean | string): string => {
-      switch (status) {
-        case "healthy":
-        case "active":
-        case true:
-          return "text-green-600 bg-green-100";
-        case "degraded":
-        case "warning":
-          return "text-yellow-600 bg-yellow-100";
-        case "error":
-        case "critical":
-        case false:
-          return "text-red-600 bg-red-100";
-        default:
-          return "text-gray-600 bg-gray-100";
-      }
-    };
-
-    return (
-      <div
-        className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(
-          status
-        )}`}
-      >
-        <div
-          className={`w-2 h-2 rounded-full mr-1 ${
-            status ? "bg-current" : "bg-gray-400"
+        <button
+          onClick={() =>
+            onSwitch(
+              recommendation.category,
+              recommendation.recommended_provider
+            )
+          }
+          disabled={isProcessing}
+          className={`w-full py-2 px-4 rounded-lg text-sm font-medium transition-colors ${
+            isProcessing
+              ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+              : "bg-blue-600 text-white hover:bg-blue-700"
           }`}
-        ></div>
-        {label}
+        >
+          {isProcessing ? (
+            <div className="flex items-center justify-center gap-2">
+              <RefreshCw className="w-4 h-4 animate-spin" />
+              Switching...
+            </div>
+          ) : (
+            "Apply Recommendation"
+          )}
+        </button>
       </div>
     );
   };
 
-  if (isLoading && !dashboardData) {
+  if (isLoading && !isConnected && !error) {
     return (
       <div className="max-w-7xl mx-auto p-6">
         <div className="flex items-center justify-center h-64">
           <div className="flex items-center gap-3">
             <RefreshCw className="w-6 h-6 animate-spin text-blue-600" />
-            <span className="text-lg">Loading AI Tools Dashboard...</span>
+            <span className="text-lg">
+              Connecting to AI Discovery Service...
+            </span>
           </div>
         </div>
       </div>
     );
   }
 
-  if (error && !dashboardData) {
+  if (error && !isConnected) {
     return (
       <div className="max-w-7xl mx-auto p-6">
         <div className="bg-red-50 border border-red-200 rounded-lg p-6">
           <div className="flex items-center gap-2 mb-4">
             <AlertCircle className="w-6 h-6 text-red-600" />
             <h2 className="text-lg font-semibold text-red-900">
-              Dashboard Error
+              AI Discovery Service Unavailable
             </h2>
           </div>
           <p className="text-red-700 mb-4">{error}</p>
+          <div className="bg-red-100 rounded-lg p-4 mb-4">
+            <h3 className="font-medium text-red-900 mb-2">Setup Required:</h3>
+            <ul className="text-red-800 text-sm space-y-1 list-disc list-inside">
+              <li>Deploy the AI Discovery Service to Railway</li>
+              <li>Set AI_DISCOVERY_SERVICE_URL environment variable</li>
+              <li>Restart the backend service</li>
+            </ul>
+          </div>
           <div className="flex gap-3">
             <button
-              onClick={initializeSystem}
+              onClick={testConnection}
               className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
             >
-              Initialize System
+              Test Connection
             </button>
             <button
-              onClick={fetchDashboard}
+              onClick={refreshAll}
               className="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors"
             >
               Retry
@@ -375,16 +399,23 @@ const LiveAIToolsDashboard: React.FC = () => {
     );
   }
 
+  const currentProviders = dashboardData?.current_providers || {};
+  const categoryProviders = providerStatus.reduce((acc, provider) => {
+    if (!acc[provider.category]) acc[provider.category] = [];
+    acc[provider.category].push(provider);
+    return acc;
+  }, {} as Record<string, AIProvider[]>);
+
   return (
     <div className="max-w-7xl mx-auto p-6">
       {/* Header */}
       <div className="flex items-center justify-between mb-8">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">
-            Live AI Tools Dashboard
+            AI Provider Dashboard
           </h1>
           <p className="text-gray-600 mt-1">
-            Real-time monitoring and ratings for your AI providers
+            Monitor performance and optimize your AI provider stack
           </p>
         </div>
 
@@ -396,7 +427,7 @@ const LiveAIToolsDashboard: React.FC = () => {
             </div>
           )}
           <button
-            onClick={fetchDashboard}
+            onClick={refreshAll}
             disabled={isLoading}
             className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 flex items-center gap-2"
           >
@@ -413,21 +444,21 @@ const LiveAIToolsDashboard: React.FC = () => {
         <div className="bg-white border border-gray-200 rounded-lg p-6">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-600">Total Tools</p>
+              <p className="text-sm text-gray-600">Total Providers</p>
               <p className="text-2xl font-bold text-gray-900">
-                {dashboardData?.summary?.total_active_tools || 0}
+                {totalProviders}
               </p>
             </div>
-            <Activity className="w-8 h-8 text-blue-600" />
+            <Bot className="w-8 h-8 text-blue-600" />
           </div>
         </div>
 
         <div className="bg-white border border-gray-200 rounded-lg p-6">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-600">Currently Used</p>
+              <p className="text-sm text-gray-600">Healthy Providers</p>
               <p className="text-2xl font-bold text-green-600">
-                {dashboardData?.summary?.currently_used_tools || 0}
+                {healthyProviders}
               </p>
             </div>
             <CheckCircle className="w-8 h-8 text-green-600" />
@@ -437,9 +468,9 @@ const LiveAIToolsDashboard: React.FC = () => {
         <div className="bg-white border border-gray-200 rounded-lg p-6">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-600">Avg Rating</p>
+              <p className="text-sm text-gray-600">Recommendations</p>
               <p className="text-2xl font-bold text-yellow-600">
-                {dashboardData?.summary?.average_rating?.toFixed(1) || "0.0"}★
+                {recommendations?.recommendations?.length || 0}
               </p>
             </div>
             <Star className="w-8 h-8 text-yellow-600" />
@@ -449,136 +480,140 @@ const LiveAIToolsDashboard: React.FC = () => {
         <div className="bg-white border border-gray-200 rounded-lg p-6">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-600">Monitoring</p>
+              <p className="text-sm text-gray-600">Discovery Status</p>
               <div className="mt-1">
-                <StatusIndicator
-                  status={monitoringStatus?.is_running || false}
-                  label={monitoringStatus?.is_running ? "Active" : "Stopped"}
-                />
+                <StatusBadge status={isConnected ? "healthy" : "error"} />
               </div>
             </div>
-            <TrendingUp className="w-8 h-8 text-purple-600" />
+            <Activity className="w-8 h-8 text-purple-600" />
           </div>
         </div>
       </div>
 
-      {/* System Status */}
-      {(!monitoringStatus?.is_running ||
-        !dashboardData?.summary?.total_active_tools) && (
-        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6 mb-8">
-          <div className="flex items-start gap-3">
-            <AlertCircle className="w-6 h-6 text-yellow-600 mt-1" />
-            <div className="flex-1">
-              <h3 className="font-semibold text-yellow-900">
-                System Setup Required
-              </h3>
-              <p className="text-yellow-700 mt-1">
-                {!dashboardData?.summary?.total_active_tools
-                  ? "No AI tools found. Initialize the system to seed your current tools."
-                  : "Monitoring is not running. Start monitoring to get live performance data."}
-              </p>
-              <div className="flex gap-3 mt-4">
-                {!dashboardData?.summary?.total_active_tools && (
-                  <button
-                    onClick={initializeSystem}
-                    className="bg-yellow-600 text-white px-4 py-2 rounded-lg hover:bg-yellow-700 transition-colors"
-                  >
-                    Initialize System
-                  </button>
-                )}
-                {!monitoringStatus?.is_running && (
-                  <button
-                    onClick={startMonitoring}
-                    className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
-                  >
-                    Start Monitoring
-                  </button>
-                )}
-              </div>
-            </div>
+      {/* Recommendations Section */}
+      {hasRecommendations && (
+        <div className="mb-8">
+          <div className="flex items-center gap-2 mb-4">
+            <Zap className="w-5 h-5 text-yellow-600" />
+            <h2 className="text-xl font-bold text-gray-900">
+              Optimization Recommendations
+            </h2>
+            <span className="bg-yellow-100 text-yellow-800 text-xs px-2 py-1 rounded-full">
+              {recommendations?.recommendations?.length || 0} available
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {recommendations?.recommendations?.map(
+              (
+                rec: ProviderRecommendation,
+                index: React.Key | null | undefined
+              ) => (
+                <RecommendationCard
+                  key={index}
+                  recommendation={rec}
+                  onSwitch={handleProviderSwitch}
+                />
+              )
+            )}
           </div>
         </div>
       )}
 
-      {/* Tools by Category */}
-      {dashboardData?.top_tools_by_category &&
-      Object.keys(dashboardData.top_tools_by_category).length > 0 ? (
+      {/* Providers by Category */}
+      {Object.keys(categoryProviders).length > 0 ? (
         <div>
-          {Object.entries(dashboardData.top_tools_by_category).map(
-            ([category, tools]) => (
-              <CategorySection
-                key={category}
-                categoryName={category}
-                tools={tools}
-              />
-            )
-          )}
+          {Object.entries(categoryProviders).map(([category, providers]) => (
+            <div key={category} className="mb-8">
+              <div className="flex items-center gap-2 mb-4">
+                <h2 className="text-xl font-bold text-gray-900 capitalize">
+                  {category.replace("_", " ")} Providers
+                </h2>
+                <span className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full">
+                  {providers.length} active
+                </span>
+                {currentProviders[category] && (
+                  <span className="bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full">
+                    Current: {currentProviders[category]}
+                  </span>
+                )}
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {providers.map((provider, index) => (
+                  <ProviderCard
+                    key={`${provider.provider_name}-${index}`}
+                    provider={provider}
+                  />
+                ))}
+              </div>
+            </div>
+          ))}
         </div>
       ) : (
         <div className="text-center py-12">
-          <Activity className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+          <Bot className="w-16 h-16 text-gray-400 mx-auto mb-4" />
           <h3 className="text-lg font-semibold text-gray-900 mb-2">
-            No Tools Data Available
+            No Provider Data Available
           </h3>
           <p className="text-gray-600 mb-6">
-            Initialize the system to start tracking your AI tools.
+            {isConnected
+              ? "Provider data is loading. This may take a moment..."
+              : "Connect to the AI Discovery Service to view provider data."}
           </p>
           <button
-            onClick={initializeSystem}
+            onClick={isConnected ? refreshAll : testConnection}
             className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors"
           >
-            Initialize AI Tools System
+            {isConnected ? "Refresh Data" : "Connect to Service"}
           </button>
         </div>
       )}
 
-      {/* Footer with system info */}
-      {dashboardData && (
+      {/* Cost Analysis Footer */}
+      {costAnalysis && (
         <div className="mt-12 pt-8 border-t border-gray-200">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-sm text-gray-600">
-            <div>
-              <h4 className="font-semibold text-gray-900 mb-2">
-                System Status
-              </h4>
-              <ul className="space-y-1">
-                <li>
-                  Last Updated:{" "}
-                  {dashboardData.summary?.last_updated
-                    ? new Date(
-                        dashboardData.summary.last_updated
-                      ).toLocaleString()
-                    : "Never"}
-                </li>
-                <li>
-                  Categories: {dashboardData.summary?.categories?.length || 0}
-                </li>
-                <li>
-                  Monitoring:{" "}
-                  {monitoringStatus?.is_running ? "✅ Active" : "❌ Stopped"}
-                </li>
-              </ul>
+          <h3 className="text-lg font-bold text-gray-900 mb-4">
+            Cost Analysis
+          </h3>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="bg-white border border-gray-200 rounded-lg p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-gray-600">Daily Cost</p>
+                  <p className="text-xl font-bold text-gray-900">
+                    ${costAnalysis.current_daily_cost?.toFixed(2) || "0.00"}
+                  </p>
+                </div>
+                <DollarSign className="w-6 h-6 text-green-600" />
+              </div>
             </div>
 
-            <div>
-              <h4 className="font-semibold text-gray-900 mb-2">
-                Performance Tracking
-              </h4>
-              <ul className="space-y-1">
-                <li>Response Time: Every 5 minutes</li>
-                <li>Rating Updates: Every hour</li>
-                <li>Market Scan: Every 24 hours</li>
-              </ul>
+            <div className="bg-white border border-gray-200 rounded-lg p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-gray-600">Monthly Projection</p>
+                  <p className="text-xl font-bold text-gray-900">
+                    ${costAnalysis.monthly_projection?.toFixed(2) || "0.00"}
+                  </p>
+                </div>
+                <TrendingUp className="w-6 h-6 text-blue-600" />
+              </div>
             </div>
 
-            <div>
-              <h4 className="font-semibold text-gray-900 mb-2">
-                Rating Algorithm
-              </h4>
-              <ul className="space-y-1">
-                <li>Quality Weight: 70%</li>
-                <li>Cost Weight: 30%</li>
-                <li>Scale: 0-5 stars</li>
-              </ul>
+            <div className="bg-white border border-gray-200 rounded-lg p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-gray-600">Potential Savings</p>
+                  <p className="text-xl font-bold text-green-600">
+                    $
+                    {costAnalysis.optimization_potential?.recommended_savings?.toFixed(
+                      2
+                    ) || "0.00"}
+                  </p>
+                </div>
+                <Star className="w-6 h-6 text-yellow-600" />
+              </div>
             </div>
           </div>
         </div>
