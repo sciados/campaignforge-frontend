@@ -1,12 +1,3 @@
-// src/app/admin/components/LiveAIToolsDashboard.tsx
-// Enhanced AI Provider Discovery Dashboard with Auto-Discovery and Table View
-// 🎯 Replaces the existing LiveAIToolsDashboard with enhanced features:
-// - Table view showing all 11 AI providers with star ratings
-// - Auto-discovery of new cheaper providers from the market
-// - Cost analysis and savings opportunities
-// - Integration with your existing AI Discovery Service
-// - Real-time monitoring and optimization recommendations
-
 import React, { useState, useEffect, useCallback } from "react";
 import {
   Star,
@@ -28,40 +19,49 @@ import {
   TestTube,
   Sparkles,
   TrendingDown,
+  Play,
+  Pause,
 } from "lucide-react";
 import { useAiDiscoveryService } from "@/lib/ai-discovery-service";
 
-// Type definitions for the enhanced dashboard
-interface EnhancedProvider {
+// 🆕 COMPLETELY DYNAMIC TYPES - NO HARDCODED DATA
+interface DynamicProvider {
   provider_name: string;
+  env_var_name: string;
+  env_var_status: "configured" | "missing" | "empty";
+  value_preview?: string;
+  integration_status: "active" | "disabled" | "pending" | "discovered";
   category: string;
-  is_active: boolean;
-  status: "healthy" | "degraded" | "error";
-  response_time_ms: number;
-  error_rate: number;
-  cost_per_1k_tokens: number;
-  quality_score: number;
-  api_key: string;
-  model: string;
+  priority_tier: string;
+  cost_per_1k_tokens?: number;
+  quality_score?: number;
+  model?: string;
   capabilities: string[];
   monthly_usage: number;
-  priority_tier: string;
-  source: string;
+  response_time_ms?: number;
+  error_rate?: number;
+  source: "environment" | "database" | "discovered";
+  last_checked: string;
+  is_active: boolean;
+  api_endpoint?: string;
+  discovery_date?: string;
+  // Enhanced fields for display
   cost_rating?: number;
   performance_rating?: number;
   overall_rating?: number;
   value_score?: number;
-  discovered_date?: string;
-  discovery_source?: string;
-  cost_savings_vs_baseline?: number;
-  recommended_for?: string[];
-  integration_difficulty?: string;
-  test_status?: string;
-  // 🆕 Railway Integration Fields
-  env_var_name?: string;
-  env_var_status?: "configured" | "missing";
-  integration_status?: "active" | "testing" | "disabled" | "pending";
-  railway_setup_instructions?: string[];
+}
+
+interface DynamicProvidersResponse {
+  total_providers: number;
+  environment_providers: number;
+  database_providers: number;
+  configured_count: number;
+  missing_count: number;
+  active_count: number;
+  providers: DynamicProvider[];
+  railway_environment: string;
+  last_updated: string;
 }
 
 interface Recommendation {
@@ -74,196 +74,7 @@ interface Recommendation {
   priority: "high" | "medium" | "low";
 }
 
-interface CostAnalysis {
-  current_daily_cost?: number;
-}
-
-// Your existing 11 providers as baseline for comparison
-const BASELINE_PROVIDERS: EnhancedProvider[] = [
-  {
-    provider_name: "Groq",
-    category: "content_generation",
-    is_active: true,
-    status: "healthy" as const,
-    response_time_ms: 450,
-    error_rate: 0.2,
-    cost_per_1k_tokens: 0.0002,
-    quality_score: 4.3,
-    api_key: "GROQ_API_KEY",
-    model: "llama-3.3-70b-versatile",
-    capabilities: ["text_generation", "code_generation", "analysis"],
-    monthly_usage: 156000,
-    priority_tier: "primary",
-    source: "existing",
-  },
-  {
-    provider_name: "Together AI",
-    category: "content_generation",
-    is_active: true,
-    status: "healthy" as const,
-    response_time_ms: 650,
-    error_rate: 0.4,
-    cost_per_1k_tokens: 0.0003,
-    quality_score: 4.2,
-    api_key: "TOGETHER_API_KEY",
-    model: "meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo",
-    capabilities: ["text_generation", "reasoning", "code_generation"],
-    monthly_usage: 89000,
-    priority_tier: "primary",
-    source: "existing",
-  },
-  {
-    provider_name: "DeepSeek",
-    category: "analysis",
-    is_active: true,
-    status: "healthy" as const,
-    response_time_ms: 850,
-    error_rate: 0.6,
-    cost_per_1k_tokens: 0.0002,
-    quality_score: 4.4,
-    api_key: "DEEPSEEK_API_KEY",
-    model: "deepseek-chat",
-    capabilities: ["analysis", "reasoning", "math"],
-    monthly_usage: 67000,
-    priority_tier: "primary",
-    source: "existing",
-  },
-  {
-    provider_name: "AIML API",
-    category: "content_generation",
-    is_active: true,
-    status: "healthy" as const,
-    response_time_ms: 750,
-    error_rate: 0.8,
-    cost_per_1k_tokens: 0.0004,
-    quality_score: 4.0,
-    api_key: "AIMLAPI_API_KEY",
-    model: "various",
-    capabilities: ["text_generation", "analysis"],
-    monthly_usage: 45000,
-    priority_tier: "secondary",
-    source: "existing",
-  },
-  {
-    provider_name: "MiniMax",
-    category: "content_generation",
-    is_active: true,
-    status: "healthy" as const,
-    response_time_ms: 1200,
-    error_rate: 1.2,
-    cost_per_1k_tokens: 0.0005,
-    quality_score: 3.8,
-    api_key: "MINIMAX_API_KEY",
-    model: "various",
-    capabilities: ["text_generation", "chat"],
-    monthly_usage: 23000,
-    priority_tier: "secondary",
-    source: "existing",
-  },
-  {
-    provider_name: "Cohere",
-    category: "analysis",
-    is_active: false,
-    status: "degraded" as const,
-    response_time_ms: 1100,
-    error_rate: 2.1,
-    cost_per_1k_tokens: 0.002,
-    quality_score: 4.1,
-    api_key: "COHERE_API_KEY",
-    model: "command-r-plus",
-    capabilities: ["text_generation", "embeddings", "classification"],
-    monthly_usage: 12000,
-    priority_tier: "expensive",
-    source: "existing",
-  },
-  {
-    provider_name: "OpenAI GPT-4",
-    category: "premium_generation",
-    is_active: false,
-    status: "healthy" as const,
-    response_time_ms: 2100,
-    error_rate: 0.5,
-    cost_per_1k_tokens: 0.03,
-    quality_score: 4.8,
-    api_key: "OPENAI_API_KEY",
-    model: "gpt-4",
-    capabilities: [
-      "text_generation",
-      "code_generation",
-      "analysis",
-      "reasoning",
-    ],
-    monthly_usage: 3000,
-    priority_tier: "expensive",
-    source: "existing",
-  },
-  {
-    provider_name: "Claude 3 Sonnet",
-    category: "premium_analysis",
-    is_active: false,
-    status: "healthy" as const,
-    response_time_ms: 1800,
-    error_rate: 0.3,
-    cost_per_1k_tokens: 0.015,
-    quality_score: 4.7,
-    api_key: "ANTHROPIC_API_KEY",
-    model: "claude-3-sonnet-20240229",
-    capabilities: ["analysis", "reasoning", "code_review", "writing"],
-    monthly_usage: 5000,
-    priority_tier: "expensive",
-    source: "existing",
-  },
-  {
-    provider_name: "Stability AI",
-    category: "image_generation",
-    is_active: true,
-    status: "healthy" as const,
-    response_time_ms: 8500,
-    error_rate: 1.5,
-    cost_per_1k_tokens: 0.02,
-    quality_score: 4.5,
-    api_key: "STABILITY_API_KEY",
-    model: "stable-diffusion",
-    capabilities: ["image_generation", "image_editing"],
-    monthly_usage: 8000,
-    priority_tier: "specialized",
-    source: "existing",
-  },
-  {
-    provider_name: "Replicate",
-    category: "image_generation",
-    is_active: true,
-    status: "healthy" as const,
-    response_time_ms: 12000,
-    error_rate: 2.0,
-    cost_per_1k_tokens: 0.025,
-    quality_score: 4.3,
-    api_key: "REPLICATE_API_TOKEN",
-    model: "various",
-    capabilities: ["image_generation", "video_generation", "audio"],
-    monthly_usage: 4500,
-    priority_tier: "specialized",
-    source: "existing",
-  },
-  {
-    provider_name: "FAL AI",
-    category: "image_generation",
-    is_active: true,
-    status: "healthy" as const,
-    response_time_ms: 6500,
-    error_rate: 1.8,
-    cost_per_1k_tokens: 0.015,
-    quality_score: 4.2,
-    api_key: "FAL_API_KEY",
-    model: "various",
-    capabilities: ["image_generation", "real_time_inference"],
-    monthly_usage: 6200,
-    priority_tier: "specialized",
-    source: "existing",
-  },
-];
-
-const LiveAIToolsDashboard: React.FC = () => {
+const CleanDynamicAIProviderDashboard: React.FC = () => {
   const {
     connectionStatus,
     recommendations,
@@ -282,6 +93,7 @@ const LiveAIToolsDashboard: React.FC = () => {
     refreshAll,
   } = useAiDiscoveryService();
 
+  // 🎯 STATE MANAGEMENT - PURELY DYNAMIC
   const [sortField, setSortField] = useState<string>("overall_rating");
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc");
   const [filterTier, setFilterTier] = useState<string>("");
@@ -290,152 +102,173 @@ const LiveAIToolsDashboard: React.FC = () => {
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
   const [discoveryInProgress, setDiscoveryInProgress] = useState(false);
 
-  // 🎯 PRIORITIZE YOUR PRIMARY PROVIDERS - Always show baseline providers first
-  // The AI Discovery Service might not know about your ultra-cheap providers
-  const allProviders = BASELINE_PROVIDERS; // Always use your configured providers as the primary data source
+  // 🚀 DYNAMIC PROVIDER STATE - NO HARDCODED DATA
+  const [dynamicProviders, setDynamicProviders] =
+    useState<DynamicProvidersResponse | null>(null);
+  const [providersLoading, setProvidersLoading] = useState(false);
+  const [providersError, setProvidersError] = useState<string | null>(null);
 
-  // Optional: Merge with AI Discovery Service data if available, but baseline takes priority
-  const aiServiceProviders =
-    providerStatus.length > 0
-      ? providerStatus.map(
-          (p) =>
-            ({
-              ...p,
-              source: "ai_service", // Mark as coming from AI service
-              cost_per_1k_tokens: p.cost_per_request
-                ? p.cost_per_request * 1000
-                : 0.001,
-              quality_score: 4.0,
-              api_key: "API_KEY",
-              model: "model",
-              monthly_usage: 0,
-              priority_tier: "ai_service",
-            } as EnhancedProvider)
-        )
-      : [];
+  // 🚀 FETCH ALL PROVIDERS DYNAMICALLY FROM BACKEND
+  const fetchDynamicProviders = useCallback(async () => {
+    setProvidersLoading(true);
+    setProvidersError(null);
 
-  // Only add AI service providers that aren't already in baseline (avoid duplicates)
-  const uniqueAiServiceProviders = aiServiceProviders.filter(
-    (aiProvider) =>
-      !BASELINE_PROVIDERS.some(
-        (baseProvider) =>
-          baseProvider.provider_name.toLowerCase() ===
-          aiProvider.provider_name.toLowerCase()
-      )
+    try {
+      const backendUrl =
+        process.env.NEXT_PUBLIC_BACKEND_URL ||
+        "https://campaign-backend-production-e2db.up.railway.app";
+      const response = await fetch(`${backendUrl}/admin/providers/dynamic`, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          // Add authorization header if needed
+          // 'Authorization': `Bearer ${token}`
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(
+          `Failed to fetch providers: ${response.status} ${response.statusText}`
+        );
+      }
+
+      const data: DynamicProvidersResponse = await response.json();
+      setDynamicProviders(data);
+      console.log("✅ Dynamic providers loaded:", data);
+    } catch (error) {
+      console.error("❌ Failed to fetch dynamic providers:", error);
+      setProvidersError(
+        error instanceof Error ? error.message : "Unknown error"
+      );
+    } finally {
+      setProvidersLoading(false);
+    }
+  }, []);
+
+  // 🚀 LOAD DYNAMIC PROVIDERS ON MOUNT
+  useEffect(() => {
+    fetchDynamicProviders();
+  }, [fetchDynamicProviders]);
+
+  // 🆕 TOGGLE PROVIDER STATUS
+  const toggleProviderStatus = useCallback(
+    async (envVarName: string, currentStatus: string) => {
+      try {
+        const backendUrl =
+          process.env.NEXT_PUBLIC_BACKEND_URL ||
+          "https://campaign-backend-production-e2db.up.railway.app";
+        const action = currentStatus === "active" ? "deactivate" : "activate";
+
+        const response = await fetch(
+          `${backendUrl}/admin/providers/${envVarName}/${action}`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+          }
+        );
+
+        if (!response.ok) {
+          throw new Error(`Failed to ${action} provider: ${response.status}`);
+        }
+
+        const result = await response.json();
+        alert(`✅ Provider ${action}d successfully!\n\n${result.message}`);
+
+        // Refresh providers list
+        await fetchDynamicProviders();
+      } catch (error) {
+        console.error(`Provider toggle failed:`, error);
+        alert(
+          `❌ Failed to toggle provider:\n\n${
+            error instanceof Error ? error.message : "Unknown error"
+          }`
+        );
+      }
+    },
+    [fetchDynamicProviders]
   );
 
-  // Simulate discovered providers (in real implementation, this would come from your AI Discovery Service)
-  const discoveredProviders: EnhancedProvider[] = [
-    {
-      provider_name: "Fireworks AI",
-      category: "content_generation",
-      is_active: false,
-      status: "healthy" as const,
-      response_time_ms: 380,
-      error_rate: 0.3,
-      cost_per_1k_tokens: 0.0001,
-      quality_score: 4.1,
-      api_key: "FIREWORKS_API_KEY",
-      model: "llama-v3p1-405b-instruct",
-      capabilities: ["text_generation", "code_generation", "reasoning"],
-      monthly_usage: 0,
-      priority_tier: "discovered",
-      source: "discovered",
-      discovered_date: new Date().toISOString(),
-      discovery_source: "artificialanalysis.ai",
-      cost_savings_vs_baseline: 50,
-      recommended_for: ["Replace Groq for even cheaper costs"],
-      integration_difficulty: "easy",
-      test_status: "pending",
-      // 🛤️ Railway Integration
-      env_var_name: "FIREWORKS_API_KEY",
-      env_var_status: "missing",
-      integration_status: "pending",
-      railway_setup_instructions: [
-        "Go to Railway Dashboard → Your Project",
-        "Click 'Variables' tab",
-        "Add FIREWORKS_API_KEY with your API key",
-        "Deploy changes",
-      ],
+  // 🆕 TEST API KEY
+  const testApiKey = useCallback(
+    async (envVarName: string, providerName: string) => {
+      try {
+        const backendUrl =
+          process.env.NEXT_PUBLIC_BACKEND_URL ||
+          "https://campaign-backend-production-e2db.up.railway.app";
+        const response = await fetch(
+          `${backendUrl}/admin/providers/${envVarName}/test`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+          }
+        );
+
+        if (!response.ok) {
+          throw new Error(`Test failed: ${response.status}`);
+        }
+
+        const result = await response.json();
+        alert(`✅ ${providerName} API Key Test Result:\n\n${result.message}`);
+      } catch (error) {
+        console.error("API key test failed:", error);
+        alert(
+          `❌ ${providerName} API Key Test Failed:\n\n${
+            error instanceof Error ? error.message : "Unknown error"
+          }`
+        );
+      }
     },
-    {
-      provider_name: "Perplexity API",
-      category: "analysis",
-      is_active: false,
-      status: "healthy" as const,
-      response_time_ms: 920,
-      error_rate: 0.4,
-      cost_per_1k_tokens: 0.0001,
-      quality_score: 4.3,
-      api_key: "PERPLEXITY_API_KEY",
-      model: "llama-3.1-sonar-large-128k-online",
-      capabilities: ["analysis", "search", "real_time_data"],
-      monthly_usage: 0,
-      priority_tier: "discovered",
-      source: "discovered",
-      discovered_date: new Date().toISOString(),
-      discovery_source: "perplexity.ai/pricing",
-      cost_savings_vs_baseline: 50,
-      recommended_for: ["Replace DeepSeek for real-time analysis"],
-      integration_difficulty: "easy",
-      test_status: "pending",
-      // 🛤️ Railway Integration
-      env_var_name: "PERPLEXITY_API_KEY",
-      env_var_status: "missing",
-      integration_status: "pending",
-      railway_setup_instructions: [
-        "Go to Railway Dashboard → Your Project",
-        "Click 'Variables' tab",
-        "Add PERPLEXITY_API_KEY with your API key",
-        "Add PERPLEXITY_BASE_URL=https://api.perplexity.ai",
-        "Deploy changes",
-      ],
-    },
-  ];
+    []
+  );
 
-  // Combine all providers with PRIORITY ORDER: Baseline First (your primary providers)
-  const combinedProviders = [
-    ...allProviders, // 🥇 Your primary ultra-cheap providers (Groq, DeepSeek, Together AI, etc.)
-    ...uniqueAiServiceProviders, // 🥈 Additional providers from AI Discovery Service (if any)
-    ...discoveredProviders, // 🥉 Newly discovered providers
-  ];
+  // 🆕 ENHANCED PROVIDERS WITH CALCULATED METRICS - NO HARDCODED DATA
+  const enhancedProviders = React.useMemo(() => {
+    if (!dynamicProviders) return [];
 
-  // Calculate enhanced metrics
-  const enhancedProviders = combinedProviders.map((provider) => {
-    const maxCost = Math.max(
-      ...combinedProviders.map((p) => p.cost_per_1k_tokens || 0.001)
-    );
-    const costRating =
-      maxCost > 0 ? 5 - (provider.cost_per_1k_tokens / maxCost) * 4 : 3;
+    const providers = dynamicProviders.providers.map((provider) => {
+      const maxCost = Math.max(
+        ...dynamicProviders.providers.map((p) => p.cost_per_1k_tokens || 0.001)
+      );
+      const costRating =
+        maxCost > 0
+          ? 5 - ((provider.cost_per_1k_tokens || 0.001) / maxCost) * 4
+          : 3;
 
-    const maxResponseTime = Math.max(
-      ...combinedProviders.map((p) => p.response_time_ms)
-    );
-    const responseRating =
-      maxResponseTime > 0
-        ? 5 - (provider.response_time_ms / maxResponseTime) * 3
-        : 3;
-    const errorRating = Math.max(1, 5 - provider.error_rate * 0.5);
-    const performanceRating = (responseRating + errorRating) / 2;
+      const maxResponseTime = Math.max(
+        ...dynamicProviders.providers.map((p) => p.response_time_ms || 1000)
+      );
+      const responseRating =
+        maxResponseTime > 0
+          ? 5 - ((provider.response_time_ms || 1000) / maxResponseTime) * 3
+          : 3;
+      const errorRating = Math.max(1, 5 - (provider.error_rate || 0.5) * 0.5);
+      const performanceRating = (responseRating + errorRating) / 2;
 
-    const overallRating =
-      costRating * 0.4 +
-      performanceRating * 0.3 +
-      (provider.quality_score || 4) * 0.3;
-    const valueScore =
-      (provider.quality_score || 4) /
-      ((provider.cost_per_1k_tokens || 0.001) * 1000);
+      const overallRating =
+        costRating * 0.4 +
+        performanceRating * 0.3 +
+        (provider.quality_score || 4) * 0.3;
+      const valueScore =
+        (provider.quality_score || 4) /
+        ((provider.cost_per_1k_tokens || 0.001) * 1000);
 
-    return {
-      ...provider,
-      cost_rating: costRating,
-      performance_rating: performanceRating,
-      overall_rating: overallRating,
-      value_score: valueScore,
-    };
-  });
+      return {
+        ...provider,
+        cost_rating: costRating,
+        performance_rating: performanceRating,
+        overall_rating: overallRating,
+        value_score: valueScore,
+      };
+    });
 
-  // 🎯 SMART SORTING: Primary providers first, then by cost efficiency
+    return providers;
+  }, [dynamicProviders]);
+
+  // 🎯 SMART SORTING AND FILTERING - PURELY DYNAMIC
   const filteredProviders = enhancedProviders
     .filter((provider) => {
       const matchesSearch =
@@ -444,21 +277,30 @@ const LiveAIToolsDashboard: React.FC = () => {
           .includes(searchTerm.toLowerCase()) ||
         provider.category.toLowerCase().includes(searchTerm.toLowerCase());
       const matchesTier = !filterTier || provider.priority_tier === filterTier;
-      const matchesStatus = !filterStatus || provider.status === filterStatus;
+      const matchesStatus =
+        !filterStatus || provider.integration_status === filterStatus;
       return matchesSearch && matchesTier && matchesStatus;
     })
     .sort((a, b) => {
-      // 🥇 PRIORITY 1: Primary tier providers first (your ultra-cheap ones)
+      // 🥇 PRIMARY tier providers first
       if (a.priority_tier === "primary" && b.priority_tier !== "primary")
         return -1;
       if (b.priority_tier === "primary" && a.priority_tier !== "primary")
         return 1;
 
-      // 🥈 PRIORITY 2: Discovered providers second (new opportunities)
-      if (a.source === "discovered" && b.source !== "discovered") return -1;
-      if (b.source === "discovered" && a.source !== "discovered") return 1;
+      // 🥈 Configured providers before missing ones
+      if (
+        a.env_var_status === "configured" &&
+        b.env_var_status !== "configured"
+      )
+        return -1;
+      if (
+        b.env_var_status === "configured" &&
+        a.env_var_status !== "configured"
+      )
+        return 1;
 
-      // 🥉 PRIORITY 3: Then sort by selected field
+      // 🥉 Sort by selected field
       const multiplier = sortDirection === "asc" ? 1 : -1;
       const aValue = (a as any)[sortField] as number;
       const bValue = (b as any)[sortField] as number;
@@ -478,18 +320,20 @@ const LiveAIToolsDashboard: React.FC = () => {
     setDiscoveryInProgress(true);
     try {
       await refreshAll();
+      await fetchDynamicProviders();
       setLastUpdated(new Date());
       alert(
-        `🚀 Discovery Complete! Found ${discoveredProviders.length} new providers with potential savings!`
+        `🚀 Discovery Complete! Refreshed environment status and discovered new providers!`
       );
     } catch (error) {
       console.error("Discovery error:", error);
-      alert("❌ Discovery failed. Please try again.");
+      alert("⚠️ Discovery failed. Please try again.");
     } finally {
       setDiscoveryInProgress(false);
     }
-  }, [discoveredProviders.length, refreshAll]);
+  }, [refreshAll, fetchDynamicProviders]);
 
+  // 🎨 UI COMPONENTS
   const StarRating: React.FC<{ rating: number; size?: string }> = ({
     rating,
     size = "w-4 h-4",
@@ -529,22 +373,28 @@ const LiveAIToolsDashboard: React.FC = () => {
   };
 
   const StatusBadge: React.FC<{
-    status: string;
-    isActive: boolean;
+    integrationStatus: string;
+    envVarStatus: string;
     source?: string;
-  }> = ({ status, isActive, source }) => {
+  }> = ({ integrationStatus, envVarStatus, source }) => {
     const getConfig = () => {
-      if (source === "discovered")
+      if (source === "discovered" || source === "database") {
+        if (envVarStatus === "configured") {
+          return {
+            color: "bg-green-100 text-green-700",
+            text: "Ready to Integrate",
+          };
+        }
         return { color: "bg-purple-100 text-purple-700", text: "Discovered" };
-      if (!isActive)
-        return { color: "bg-gray-100 text-gray-600", text: "Inactive" };
-      switch (status) {
-        case "healthy":
-          return { color: "bg-green-100 text-green-700", text: "Healthy" };
-        case "degraded":
-          return { color: "bg-yellow-100 text-yellow-700", text: "Degraded" };
-        case "error":
-          return { color: "bg-red-100 text-red-700", text: "Error" };
+      }
+
+      switch (integrationStatus) {
+        case "active":
+          return { color: "bg-green-100 text-green-700", text: "Active" };
+        case "disabled":
+          return { color: "bg-gray-100 text-gray-600", text: "Disabled" };
+        case "pending":
+          return { color: "bg-yellow-100 text-yellow-700", text: "Pending" };
         default:
           return { color: "bg-gray-100 text-gray-600", text: "Unknown" };
       }
@@ -594,24 +444,20 @@ const LiveAIToolsDashboard: React.FC = () => {
     return usage.toString();
   };
 
-  // Calculate summary stats
-  const activeProviders = filteredProviders.filter((p) => p.is_active).length;
-  const avgCost =
-    filteredProviders.reduce((sum, p) => sum + (p.cost_per_1k_tokens || 0), 0) /
-    filteredProviders.length;
-  const totalMonthlyUsage = filteredProviders.reduce(
-    (sum, p) => sum + (p.monthly_usage || 0),
-    0
-  );
+  // Calculate summary stats from dynamic data
+  const activeProviders = dynamicProviders?.active_count || 0;
+  const configuredProviders = dynamicProviders?.configured_count || 0;
+  const totalProvidersCount = dynamicProviders?.total_providers || 0;
 
-  if (isLoading && !isConnected && !error) {
+  // 🚨 LOADING STATE
+  if (providersLoading && !dynamicProviders) {
     return (
       <div className="max-w-7xl mx-auto p-6">
         <div className="flex items-center justify-center h-64">
           <div className="flex items-center gap-3">
             <RefreshCw className="w-6 h-6 animate-spin text-blue-600" />
             <span className="text-lg">
-              Connecting to AI Discovery Service...
+              🚀 Scanning Railway environment for AI providers...
             </span>
           </div>
         </div>
@@ -619,39 +465,34 @@ const LiveAIToolsDashboard: React.FC = () => {
     );
   }
 
-  if (error && !isConnected) {
+  // 🚨 ERROR STATE
+  if (providersError && !dynamicProviders) {
     return (
       <div className="max-w-7xl mx-auto p-6">
         <div className="bg-red-50 border border-red-200 rounded-lg p-6">
           <div className="flex items-center gap-2 mb-4">
             <AlertCircle className="w-6 h-6 text-red-600" />
             <h2 className="text-lg font-semibold text-red-900">
-              AI Discovery Service Unavailable
+              Failed to Load Dynamic AI Providers
             </h2>
           </div>
-          <p className="text-red-700 mb-4">{error}</p>
+          <p className="text-red-700 mb-4">{providersError}</p>
           <div className="bg-red-100 rounded-lg p-4 mb-4">
             <h3 className="font-medium text-red-900 mb-2">
-              Showing Baseline Data:
+              This dashboard requires live backend connection for Railway
+              environment scanning.
             </h3>
             <p className="text-red-800 text-sm">
-              Displaying your 11 configured providers. Connect to the AI
-              Discovery Service for real-time monitoring and new provider
-              discoveries.
+              Make sure your backend endpoint `/admin/providers/dynamic` is
+              deployed and accessible.
             </p>
           </div>
           <div className="flex gap-3">
             <button
-              onClick={testConnection}
+              onClick={fetchDynamicProviders}
               className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
             >
-              Test Connection
-            </button>
-            <button
-              onClick={refreshAll}
-              className="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors"
-            >
-              Retry
+              Retry Scan
             </button>
           </div>
         </div>
@@ -665,11 +506,11 @@ const LiveAIToolsDashboard: React.FC = () => {
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">
-            AI Provider Performance Dashboard
+            🚀 Dynamic AI Provider Dashboard
           </h1>
           <p className="text-gray-600 mt-1">
-            Complete overview of all {BASELINE_PROVIDERS.length} AI providers +{" "}
-            {discoveredProviders.length} discovered alternatives
+            Live Railway environment scanning - {totalProvidersCount} providers
+            discovered from environment variables
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -685,35 +526,23 @@ const LiveAIToolsDashboard: React.FC = () => {
             <Globe
               className={`w-4 h-4 ${discoveryInProgress ? "animate-spin" : ""}`}
             />
-            {discoveryInProgress ? "Discovering..." : "Discover New"}
-          </button>
-          <button
-            onClick={refreshAll}
-            disabled={isLoading}
-            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 flex items-center gap-2"
-          >
-            <RefreshCw
-              className={`w-4 h-4 ${isLoading ? "animate-spin" : ""}`}
-            />
-            Refresh
+            {discoveryInProgress ? "Scanning..." : "Refresh Scan"}
           </button>
         </div>
       </div>
 
-      {/* Summary Cards */}
+      {/* Summary Cards - Dynamic Data Only */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
         <div className="bg-white border border-gray-200 rounded-lg p-4">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-600">Your Primary Providers</p>
+              <p className="text-sm text-gray-600">Total Discovered</p>
               <p className="text-xl font-bold text-blue-600">
-                {
-                  BASELINE_PROVIDERS.filter(
-                    (p) => p.priority_tier === "primary"
-                  ).length
-                }
+                {totalProvidersCount}
               </p>
-              <p className="text-xs text-gray-500 mt-1">Ultra-cheap tier</p>
+              <p className="text-xs text-gray-500 mt-1">
+                From Railway environment
+              </p>
             </div>
             <Bot className="w-6 h-6 text-blue-600" />
           </div>
@@ -722,10 +551,31 @@ const LiveAIToolsDashboard: React.FC = () => {
         <div className="bg-white border border-gray-200 rounded-lg p-4">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-600">Discovered</p>
-              <p className="text-xl font-bold text-purple-600">
-                {discoveredProviders.length}
+              <p className="text-sm text-gray-600">Configured</p>
+              <p className="text-xl font-bold text-green-600">
+                {configuredProviders}/{totalProvidersCount}
               </p>
+              <p className="text-xs text-gray-500 mt-1">
+                {totalProvidersCount > 0
+                  ? Math.round(
+                      (configuredProviders / totalProvidersCount) * 100
+                    )
+                  : 0}
+                % ready
+              </p>
+            </div>
+            <CheckCircle className="w-6 h-6 text-green-600" />
+          </div>
+        </div>
+
+        <div className="bg-white border border-gray-200 rounded-lg p-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-gray-600">Active</p>
+              <p className="text-xl font-bold text-purple-600">
+                {activeProviders}
+              </p>
+              <p className="text-xs text-gray-500 mt-1">Currently in use</p>
             </div>
             <Sparkles className="w-6 h-6 text-purple-600" />
           </div>
@@ -734,43 +584,57 @@ const LiveAIToolsDashboard: React.FC = () => {
         <div className="bg-white border border-gray-200 rounded-lg p-4">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-600">Cheaper Options</p>
-              <p className="text-xl font-bold text-green-600">
-                {discoveredProviders.length}
-              </p>
-            </div>
-            <TrendingDown className="w-6 h-6 text-green-600" />
-          </div>
-        </div>
-
-        <div className="bg-white border border-gray-200 rounded-lg p-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600">Ultra-Cheap Leader</p>
+              <p className="text-sm text-gray-600">Railway Environment</p>
               <p className="text-xl font-bold text-gray-900">
-                Groq @ {formatCost(0.0002)}
+                {dynamicProviders?.railway_environment || "Unknown"}
               </p>
-              <p className="text-xs text-green-600 mt-1">Your best cost</p>
+              <p className="text-xs text-green-600 mt-1">Live scanning</p>
             </div>
             <DollarSign className="w-6 h-6 text-green-600" />
           </div>
         </div>
       </div>
 
-      {/* Connection Status Banner */}
-      {isConnected && (
-        <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
+      {/* Dynamic Status Banner */}
+      {dynamicProviders && (
+        <div
+          className={`border rounded-lg p-4 mb-6 ${
+            dynamicProviders.missing_count === 0
+              ? "bg-green-50 border-green-200"
+              : "bg-yellow-50 border-yellow-200"
+          }`}
+        >
           <div className="flex items-center gap-2">
-            <CheckCircle className="w-5 h-5 text-green-600" />
-            <span className="text-green-800 font-medium">
-              ✅ AI Discovery Service Connected - Real-time data available
-            </span>
-            {hasRecommendations && (
-              <span className="ml-auto bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full text-xs">
-                {recommendations?.recommendations?.length || 0} optimization
-                recommendations
-              </span>
+            {dynamicProviders.missing_count === 0 ? (
+              <CheckCircle className="w-5 h-5 text-green-600" />
+            ) : (
+              <AlertCircle className="w-5 h-5 text-yellow-600" />
             )}
+            <span
+              className={`font-medium ${
+                dynamicProviders.missing_count === 0
+                  ? "text-green-800"
+                  : "text-yellow-800"
+              }`}
+            >
+              {dynamicProviders.missing_count === 0
+                ? `✅ All ${dynamicProviders.configured_count} AI providers configured in Railway`
+                : `⚠️ ${dynamicProviders.missing_count} providers missing API keys - ${dynamicProviders.configured_count} configured`}
+            </span>
+            <span className="ml-auto text-xs text-gray-600">
+              Environment: {dynamicProviders.railway_environment} | Last
+              scanned:{" "}
+              {dynamicProviders.last_updated
+                ? new Date(dynamicProviders.last_updated).toLocaleTimeString()
+                : "Unknown"}
+            </span>
+            <button
+              onClick={fetchDynamicProviders}
+              disabled={providersLoading}
+              className="ml-2 bg-blue-600 text-white px-3 py-1 rounded text-xs hover:bg-blue-700 disabled:opacity-50"
+            >
+              {providersLoading ? "Scanning..." : "Refresh"}
+            </button>
           </div>
         </div>
       )}
@@ -808,19 +672,20 @@ const LiveAIToolsDashboard: React.FC = () => {
             className="border border-gray-300 rounded-md px-3 py-1 text-sm"
           >
             <option value="">All Status</option>
-            <option value="healthy">Healthy</option>
-            <option value="degraded">Degraded</option>
-            <option value="error">Error</option>
+            <option value="active">Active</option>
+            <option value="disabled">Disabled</option>
+            <option value="pending">Pending</option>
+            <option value="discovered">Discovered</option>
           </select>
 
           <div className="text-sm text-gray-500">
-            Showing {filteredProviders.length} of {combinedProviders.length}{" "}
+            Showing {filteredProviders.length} of {totalProvidersCount}{" "}
             providers
           </div>
         </div>
       </div>
 
-      {/* Provider Table */}
+      {/* Provider Table - Pure Dynamic Data */}
       <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full">
@@ -843,42 +708,18 @@ const LiveAIToolsDashboard: React.FC = () => {
                   onClick={() => handleSort("cost_per_1k_tokens")}
                 >
                   <div className="flex items-center gap-1">
-                    Cost/1K & Savings
-                    <ArrowUpDown className="w-3 h-3" />
-                  </div>
-                </th>
-                <th
-                  className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                  onClick={() => handleSort("performance_rating")}
-                >
-                  <div className="flex items-center gap-1">
-                    Performance
-                    <ArrowUpDown className="w-3 h-3" />
-                  </div>
-                </th>
-                <th
-                  className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                  onClick={() => handleSort("quality_score")}
-                >
-                  <div className="flex items-center gap-1">
-                    Quality
+                    Cost/1K Tokens
                     <ArrowUpDown className="w-3 h-3" />
                   </div>
                 </th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Status & Tier
+                  Railway Environment Variable
                 </th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Railway Integration
+                  Integration Status
                 </th>
-                <th
-                  className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                  onClick={() => handleSort("monthly_usage")}
-                >
-                  <div className="flex items-center gap-1">
-                    Usage & Actions
-                    <ArrowUpDown className="w-3 h-3" />
-                  </div>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Actions
                 </th>
               </tr>
             </thead>
@@ -887,7 +728,8 @@ const LiveAIToolsDashboard: React.FC = () => {
                 <tr
                   key={`${provider.provider_name}-${index}`}
                   className={`hover:bg-gray-50 ${
-                    provider.source === "discovered"
+                    provider.source === "discovered" ||
+                    provider.source === "database"
                       ? "bg-purple-25 border-l-4 border-l-purple-500"
                       : provider.is_active
                       ? ""
@@ -895,116 +737,15 @@ const LiveAIToolsDashboard: React.FC = () => {
                   }`}
                 >
                   <td className="px-4 py-4">
-                    {/* Railway Environment Variable Setup */}
-                    <div className="space-y-2">
-                      {/* Environment Variable Name */}
-                      <div className="bg-gray-50 rounded-lg p-3 border">
-                        <div className="flex items-center justify-between mb-2">
-                          <span className="text-xs font-medium text-gray-700">
-                            Railway Environment Variable:
-                          </span>
-                          <span
-                            className={`text-xs px-2 py-1 rounded-full ${
-                              provider.env_var_status === "configured"
-                                ? "bg-green-100 text-green-700"
-                                : "bg-yellow-100 text-yellow-700"
-                            }`}
-                          >
-                            {provider.env_var_status === "configured"
-                              ? "Configured"
-                              : "Missing"}
-                          </span>
-                        </div>
-
-                        <div className="space-y-1">
-                          <code className="text-xs bg-white border rounded px-2 py-1 block font-mono">
-                            {provider.env_var_name ||
-                              `${provider.provider_name
-                                .toUpperCase()
-                                .replace(/\s+/g, "_")}_API_KEY`}
-                          </code>
-
-                          {provider.source === "discovered" && (
-                            <div className="text-xs text-gray-600 space-y-1">
-                              <div>
-                                📋 <strong>Add to Railway:</strong>
-                              </div>
-                              <div className="bg-blue-50 p-2 rounded border text-blue-800">
-                                1. Go to Railway Dashboard
-                                <br />
-                                2. Select your project
-                                <br />
-                                3. Environment Variables tab
-                                <br />
-                                4. Add:{" "}
-                                <code className="bg-white px-1 rounded">
-                                  {provider.env_var_name ||
-                                    `${provider.provider_name
-                                      .toUpperCase()
-                                      .replace(/\s+/g, "_")}_API_KEY`}
-                                </code>
-                                <br />
-                                5. Value: Your API key from{" "}
-                                {provider.provider_name}
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Additional Environment Variables (if needed) */}
-                      {provider.source === "discovered" && (
-                        <div className="space-y-1">
-                          <div className="text-xs text-gray-600">
-                            <strong>Optional Railway Variables:</strong>
-                          </div>
-                          <div className="space-y-1 text-xs">
-                            <code className="bg-gray-100 px-2 py-1 rounded block">
-                              {provider.provider_name
-                                .toUpperCase()
-                                .replace(/\s+/g, "_")}
-                              _BASE_URL
-                            </code>
-                            <code className="bg-gray-100 px-2 py-1 rounded block">
-                              {provider.provider_name
-                                .toUpperCase()
-                                .replace(/\s+/g, "_")}
-                              _MODEL_NAME
-                            </code>
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Integration Status Indicator */}
-                      <div className="flex items-center gap-2 text-xs">
-                        {provider.env_var_status === "configured" ? (
-                          <>
-                            <CheckCircle className="w-4 h-4 text-green-600" />
-                            <span className="text-green-700">
-                              Ready for integration
-                            </span>
-                          </>
-                        ) : (
-                          <>
-                            <AlertCircle className="w-4 h-4 text-yellow-600" />
-                            <span className="text-yellow-700">
-                              Needs Railway setup
-                            </span>
-                          </>
-                        )}
-                      </div>
-                    </div>
-                  </td>
-
-                  <td className="px-4 py-4">
                     <div>
                       <div className="flex items-center gap-2">
                         <div className="font-medium text-gray-900">
                           {provider.provider_name}
                         </div>
-                        {provider.source === "discovered" && (
+                        {(provider.source === "discovered" ||
+                          provider.source === "database") && (
                           <span className="text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded-full">
-                            NEW
+                            {provider.source === "database" ? "DB" : "NEW"}
                           </span>
                         )}
                       </div>
@@ -1012,25 +753,19 @@ const LiveAIToolsDashboard: React.FC = () => {
                         {provider.category.replace("_", " ")}
                       </div>
                       <div className="text-xs text-gray-400">
-                        {provider.model}
+                        {provider.model || "Unknown model"}
                       </div>
-                      {provider.discovery_source && (
-                        <div className="text-xs text-purple-600 mt-1">
-                          🔍 Found via {provider.discovery_source}
-                        </div>
-                      )}
+                      <div className="mt-1">
+                        <TierBadge tier={provider.priority_tier} />
+                      </div>
                     </div>
                   </td>
 
                   <td className="px-4 py-4">
                     <StarRating rating={provider.overall_rating || 0} />
-                    {provider.source === "discovered" &&
-                      provider.cost_savings_vs_baseline && (
-                        <div className="text-xs text-green-600 font-medium mt-1">
-                          {provider.cost_savings_vs_baseline}% cheaper than
-                          current
-                        </div>
-                      )}
+                    <div className="text-xs text-gray-500 mt-1">
+                      Quality: {(provider.quality_score || 0).toFixed(1)}/5
+                    </div>
                   </td>
 
                   <td className="px-4 py-4">
@@ -1041,99 +776,144 @@ const LiveAIToolsDashboard: React.FC = () => {
                       rating={provider.cost_rating || 0}
                       size="w-3 h-3"
                     />
-                    {provider.cost_savings_vs_baseline && (
-                      <div className="text-xs text-green-600">
-                        💰 {provider.cost_savings_vs_baseline}% savings
-                      </div>
-                    )}
                   </td>
 
                   <td className="px-4 py-4">
-                    <div className="text-sm text-gray-900">
-                      {provider.response_time_ms}ms
-                    </div>
-                    <div className="text-xs text-gray-500">
-                      {provider.error_rate.toFixed(1)}% error
-                    </div>
-                    <StarRating
-                      rating={provider.performance_rating || 0}
-                      size="w-3 h-3"
-                    />
-                  </td>
+                    <div className="space-y-2">
+                      <div className="bg-gray-50 rounded-lg p-3 border">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-xs font-medium text-gray-700">
+                            Environment Variable:
+                          </span>
+                          <span
+                            className={`text-xs px-2 py-1 rounded-full ${
+                              provider.env_var_status === "configured"
+                                ? "bg-green-100 text-green-700"
+                                : provider.env_var_status === "empty"
+                                ? "bg-red-100 text-red-700"
+                                : "bg-yellow-100 text-yellow-700"
+                            }`}
+                          >
+                            {provider.env_var_status === "configured"
+                              ? "✅ Configured"
+                              : provider.env_var_status === "empty"
+                              ? "❌ Empty"
+                              : "⚠️ Missing"}
+                          </span>
+                        </div>
 
-                  <td className="px-4 py-4">
-                    <StarRating rating={provider.quality_score} />
-                    {provider.recommended_for && (
-                      <div className="text-xs text-blue-600 mt-1">
-                        💡 {provider.recommended_for[0]}
+                        <code className="text-xs bg-white border rounded px-2 py-1 block font-mono">
+                          {provider.env_var_name}
+                        </code>
+
+                        {provider.env_var_status === "configured" &&
+                          provider.value_preview && (
+                            <div className="text-xs text-green-700 bg-green-50 p-2 rounded mt-2">
+                              🔑 Preview:{" "}
+                              <code className="bg-white px-1 rounded">
+                                {provider.value_preview}
+                              </code>
+                            </div>
+                          )}
+
+                        {provider.env_var_status !== "configured" && (
+                          <div className="text-xs text-gray-600 mt-2">
+                            <div className="bg-blue-50 p-2 rounded border text-blue-800">
+                              Add to Railway: {provider.env_var_name}
+                            </div>
+                          </div>
+                        )}
                       </div>
-                    )}
+                    </div>
                   </td>
 
                   <td className="px-4 py-4">
                     <StatusBadge
-                      status={provider.status}
-                      isActive={provider.is_active}
+                      integrationStatus={provider.integration_status}
+                      envVarStatus={provider.env_var_status}
                       source={provider.source}
                     />
-                    <div className="mt-1">
-                      <TierBadge tier={provider.priority_tier} />
+                    <div className="mt-2 text-xs text-gray-600">
+                      Source: {provider.source}
                     </div>
                   </td>
 
                   <td className="px-4 py-4">
-                    <div className="text-sm font-medium text-gray-900">
-                      {formatUsage(provider.monthly_usage || 0)}
+                    <div className="space-y-2">
+                      {/* Test API Key Button */}
+                      {provider.env_var_status === "configured" && (
+                        <button
+                          onClick={() =>
+                            testApiKey(
+                              provider.env_var_name,
+                              provider.provider_name
+                            )
+                          }
+                          className="w-full text-xs bg-blue-600 text-white px-2 py-1 rounded hover:bg-blue-700 flex items-center justify-center gap-1"
+                          title="Test API Key"
+                        >
+                          <TestTube className="w-3 h-3" />
+                          Test
+                        </button>
+                      )}
+
+                      {/* Activate/Deactivate Button */}
+                      {provider.env_var_status === "configured" && (
+                        <button
+                          onClick={() =>
+                            toggleProviderStatus(
+                              provider.env_var_name,
+                              provider.integration_status
+                            )
+                          }
+                          className={`w-full text-xs px-2 py-1 rounded flex items-center justify-center gap-1 ${
+                            provider.integration_status === "active"
+                              ? "bg-gray-600 text-white hover:bg-gray-700"
+                              : "bg-green-600 text-white hover:bg-green-700"
+                          }`}
+                          title={
+                            provider.integration_status === "active"
+                              ? "Deactivate"
+                              : "Activate"
+                          }
+                        >
+                          {provider.integration_status === "active" ? (
+                            <>
+                              <Pause className="w-3 h-3" />
+                              Disable
+                            </>
+                          ) : (
+                            <>
+                              <Play className="w-3 h-3" />
+                              Activate
+                            </>
+                          )}
+                        </button>
+                      )}
+
+                      {/* View Details Button */}
+                      <button
+                        onClick={() =>
+                          alert(
+                            `📋 ${
+                              provider.provider_name
+                            } Details:\n\n💰 Cost: ${formatCost(
+                              provider.cost_per_1k_tokens || 0
+                            )}/1K tokens\n🎯 Quality: ${
+                              provider.quality_score || 0
+                            }/5 stars\n🔧 Environment Variable: ${
+                              provider.env_var_name
+                            }\n📍 Source: ${provider.source}\n⚡ Status: ${
+                              provider.integration_status
+                            }`
+                          )
+                        }
+                        className="w-full text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded hover:bg-gray-200 flex items-center justify-center gap-1"
+                      >
+                        <Eye className="w-3 h-3" />
+                        Details
+                      </button>
                     </div>
-                    <div className="text-xs text-gray-500">tokens/mo</div>
-
-                    {provider.source === "discovered" && (
-                      <div className="mt-2 space-y-1">
-                        <button
-                          onClick={() =>
-                            alert(
-                              `🎉 ${provider.provider_name} Integration Guide:\n\n1. Add API key: ${provider.api_key}\n2. Update environment variables\n3. Test integration\n4. Deploy changes\n\n💡 Expected savings: ${provider.cost_savings_vs_baseline}%`
-                            )
-                          }
-                          className="w-full text-xs bg-green-600 text-white px-2 py-1 rounded hover:bg-green-700"
-                        >
-                          <div className="flex items-center justify-center gap-1">
-                            <Plus className="w-3 h-3" />
-                            Integrate
-                          </div>
-                        </button>
-
-                        <button
-                          onClick={() =>
-                            alert(
-                              `📋 ${
-                                provider.provider_name
-                              } Details:\n\n💰 Cost: ${formatCost(
-                                provider.cost_per_1k_tokens || 0
-                              )}/1K tokens\n⚡ Performance: ${
-                                provider.response_time_ms
-                              }ms response\n🎯 Quality: ${
-                                provider.quality_score
-                              }/5 stars\n🔧 Integration: ${
-                                provider.integration_difficulty
-                              }\n\n🔗 API Key: ${provider.api_key}`
-                            )
-                          }
-                          className="w-full text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded hover:bg-gray-200"
-                        >
-                          <div className="flex items-center justify-center gap-1">
-                            <Eye className="w-3 h-3" />
-                            Details
-                          </div>
-                        </button>
-                      </div>
-                    )}
-
-                    {provider.value_score && (
-                      <div className="text-xs text-blue-600 mt-1">
-                        💎 Value: {provider.value_score.toFixed(1)}
-                      </div>
-                    )}
                   </td>
                 </tr>
               ))}
@@ -1142,62 +922,65 @@ const LiveAIToolsDashboard: React.FC = () => {
         </div>
       </div>
 
-      {/* Auto-Discovery Status */}
+      {/* Footer - Dynamic Discovery Status */}
       <div className="mt-8 bg-gradient-to-r from-blue-50 to-purple-50 border border-blue-200 rounded-lg p-6">
         <div className="flex items-center justify-between">
           <div>
             <h3 className="text-lg font-bold text-blue-900 mb-2">
-              🤖 AI Discovery Service Integration
+              🚀 Dynamic AI Provider Discovery
             </h3>
             <div className="text-sm text-blue-800 space-y-1">
               <p>
-                ✅ Connected to your AI Discovery Service at:{" "}
-                <code className="bg-blue-100 px-2 py-1 rounded">
-                  ai-discovery-service-production.up.railway.app
-                </code>
+                ✅ Live Railway environment scanning -{" "}
+                {dynamicProviders?.environment_providers || 0} providers
+                discovered
               </p>
               <p>
-                🔍 Auto-discovering new providers using web scraping and API
-                monitoring
+                🔍 Real-time environment variable validation and API key testing
               </p>
               <p>
-                💰 Baseline comparison: Your cheapest current provider costs{" "}
+                💰 Cost analysis based on actual provider pricing and usage
+                patterns
+              </p>
+              <p>
+                🎯 Smart filtering: Only showing providers that offer value or
+                unique capabilities
+              </p>
+              <p>
+                🛤️ Environment:{" "}
                 <strong>
-                  {formatCost(
-                    Math.min(
-                      ...BASELINE_PROVIDERS.map((p) => p.cost_per_1k_tokens)
-                    )
-                  )}
+                  {dynamicProviders?.railway_environment || "Unknown"}
                 </strong>{" "}
-                per 1K tokens
-              </p>
-              <p>
-                🎯 Smart filtering: Only showing providers that beat your
-                current costs or offer unique capabilities
+                | Source: <strong>Live Railway Scanning</strong>
               </p>
             </div>
           </div>
           <div className="text-right">
             <div className="bg-white rounded-lg p-4 border border-blue-200">
               <p className="text-2xl font-bold text-blue-600">
-                {discoveredProviders.length}
+                {configuredProviders}/{totalProvidersCount}
               </p>
-              <p className="text-sm text-blue-800">New Providers Found</p>
+              <p className="text-sm text-blue-800">Providers Ready</p>
               <p className="text-xs text-blue-600 mt-1">
-                Ready for integration
+                {totalProvidersCount > 0
+                  ? Math.round(
+                      (configuredProviders / totalProvidersCount) * 100
+                    )
+                  : 0}
+                % configured
               </p>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Recommendations Section */}
+      {/* Recommendations Section - Enhanced for Dynamic Data */}
       {hasRecommendations && recommendations?.recommendations && (
         <div className="mt-8">
           <div className="flex items-center gap-2 mb-4">
             <Zap className="w-5 h-5 text-yellow-600" />
             <h2 className="text-xl font-bold text-gray-900">
-              Optimization Recommendations
+              AI-Powered Optimization Recommendations
             </h2>
             <span className="bg-yellow-100 text-yellow-800 text-xs px-2 py-1 rounded-full">
               {recommendations.recommendations.length} available
@@ -1263,34 +1046,39 @@ const LiveAIToolsDashboard: React.FC = () => {
         </div>
       )}
 
-      {/* Cost Analysis Footer */}
+      {/* Cost Analysis Footer - Enhanced with Dynamic Data */}
       {costAnalysis && (
         <div className="mt-12 pt-8 border-t border-gray-200">
           <h3 className="text-lg font-bold text-gray-900 mb-4">
-            💰 Cost Analysis & Savings Opportunity
+            💰 Dynamic Cost Analysis & Optimization
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
             <div className="bg-white border border-gray-200 rounded-lg p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-gray-600">Current Daily Cost</p>
-                  <p className="text-xl font-bold text-gray-900">
-                    ${costAnalysis.current_daily_cost?.toFixed(2) || "12.50"}
+                  <p className="text-sm text-gray-600">Active Providers</p>
+                  <p className="text-xl font-bold text-blue-600">
+                    {activeProviders}
                   </p>
+                  <p className="text-xs text-gray-500 mt-1">Currently in use</p>
                 </div>
-                <DollarSign className="w-6 h-6 text-green-600" />
+                <Activity className="w-6 h-6 text-blue-600" />
               </div>
             </div>
 
             <div className="bg-white border border-gray-200 rounded-lg p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-gray-600">With New Providers</p>
+                  <p className="text-sm text-gray-600">Ultra-Cheap Tier</p>
                   <p className="text-xl font-bold text-green-600">
-                    $
-                    {((costAnalysis.current_daily_cost || 12.5) * 0.5).toFixed(
-                      2
-                    )}
+                    {
+                      filteredProviders.filter(
+                        (p) => p.priority_tier === "primary"
+                      ).length
+                    }
+                  </p>
+                  <p className="text-xs text-gray-500 mt-1">
+                    ≤ $0.0003/1K tokens
                   </p>
                 </div>
                 <TrendingDown className="w-6 h-6 text-green-600" />
@@ -1300,14 +1088,12 @@ const LiveAIToolsDashboard: React.FC = () => {
             <div className="bg-white border border-gray-200 rounded-lg p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-gray-600">Monthly Savings</p>
-                  <p className="text-xl font-bold text-green-600">
-                    $
-                    {(
-                      (costAnalysis.current_daily_cost || 12.5) *
-                      0.5 *
-                      30
-                    ).toFixed(2)}
+                  <p className="text-sm text-gray-600">Available Providers</p>
+                  <p className="text-xl font-bold text-purple-600">
+                    {configuredProviders}
+                  </p>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Ready to activate
                   </p>
                 </div>
                 <Star className="w-6 h-6 text-yellow-600" />
@@ -1317,15 +1103,9 @@ const LiveAIToolsDashboard: React.FC = () => {
             <div className="bg-white border border-gray-200 rounded-lg p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-gray-600">Annual Savings</p>
-                  <p className="text-xl font-bold text-green-600">
-                    $
-                    {(
-                      (costAnalysis.current_daily_cost || 12.5) *
-                      0.5 *
-                      365
-                    ).toFixed(0)}
-                  </p>
+                  <p className="text-sm text-gray-600">Discovery Status</p>
+                  <p className="text-xl font-bold text-gray-900">Live</p>
+                  <p className="text-xs text-green-600 mt-1">Auto-scanning</p>
                 </div>
                 <TrendingUp className="w-6 h-6 text-blue-600" />
               </div>
@@ -1334,25 +1114,41 @@ const LiveAIToolsDashboard: React.FC = () => {
         </div>
       )}
 
-      {/* Enhanced Footer Stats */}
+      {/* Enhanced Footer Stats - Dynamic */}
       <div className="mt-6 text-sm text-gray-600 text-center space-y-2">
         <div>
-          💡 <strong>Smart Discovery:</strong> Your AI Discovery Service
-          automatically scans multiple sources for new providers
+          🚀 <strong>Dynamic Discovery:</strong> Real-time Railway environment
+          scanning discovers and validates AI providers automatically
         </div>
         <div>
-          🚀 <strong>Current Leaders:</strong> Groq ({formatCost(0.0002)}) •
-          DeepSeek ({formatCost(0.0002)}) • Together AI ({formatCost(0.0003)})
+          🎯 <strong>Smart Cost Leaders:</strong>{" "}
+          {filteredProviders
+            .filter(
+              (p) => p.cost_per_1k_tokens && p.cost_per_1k_tokens <= 0.0003
+            )
+            .map(
+              (p) =>
+                `${p.provider_name} (${formatCost(p.cost_per_1k_tokens || 0)})`
+            )
+            .join(" • ")}
         </div>
         <div>
-          🎯 <strong>Next Action:</strong>{" "}
-          {discoveredProviders.length > 0
-            ? `Integrate ${discoveredProviders[0]?.provider_name} for immediate ${discoveredProviders[0]?.cost_savings_vs_baseline}% savings`
-            : `All providers up to date - next discovery scan in progress`}
+          ⚡ <strong>Next Action:</strong>{" "}
+          {dynamicProviders && dynamicProviders.missing_count > 0
+            ? `Add ${dynamicProviders.missing_count} missing API keys to Railway for full provider coverage`
+            : `All providers configured - optimize usage with the ${activeProviders} active providers`}
+        </div>
+        <div>
+          🔧 <strong>Environment:</strong>{" "}
+          {dynamicProviders?.railway_environment || "Unknown"} |
+          <strong> Last Scan:</strong>{" "}
+          {dynamicProviders?.last_updated
+            ? new Date(dynamicProviders.last_updated).toLocaleString()
+            : "Never"}
         </div>
       </div>
     </div>
   );
 };
 
-export default LiveAIToolsDashboard;
+export default CleanDynamicAIProviderDashboard;
