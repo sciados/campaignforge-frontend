@@ -1,4 +1,4 @@
-// /src/app/admin/page.tsx - FIXED VERSION WITH WORKING MENU OPTIONS ONLY
+// /src/app/admin/page.tsx - ENHANCED VERSION WITH TWO-TABLE AI DISCOVERY SYSTEM
 "use client";
 
 import React, { useState, useEffect, useCallback } from "react";
@@ -20,19 +20,37 @@ import {
   Bot,
   Zap,
   RefreshCw,
+  Globe,
+  Lightbulb,
+  CheckCircle,
+  AlertCircle,
+  Clock,
+  Star,
+  ThumbsUp,
+  ThumbsDown,
+  ArrowRight,
+  TestTube,
+  Eye,
+  ChevronRight,
+  Brain,
+  FileText,
+  ImageIcon,
+  Video,
+  Mic,
+  Cpu,
 } from "lucide-react";
 import UserEditModal from "@/components/admin/UserEditModal";
 import CompanyEditModal from "@/components/admin/CompanyEditModal";
 import { waitlistApi, waitlistUtils } from "@/lib/waitlist-api";
-import { useAiDiscoveryService } from "@/lib/ai-discovery-service";
+import { useEnhancedAiDiscoveryService } from "@/lib/ai-discovery-service";
 
 // Import your existing components
 import UserManagement from "./components/UserManagement";
 import CompanyManagement from "./components/CompanyManagement";
 import WaitlistManagement from "./components/WaitlistManagement";
 
-// Import the fixed LiveAIToolsDashboard component
-import LiveAIToolsDashboard from "./components/LiveAIToolsDashboard";
+// Import the AI Platform Discovery Dashboard component
+import AIPlatformDiscoveryDashboard from "@/components/admin/AIPlatformDiscoveryDashboard";
 
 // Force this page to never be statically rendered
 export const dynamic = "force-dynamic";
@@ -73,16 +91,17 @@ interface Company {
   campaign_count: number;
 }
 
-// Tab interface
+// Tab interface with enhanced AI Discovery tabs
 interface TabConfig {
   label: string;
   icon: React.ComponentType<{ className?: string }>;
   description: string;
   component?: React.ComponentType;
   highlight?: boolean;
+  badge?: string;
 }
 
-// Updated tabs configuration - removed problematic options
+// Enhanced tabs configuration with two-table AI Discovery system
 const tabs: Record<string, TabConfig> = {
   overview: {
     label: "Platform Overview",
@@ -104,18 +123,13 @@ const tabs: Record<string, TabConfig> = {
     icon: ListChecks,
     description: "Manage waitlist entries and approvals",
   },
-  "ai-providers": {
-    label: "AI Provider Dashboard",
-    icon: Bot,
-    component: LiveAIToolsDashboard,
-    description: "Monitor and optimize AI provider performance",
-    highlight: true,
-  },
   "ai-discovery": {
-    label: "AI Discovery & Optimization",
-    icon: Activity,
-    description: "AI market discovery and cost optimization",
+    label: "AI Platform Discovery",
+    icon: Bot,
+    component: AIPlatformDiscoveryDashboard,
+    description: "Two-table AI provider management & discovery system",
     highlight: true,
+    badge: "v3.3.0",
   },
   revenue: {
     label: "Revenue Analytics",
@@ -163,25 +177,27 @@ export default function AdminPage() {
     company: null,
   });
 
-  // AI Discovery Service hook with error handling
+  // Enhanced AI Discovery Service hook
   const {
-    testConnection,
-    loadDashboard,
-    refreshAll,
+    dashboardData,
     isLoading: aiLoading,
     error: aiError,
-    isConnected,
-    connectionStatus,
-    dashboardData,
-    providerStatus,
-    recommendations,
-    costAnalysis,
-    hasRecommendations,
-    totalProviders,
-    healthyProviders,
-    healthStatus,
-    loadHealthStatus,
-  } = useAiDiscoveryService();
+    lastUpdated,
+    loadDashboardData,
+    runDiscoveryScan,
+    activeProviders,
+    discoveredSuggestions,
+    categoryStats,
+    summaryStats,
+    pendingSuggestions,
+    approvedSuggestions,
+    highPrioritySuggestions,
+    topProviders,
+    hasData,
+    hasActiveProviders,
+    hasPendingSuggestions,
+    isHealthy,
+  } = useEnhancedAiDiscoveryService();
 
   const router = useRouter();
 
@@ -325,7 +341,7 @@ export default function AdminPage() {
     }
   }, [currentPage, searchTerm, filterTier]);
 
-  // Main useEffect for tab changes
+  // Main useEffect for tab changes with AI Discovery integration
   useEffect(() => {
     if (mounted) {
       fetchAdminStats();
@@ -337,6 +353,11 @@ export default function AdminPage() {
         fetchCompanies();
       } else if (activeTab === "waitlist") {
         fetchWaitlistEntries();
+      } else if (activeTab === "ai-discovery") {
+        // Auto-load AI Discovery dashboard data when tab is selected
+        loadDashboardData().catch((err) => {
+          console.warn("AI Discovery data load failed (non-critical):", err);
+        });
       } else {
         setLoading(false);
       }
@@ -349,6 +370,7 @@ export default function AdminPage() {
     fetchCompanies,
     fetchWaitlistStats,
     fetchWaitlistEntries,
+    loadDashboardData,
   ]);
 
   // Helper functions
@@ -421,28 +443,15 @@ export default function AdminPage() {
     return colors[tier] || "bg-gray-100 text-gray-800";
   };
 
-  // AI Discovery handlers
-  const handleTestConnection = async () => {
+  // AI Discovery handlers for quick actions
+  const handleDiscoveryScan = async () => {
     try {
-      const result = await testConnection();
-      if (result.connection_status === "success") {
-        alert(
-          `✅ AI Discovery Service Connected Successfully!\n\n` +
-            `• Service: ${
-              result.ai_discovery_available ? "Available" : "Unavailable"
-            }\n` +
-            `• Providers: ${result.providers_discovered} discovered\n` +
-            `• Time: ${new Date(result.test_timestamp).toLocaleTimeString()}`
-        );
-      } else {
-        alert(
-          `❌ Connection Failed\n\n${result.error_details || "Unknown error"}`
-        );
-      }
+      await runDiscoveryScan();
+      alert("✅ AI Discovery scan completed successfully!");
     } catch (err) {
-      console.error("Connection test error:", err);
+      console.error("Discovery scan error:", err);
       alert(
-        "❌ Connection test failed:\n" +
+        "❌ Discovery scan failed: " +
           (err instanceof Error ? err.message : "Unknown error")
       );
     }
@@ -450,7 +459,7 @@ export default function AdminPage() {
 
   const handleRefreshAI = async () => {
     try {
-      await refreshAll();
+      await loadDashboardData();
       alert("✅ AI Discovery data refreshed successfully!");
     } catch (err) {
       console.error("Refresh error:", err);
@@ -461,11 +470,11 @@ export default function AdminPage() {
     }
   };
 
-  // Enhanced render tab content
+  // Enhanced render tab content with AI Discovery integration
   const renderTabContent = () => {
     const tab = tabs[activeTab];
 
-    // Handle special component-based tabs
+    // Handle special component-based tabs (AI Discovery)
     if (tab?.component) {
       const TabComponent = tab.component;
       return <TabComponent />;
@@ -511,8 +520,6 @@ export default function AdminPage() {
             exporting={exporting}
           />
         );
-      case "ai-discovery":
-        return renderAiDiscoveryTab();
       case "revenue":
         return renderRevenueTab();
       case "settings":
@@ -522,7 +529,7 @@ export default function AdminPage() {
     }
   };
 
-  // Overview tab content
+  // Enhanced overview tab with AI Discovery status
   const renderOverviewTab = () => (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -531,10 +538,28 @@ export default function AdminPage() {
             Platform Overview
           </h2>
           <p className="text-gray-600">
-            Monitor and manage your entire platform.
+            Monitor and manage your entire platform with enhanced AI Discovery.
           </p>
         </div>
         <div className="flex items-center space-x-3">
+          <button
+            onClick={handleRefreshAI}
+            disabled={aiLoading}
+            className="flex items-center space-x-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50"
+          >
+            <RefreshCw
+              className={`w-4 h-4 ${aiLoading ? "animate-spin" : ""}`}
+            />
+            <span>Refresh AI</span>
+          </button>
+          <button
+            onClick={handleDiscoveryScan}
+            disabled={aiLoading}
+            className="flex items-center space-x-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50"
+          >
+            <Globe className={`w-4 h-4 ${aiLoading ? "animate-spin" : ""}`} />
+            <span>Discovery Scan</span>
+          </button>
           <button className="flex items-center space-x-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50">
             <Filter className="w-4 h-4" />
             <span>Filter</span>
@@ -630,45 +655,182 @@ export default function AdminPage() {
         </div>
       </div>
 
-      {/* AI Discovery Status if connected */}
-      {isConnected && (
-        <div className="bg-blue-50 border border-blue-200 rounded-xl p-6">
+      {/* Enhanced AI Discovery Status */}
+      {hasData && (
+        <div className="bg-gradient-to-r from-blue-50 to-purple-50 border border-blue-200 rounded-xl p-6">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center space-x-3">
               <Bot className="w-6 h-6 text-blue-600" />
               <h3 className="text-lg font-semibold text-blue-800">
-                AI Discovery Service
+                AI Platform Discovery System v3.3.0
               </h3>
+              {tabs["ai-discovery"].badge && (
+                <span className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full font-medium">
+                  {tabs["ai-discovery"].badge}
+                </span>
+              )}
             </div>
             <div className="flex items-center space-x-2">
-              <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-              <span className="text-blue-700 font-medium">Connected</span>
+              {isHealthy ? (
+                <>
+                  <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+                  <span className="text-blue-700 font-medium">
+                    System Healthy
+                  </span>
+                </>
+              ) : (
+                <>
+                  <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
+                  <span className="text-red-700 font-medium">
+                    System Issues
+                  </span>
+                </>
+              )}
             </div>
           </div>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-4 text-sm">
             <div>
-              <p className="text-blue-600 font-medium">Total Providers</p>
+              <p className="text-blue-600 font-medium">Active Providers</p>
               <p className="text-blue-900 text-lg font-bold">
-                {totalProviders}
+                {summaryStats.total_active}
               </p>
+              <p className="text-blue-700 text-xs">Table 1</p>
             </div>
             <div>
-              <p className="text-blue-600 font-medium">Healthy</p>
+              <p className="text-blue-600 font-medium">Pending Suggestions</p>
               <p className="text-blue-900 text-lg font-bold">
-                {healthyProviders}
+                {summaryStats.pending_suggestions}
               </p>
+              <p className="text-blue-700 text-xs">Table 2</p>
             </div>
             <div>
-              <p className="text-blue-600 font-medium">Recommendations</p>
+              <p className="text-blue-600 font-medium">High Priority</p>
               <p className="text-blue-900 text-lg font-bold">
-                {recommendations?.recommendations?.length || 0}
+                {summaryStats.high_priority_suggestions}
               </p>
+              <p className="text-blue-700 text-xs">Urgent</p>
             </div>
             <div>
-              <p className="text-blue-600 font-medium">Daily Cost</p>
+              <p className="text-blue-600 font-medium">Monthly Cost</p>
               <p className="text-blue-900 text-lg font-bold">
-                ${costAnalysis?.current_daily_cost?.toFixed(2) || "0.00"}
+                ${summaryStats.monthly_cost.toFixed(0)}
               </p>
+              <p className="text-blue-700 text-xs">Optimized</p>
+            </div>
+            <div>
+              <p className="text-blue-600 font-medium">Avg Quality</p>
+              <p className="text-blue-900 text-lg font-bold">
+                {summaryStats.avg_quality_score.toFixed(1)}
+              </p>
+              <p className="text-blue-700 text-xs">Out of 5.0</p>
+            </div>
+          </div>
+
+          {/* Quick Actions */}
+          <div className="mt-4 flex items-center gap-3">
+            <button
+              onClick={() => setActiveTab("ai-discovery")}
+              className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
+            >
+              <Bot className="w-4 h-4" />
+              Open Discovery Dashboard
+            </button>
+            {hasPendingSuggestions && (
+              <button
+                onClick={() => setActiveTab("ai-discovery")}
+                className="bg-orange-600 text-white px-4 py-2 rounded-lg hover:bg-orange-700 transition-colors flex items-center gap-2"
+              >
+                <Lightbulb className="w-4 h-4" />
+                Review {pendingSuggestions.length} Suggestions
+              </button>
+            )}
+            <span className="text-blue-700 text-sm">
+              Last updated:{" "}
+              {lastUpdated
+                ? new Date(lastUpdated).toLocaleTimeString()
+                : "Never"}
+            </span>
+          </div>
+        </div>
+      )}
+
+      {/* AI Discovery Error State */}
+      {aiError && (
+        <div className="bg-red-50 border border-red-200 rounded-xl p-6">
+          <div className="flex items-center space-x-3 mb-4">
+            <AlertCircle className="w-6 h-6 text-red-600" />
+            <h3 className="text-lg font-semibold text-red-800">
+              AI Discovery Service Issue
+            </h3>
+          </div>
+          <div className="space-y-3 text-red-700">
+            <p className="font-medium">
+              Unable to connect to AI Platform Discovery System:
+            </p>
+            <p className="text-sm bg-red-100 p-3 rounded">{aiError}</p>
+            <div className="flex gap-2">
+              <button
+                onClick={handleRefreshAI}
+                className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors text-sm"
+              >
+                Retry Connection
+              </button>
+              <button
+                onClick={() => setActiveTab("ai-discovery")}
+                className="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors text-sm"
+              >
+                Open Dashboard
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* No AI Discovery Data State */}
+      {!hasData && !aiError && !aiLoading && (
+        <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-6">
+          <div className="flex items-center space-x-3 mb-4">
+            <Settings className="w-6 h-6 text-yellow-600" />
+            <h3 className="text-lg font-semibold text-yellow-800">
+              AI Discovery System Ready
+            </h3>
+          </div>
+          <div className="space-y-3 text-yellow-700">
+            <p className="font-medium">
+              Two-table AI Platform Discovery System is ready to use:
+            </p>
+            <div className="space-y-2 ml-4">
+              <div className="flex items-center space-x-2">
+                <span className="w-6 h-6 bg-yellow-600 text-white rounded-full flex items-center justify-center text-sm font-bold">
+                  1
+                </span>
+                <span>Table 1: Active AI Providers (Production-ready)</span>
+              </div>
+              <div className="flex items-center space-x-2">
+                <span className="w-6 h-6 bg-yellow-600 text-white rounded-full flex items-center justify-center text-sm font-bold">
+                  2
+                </span>
+                <span>Table 2: Research Suggestions (AI-discovered)</span>
+              </div>
+              <div className="flex items-center space-x-2">
+                <span className="w-6 h-6 bg-yellow-600 text-white rounded-full flex items-center justify-center text-sm font-bold">
+                  3
+                </span>
+                <span>Smart categorization and top-3 ranking system</span>
+              </div>
+            </div>
+            <div className="mt-4">
+              <button
+                onClick={handleDiscoveryScan}
+                disabled={aiLoading}
+                className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition-colors flex items-center gap-2 disabled:opacity-50"
+              >
+                <Globe
+                  className={`w-4 h-4 ${aiLoading ? "animate-spin" : ""}`}
+                />
+                Run Initial Discovery Scan
+              </button>
             </div>
           </div>
         </div>
@@ -700,172 +862,6 @@ export default function AdminPage() {
               )
             )}
           </div>
-        </div>
-      </div>
-    </div>
-  );
-
-  // AI Discovery tab content
-  const renderAiDiscoveryTab = () => (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold text-gray-900">
-            AI Discovery & Optimization
-          </h2>
-          <p className="text-gray-600">
-            Monitor AI market and optimize provider costs automatically.
-          </p>
-        </div>
-        <div className="flex items-center space-x-3">
-          <button
-            onClick={handleTestConnection}
-            disabled={aiLoading}
-            className={`flex items-center space-x-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 ${
-              aiLoading ? "opacity-50 cursor-not-allowed" : ""
-            } ${isConnected ? "border-green-300 bg-green-50" : ""}`}
-          >
-            <Bot className={`w-4 h-4 ${aiLoading ? "animate-spin" : ""}`} />
-            <span>
-              {aiLoading
-                ? "Testing..."
-                : isConnected
-                ? "Test Connection ✅"
-                : "Test Connection"}
-            </span>
-          </button>
-          <button
-            onClick={handleRefreshAI}
-            disabled={aiLoading}
-            className={`flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 ${
-              aiLoading ? "opacity-50 cursor-not-allowed" : ""
-            }`}
-          >
-            <RefreshCw
-              className={`w-4 h-4 ${aiLoading ? "animate-spin" : ""}`}
-            />
-            <span>Refresh</span>
-          </button>
-        </div>
-      </div>
-
-      {/* Connection Status */}
-      {!isConnected && !aiLoading && (
-        <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-6">
-          <div className="flex items-center space-x-3 mb-4">
-            <Settings className="w-6 h-6 text-yellow-600" />
-            <h3 className="text-lg font-semibold text-yellow-800">
-              Configuration Required
-            </h3>
-          </div>
-          <div className="space-y-3 text-yellow-700">
-            <p className="font-medium">
-              To enable AI Discovery & Optimization:
-            </p>
-            <div className="space-y-2 ml-4">
-              <div className="flex items-center space-x-2">
-                <span className="w-6 h-6 bg-yellow-600 text-white rounded-full flex items-center justify-center text-sm font-bold">
-                  1
-                </span>
-                <span>Deploy the AI Discovery Service to Railway</span>
-              </div>
-              <div className="flex items-center space-x-2">
-                <span className="w-6 h-6 bg-yellow-600 text-white rounded-full flex items-center justify-center text-sm font-bold">
-                  2
-                </span>
-                <span>
-                  Set{" "}
-                  <code className="bg-yellow-100 px-2 py-1 rounded text-yellow-800">
-                    AI_DISCOVERY_SERVICE_URL
-                  </code>{" "}
-                  environment variable
-                </span>
-              </div>
-              <div className="flex items-center space-x-2">
-                <span className="w-6 h-6 bg-yellow-600 text-white rounded-full flex items-center justify-center text-sm font-bold">
-                  3
-                </span>
-                <span>Restart backend service and test connection</span>
-              </div>
-            </div>
-          </div>
-          <div className="mt-4 p-3 bg-yellow-100 rounded-lg">
-            <p className="text-yellow-800 text-sm">
-              <strong>📖 Documentation:</strong> Refer to the AI Discovery
-              handover document for complete setup instructions.
-            </p>
-          </div>
-        </div>
-      )}
-
-      {/* Connected Status */}
-      {isConnected && (
-        <div className="bg-green-50 border border-green-200 rounded-xl p-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-              <Bot className="w-6 h-6 text-green-600" />
-              <div>
-                <h3 className="text-lg font-semibold text-green-800">
-                  AI Discovery Service Connected
-                </h3>
-                <p className="text-green-700">
-                  Monitoring {totalProviders} providers, {healthyProviders}{" "}
-                  healthy
-                </p>
-              </div>
-            </div>
-            <div className="text-right">
-              <p className="text-green-600 font-medium">
-                {hasRecommendations
-                  ? recommendations?.recommendations?.length
-                  : 0}{" "}
-                recommendations available
-              </p>
-              <p className="text-green-600 text-sm">
-                Daily cost: $
-                {costAnalysis?.current_daily_cost?.toFixed(2) || "0.00"}
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Service Status Info */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
-          <h4 className="font-semibold text-gray-900 mb-2">Service Health</h4>
-          <p className="text-gray-600 text-sm">
-            Status: {healthStatus?.status || "Unknown"}
-          </p>
-          <p className="text-gray-600 text-sm">
-            Last Check:{" "}
-            {connectionStatus?.test_timestamp
-              ? new Date(connectionStatus.test_timestamp).toLocaleString()
-              : "Never"}
-          </p>
-        </div>
-
-        <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
-          <h4 className="font-semibold text-gray-900 mb-2">
-            Provider Overview
-          </h4>
-          <p className="text-gray-600 text-sm">
-            Total Providers: {totalProviders}
-          </p>
-          <p className="text-gray-600 text-sm">Healthy: {healthyProviders}</p>
-        </div>
-
-        <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
-          <h4 className="font-semibold text-gray-900 mb-2">Optimization</h4>
-          <p className="text-gray-600 text-sm">
-            Recommendations: {recommendations?.recommendations?.length || 0}
-          </p>
-          <p className="text-gray-600 text-sm">
-            Potential Savings: $
-            {costAnalysis?.optimization_potential?.recommended_savings?.toFixed(
-              2
-            ) || "0.00"}
-          </p>
         </div>
       </div>
     </div>
@@ -1030,11 +1026,16 @@ export default function AdminPage() {
               <h1 className="text-xl font-bold text-gray-900">
                 RodgersDigital Admin
               </h1>
+              <span className="bg-purple-100 text-purple-800 text-xs px-2 py-1 rounded-full font-medium">
+                v3.3.0
+              </span>
             </div>
             <div className="hidden md:flex items-center space-x-1 text-sm text-gray-500">
               <span>Platform</span>
               <span>/</span>
               <span className="text-gray-900">Administration</span>
+              <span>/</span>
+              <span className="text-purple-600">AI Discovery</span>
             </div>
           </div>
 
@@ -1057,6 +1058,17 @@ export default function AdminPage() {
               </div>
             </div>
 
+            {/* AI Discovery Quick Status */}
+            {hasData && (
+              <div className="flex items-center space-x-2 px-3 py-1 rounded-full bg-blue-100 text-blue-800">
+                <Bot className="w-4 h-4" />
+                <span className="text-sm font-medium">
+                  {summaryStats.total_active} Active |{" "}
+                  {summaryStats.pending_suggestions} Pending
+                </span>
+              </div>
+            )}
+
             <div className="w-8 h-8 bg-gradient-to-r from-red-600 to-purple-600 rounded-full flex items-center justify-center text-white font-medium text-sm">
               A
             </div>
@@ -1065,7 +1077,7 @@ export default function AdminPage() {
       </header>
 
       <div className="flex">
-        {/* Sidebar */}
+        {/* Enhanced Sidebar with AI Discovery Status */}
         <aside className="w-64 bg-white border-r border-gray-200 min-h-screen">
           <div className="p-4 border-b border-gray-200">
             <button
@@ -1098,12 +1110,21 @@ export default function AdminPage() {
                   <span className="font-medium">{tab.label}</span>
                   {tab.highlight && (
                     <div className="ml-auto flex items-center space-x-1">
-                      {((key === "ai-providers" && totalProviders > 0) ||
-                        (key === "ai-discovery" && isConnected)) && (
+                      {key === "ai-discovery" && hasData && (
                         <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+                      )}
+                      {tab.badge && (
+                        <span className="text-xs bg-purple-100 text-purple-700 px-1 py-0.5 rounded">
+                          {tab.badge}
+                        </span>
                       )}
                       <Zap className="w-4 h-4 text-blue-500" />
                     </div>
+                  )}
+                  {key === "ai-discovery" && hasPendingSuggestions && (
+                    <span className="ml-auto bg-orange-500 text-white text-xs px-2 py-1 rounded-full">
+                      {pendingSuggestions.length}
+                    </span>
                   )}
                 </button>
               );
@@ -1134,7 +1155,7 @@ export default function AdminPage() {
             </button>
           </nav>
 
-          {/* Platform Stats */}
+          {/* Enhanced Platform Stats with AI Discovery */}
           <div className="p-4 mt-6">
             <h4 className="text-sm font-medium text-gray-900 mb-3">
               Platform Status
@@ -1172,18 +1193,42 @@ export default function AdminPage() {
                 </div>
               </div>
 
-              {/* AI Discovery Status */}
-              {totalProviders > 0 && (
+              {/* Enhanced AI Discovery Status in Sidebar */}
+              {hasData && (
                 <div className="pt-3 border-t border-gray-200">
                   <div className="flex justify-between text-xs text-gray-600 mb-1">
                     <span>AI Providers</span>
-                    <span>
-                      {healthyProviders}/{totalProviders}
-                    </span>
+                    <span>{summaryStats.total_active}</span>
                   </div>
                   <div className="text-xs text-gray-500">
-                    Discovery {isConnected ? "active" : "offline"}
+                    Discovery {isHealthy ? "healthy" : "issues"}
                   </div>
+                  {hasPendingSuggestions && (
+                    <div className="text-xs text-orange-600 mt-1">
+                      {pendingSuggestions.length} pending review
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* AI Discovery Quick Actions */}
+              {hasData && (
+                <div className="pt-2 space-y-2">
+                  <button
+                    onClick={handleRefreshAI}
+                    disabled={aiLoading}
+                    className="w-full text-xs bg-blue-600 text-white px-2 py-1 rounded hover:bg-blue-700 disabled:opacity-50"
+                  >
+                    {aiLoading ? "Refreshing..." : "Refresh AI"}
+                  </button>
+                  {hasPendingSuggestions && (
+                    <button
+                      onClick={() => setActiveTab("ai-discovery")}
+                      className="w-full text-xs bg-orange-600 text-white px-2 py-1 rounded hover:bg-orange-700"
+                    >
+                      Review Suggestions
+                    </button>
+                  )}
                 </div>
               )}
             </div>
