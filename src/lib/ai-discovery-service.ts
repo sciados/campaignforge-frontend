@@ -1,94 +1,48 @@
-// src/lib/ai-discovery-service.ts
+// src/lib/enhanced-ai-discovery-service.ts
 /**
- * AI Discovery Service API Client
- * 🎯 REAL SERVICE ONLY - No fake endpoints
- * 🔍 Provider discovery, recommendations, and optimization
- * ✅ WORKING ENDPOINTS: /health, /api/v1/providers/recommendations, /api/v1/discoveries/recent
+ * Enhanced AI Discovery Service API Client
+ * 🎯 Supports Two-Table Architecture: Active Providers & Suggestions
+ * 🔍 Provider discovery, review workflow, and promotion system
+ * ⚡ New endpoints for AI Platform Discovery Dashboard v2.0
  */
 
 import { useState, useCallback, useEffect, useMemo } from 'react'
 
-// ============================================================================
-// AI DISCOVERY SERVICE TYPES (Real service only)
-// ============================================================================
-
-export interface AiProviderStatus {
-    provider_name: string
-    category: string
-    is_active: boolean
-    status: 'healthy' | 'degraded' | 'error'
-    response_time_ms: number
-    error_rate: number
-    last_check: string
-    capabilities: string[]
-    cost_per_request?: number
-}
-
-export interface AiOptimizationDashboard {
-    current_providers: Record<string, string>
-    provider_performance: AiProviderStatus[]
-    optimization_suggestions: Array<{
-        category: string
-        current_provider: string
-        suggested_provider: string
-        reason: string
-        potential_improvement: string
-        confidence_score: number
-    }>
-    cost_analysis: {
-        daily_cost: number
-        monthly_projection: number
-        potential_savings: number
-    }
-    performance_metrics: {
-        avg_response_time: number
-        success_rate: number
-        total_requests_today: number
-    }
-}
-
-export interface AiConnectionTest {
-    connection_status: 'success' | 'failed'
-    ai_discovery_available: boolean
-    providers_discovered: number
-    test_timestamp: string
-    error_details?: string
-    discovered_providers: Array<{
-        name: string
-        category: string
-        available: boolean
-    }>
-}
-
-export interface ProviderSwitchResult {
-    success: boolean
-    old_provider: string
-    new_provider: string
-    category: string
-    switch_timestamp: string
-    performance_impact: {
-        response_time_change: string
-        cost_change: string
-        quality_change: string
-    }
-    message: string
-}
+// Import types from our types file
+import type {
+    ActiveAIProvider,
+    DiscoveredAIProvider,
+    CategoryStats,
+    DiscoveryDashboardData,
+    DashboardSummaryStats,
+    SystemHealthStatus,
+    SystemIssue,
+    ReviewSuggestionRequest,
+    ReviewSuggestionResponse,
+    PromoteSuggestionRequest,
+    PromoteSuggestionResponse,
+    ReviewStatus,
+    RecommendationPriority,
+    AIProviderCategory,
+    DiscoveryScanResponse
+} from './types/ai-discovery'
 
 // ============================================================================
-// AI DISCOVERY SERVICE API CLIENT (Real endpoints only)
+// ENHANCED AI DISCOVERY SERVICE CLIENT
 // ============================================================================
 
 class AiDiscoveryServiceClient {
-    private aiDiscoveryUrl: string;
+    private backendUrl: string;
 
     constructor() {
-        this.aiDiscoveryUrl = process.env.NEXT_PUBLIC_AI_DISCOVERY_SERVICE_URL ||
-            'https://ai-discovery-service-production.up.railway.app';
+        this.backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL ||
+            'https://campaign-backend-production-e2db.up.railway.app';
     }
 
     private async handleResponse<T>(response: Response): Promise<T> {
         if (!response.ok) {
-            throw new Error(`AI Discovery Service error: ${response.status} ${response.statusText}`);
+            const errorText = await response.text();
+            throw new Error(`API error: ${response.status} ${response.statusText} - ${errorText}`);
         }
 
         try {
@@ -99,761 +53,551 @@ class AiDiscoveryServiceClient {
     }
 
     /**
-     * Test connection to AI Discovery Service
+     * Get active providers (Table 1)
      */
-    async testConnection(): Promise<AiConnectionTest> {
+    async getActiveProviders(): Promise<ActiveAIProvider[]> {
         try {
-            const response = await fetch(`${this.aiDiscoveryUrl}/health`, {
+            const response = await fetch(`${this.backendUrl}/api/admin/ai-discovery/active-providers`, {
                 method: 'GET',
                 headers: { 'Content-Type': 'application/json' },
-            })
+            });
 
-            if (!response.ok) {
-                throw new Error(`AI Discovery connection test failed: ${response.statusText}`)
-            }
-
-            const healthResult = await response.json()
-            console.log('🔍 AI Discovery health check:', healthResult)
-
-            const result: AiConnectionTest = {
-                connection_status: healthResult.status === 'healthy' ? 'success' : 'failed',
-                ai_discovery_available: healthResult.status === 'healthy',
-                providers_discovered: 0,
-                test_timestamp: new Date().toISOString(),
-                discovered_providers: []
-            }
-
-            // Try to get recommendations to count providers
-            try {
-                const recsResponse = await fetch(`${this.aiDiscoveryUrl}/api/v1/providers/recommendations`, {
-                    method: 'GET',
-                    headers: { 'Content-Type': 'application/json' },
-                })
-
-                if (recsResponse.ok) {
-                    const recsData = await recsResponse.json()
-                    result.providers_discovered = recsData.recommendations?.length || 0
-                    result.discovered_providers = recsData.recommendations?.map((rec: any) => ({
-                        name: rec.recommended_provider || 'unknown',
-                        category: rec.category || 'unknown',
-                        available: true
-                    })) || []
-                }
-            } catch (recsError) {
-                console.warn('Could not fetch provider recommendations:', recsError)
-            }
-
-            console.log('✅ AI Discovery connection test successful:', result)
-            return result
+            return this.handleResponse(response);
         } catch (error) {
-            console.error('❌ AI Discovery connection test error:', error)
+            console.error('❌ Failed to fetch active providers:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * Get discovered suggestions (Table 2)
+     */
+    async getDiscoveredSuggestions(): Promise<DiscoveredAIProvider[]> {
+        try {
+            const response = await fetch(`${this.backendUrl}/api/admin/ai-discovery/discovered-suggestions`, {
+                method: 'GET',
+                headers: { 'Content-Type': 'application/json' },
+            });
+
+            return this.handleResponse(response);
+        } catch (error) {
+            console.error('❌ Failed to fetch discovered suggestions:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * Get category rankings (top 3 per category)
+     */
+    async getCategoryRankings(): Promise<CategoryStats[]> {
+        try {
+            const response = await fetch(`${this.backendUrl}/api/admin/ai-discovery/category-rankings`, {
+                method: 'GET',
+                headers: { 'Content-Type': 'application/json' },
+            });
+
+            return this.handleResponse(response);
+        } catch (error) {
+            console.error('❌ Failed to fetch category rankings:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * Get complete dashboard data
+     */
+    async getDashboardData(): Promise<DiscoveryDashboardData> {
+        try {
+            const [activeProviders, discoveredSuggestions, categoryStats] = await Promise.all([
+                this.getActiveProviders(),
+                this.getDiscoveredSuggestions(),
+                this.getCategoryRankings()
+            ]);
+
+            const pendingSuggestions = discoveredSuggestions.filter(s => s.review_status === 'pending');
+            const highPrioritySuggestions = discoveredSuggestions.filter(s => s.recommendation_priority === 'high');
 
             return {
-                connection_status: 'failed',
-                ai_discovery_available: false,
-                providers_discovered: 0,
-                test_timestamp: new Date().toISOString(),
-                error_details: error instanceof Error ? error.message : 'Unknown error',
-                discovered_providers: []
-            }
+                active_providers: activeProviders,
+                discovered_suggestions: discoveredSuggestions,
+                category_stats: categoryStats,
+                summary_stats: {
+                    total_active: activeProviders.length,
+                    pending_suggestions: pendingSuggestions.length,
+                    high_priority_suggestions: highPrioritySuggestions.length,
+                    monthly_cost: categoryStats.reduce((sum, c) => sum + c.total_monthly_cost, 0),
+                    avg_quality_score: categoryStats.reduce((sum, c) => sum + c.avg_quality_score, 0) / Math.max(categoryStats.length, 1)
+                },
+                last_updated: new Date().toISOString()
+            };
+        } catch (error) {
+            console.error('❌ Failed to fetch dashboard data:', error);
+            throw error;
         }
     }
 
     /**
-     * Get service health status
+     * Review a suggestion (approve/reject)
      */
-    async getHealthStatus(): Promise<{
-        status: string
-        timestamp: string
-        service_version?: string
-        uptime?: string
+    async reviewSuggestion(
+        suggestionId: string,
+        request: ReviewSuggestionRequest
+    ): Promise<{
+        success: boolean;
+        message: string;
+        updated_suggestion: DiscoveredAIProvider;
     }> {
         try {
-            const response = await fetch(`${this.aiDiscoveryUrl}/health`, {
-                method: 'GET',
+            const response = await fetch(`${this.backendUrl}/api/admin/ai-discovery/review-suggestion/${suggestionId}`, {
+                method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-            })
+                body: JSON.stringify(request),
+            });
 
-            return this.handleResponse(response)
+            return this.handleResponse(response);
         } catch (error) {
-            console.error('❌ Health status error:', error)
-            throw error
+            console.error('❌ Failed to review suggestion:', error);
+            throw error;
         }
     }
 
     /**
-     * Get provider recommendations
+     * Promote suggestion to active provider (Table 2 → Table 1)
      */
-    async getProviderRecommendations(): Promise<{
-        recommendations: Array<{
-            category: string
-            current_provider: string
-            recommended_provider: string
-            reason: string
-            estimated_improvement: string
-            confidence: number
-            priority: 'high' | 'medium' | 'low'
-        }>
-        last_analysis: string
-        next_analysis: string
+    async promoteSuggestion(
+        suggestionId: string,
+        request: PromoteSuggestionRequest = {}
+    ): Promise<{
+        success: boolean;
+        message: string;
+        new_active_provider: ActiveAIProvider;
+        removed_suggestion_id: string;
     }> {
         try {
-            const response = await fetch(`${this.aiDiscoveryUrl}/api/v1/providers/recommendations`, {
-                method: 'GET',
+            const response = await fetch(`${this.backendUrl}/api/admin/ai-discovery/promote-suggestion/${suggestionId}`, {
+                method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-            })
+                body: JSON.stringify(request),
+            });
 
-            if (!response.ok) {
-                throw new Error(`Failed to fetch provider recommendations: ${response.statusText}`)
-            }
-
-            const data = await response.json()
-            console.log('🔍 Raw recommendations data:', data)
-
-            return {
-                recommendations: data.recommendations?.map((rec: any) => ({
-                    category: rec.category || 'content_generation',
-                    current_provider: rec.current_provider || 'openai-gpt3',
-                    recommended_provider: rec.recommended_provider || 'claude-3-sonnet',
-                    reason: rec.reason || 'Better performance and cost efficiency',
-                    estimated_improvement: rec.estimated_improvement || '15-20% performance boost',
-                    confidence: rec.confidence || 80,
-                    priority: rec.priority || 'medium'
-                })) || [],
-                last_analysis: new Date().toISOString(),
-                next_analysis: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
-            }
+            return this.handleResponse(response);
         } catch (error) {
-            console.error('❌ Provider recommendations error:', error)
-            throw error
+            console.error('❌ Failed to promote suggestion:', error);
+            throw error;
         }
     }
 
     /**
-     * Get recent discoveries
+     * Run AI discovery scan to find new providers
      */
-    async getRecentDiscoveries(): Promise<any> {
+    async runDiscoveryScan(): Promise<DiscoveryScanResponse> {
         try {
-            const response = await fetch(`${this.aiDiscoveryUrl}/api/v1/discoveries/recent`, {
-                method: 'GET',
+            const response = await fetch(`${this.backendUrl}/api/admin/ai-discovery/run-discovery`, {
+                method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-            })
+            });
 
-            return this.handleResponse(response)
+            return this.handleResponse(response);
         } catch (error) {
-            console.error('❌ Recent discoveries error:', error)
-            throw error
+            console.error('❌ Failed to run discovery scan:', error);
+            throw error;
         }
     }
 
     /**
-     * Get optimization dashboard data (built from real endpoints)
+     * Update category rankings
      */
-    async getOptimizationDashboard(): Promise<AiOptimizationDashboard> {
+    async updateRankings(): Promise<{
+        success: boolean;
+        message: string;
+        updated_categories: CategoryStats[];
+    }> {
         try {
-            // Use the available endpoints from AI Discovery Service
-            const [healthResponse, recommendationsResponse, recentResponse] = await Promise.all([
-                fetch(`${this.aiDiscoveryUrl}/health`, {
-                    method: 'GET',
-                    headers: { 'Content-Type': 'application/json' },
+            const response = await fetch(`${this.backendUrl}/api/admin/ai-discovery/update-rankings`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+            });
+
+            return this.handleResponse(response);
+        } catch (error) {
+            console.error('❌ Failed to update rankings:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * Get AI analysis for a specific provider
+     */
+    async getProviderAnalysis(providerId: string): Promise<{
+        provider_id: string;
+        ai_analysis: any;
+        market_analysis: any;
+        competitive_analysis: any;
+        recommendation: string;
+    }> {
+        try {
+            const response = await fetch(`${this.backendUrl}/api/admin/ai-discovery/provider-analysis/${providerId}`, {
+                method: 'GET',
+                headers: { 'Content-Type': 'application/json' },
+            });
+
+            return this.handleResponse(response);
+        } catch (error) {
+            console.error('❌ Failed to get provider analysis:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * Bulk promote multiple suggestions
+     */
+    async bulkPromoteSuggestions(
+        suggestionIds: string[],
+        options: { activate_immediately?: boolean } = {}
+    ): Promise<{
+        success: boolean;
+        promoted_count: number;
+        failed_count: number;
+        results: Array<{
+            suggestion_id: string;
+            success: boolean;
+            message: string;
+            new_provider_id?: string;
+        }>;
+    }> {
+        try {
+            const response = await fetch(`${this.backendUrl}/api/admin/ai-discovery/bulk-promote`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    suggestion_ids: suggestionIds,
+                    ...options
                 }),
-                fetch(`${this.aiDiscoveryUrl}/api/v1/providers/recommendations`, {
-                    method: 'GET',
-                    headers: { 'Content-Type': 'application/json' },
-                }),
-                fetch(`${this.aiDiscoveryUrl}/api/v1/discoveries/recent`, {
-                    method: 'GET',
-                    headers: { 'Content-Type': 'application/json' },
-                })
-            ])
+            });
 
-            const healthData = await healthResponse.json()
-            const recommendationsData = recommendationsResponse.ok ? await recommendationsResponse.json() : { recommendations: [] }
-            const recentData = recentResponse.ok ? await recentResponse.json() : { discoveries: [] }
-
-            // Create dashboard data from available information
-            const dashboardData: AiOptimizationDashboard = {
-                current_providers: {
-                    content_generation: 'openai-gpt4',
-                    image_generation: 'dall-e-3',
-                    analysis: 'claude-3-sonnet',
-                    email_optimization: 'claude-3-haiku'
-                },
-                provider_performance: [], // Would need actual provider status endpoint
-                optimization_suggestions: recommendationsData.recommendations?.map((rec: any) => ({
-                    category: rec.category || 'unknown',
-                    current_provider: rec.current_provider || 'unknown',
-                    suggested_provider: rec.recommended_provider || 'unknown',
-                    reason: rec.reason || 'Performance optimization',
-                    potential_improvement: rec.estimated_improvement || '10-15% better performance',
-                    confidence_score: rec.confidence || 75
-                })) || [],
-                cost_analysis: {
-                    daily_cost: 12.50,
-                    monthly_projection: 375.00,
-                    potential_savings: 45.00
-                },
-                performance_metrics: {
-                    avg_response_time: 1200,
-                    success_rate: healthData.status === 'healthy' ? 99.2 : 0,
-                    total_requests_today: recentData.discoveries?.length || 0
-                }
-            }
-
-            console.log('📊 AI optimization dashboard data loaded:', dashboardData)
-            return dashboardData
+            return this.handleResponse(response);
         } catch (error) {
-            console.error('❌ AI optimization dashboard error:', error)
-            throw error
-        }
-    }
-
-    /**
-     * Create mock provider status based on health (since no real endpoint exists)
-     */
-    async getProviderStatus(): Promise<{
-        providers: AiProviderStatus[]
-        last_updated: string
-        system_health: 'healthy' | 'degraded' | 'critical'
-    }> {
-        try {
-            const healthResponse = await fetch(`${this.aiDiscoveryUrl}/health`, {
-                method: 'GET',
-                headers: { 'Content-Type': 'application/json' },
-            })
-
-            const healthData = await healthResponse.json()
-            const isHealthy = healthData.status === 'healthy'
-
-            // Create mock provider status data based on real health
-            const providers: AiProviderStatus[] = [
-                {
-                    provider_name: 'openai-gpt4',
-                    category: 'content_generation',
-                    is_active: true,
-                    status: isHealthy ? 'healthy' : 'degraded',
-                    response_time_ms: isHealthy ? 800 : 2000,
-                    error_rate: isHealthy ? 0.5 : 5.0,
-                    last_check: new Date().toISOString(),
-                    capabilities: ['text_generation', 'code_generation', 'analysis'],
-                    cost_per_request: 0.002
-                },
-                {
-                    provider_name: 'claude-3-sonnet',
-                    category: 'analysis',
-                    is_active: true,
-                    status: isHealthy ? 'healthy' : 'degraded',
-                    response_time_ms: isHealthy ? 1200 : 3000,
-                    error_rate: isHealthy ? 0.3 : 3.0,
-                    last_check: new Date().toISOString(),
-                    capabilities: ['analysis', 'reasoning', 'code_review'],
-                    cost_per_request: 0.003
-                },
-                {
-                    provider_name: 'dall-e-3',
-                    category: 'image_generation',
-                    is_active: true,
-                    status: isHealthy ? 'healthy' : 'degraded',
-                    response_time_ms: isHealthy ? 15000 : 25000,
-                    error_rate: isHealthy ? 1.0 : 8.0,
-                    last_check: new Date().toISOString(),
-                    capabilities: ['image_generation', 'image_editing'],
-                    cost_per_request: 0.040
-                }
-            ]
-
-            const result = {
-                providers,
-                last_updated: new Date().toISOString(),
-                system_health: isHealthy ? 'healthy' as const : 'degraded' as const
-            }
-
-            console.log('🔍 AI provider status loaded:', result)
-            return result
-        } catch (error) {
-            console.error('❌ AI provider status error:', error)
-            throw error
-        }
-    }
-
-    /**
-     * Mock provider switching (no real endpoint exists)
-     */
-    async switchProvider(
-        category: string,
-        newProvider: string,
-        autoApply: boolean = true
-    ): Promise<ProviderSwitchResult> {
-        try {
-            console.log(`🔄 Simulating provider switch for ${category} to ${newProvider}`)
-
-            // Since no real endpoint exists, return a mock response
-            const result: ProviderSwitchResult = {
-                success: true,
-                old_provider: 'openai-gpt3',
-                new_provider: newProvider,
-                category: category,
-                switch_timestamp: new Date().toISOString(),
-                performance_impact: {
-                    response_time_change: '-15%',
-                    cost_change: '+5%',
-                    quality_change: '+20%'
-                },
-                message: `Mock: Would switch ${category} provider to ${newProvider} (no real endpoint)`
-            }
-
-            console.log('⚠️ Provider switch simulated (no real endpoint):', result)
-            return result
-        } catch (error) {
-            console.error('❌ Provider switch simulation error:', error)
-            throw error
-        }
-    }
-
-    /**
-     * Mock cost analysis (no real endpoint exists)
-     */
-    async getCostAnalysis(days: number = 30): Promise<{
-        current_daily_cost: number
-        monthly_projection: number
-        cost_breakdown: Record<string, number>
-        optimization_potential: {
-            max_savings: number
-            recommended_savings: number
-            payback_period_days: number
-        }
-        cost_trends: Array<{
-            date: string
-            total_cost: number
-            requests: number
-        }>
-    }> {
-        console.log('⚠️ Using mock cost analysis (no real endpoint)')
-
-        return {
-            current_daily_cost: 12.50,
-            monthly_projection: 375.00,
-            cost_breakdown: {
-                content_generation: 8.50,
-                image_generation: 2.75,
-                analysis: 1.25
-            },
-            optimization_potential: {
-                max_savings: 45.00,
-                recommended_savings: 22.50,
-                payback_period_days: 14
-            },
-            cost_trends: Array.from({ length: days }, (_, i) => ({
-                date: new Date(Date.now() - (days - i) * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-                total_cost: 10 + Math.random() * 5,
-                requests: 100 + Math.floor(Math.random() * 50)
-            }))
-        }
-    }
-
-    /**
-     * Mock auto optimization setting (no real endpoint exists)
-     */
-    async setAutoOptimization(enabled: boolean, preferences?: {
-        max_cost_increase_percent?: number
-        min_performance_improvement?: number
-        categories_to_optimize?: string[]
-    }): Promise<{
-        success: boolean
-        auto_optimization_enabled: boolean
-        preferences: any
-        message: string
-    }> {
-        console.log('⚠️ Using mock auto optimization (no real endpoint)')
-
-        return {
-            success: true,
-            auto_optimization_enabled: enabled,
-            preferences: preferences || {},
-            message: `Mock: Auto optimization ${enabled ? 'enabled' : 'disabled'} (no real endpoint)`
+            console.error('❌ Failed to bulk promote suggestions:', error);
+            throw error;
         }
     }
 }
 
 // ============================================================================
-// AI DISCOVERY SERVICE UTILITIES
+// ENHANCED DISCOVERY SERVICE UTILITIES
 // ============================================================================
 
-export const aiDiscoveryUtils = {
-    getStatusColor: (status: string): string => {
-        switch (status) {
-            case 'healthy': return 'text-green-600'
-            case 'degraded': return 'text-yellow-600'
-            case 'error': return 'text-red-600'
-            default: return 'text-gray-500'
-        }
+export const enhancedDiscoveryUtils = {
+    getCategoryIcon: (category: string): string => {
+        const iconMap: Record<string, string> = {
+            'text_generation': '📝',
+            'image_generation': '🎨',
+            'video_generation': '🎬',
+            'audio_generation': '🎵',
+            'multimodal': '🧠'
+        };
+        return iconMap[category] || '⚙️';
     },
 
-    getStatusBadgeColor: (status: string): string => {
-        switch (status) {
-            case 'healthy': return 'bg-green-100 text-green-800'
-            case 'degraded': return 'bg-yellow-100 text-yellow-800'
-            case 'error': return 'bg-red-100 text-red-800'
-            default: return 'bg-gray-100 text-gray-800'
-        }
-    },
-
-    formatResponseTime: (ms: number): string => {
-        if (ms < 1000) return `${ms}ms`
-        return `${(ms / 1000).toFixed(1)}s`
-    },
-
-    formatCost: (cost: number): string => {
-        if (cost < 0.01) return `$${(cost * 1000).toFixed(2)}m`
-        return `$${cost.toFixed(3)}`
-    },
-
-    getCategoryDisplayName: (category: string): string => {
-        const categoryMap: Record<string, string> = {
-            'content_generation': 'Content Generation',
-            'image_generation': 'Image Generation',
-            'analysis': 'Analysis & Intelligence',
-            'email_optimization': 'Email Optimization',
-            'translation': 'Translation',
-            'summarization': 'Summarization'
-        }
-        return categoryMap[category] || category.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())
+    getCategoryColor: (category: string): string => {
+        const colorMap: Record<string, string> = {
+            'text_generation': 'blue',
+            'image_generation': 'green',
+            'video_generation': 'purple',
+            'audio_generation': 'orange',
+            'multimodal': 'indigo'
+        };
+        return colorMap[category] || 'gray';
     },
 
     getPriorityColor: (priority: string): string => {
         switch (priority) {
-            case 'high': return 'text-red-600'
-            case 'medium': return 'text-yellow-600'
-            case 'low': return 'text-green-600'
-            default: return 'text-gray-500'
+            case 'high': return 'bg-red-100 text-red-800';
+            case 'medium': return 'bg-yellow-100 text-yellow-800';
+            case 'low': return 'bg-green-100 text-green-800';
+            default: return 'bg-gray-100 text-gray-800';
         }
     },
 
-    calculateSavingsPercentage: (current: number, potential: number): number => {
-        if (current === 0) return 0
-        return ((current - potential) / current) * 100
+    getIntegrationComplexityColor: (complexity: string): string => {
+        switch (complexity) {
+            case 'easy': return 'bg-green-100 text-green-800';
+            case 'medium': return 'bg-yellow-100 text-yellow-800';
+            case 'hard': return 'bg-red-100 text-red-800';
+            default: return 'bg-gray-100 text-gray-800';
+        }
     },
 
-    sortProvidersByPerformance: (providers: AiProviderStatus[]): AiProviderStatus[] => {
-        return [...providers].sort((a, b) => {
-            // Healthy status first
-            if (a.status !== b.status) {
-                const statusOrder = { healthy: 0, degraded: 1, error: 2 }
-                return statusOrder[a.status] - statusOrder[b.status]
-            }
-
-            // Then by response time (lower is better)
-            if (a.response_time_ms !== b.response_time_ms) {
-                return a.response_time_ms - b.response_time_ms
-            }
-
-            // Finally by error rate (lower is better)
-            return a.error_rate - b.error_rate
-        })
+    getReviewStatusColor: (status: string): string => {
+        switch (status) {
+            case 'pending': return 'bg-yellow-100 text-yellow-800';
+            case 'approved': return 'bg-green-100 text-green-800';
+            case 'rejected': return 'bg-red-100 text-red-800';
+            default: return 'bg-gray-100 text-gray-800';
+        }
     },
 
-    getSystemHealth: (providers: AiProviderStatus[]): {
-        status: 'healthy' | 'degraded' | 'critical'
-        message: string
+    formatCost: (cost: number): string => {
+        if (cost < 0.001) return `$${(cost * 1000000).toFixed(1)}µ`;
+        if (cost < 1) return `$${(cost * 1000).toFixed(3)}m`;
+        return `$${cost.toFixed(3)}`;
+    },
+
+    formatUsage: (usage: number): string => {
+        if (usage > 1000000) return `${(usage / 1000000).toFixed(1)}M`;
+        if (usage > 1000) return `${(usage / 1000).toFixed(1)}K`;
+        return usage.toString();
+    },
+
+    getRankBadge: (rank: number): string => {
+        const badges = ['🥇', '🥈', '🥉'];
+        return badges[rank - 1] || `#${rank}`;
+    },
+
+    calculateCostSavings: (currentCost: number, newCost: number): {
+        savings: number;
+        percentage: number;
+        isSignificant: boolean;
     } => {
-        if (providers.length === 0) {
-            return { status: 'critical', message: 'No providers available' }
-        }
+        const savings = currentCost - newCost;
+        const percentage = currentCost > 0 ? (savings / currentCost) * 100 : 0;
+        return {
+            savings,
+            percentage,
+            isSignificant: Math.abs(percentage) > 10
+        };
+    },
 
-        const healthyCount = providers.filter(p => p.status === 'healthy').length
-        const errorCount = providers.filter(p => p.status === 'error').length
-        const degradedCount = providers.filter(p => p.status === 'degraded').length
+    sortProvidersByRank: (providers: ActiveAIProvider[]): ActiveAIProvider[] => {
+        return [...providers].sort((a, b) => {
+            // Top 3 providers first
+            if (a.is_top_3 && !b.is_top_3) return -1;
+            if (!a.is_top_3 && b.is_top_3) return 1;
 
-        if (errorCount > providers.length * 0.5) {
-            return { status: 'critical', message: `${errorCount} providers are down` }
-        }
+            // Within top 3, sort by rank
+            if (a.is_top_3 && b.is_top_3) {
+                return a.category_rank - b.category_rank;
+            }
 
-        if (degradedCount > providers.length * 0.3) {
-            return { status: 'degraded', message: `${degradedCount} providers are degraded` }
-        }
+            // For others, sort by quality score
+            return b.quality_score - a.quality_score;
+        });
+    },
 
-        return { status: 'healthy', message: `${healthyCount}/${providers.length} providers healthy` }
+    filterSuggestionsByPriority: (
+        suggestions: DiscoveredAIProvider[],
+        priority?: string
+    ): DiscoveredAIProvider[] => {
+        if (!priority) return suggestions;
+        return suggestions.filter(s => s.recommendation_priority === priority);
+    },
+
+    groupProvidersByCategory: (providers: ActiveAIProvider[]): Record<string, ActiveAIProvider[]> => {
+        return providers.reduce((groups, provider) => {
+            const category = provider.category;
+            if (!groups[category]) {
+                groups[category] = [];
+            }
+            groups[category].push(provider);
+            return groups;
+        }, {} as Record<string, ActiveAIProvider[]>);
     }
-}
+};
 
 // ============================================================================
-// AI DISCOVERY SERVICE HOOK (Clean, focused implementation)
+// ENHANCED DISCOVERY SERVICE HOOK
 // ============================================================================
 
-export function useAiDiscoveryService() {
-    const [connectionStatus, setConnectionStatus] = useState<AiConnectionTest | null>(null)
-    const [recommendations, setRecommendations] = useState<any>(null)
-    const [recentDiscoveries, setRecentDiscoveries] = useState<any>(null)
-    const [healthStatus, setHealthStatus] = useState<any>(null)
-    const [dashboardData, setDashboardData] = useState<AiOptimizationDashboard | null>(null)
-    const [providerStatus, setProviderStatus] = useState<AiProviderStatus[]>([])
-    const [costAnalysis, setCostAnalysis] = useState<any>(null)
-    const [isLoading, setIsLoading] = useState(false)
-    const [error, setError] = useState<string | null>(null)
-    const [autoLoadAttempted, setAutoLoadAttempted] = useState(false)
+export function useEnhancedAiDiscoveryService() {
+    const [dashboardData, setDashboardData] = useState<DiscoveryDashboardData | null>(null);
+    const [isLoading, setIsLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+    const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
 
-    const client = useMemo(() => new AiDiscoveryServiceClient(), [])
+    const client = useMemo(() => new AiDiscoveryServiceClient(), []);
 
-    const testConnection = useCallback(async () => {
+    const loadDashboardData = useCallback(async () => {
         try {
-            setIsLoading(true)
-            setError(null)
-            const result = await client.testConnection()
-            setConnectionStatus(result)
-            setAutoLoadAttempted(true)
-            return result
+            setIsLoading(true);
+            setError(null);
+            const data = await client.getDashboardData();
+            setDashboardData(data);
+            setLastUpdated(new Date());
+            return data;
         } catch (err) {
-            const errorMessage = err instanceof Error ? err.message : 'Connection test failed'
-            setError(errorMessage)
-            setAutoLoadAttempted(true)
-            throw err
+            const errorMessage = err instanceof Error ? err.message : 'Failed to load dashboard data';
+            setError(errorMessage);
+            throw err;
         } finally {
-            setIsLoading(false)
+            setIsLoading(false);
         }
-    }, [client])
+    }, [client]);
 
-    const loadDashboard = useCallback(async () => {
-        try {
-            setIsLoading(true)
-            setError(null)
-            const data = await client.getOptimizationDashboard()
-            setDashboardData(data)
-            return data
-        } catch (err) {
-            const errorMessage = err instanceof Error ? err.message : 'Dashboard loading failed'
-            setError(errorMessage)
-            throw err
-        } finally {
-            setIsLoading(false)
-        }
-    }, [client])
-
-    const loadProviderStatus = useCallback(async () => {
-        try {
-            setError(null)
-            const status = await client.getProviderStatus()
-            setProviderStatus(status.providers || [])
-            return status
-        } catch (err) {
-            const errorMessage = err instanceof Error ? err.message : 'Provider status loading failed'
-            setError(errorMessage)
-            throw err
-        }
-    }, [client])
-
-    const loadRecommendations = useCallback(async () => {
-        try {
-            setError(null)
-            const recs = await client.getProviderRecommendations()
-            setRecommendations(recs)
-            return recs
-        } catch (err) {
-            const errorMessage = err instanceof Error ? err.message : 'Recommendations loading failed'
-            setError(errorMessage)
-            throw err
-        }
-    }, [client])
-
-    const loadRecentDiscoveries = useCallback(async () => {
-        try {
-            setError(null)
-            const discoveries = await client.getRecentDiscoveries()
-            setRecentDiscoveries(discoveries)
-            return discoveries
-        } catch (err) {
-            const errorMessage = err instanceof Error ? err.message : 'Recent discoveries loading failed'
-            setError(errorMessage)
-            throw err
-        }
-    }, [client])
-
-    const loadHealthStatus = useCallback(async () => {
-        try {
-            setError(null)
-            const health = await client.getHealthStatus()
-            setHealthStatus(health)
-            return health
-        } catch (err) {
-            const errorMessage = err instanceof Error ? err.message : 'Health status loading failed'
-            setError(errorMessage)
-            throw err
-        }
-    }, [client])
-
-    const switchProvider = useCallback(async (category: string, newProvider: string) => {
-        try {
-            setError(null)
-            const result = await client.switchProvider(category, newProvider)
-
-            // Refresh provider status after switch
-            await loadProviderStatus()
-            await loadDashboard()
-
-            return result
-        } catch (err) {
-            const errorMessage = err instanceof Error ? err.message : 'Provider switch failed'
-            setError(errorMessage)
-            throw err
-        }
-    }, [client, loadProviderStatus, loadDashboard])
-
-    const loadCostAnalysis = useCallback(async (days = 30) => {
-        try {
-            setError(null)
-            const analysis = await client.getCostAnalysis(days)
-            setCostAnalysis(analysis)
-            return analysis
-        } catch (err) {
-            const errorMessage = err instanceof Error ? err.message : 'Cost analysis loading failed'
-            setError(errorMessage)
-            throw err
-        }
-    }, [client])
-
-    const setAutoOptimization = useCallback(async (enabled: boolean, preferences?: any) => {
-        try {
-            setError(null)
-            const result = await client.setAutoOptimization(enabled, preferences)
-
-            // Refresh dashboard data
-            await loadDashboard()
-
-            return result
-        } catch (err) {
-            const errorMessage = err instanceof Error ? err.message : 'Auto optimization setting failed'
-            setError(errorMessage)
-            throw err
-        }
-    }, [client, loadDashboard])
-
-    const applyRecommendations = useCallback(async (
-        recommendations: Array<{ category: string; new_provider: string }>
+    const reviewSuggestion = useCallback(async (
+        suggestionId: string,
+        action: 'approve' | 'reject',
+        adminNotes?: string
     ) => {
         try {
-            setIsLoading(true)
-            setError(null)
+            setError(null);
+            const result = await client.reviewSuggestion(suggestionId, {
+                action,
+                admin_notes: adminNotes
+            });
 
-            // Apply each recommendation
-            const results = []
-            for (const rec of recommendations) {
-                const result = await client.switchProvider(rec.category, rec.new_provider)
-                results.push(result)
+            // Update local state
+            if (dashboardData) {
+                const updatedSuggestions = dashboardData.discovered_suggestions.map(suggestion =>
+                    suggestion.id === suggestionId
+                        ? {
+                            ...suggestion,
+                            review_status: (action === 'approve' ? 'approved' : 'rejected') as ReviewStatus,
+                            admin_notes: adminNotes || '',
+                            reviewed_at: new Date().toISOString()
+                        }
+                        : suggestion
+                );
+                setDashboardData({
+                    ...dashboardData,
+                    discovered_suggestions: updatedSuggestions
+                });
             }
 
-            // Refresh all data after applying recommendations
-            await Promise.all([
-                loadProviderStatus(),
-                loadDashboard(),
-                loadRecommendations()
-            ])
-
-            return {
-                success: true,
-                applied_changes: results.length,
-                failed_changes: 0,
-                results,
-                message: `Applied ${results.length} optimization recommendations`
-            }
+            return result;
         } catch (err) {
-            const errorMessage = err instanceof Error ? err.message : 'Failed to apply recommendations'
-            setError(errorMessage)
-            throw err
-        } finally {
-            setIsLoading(false)
+            const errorMessage = err instanceof Error ? err.message : 'Failed to review suggestion';
+            setError(errorMessage);
+            throw err;
         }
-    }, [client, loadProviderStatus, loadDashboard, loadRecommendations])
+    }, [client, dashboardData]);
 
-    const refreshAll = useCallback(async () => {
+    const promoteSuggestion = useCallback(async (
+        suggestionId: string,
+        options: PromoteSuggestionRequest = {}
+    ) => {
         try {
-            setIsLoading(true)
-            setError(null)
+            setError(null);
+            const result = await client.promoteSuggestion(suggestionId, options);
 
-            // Try to load all data, but don't fail if some fail
-            const results = await Promise.allSettled([
-                testConnection(),
-                loadRecommendations(),
-                loadRecentDiscoveries(),
-                loadHealthStatus(),
-                loadDashboard(),
-                loadProviderStatus(),
-                loadCostAnalysis()
-            ])
+            // Refresh dashboard data after promotion
+            await loadDashboardData();
 
-            // Log any failures but don't throw
-            results.forEach((result, index) => {
-                if (result.status === 'rejected') {
-                    console.warn(`AI Discovery data load ${index} failed:`, result.reason)
-                }
-            })
-
-            setAutoLoadAttempted(true)
+            return result;
         } catch (err) {
-            console.error('Error refreshing AI Discovery data:', err)
+            const errorMessage = err instanceof Error ? err.message : 'Failed to promote suggestion';
+            setError(errorMessage);
+            throw err;
+        }
+    }, [client, loadDashboardData]);
+
+    const runDiscoveryScan = useCallback(async () => {
+        try {
+            setIsLoading(true);
+            setError(null);
+            const result = await client.runDiscoveryScan();
+
+            // Refresh dashboard data after scan
+            await loadDashboardData();
+
+            return result;
+        } catch (err) {
+            const errorMessage = err instanceof Error ? err.message : 'Failed to run discovery scan';
+            setError(errorMessage);
+            throw err;
         } finally {
-            setIsLoading(false)
+            setIsLoading(false);
         }
-    }, [testConnection, loadRecommendations, loadRecentDiscoveries, loadHealthStatus, loadDashboard, loadProviderStatus, loadCostAnalysis])
+    }, [client, loadDashboardData]);
 
-    // Graceful auto-loading - only attempt once and don't throw errors
+    const updateRankings = useCallback(async () => {
+        try {
+            setError(null);
+            const result = await client.updateRankings();
+
+            // Refresh dashboard data after ranking update
+            await loadDashboardData();
+
+            return result;
+        } catch (err) {
+            const errorMessage = err instanceof Error ? err.message : 'Failed to update rankings';
+            setError(errorMessage);
+            throw err;
+        }
+    }, [client, loadDashboardData]);
+
+    const bulkPromoteSuggestions = useCallback(async (
+        suggestionIds: string[],
+        options: { activate_immediately?: boolean } = {}
+    ) => {
+        try {
+            setIsLoading(true);
+            setError(null);
+            const result = await client.bulkPromoteSuggestions(suggestionIds, options);
+
+            // Refresh dashboard data after bulk promotion
+            await loadDashboardData();
+
+            return result;
+        } catch (err) {
+            const errorMessage = err instanceof Error ? err.message : 'Failed to bulk promote suggestions';
+            setError(errorMessage);
+            throw err;
+        } finally {
+            setIsLoading(false);
+        }
+    }, [client, loadDashboardData]);
+
+    // Auto-load data on mount
     useEffect(() => {
-        if (!autoLoadAttempted) {
-            const timer = setTimeout(async () => {
-                try {
-                    console.log('🤖 Attempting graceful AI Discovery auto-load...')
+        const timer = setTimeout(() => {
+            loadDashboardData().catch(err => {
+                console.warn('Auto-load failed (non-critical):', err);
+            });
+        }, 500);
 
-                    // Try a simple connection test first
-                    const connectionResult = await client.testConnection()
-                    setConnectionStatus(connectionResult)
-
-                    // If connection succeeds, load other data
-                    if (connectionResult.connection_status === 'success') {
-                        await refreshAll()
-                    }
-                } catch (err) {
-                    console.warn('🤖 AI Discovery auto-load failed (non-critical):', err)
-                    setError('AI Discovery Service unavailable')
-                } finally {
-                    setAutoLoadAttempted(true)
-                }
-            }, 1000) // 1 second delay
-
-            return () => clearTimeout(timer)
-        }
-    }, [autoLoadAttempted, refreshAll, client])
+        return () => clearTimeout(timer);
+    }, [loadDashboardData]);
 
     return {
         // State
-        connectionStatus,
-        recommendations,
-        recentDiscoveries,
-        healthStatus,
         dashboardData,
-        providerStatus,
-        costAnalysis,
         isLoading,
         error,
+        lastUpdated,
 
         // Actions
-        testConnection,
-        loadRecommendations,
-        loadRecentDiscoveries,
-        loadHealthStatus,
-        loadDashboard,
-        loadProviderStatus,
-        loadCostAnalysis,
-        switchProvider,
-        setAutoOptimization,
-        applyRecommendations,
-        refreshAll,
+        loadDashboardData,
+        reviewSuggestion,
+        promoteSuggestion,
+        runDiscoveryScan,
+        updateRankings,
+        bulkPromoteSuggestions,
 
         // Computed values
-        isConnected: connectionStatus?.connection_status === 'success',
-        hasRecommendations: recommendations?.recommendations?.length > 0,
-        isHealthy: healthStatus?.status === 'healthy',
-        totalProviders: providerStatus.length,
-        healthyProviders: providerStatus.filter(p => p.status === 'healthy').length
-    }
+        activeProviders: dashboardData?.active_providers || [],
+        discoveredSuggestions: dashboardData?.discovered_suggestions || [],
+        categoryStats: dashboardData?.category_stats || [],
+        summaryStats: dashboardData?.summary_stats || {
+            total_active: 0,
+            pending_suggestions: 0,
+            high_priority_suggestions: 0,
+            monthly_cost: 0,
+            avg_quality_score: 0
+        },
+
+        // Filtered data helpers
+        pendingSuggestions: dashboardData?.discovered_suggestions.filter(s => s.review_status === 'pending') || [],
+        approvedSuggestions: dashboardData?.discovered_suggestions.filter(s => s.review_status === 'approved') || [],
+        highPrioritySuggestions: dashboardData?.discovered_suggestions.filter(s => s.recommendation_priority === 'high') || [],
+        topProviders: dashboardData?.active_providers.filter(p => p.is_top_3).sort((a, b) => a.category_rank - b.category_rank) || [],
+
+        // Status helpers
+        hasData: !!dashboardData,
+        hasActiveProviders: (dashboardData?.active_providers.length || 0) > 0,
+        hasPendingSuggestions: (dashboardData?.discovered_suggestions.filter(s => s.review_status === 'pending').length || 0) > 0,
+        isHealthy: error === null && dashboardData !== null
+    };
 }
 
-export const aiDiscoveryServiceClient = new AiDiscoveryServiceClient()
-export default aiDiscoveryServiceClient
+export const enhancedAiDiscoveryServiceClient = new AiDiscoveryServiceClient();
+export default enhancedAiDiscoveryServiceClient;
