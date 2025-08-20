@@ -97,7 +97,7 @@ class AiDiscoveryServiceClient {
                         const mappedProviders = categoryArray.map((provider: any) => ({
                             id: provider.id?.toString() || '',
                             provider_name: provider.provider_name || '',
-                            category: provider.active_providers_by_category,  // ✅ FIXED: Use the category key instead of provider.category
+                            category: provider.category,  // ✅ FIXED: Use the category key instead of provider.category
                             category_rank: provider.category_rank || 1,
                             is_top_3: provider.is_top_3 || false,
                             env_var_name: provider.env_var_name || '',
