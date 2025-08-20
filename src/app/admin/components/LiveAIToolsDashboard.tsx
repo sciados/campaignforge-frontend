@@ -1,5 +1,3 @@
-// src/app/admin/components/LiveAIToolsDashboard.tsx
-
 import React, { useState, useEffect, useCallback } from "react";
 import {
   Star,
@@ -76,24 +74,25 @@ interface Recommendation {
   priority: "high" | "medium" | "low";
 }
 
+interface CostAnalysis {
+  current_daily_cost: number;
+  optimization_potential?: {
+    recommended_savings: number;
+  };
+}
+
 const CleanDynamicAIProviderDashboard: React.FC = () => {
   const {
     dashboardData,
-    isLoading: aiLoading,
-    error: aiError,
+    isLoading,
+    error,
+    lastUpdated,
     loadDashboardData,
     runDiscoveryScan,
+    activeProviders,
     discoveredSuggestions,
-    categoryStats,
     summaryStats,
-    pendingSuggestions,
-    approvedSuggestions,
-    highPrioritySuggestions,
-    topProviders,
     hasData,
-    hasActiveProviders,
-    hasPendingSuggestions,
-    isHealthy,
   } = useEnhancedAiDiscoveryService();
 
   // 🎯 STATE MANAGEMENT - PURELY DYNAMIC
@@ -102,7 +101,7 @@ const CleanDynamicAIProviderDashboard: React.FC = () => {
   const [filterTier, setFilterTier] = useState<string>("");
   const [filterStatus, setFilterStatus] = useState<string>("");
   const [searchTerm, setSearchTerm] = useState<string>("");
-  const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
+  const [lastRefreshed, setLastRefreshed] = useState<Date>(new Date());
   const [discoveryInProgress, setDiscoveryInProgress] = useState(false);
 
   // 🚀 DYNAMIC PROVIDER STATE - NO HARDCODED DATA
@@ -110,6 +109,34 @@ const CleanDynamicAIProviderDashboard: React.FC = () => {
     useState<DynamicProvidersResponse | null>(null);
   const [providersLoading, setProvidersLoading] = useState(false);
   const [providersError, setProvidersError] = useState<string | null>(null);
+
+  // Mock data for legacy compatibility - will be replaced by real data
+  const mockRecommendations = {
+    recommendations: [] as Recommendation[],
+  };
+
+  const mockCostAnalysis: CostAnalysis = {
+    current_daily_cost: summaryStats.monthly_cost / 30,
+    optimization_potential: {
+      recommended_savings: summaryStats.monthly_cost * 0.1,
+    },
+  };
+
+  // Derived values for compatibility
+  const hasRecommendations = mockRecommendations.recommendations.length > 0;
+  const recommendations = mockRecommendations;
+  const costAnalysis = mockCostAnalysis;
+  const connectionStatus = { test_timestamp: lastUpdated };
+  const healthStatus = { status: hasData ? "healthy" : "unknown" };
+  const providerStatus = { healthy_count: summaryStats.total_active };
+  const isConnected = hasData;
+  const totalProviders = summaryStats.total_active;
+  const healthyProviders = summaryStats.total_active;
+
+  // Legacy compatibility functions
+  const testConnection = async () => {
+    await loadDashboardData();
+  };
 
   // 🚀 FETCH ALL PROVIDERS DYNAMICALLY FROM BACKEND
   const fetchDynamicProviders = useCallback(async () => {
@@ -147,6 +174,11 @@ const CleanDynamicAIProviderDashboard: React.FC = () => {
       setProvidersLoading(false);
     }
   }, []);
+
+  const refreshAll = useCallback(async () => {
+    await loadDashboardData();
+    await fetchDynamicProviders();
+  }, [loadDashboardData, fetchDynamicProviders]);
 
   // 🚀 LOAD DYNAMIC PROVIDERS ON MOUNT
   useEffect(() => {
@@ -324,7 +356,7 @@ const CleanDynamicAIProviderDashboard: React.FC = () => {
     try {
       await refreshAll();
       await fetchDynamicProviders();
-      setLastUpdated(new Date());
+      setLastRefreshed(new Date());
       alert(
         `🚀 Discovery Complete! Refreshed environment status and discovered new providers!`
       );
@@ -334,7 +366,7 @@ const CleanDynamicAIProviderDashboard: React.FC = () => {
     } finally {
       setDiscoveryInProgress(false);
     }
-  }, [fetchDynamicProviders]);
+  }, [refreshAll, fetchDynamicProviders]);
 
   // 🎨 UI COMPONENTS
   const StarRating: React.FC<{ rating: number; size?: string }> = ({
@@ -448,7 +480,7 @@ const CleanDynamicAIProviderDashboard: React.FC = () => {
   };
 
   // Calculate summary stats from dynamic data
-  const activeProviders = dynamicProviders?.active_count || 0;
+  const activeProvidersCount = dynamicProviders?.active_count || 0;
   const configuredProviders = dynamicProviders?.configured_count || 0;
   const totalProvidersCount = dynamicProviders?.total_providers || 0;
 
@@ -519,7 +551,7 @@ const CleanDynamicAIProviderDashboard: React.FC = () => {
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-1 text-sm text-gray-500">
             <Clock className="w-4 h-4" />
-            Updated {lastUpdated.toLocaleTimeString()}
+            Updated {lastRefreshed.toLocaleTimeString()}
           </div>
           <button
             onClick={discoverNewProviders}
@@ -576,7 +608,7 @@ const CleanDynamicAIProviderDashboard: React.FC = () => {
             <div>
               <p className="text-sm text-gray-600">Active</p>
               <p className="text-xl font-bold text-purple-600">
-                {activeProviders}
+                {activeProvidersCount}
               </p>
               <p className="text-xs text-gray-500 mt-1">Currently in use</p>
             </div>
@@ -906,7 +938,7 @@ const CleanDynamicAIProviderDashboard: React.FC = () => {
                               provider.quality_score || 0
                             }/5 stars\n🔧 Environment Variable: ${
                               provider.env_var_name
-                            }\n📍 Source: ${provider.source}\n⚡ Status: ${
+                            }\n📁 Source: ${provider.source}\n⚡ Status: ${
                               provider.integration_status
                             }`
                           )
@@ -1061,7 +1093,7 @@ const CleanDynamicAIProviderDashboard: React.FC = () => {
                 <div>
                   <p className="text-sm text-gray-600">Active Providers</p>
                   <p className="text-xl font-bold text-blue-600">
-                    {activeProviders}
+                    {activeProvidersCount}
                   </p>
                   <p className="text-xs text-gray-500 mt-1">Currently in use</p>
                 </div>
@@ -1139,7 +1171,7 @@ const CleanDynamicAIProviderDashboard: React.FC = () => {
           ⚡ <strong>Next Action:</strong>{" "}
           {dynamicProviders && dynamicProviders.missing_count > 0
             ? `Add ${dynamicProviders.missing_count} missing API keys to Railway for full provider coverage`
-            : `All providers configured - optimize usage with the ${activeProviders} active providers`}
+            : `All providers configured - optimize usage with the ${activeProvidersCount} active providers`}
         </div>
         <div>
           🔧 <strong>Environment:</strong>{" "}
@@ -1155,6 +1187,3 @@ const CleanDynamicAIProviderDashboard: React.FC = () => {
 };
 
 export default CleanDynamicAIProviderDashboard;
-function refreshAll() {
-  throw new Error("Function not implemented.");
-}
