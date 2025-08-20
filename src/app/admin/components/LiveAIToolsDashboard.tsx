@@ -1,3 +1,5 @@
+// src/app/admin/components/LiveAIToolsDashboard.tsx
+
 import React, { useState, useEffect, useCallback } from "react";
 import {
   Star,
@@ -22,7 +24,7 @@ import {
   Play,
   Pause,
 } from "lucide-react";
-import { useAiDiscoveryService } from "@/lib/ai-discovery-service";
+import { useEnhancedAiDiscoveryService } from "@/lib/ai-discovery-service";
 
 // 🆕 COMPLETELY DYNAMIC TYPES - NO HARDCODED DATA
 interface DynamicProvider {
@@ -76,22 +78,23 @@ interface Recommendation {
 
 const CleanDynamicAIProviderDashboard: React.FC = () => {
   const {
-    connectionStatus,
-    recommendations,
-    recentDiscoveries,
-    healthStatus,
     dashboardData,
-    providerStatus,
-    costAnalysis,
-    isLoading,
-    error,
-    isConnected,
-    hasRecommendations,
-    totalProviders,
-    healthyProviders,
-    testConnection,
-    refreshAll,
-  } = useAiDiscoveryService();
+    isLoading: aiLoading,
+    error: aiError,
+    loadDashboardData,
+    runDiscoveryScan,
+    discoveredSuggestions,
+    categoryStats,
+    summaryStats,
+    pendingSuggestions,
+    approvedSuggestions,
+    highPrioritySuggestions,
+    topProviders,
+    hasData,
+    hasActiveProviders,
+    hasPendingSuggestions,
+    isHealthy,
+  } = useEnhancedAiDiscoveryService();
 
   // 🎯 STATE MANAGEMENT - PURELY DYNAMIC
   const [sortField, setSortField] = useState<string>("overall_rating");
@@ -331,7 +334,7 @@ const CleanDynamicAIProviderDashboard: React.FC = () => {
     } finally {
       setDiscoveryInProgress(false);
     }
-  }, [refreshAll, fetchDynamicProviders]);
+  }, [fetchDynamicProviders]);
 
   // 🎨 UI COMPONENTS
   const StarRating: React.FC<{ rating: number; size?: string }> = ({
@@ -1152,3 +1155,6 @@ const CleanDynamicAIProviderDashboard: React.FC = () => {
 };
 
 export default CleanDynamicAIProviderDashboard;
+function refreshAll() {
+  throw new Error("Function not implemented.");
+}
