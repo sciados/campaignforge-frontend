@@ -1,4 +1,4 @@
-// src/lib/enhanced-ai-discovery-service.ts
+// src/lib/ai-discovery-service.ts
 /**
  * Enhanced AI Discovery Service API Client
  * 🎯 Supports Two-Table Architecture: Active Providers & Suggestions
