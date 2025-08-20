@@ -475,16 +475,33 @@ const AIPlatformDiscoveryDashboard: React.FC = () => {
 
                     {/* ✅ FIXED: Additional Providers in Category */}
                     {(() => {
-                      // Get the IDs of providers already shown in top 3
-                      const top3ProviderIds = new Set(
-                        category.top_3_providers.map((p) => p.id)
+                      // Get the provider names already shown in top 3 (more reliable than IDs)
+                      const top3ProviderNames = new Set(
+                        category.top_3_providers.map((p) => p.provider_name)
                       );
 
                       // Filter for providers in this category that are NOT in the top 3 display
                       const otherProviders = filteredActiveProviders.filter(
                         (p) =>
                           p.category === category.category &&
-                          !top3ProviderIds.has(p.id)
+                          !top3ProviderNames.has(p.provider_name)
+                      );
+
+                      // Debug logging
+                      console.log(`Category: ${category.category}`);
+                      console.log(
+                        "Top 3 provider names:",
+                        Array.from(top3ProviderNames)
+                      );
+                      console.log(
+                        "Filtered active providers for this category:",
+                        filteredActiveProviders
+                          .filter((p) => p.category === category.category)
+                          .map((p) => p.provider_name)
+                      );
+                      console.log(
+                        "Other providers:",
+                        otherProviders.map((p) => p.provider_name)
                       );
 
                       return (
