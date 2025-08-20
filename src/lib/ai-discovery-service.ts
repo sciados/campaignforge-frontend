@@ -91,13 +91,13 @@ class AiDiscoveryServiceClient {
                 // Flatten the grouped providers into a single array
                 let flatProviders: ActiveAIProvider[] = [];
 
-                Object.values(data.active_providers_by_category).forEach((categoryArray: any) => {
+                Object.entries(data.active_providers_by_category).forEach(([categoryKey, categoryArray]: [string, any]) => {
                     if (Array.isArray(categoryArray)) {
                         // Map API response to match TypeScript interface
                         const mappedProviders = categoryArray.map((provider: any) => ({
                             id: provider.id?.toString() || '',
                             provider_name: provider.provider_name || '',
-                            category: provider.category,  // ✅ FIXED: Use the category key instead of provider.category
+                            category: categoryKey as AIProviderCategory,  // ✅ FIXED: Cast to AIProviderCategory
                             category_rank: provider.category_rank || 1,
                             is_top_3: provider.is_top_3 || false,
                             env_var_name: provider.env_var_name || '',
@@ -124,9 +124,9 @@ class AiDiscoveryServiceClient {
                         }));
 
                         // ✅ ADDED: Debug log to check category mapping
-                        // console.log(`Mapping providers for category "${cat}":`, mappedProviders.map(p => `${p.provider_name} -> ${p.category}`));
+                        console.log(`Mapping providers for category "${categoryKey}":`, mappedProviders.map(p => `${p.provider_name} -> ${p.category}`));
 
-                        flatProviders = flatProviders.concat(mappedProviders);
+                        flatProviders = flatProviders.concat(mappedProviders as ActiveAIProvider[]);
                     }
                 });
 
