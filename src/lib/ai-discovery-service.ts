@@ -91,7 +91,7 @@ class AiDiscoveryServiceClient {
                 // Flatten the grouped providers into a single array
                 let flatProviders: ActiveAIProvider[] = [];
 
-                Object.entries(data.active_providers_by_category).forEach((categoryArray: any) => {
+                Object.values(data.active_providers_by_category).forEach((categoryArray: any) => {
                     if (Array.isArray(categoryArray)) {
                         // Map API response to match TypeScript interface
                         const mappedProviders = categoryArray.map((provider: any) => ({
