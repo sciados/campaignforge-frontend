@@ -78,7 +78,8 @@ class AiDiscoveryServiceClient {
      */
     async getActiveProviders(): Promise<ActiveAIProvider[]> {
         try {
-            const response = await fetch(`${this.backendUrl}/api/admin/ai-discovery/active-providers`, {
+            // ✅ FIXED: Add top_3_only=false to get ALL active providers
+            const response = await fetch(`${this.backendUrl}/api/admin/ai-discovery/active-providers?top_3_only=false`, {
                 method: 'GET',
                 headers: { 'Content-Type': 'application/json' },
             });
@@ -331,7 +332,7 @@ class AiDiscoveryServiceClient {
             const response = await fetch(`${this.backendUrl}/api/admin/ai-discovery/review-suggestion/${suggestionId}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(request),
+                body: JSON.stringify(request),  // ✅ Send as JSON body instead of URL params
             });
 
             return this.handleResponse(response);
@@ -622,7 +623,7 @@ export function useEnhancedAiDiscoveryService() {
             setError(null);
             const result = await client.reviewSuggestion(suggestionId, {
                 action,
-                admin_notes: adminNotes
+                admin_notes: adminNotes  // ✅ Fixed: Use admin_notes to match backend
             });
 
             // Update local state
