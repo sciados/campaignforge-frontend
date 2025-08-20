@@ -473,59 +473,69 @@ const AIPlatformDiscoveryDashboard: React.FC = () => {
                       ))}
                     </div>
 
-                    {/* Additional Providers in Category */}
-                    {filteredActiveProviders.filter(
-                      (p) => p.category === category.category && !p.is_top_3
-                    ).length > 0 && (
-                      <div className="mt-4">
-                        <h5 className="text-sm font-medium text-gray-700 mb-2">
-                          Other Providers
-                        </h5>
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                          {filteredActiveProviders
-                            .filter(
-                              (p) =>
-                                p.category === category.category && !p.is_top_3
-                            )
-                            .map((provider) => (
-                              <div
-                                key={provider.id}
-                                className="border border-gray-200 rounded-lg p-3 text-sm"
-                              >
-                                <div className="flex items-center justify-between">
-                                  <span className="font-medium">
-                                    {provider.provider_name}
-                                  </span>
-                                  <span className="text-xs text-gray-500">
-                                    {formatCost(provider.cost_per_1k_tokens)}
-                                  </span>
-                                </div>
-                                <div className="flex items-center justify-between mt-1">
-                                  <div className="flex items-center gap-1">
-                                    {Array.from({ length: 5 }).map((_, i) => (
-                                      <Star
-                                        key={i}
-                                        className={`w-2 h-2 ${
-                                          i < Math.floor(provider.quality_score)
-                                            ? "fill-yellow-400 text-yellow-400"
-                                            : "text-gray-300"
-                                        }`}
-                                      />
-                                    ))}
+                    {/* ✅ FIXED: Additional Providers in Category */}
+                    {(() => {
+                      // Get the IDs of providers already shown in top 3
+                      const top3ProviderIds = new Set(
+                        category.top_3_providers.map((p) => p.id)
+                      );
+
+                      // Filter for providers in this category that are NOT in the top 3 display
+                      const otherProviders = filteredActiveProviders.filter(
+                        (p) =>
+                          p.category === category.category &&
+                          !top3ProviderIds.has(p.id)
+                      );
+
+                      return (
+                        otherProviders.length > 0 && (
+                          <div className="mt-4">
+                            <h5 className="text-sm font-medium text-gray-700 mb-2">
+                              Other Providers ({otherProviders.length})
+                            </h5>
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                              {otherProviders.map((provider) => (
+                                <div
+                                  key={provider.id}
+                                  className="border border-gray-200 rounded-lg p-3 text-sm"
+                                >
+                                  <div className="flex items-center justify-between">
+                                    <span className="font-medium">
+                                      {provider.provider_name}
+                                    </span>
+                                    <span className="text-xs text-gray-500">
+                                      {formatCost(provider.cost_per_1k_tokens)}
+                                    </span>
                                   </div>
-                                  <span
-                                    className={`w-2 h-2 rounded-full ${
-                                      provider.is_active
-                                        ? "bg-green-500"
-                                        : "bg-gray-300"
-                                    }`}
-                                  ></span>
+                                  <div className="flex items-center justify-between mt-1">
+                                    <div className="flex items-center gap-1">
+                                      {Array.from({ length: 5 }).map((_, i) => (
+                                        <Star
+                                          key={i}
+                                          className={`w-2 h-2 ${
+                                            i <
+                                            Math.floor(provider.quality_score)
+                                              ? "fill-yellow-400 text-yellow-400"
+                                              : "text-gray-300"
+                                          }`}
+                                        />
+                                      ))}
+                                    </div>
+                                    <span
+                                      className={`w-2 h-2 rounded-full ${
+                                        provider.is_active
+                                          ? "bg-green-500"
+                                          : "bg-gray-300"
+                                      }`}
+                                    ></span>
+                                  </div>
                                 </div>
-                              </div>
-                            ))}
-                        </div>
-                      </div>
-                    )}
+                              ))}
+                            </div>
+                          </div>
+                        )
+                      );
+                    })()}
                   </div>
                 ))}
             </div>
