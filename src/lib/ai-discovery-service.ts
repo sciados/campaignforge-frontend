@@ -4,6 +4,7 @@
  * 🎯 Supports Two-Table Architecture: Active Providers & Suggestions
  * 🔍 Provider discovery, review workflow, and promotion system
  * ⚡ New endpoints for AI Platform Discovery Dashboard v2.0
+ * 🎛️ Provider enable/disable toggle functionality
  */
 
 import { useState, useCallback, useEffect, useMemo } from 'react'
@@ -78,7 +79,6 @@ class AiDiscoveryServiceClient {
      */
     async getActiveProviders(): Promise<ActiveAIProvider[]> {
         try {
-            // ✅ FIXED: Add top_3_only=false to get ALL active providers
             const response = await fetch(`${this.backendUrl}/api/admin/ai-discovery/active-providers?top_3_only=false`, {
                 method: 'GET',
                 headers: { 'Content-Type': 'application/json' },
@@ -86,18 +86,15 @@ class AiDiscoveryServiceClient {
 
             const data = await this.handleResponse<ActiveProvidersApiResponse>(response);
 
-            // ✅ FIX: Handle the actual API response structure
             if (data.active_providers_by_category) {
-                // Flatten the grouped providers into a single array
                 let flatProviders: ActiveAIProvider[] = [];
 
                 Object.entries(data.active_providers_by_category).forEach(([categoryKey, categoryArray]: [string, any]) => {
                     if (Array.isArray(categoryArray)) {
-                        // Map API response to match TypeScript interface
                         const mappedProviders = categoryArray.map((provider: any) => ({
                             id: provider.id?.toString() || '',
                             provider_name: provider.provider_name || '',
-                            category: categoryKey as AIProviderCategory,  // ✅ FIXED: Cast to AIProviderCategory
+                            category: categoryKey as AIProviderCategory,
                             category_rank: provider.category_rank || 1,
                             is_top_3: provider.is_top_3 || false,
                             env_var_name: provider.env_var_name || '',
@@ -123,9 +120,6 @@ class AiDiscoveryServiceClient {
                             updated_at: provider.updated_at || new Date().toISOString()
                         }));
 
-                        // ✅ ADDED: Debug log to check category mapping
-                        console.log(`Mapping providers for category "${categoryKey}":`, mappedProviders.map(p => `${p.provider_name} -> ${p.category}`));
-
                         flatProviders = flatProviders.concat(mappedProviders as ActiveAIProvider[]);
                     }
                 });
@@ -133,7 +127,6 @@ class AiDiscoveryServiceClient {
                 return flatProviders;
             }
 
-            // Fallback if the structure is different
             return Array.isArray(data) ? data : [];
 
         } catch (error) {
@@ -154,14 +147,11 @@ class AiDiscoveryServiceClient {
 
             const data = await this.handleResponse<DiscoveredSuggestionsApiResponse>(response);
 
-            // ✅ FIX: Handle the actual API response structure
             if (data.discovered_suggestions_by_category) {
-                // Flatten the grouped suggestions into a single array
                 let flatSuggestions: DiscoveredAIProvider[] = [];
 
                 Object.values(data.discovered_suggestions_by_category).forEach((categoryArray: any) => {
                     if (Array.isArray(categoryArray)) {
-                        // Map API response to match TypeScript interface
                         const mappedSuggestions = categoryArray.map((suggestion: any) => ({
                             id: suggestion.id?.toString() || '',
                             provider_name: suggestion.provider_name || '',
@@ -209,7 +199,6 @@ class AiDiscoveryServiceClient {
                 return flatSuggestions;
             }
 
-            // Fallback if the structure is different
             return Array.isArray(data) ? data : [];
 
         } catch (error) {
@@ -230,7 +219,6 @@ class AiDiscoveryServiceClient {
 
             const data = await this.handleResponse<any>(response);
 
-            // ✅ FIX: Map API response to match TypeScript interface
             if (Array.isArray(data)) {
                 return data.map((category: any) => ({
                     category: category.category || 'text_generation',
@@ -260,7 +248,7 @@ class AiDiscoveryServiceClient {
                     })),
                     total_monthly_cost: category.total_monthly_cost || 0,
                     avg_quality_score: category.avg_quality_score || 0,
-                    suggestion_count: 0, // Not provided by API
+                    suggestion_count: 0,
                     performance_metrics: {
                         avg_response_time: 2000,
                         total_monthly_usage: category.top_3_providers?.reduce((sum: number, p: any) => sum + (p.monthly_usage || 0), 0) || 0,
@@ -278,6 +266,65 @@ class AiDiscoveryServiceClient {
     }
 
     /**
+     * 🎛️ Toggle AI Provider Status (Enable/Disable)
+     */
+    async toggleProviderStatus(
+        providerId: string,
+        enabled: boolean
+    ): Promise<{
+        success: boolean;
+        message: string;
+        provider: ActiveAIProvider;
+    }> {
+        try {
+            const response = await fetch(`${this.backendUrl}/api/admin/ai-discovery/toggle-provider/${providerId}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ enabled }),
+            });
+
+            return this.handleResponse(response);
+        } catch (error) {
+            console.error('❌ Failed to toggle provider status:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * 🎛️ Bulk Toggle Multiple Providers
+     */
+    async bulkToggleProviders(
+        providerIds: string[],
+        enabled: boolean
+    ): Promise<{
+        success: boolean;
+        message: string;
+        updated_count: number;
+        failed_count: number;
+        results: Array<{
+            provider_id: string;
+            success: boolean;
+            message: string;
+        }>;
+    }> {
+        try {
+            const response = await fetch(`${this.backendUrl}/api/admin/ai-discovery/bulk-toggle-providers`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    provider_ids: providerIds,
+                    enabled
+                }),
+            });
+
+            return this.handleResponse(response);
+        } catch (error) {
+            console.error('❌ Failed to bulk toggle providers:', error);
+            throw error;
+        }
+    }
+
+    /**
      * Get complete dashboard data
      */
     async getDashboardData(): Promise<DiscoveryDashboardData> {
@@ -288,7 +335,6 @@ class AiDiscoveryServiceClient {
                 this.getCategoryRankings()
             ]);
 
-            // Now we can safely filter the flat arrays
             const pendingSuggestions = discoveredSuggestions.filter(s => s.review_status === 'pending');
             const highPrioritySuggestions = discoveredSuggestions.filter(s => s.recommendation_priority === 'high');
 
@@ -335,7 +381,7 @@ class AiDiscoveryServiceClient {
             const response = await fetch(`${this.backendUrl}/api/admin/ai-discovery/review-suggestion/${suggestionId}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(request),  // ✅ Send as JSON body instead of URL params
+                body: JSON.stringify(request),
             });
 
             return this.handleResponse(response);
@@ -410,29 +456,6 @@ class AiDiscoveryServiceClient {
     }
 
     /**
-     * Get AI analysis for a specific provider
-     */
-    async getProviderAnalysis(providerId: string): Promise<{
-        provider_id: string;
-        ai_analysis: any;
-        market_analysis: any;
-        competitive_analysis: any;
-        recommendation: string;
-    }> {
-        try {
-            const response = await fetch(`${this.backendUrl}/api/admin/ai-discovery/provider-analysis/${providerId}`, {
-                method: 'GET',
-                headers: { 'Content-Type': 'application/json' },
-            });
-
-            return this.handleResponse(response);
-        } catch (error) {
-            console.error('❌ Failed to get provider analysis:', error);
-            throw error;
-        }
-    }
-
-    /**
      * Bulk promote multiple suggestions
      */
     async bulkPromoteSuggestions(
@@ -494,33 +517,6 @@ export const enhancedDiscoveryUtils = {
         return colorMap[category] || 'gray';
     },
 
-    getPriorityColor: (priority: string): string => {
-        switch (priority) {
-            case 'high': return 'bg-red-100 text-red-800';
-            case 'medium': return 'bg-yellow-100 text-yellow-800';
-            case 'low': return 'bg-green-100 text-green-800';
-            default: return 'bg-gray-100 text-gray-800';
-        }
-    },
-
-    getIntegrationComplexityColor: (complexity: string): string => {
-        switch (complexity) {
-            case 'easy': return 'bg-green-100 text-green-800';
-            case 'medium': return 'bg-yellow-100 text-yellow-800';
-            case 'hard': return 'bg-red-100 text-red-800';
-            default: return 'bg-gray-100 text-gray-800';
-        }
-    },
-
-    getReviewStatusColor: (status: string): string => {
-        switch (status) {
-            case 'pending': return 'bg-yellow-100 text-yellow-800';
-            case 'approved': return 'bg-green-100 text-green-800';
-            case 'rejected': return 'bg-red-100 text-red-800';
-            default: return 'bg-gray-100 text-gray-800';
-        }
-    },
-
     formatCost: (cost: number): string => {
         if (cost < 0.001) return `$${(cost * 1000000).toFixed(1)}µ`;
         if (cost < 1) return `$${(cost * 1000).toFixed(3)}m`;
@@ -531,60 +527,6 @@ export const enhancedDiscoveryUtils = {
         if (usage > 1000000) return `${(usage / 1000000).toFixed(1)}M`;
         if (usage > 1000) return `${(usage / 1000).toFixed(1)}K`;
         return usage.toString();
-    },
-
-    getRankBadge: (rank: number): string => {
-        const badges = ['🥇', '🥈', '🥉'];
-        return badges[rank - 1] || `#${rank}`;
-    },
-
-    calculateCostSavings: (currentCost: number, newCost: number): {
-        savings: number;
-        percentage: number;
-        isSignificant: boolean;
-    } => {
-        const savings = currentCost - newCost;
-        const percentage = currentCost > 0 ? (savings / currentCost) * 100 : 0;
-        return {
-            savings,
-            percentage,
-            isSignificant: Math.abs(percentage) > 10
-        };
-    },
-
-    sortProvidersByRank: (providers: ActiveAIProvider[]): ActiveAIProvider[] => {
-        return [...providers].sort((a, b) => {
-            // Top 3 providers first
-            if (a.is_top_3 && !b.is_top_3) return -1;
-            if (!a.is_top_3 && b.is_top_3) return 1;
-
-            // Within top 3, sort by rank
-            if (a.is_top_3 && b.is_top_3) {
-                return a.category_rank - b.category_rank;
-            }
-
-            // For others, sort by quality score
-            return b.quality_score - a.quality_score;
-        });
-    },
-
-    filterSuggestionsByPriority: (
-        suggestions: DiscoveredAIProvider[],
-        priority?: string
-    ): DiscoveredAIProvider[] => {
-        if (!priority) return suggestions;
-        return suggestions.filter(s => s.recommendation_priority === priority);
-    },
-
-    groupProvidersByCategory: (providers: ActiveAIProvider[]): Record<string, ActiveAIProvider[]> => {
-        return providers.reduce((groups, provider) => {
-            const category = provider.category;
-            if (!groups[category]) {
-                groups[category] = [];
-            }
-            groups[category].push(provider);
-            return groups;
-        }, {} as Record<string, ActiveAIProvider[]>);
     }
 };
 
@@ -617,6 +559,57 @@ export function useEnhancedAiDiscoveryService() {
         }
     }, [client]);
 
+    const toggleProviderStatus = useCallback(async (
+        providerId: string,
+        enabled: boolean
+    ) => {
+        try {
+            setError(null);
+            const result = await client.toggleProviderStatus(providerId, enabled);
+
+            // Update local state
+            if (dashboardData) {
+                const updatedProviders = dashboardData.active_providers.map(provider =>
+                    provider.id === providerId
+                        ? { ...provider, is_active: enabled }
+                        : provider
+                );
+                setDashboardData({
+                    ...dashboardData,
+                    active_providers: updatedProviders
+                });
+            }
+
+            return result;
+        } catch (err) {
+            const errorMessage = err instanceof Error ? err.message : 'Failed to toggle provider status';
+            setError(errorMessage);
+            throw err;
+        }
+    }, [client, dashboardData]);
+
+    const bulkToggleProviders = useCallback(async (
+        providerIds: string[],
+        enabled: boolean
+    ) => {
+        try {
+            setIsLoading(true);
+            setError(null);
+            const result = await client.bulkToggleProviders(providerIds, enabled);
+
+            // Refresh dashboard data after bulk toggle
+            await loadDashboardData();
+
+            return result;
+        } catch (err) {
+            const errorMessage = err instanceof Error ? err.message : 'Failed to bulk toggle providers';
+            setError(errorMessage);
+            throw err;
+        } finally {
+            setIsLoading(false);
+        }
+    }, [client, loadDashboardData]);
+
     const reviewSuggestion = useCallback(async (
         suggestionId: string,
         action: 'approve' | 'reject',
@@ -626,7 +619,7 @@ export function useEnhancedAiDiscoveryService() {
             setError(null);
             const result = await client.reviewSuggestion(suggestionId, {
                 action,
-                admin_notes: adminNotes  // ✅ Fixed: Use admin_notes to match backend
+                admin_notes: adminNotes
             });
 
             // Update local state
@@ -751,6 +744,8 @@ export function useEnhancedAiDiscoveryService() {
 
         // Actions
         loadDashboardData,
+        toggleProviderStatus,
+        bulkToggleProviders,
         reviewSuggestion,
         promoteSuggestion,
         runDiscoveryScan,

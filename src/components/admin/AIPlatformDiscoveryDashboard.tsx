@@ -1,11 +1,4 @@
-// src/components/admin/AIPlatformDiscoveryDashboard.tsx
-/**
- * AI Platform Discovery Dashboard v2.0
- * 🎯 Two-table system: Active Providers (Table 1) & Suggestions (Table 2)
- * 🔍 AI-powered provider discovery with review workflow
- * 📊 Category-based organization with top 3 rankings
- * ⚡ Suggestion promotion workflow (Table 2 → Table 1)
- */
+// Updated AIPlatformDiscoveryDashboard.tsx with toggle functionality
 
 import React, { useState } from "react";
 import {
@@ -33,8 +26,13 @@ import {
   Cpu,
   Filter,
   ImageIcon,
+  Power,
+  PowerOff,
+  ToggleLeft,
+  ToggleRight,
 } from "lucide-react";
 import { useEnhancedAiDiscoveryService } from "@/lib/ai-discovery-service";
+import { ToggleSwitch } from "@/components/ui/toggle-switch";
 import type {
   ActiveAIProvider,
   DiscoveredAIProvider,
@@ -44,7 +42,7 @@ import type {
 } from "@/lib/types/ai-discovery";
 
 const AIPlatformDiscoveryDashboard: React.FC = () => {
-  // Use the enhanced service hook instead of local state
+  // Use the enhanced service hook
   const {
     dashboardData,
     isLoading,
@@ -54,6 +52,8 @@ const AIPlatformDiscoveryDashboard: React.FC = () => {
     reviewSuggestion,
     promoteSuggestion,
     runDiscoveryScan,
+    toggleProviderStatus, // 🆕 NEW: Toggle functionality
+    bulkToggleProviders, // 🆕 NEW: Bulk toggle
     activeProviders,
     discoveredSuggestions,
     categoryStats,
@@ -68,8 +68,88 @@ const AIPlatformDiscoveryDashboard: React.FC = () => {
   const [activeTab, setActiveTab] = useState<"active" | "suggestions">(
     "active"
   );
+  const [bulkSelectMode, setBulkSelectMode] = useState(false);
+  const [selectedProviders, setSelectedProviders] = useState<Set<string>>(
+    new Set()
+  );
+  const [toggleLoading, setToggleLoading] = useState<Set<string>>(new Set());
 
-  // Handle review suggestion
+  // 🎛️ Handle individual provider toggle
+  const handleToggleProvider = async (
+    providerId: string,
+    currentStatus: boolean
+  ) => {
+    try {
+      setToggleLoading((prev) => new Set(Array.from(prev).concat(providerId)));
+
+      await toggleProviderStatus(providerId, !currentStatus);
+
+      // Show success message
+      const action = currentStatus ? "disabled" : "enabled";
+      const provider = activeProviders.find((p) => p.id === providerId);
+      alert(
+        `✅ ${provider?.provider_name || "Provider"} ${action} successfully!`
+      );
+    } catch (error) {
+      console.error("Toggle failed:", error);
+      alert(
+        `❌ Failed to toggle provider: ${
+          error instanceof Error ? error.message : "Unknown error"
+        }`
+      );
+    } finally {
+      setToggleLoading((prev) => {
+        const newSet = new Set(prev);
+        newSet.delete(providerId);
+        return newSet;
+      });
+    }
+  };
+
+  // 🔄 Handle bulk toggle
+  const handleBulkToggle = async (enabled: boolean) => {
+    if (selectedProviders.size === 0) {
+      alert("Please select providers to toggle");
+      return;
+    }
+
+    try {
+      setToggleLoading(new Set(selectedProviders));
+
+      await bulkToggleProviders(Array.from(selectedProviders), enabled);
+
+      const action = enabled ? "enabled" : "disabled";
+      alert(`✅ ${selectedProviders.size} providers ${action} successfully!`);
+
+      // Clear selection
+      setSelectedProviders(new Set());
+      setBulkSelectMode(false);
+    } catch (error) {
+      console.error("Bulk toggle failed:", error);
+      alert(
+        `❌ Bulk toggle failed: ${
+          error instanceof Error ? error.message : "Unknown error"
+        }`
+      );
+    } finally {
+      setToggleLoading(new Set());
+    }
+  };
+
+  // 📋 Handle bulk selection
+  const handleSelectProvider = (providerId: string) => {
+    setSelectedProviders((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(providerId)) {
+        newSet.delete(providerId);
+      } else {
+        newSet.add(providerId);
+      }
+      return newSet;
+    });
+  };
+
+  // Handle review suggestion (existing)
   const handleReviewSuggestion = async (
     suggestionId: string,
     action: "approve" | "reject",
@@ -82,7 +162,7 @@ const AIPlatformDiscoveryDashboard: React.FC = () => {
     }
   };
 
-  // Handle promote suggestion
+  // Handle promote suggestion (existing)
   const handlePromoteSuggestion = async (
     suggestionId: string,
     apiKey?: string
@@ -94,7 +174,7 @@ const AIPlatformDiscoveryDashboard: React.FC = () => {
     }
   };
 
-  // Handle discovery scan
+  // Handle discovery scan (existing)
   const handleDiscoveryScan = async () => {
     try {
       await runDiscoveryScan();
@@ -103,7 +183,7 @@ const AIPlatformDiscoveryDashboard: React.FC = () => {
     }
   };
 
-  // Helper functions
+  // Helper functions (existing)
   const getCategoryIcon = (category: string) => {
     switch (category) {
       case "text_generation":
@@ -308,6 +388,49 @@ const AIPlatformDiscoveryDashboard: React.FC = () => {
             <option value="multimodal">Multimodal</option>
           </select>
 
+          {/* 🆕 Bulk Operations Toggle */}
+          {activeTab === "active" && (
+            <div className="flex items-center gap-2 ml-auto">
+              <button
+                onClick={() => {
+                  setBulkSelectMode(!bulkSelectMode);
+                  setSelectedProviders(new Set());
+                }}
+                className={`px-3 py-1 rounded text-sm transition-colors ${
+                  bulkSelectMode
+                    ? "bg-blue-600 text-white"
+                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                }`}
+              >
+                {bulkSelectMode ? "Exit Bulk Mode" : "Bulk Operations"}
+              </button>
+
+              {bulkSelectMode && selectedProviders.size > 0 && (
+                <>
+                  <span className="text-sm text-gray-600">
+                    {selectedProviders.size} selected
+                  </span>
+                  <button
+                    onClick={() => handleBulkToggle(true)}
+                    disabled={toggleLoading.size > 0}
+                    className="bg-green-600 text-white px-3 py-1 rounded text-sm hover:bg-green-700 transition-colors disabled:opacity-50 flex items-center gap-1"
+                  >
+                    <Power className="w-3 h-3" />
+                    Enable All
+                  </button>
+                  <button
+                    onClick={() => handleBulkToggle(false)}
+                    disabled={toggleLoading.size > 0}
+                    className="bg-red-600 text-white px-3 py-1 rounded text-sm hover:bg-red-700 transition-colors disabled:opacity-50 flex items-center gap-1"
+                  >
+                    <PowerOff className="w-3 h-3" />
+                    Disable All
+                  </button>
+                </>
+              )}
+            </div>
+          )}
+
           <div className="flex items-center gap-2 text-sm text-gray-600">
             <Filter className="w-4 h-4" />
             Showing{" "}
@@ -396,6 +519,23 @@ const AIPlatformDiscoveryDashboard: React.FC = () => {
                           key={provider.id}
                           className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow"
                         >
+                          {/* 🆕 Bulk Selection Checkbox */}
+                          {bulkSelectMode && (
+                            <div className="flex items-center justify-between mb-3">
+                              <input
+                                type="checkbox"
+                                checked={selectedProviders.has(provider.id)}
+                                onChange={() =>
+                                  handleSelectProvider(provider.id)
+                                }
+                                className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500"
+                              />
+                              <span className="text-xs text-gray-500">
+                                Select
+                              </span>
+                            </div>
+                          )}
+
                           <div className="flex items-start justify-between mb-3">
                             <div>
                               <div className="flex items-center gap-2">
@@ -426,6 +566,32 @@ const AIPlatformDiscoveryDashboard: React.FC = () => {
                                 {provider.quality_score.toFixed(1)}
                               </span>
                             </div>
+                          </div>
+
+                          {/* 🆕 Provider Status Toggle */}
+                          <div className="mb-3 p-2 bg-gray-50 rounded-lg">
+                            <div className="flex items-center justify-between">
+                              <span className="text-sm font-medium text-gray-700">
+                                Provider Status
+                              </span>
+                              <ToggleSwitch
+                                enabled={provider.is_active}
+                                onToggle={() =>
+                                  handleToggleProvider(
+                                    provider.id,
+                                    provider.is_active
+                                  )
+                                }
+                                disabled={toggleLoading.has(provider.id)}
+                                loading={toggleLoading.has(provider.id)}
+                                size="sm"
+                              />
+                            </div>
+                            <p className="text-xs text-gray-500 mt-1">
+                              {provider.is_active
+                                ? "✅ Active & receiving requests"
+                                : "⏸️ Disabled - not in use"}
+                            </p>
                           </div>
 
                           <div className="space-y-2 mb-3">
@@ -473,44 +639,18 @@ const AIPlatformDiscoveryDashboard: React.FC = () => {
                       ))}
                     </div>
 
-                    {/* ✅ FIXED: Additional Providers in Category */}
+                    {/* Additional Providers in Category */}
                     {(() => {
-                      // Get ALL providers in this specific category from the active providers list
                       const categoryProviders = filteredActiveProviders.filter(
                         (p) => p.category === category.category
                       );
 
-                      // Get the provider names already shown in top 3
                       const top3ProviderNames = new Set(
                         category.top_3_providers.map((p) => p.provider_name)
                       );
 
-                      // Filter for providers in this category that are NOT in the top 3 display
                       const otherProviders = categoryProviders.filter(
                         (p) => !top3ProviderNames.has(p.provider_name)
-                      );
-
-                      // Debug logging
-                      console.log(`\n=== Category: ${category.category} ===`);
-                      console.log(
-                        "Category active_count:",
-                        category.active_count
-                      );
-                      console.log(
-                        "Top 3 provider names:",
-                        Array.from(top3ProviderNames)
-                      );
-                      console.log(
-                        "All providers in this category:",
-                        categoryProviders.map(
-                          (p) => `${p.provider_name} (id: ${p.id})`
-                        )
-                      );
-                      console.log(
-                        "Other providers after filtering:",
-                        otherProviders.map(
-                          (p) => `${p.provider_name} (id: ${p.id})`
-                        )
                       );
 
                       return (
@@ -525,7 +665,23 @@ const AIPlatformDiscoveryDashboard: React.FC = () => {
                                   key={`other-${provider.id}-${provider.category}`}
                                   className="border border-gray-200 rounded-lg p-3 text-sm"
                                 >
-                                  <div className="flex items-center justify-between">
+                                  {/* 🆕 Bulk Selection for Other Providers */}
+                                  {bulkSelectMode && (
+                                    <div className="flex items-center justify-between mb-2">
+                                      <input
+                                        type="checkbox"
+                                        checked={selectedProviders.has(
+                                          provider.id
+                                        )}
+                                        onChange={() =>
+                                          handleSelectProvider(provider.id)
+                                        }
+                                        className="w-3 h-3 text-blue-600 bg-gray-100 border-gray-300 rounded"
+                                      />
+                                    </div>
+                                  )}
+
+                                  <div className="flex items-center justify-between mb-2">
                                     <span className="font-medium">
                                       {provider.provider_name}
                                     </span>
@@ -533,7 +689,9 @@ const AIPlatformDiscoveryDashboard: React.FC = () => {
                                       {formatCost(provider.cost_per_1k_tokens)}
                                     </span>
                                   </div>
-                                  <div className="flex items-center justify-between mt-1">
+
+                                  {/* 🆕 Mini Toggle for Other Providers */}
+                                  <div className="flex items-center justify-between mb-2">
                                     <div className="flex items-center gap-1">
                                       {Array.from({ length: 5 }).map((_, i) => (
                                         <Star
@@ -547,14 +705,23 @@ const AIPlatformDiscoveryDashboard: React.FC = () => {
                                         />
                                       ))}
                                     </div>
-                                    <span
-                                      className={`w-2 h-2 rounded-full ${
-                                        provider.is_active
-                                          ? "bg-green-500"
-                                          : "bg-gray-300"
-                                      }`}
-                                    ></span>
+                                    <ToggleSwitch
+                                      enabled={provider.is_active}
+                                      onToggle={() =>
+                                        handleToggleProvider(
+                                          provider.id,
+                                          provider.is_active
+                                        )
+                                      }
+                                      disabled={toggleLoading.has(provider.id)}
+                                      loading={toggleLoading.has(provider.id)}
+                                      size="sm"
+                                    />
                                   </div>
+
+                                  <p className="text-xs text-gray-500">
+                                    {provider.is_active ? "Active" : "Disabled"}
+                                  </p>
                                 </div>
                               ))}
                             </div>
@@ -566,8 +733,8 @@ const AIPlatformDiscoveryDashboard: React.FC = () => {
                 ))}
             </div>
           ) : (
+            // Suggestions Tab (existing content)
             <div className="space-y-4">
-              {/* Suggestions List */}
               {filteredSuggestions.length === 0 ? (
                 <div className="text-center py-12">
                   <Lightbulb className="w-12 h-12 text-gray-400 mx-auto mb-4" />
@@ -592,6 +759,7 @@ const AIPlatformDiscoveryDashboard: React.FC = () => {
                     key={suggestion.id}
                     className="border border-gray-200 rounded-lg p-6 hover:shadow-md transition-shadow"
                   >
+                    {/* Suggestion content - keeping existing implementation */}
                     <div className="flex items-start justify-between mb-4">
                       <div className="flex items-start gap-4">
                         <div
@@ -857,8 +1025,16 @@ const AIPlatformDiscoveryDashboard: React.FC = () => {
             </h3>
             <div className="text-sm text-blue-800 space-y-1">
               <p>
-                • {activeProviders.filter((p) => p.is_top_3).length} top-tier
-                providers active
+                •{" "}
+                {
+                  activeProviders.filter((p) => p.is_top_3 && p.is_active)
+                    .length
+                }{" "}
+                top-tier providers enabled
+              </p>
+              <p>
+                • {activeProviders.filter((p) => p.is_active).length}/
+                {activeProviders.length} total providers enabled
               </p>
               <p>
                 • {categoryStats.filter((c) => c.active_count > 0).length}/5
@@ -919,6 +1095,121 @@ const AIPlatformDiscoveryDashboard: React.FC = () => {
                 ultra-low-cost options available
               </p>
             </div>
+          </div>
+        </div>
+
+        {/* 🆕 Quick Toggle Summary */}
+        {bulkSelectMode && (
+          <div className="mt-6 pt-4 border-t border-blue-200">
+            <div className="flex items-center justify-between">
+              <div>
+                <h4 className="font-medium text-blue-900">
+                  Bulk Operations Mode
+                </h4>
+                <p className="text-sm text-blue-700">
+                  Select providers above to enable/disable multiple providers at
+                  once
+                </p>
+              </div>
+              <div className="flex items-center gap-4">
+                <span className="text-sm text-blue-800">
+                  {selectedProviders.size} providers selected
+                </span>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => {
+                      // Select all visible providers
+                      const allVisible = new Set(
+                        filteredActiveProviders.map((p) => p.id)
+                      );
+                      setSelectedProviders(allVisible);
+                    }}
+                    className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded hover:bg-blue-200"
+                  >
+                    Select All Visible
+                  </button>
+                  <button
+                    onClick={() => setSelectedProviders(new Set())}
+                    className="text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded hover:bg-gray-200"
+                  >
+                    Clear Selection
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* 🆕 Provider Status Overview */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="bg-white border border-gray-200 rounded-lg p-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-gray-600">Enabled Providers</p>
+              <p className="text-2xl font-bold text-green-600">
+                {activeProviders.filter((p) => p.is_active).length}
+              </p>
+              <p className="text-xs text-gray-500">
+                {activeProviders.length > 0
+                  ? Math.round(
+                      (activeProviders.filter((p) => p.is_active).length /
+                        activeProviders.length) *
+                        100
+                    )
+                  : 0}
+                % of total
+              </p>
+            </div>
+            <Power className="w-6 h-6 text-green-600" />
+          </div>
+        </div>
+
+        <div className="bg-white border border-gray-200 rounded-lg p-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-gray-600">Disabled Providers</p>
+              <p className="text-2xl font-bold text-red-600">
+                {activeProviders.filter((p) => !p.is_active).length}
+              </p>
+              <p className="text-xs text-gray-500">Not currently in use</p>
+            </div>
+            <PowerOff className="w-6 h-6 text-red-600" />
+          </div>
+        </div>
+
+        <div className="bg-white border border-gray-200 rounded-lg p-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-gray-600">Top 3 Enabled</p>
+              <p className="text-2xl font-bold text-blue-600">
+                {
+                  activeProviders.filter((p) => p.is_top_3 && p.is_active)
+                    .length
+                }
+              </p>
+              <p className="text-xs text-gray-500">Premium performers</p>
+            </div>
+            <Star className="w-6 h-6 text-blue-600" />
+          </div>
+        </div>
+
+        <div className="bg-white border border-gray-200 rounded-lg p-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-gray-600">Categories Active</p>
+              <p className="text-2xl font-bold text-purple-600">
+                {
+                  new Set(
+                    activeProviders
+                      .filter((p) => p.is_active)
+                      .map((p) => p.category)
+                  ).size
+                }
+              </p>
+              <p className="text-xs text-gray-500">Out of 5 categories</p>
+            </div>
+            <Brain className="w-6 h-6 text-purple-600" />
           </div>
         </div>
       </div>
