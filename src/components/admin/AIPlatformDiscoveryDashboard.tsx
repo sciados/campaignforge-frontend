@@ -475,33 +475,42 @@ const AIPlatformDiscoveryDashboard: React.FC = () => {
 
                     {/* ✅ FIXED: Additional Providers in Category */}
                     {(() => {
-                      // Get the provider names already shown in top 3 (more reliable than IDs)
+                      // Get ALL providers in this specific category from the active providers list
+                      const categoryProviders = filteredActiveProviders.filter(
+                        (p) => p.category === category.category
+                      );
+
+                      // Get the provider names already shown in top 3
                       const top3ProviderNames = new Set(
                         category.top_3_providers.map((p) => p.provider_name)
                       );
 
                       // Filter for providers in this category that are NOT in the top 3 display
-                      const otherProviders = filteredActiveProviders.filter(
-                        (p) =>
-                          p.category === category.category &&
-                          !top3ProviderNames.has(p.provider_name)
+                      const otherProviders = categoryProviders.filter(
+                        (p) => !top3ProviderNames.has(p.provider_name)
                       );
 
                       // Debug logging
-                      console.log(`Category: ${category.category}`);
+                      console.log(`\n=== Category: ${category.category} ===`);
+                      console.log(
+                        "Category active_count:",
+                        category.active_count
+                      );
                       console.log(
                         "Top 3 provider names:",
                         Array.from(top3ProviderNames)
                       );
                       console.log(
-                        "Filtered active providers for this category:",
-                        filteredActiveProviders
-                          .filter((p) => p.category === category.category)
-                          .map((p) => p.provider_name)
+                        "All providers in this category:",
+                        categoryProviders.map(
+                          (p) => `${p.provider_name} (id: ${p.id})`
+                        )
                       );
                       console.log(
-                        "Other providers:",
-                        otherProviders.map((p) => p.provider_name)
+                        "Other providers after filtering:",
+                        otherProviders.map(
+                          (p) => `${p.provider_name} (id: ${p.id})`
+                        )
                       );
 
                       return (
@@ -513,7 +522,7 @@ const AIPlatformDiscoveryDashboard: React.FC = () => {
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                               {otherProviders.map((provider) => (
                                 <div
-                                  key={provider.id}
+                                  key={`other-${provider.id}-${provider.category}`}
                                   className="border border-gray-200 rounded-lg p-3 text-sm"
                                 >
                                   <div className="flex items-center justify-between">
