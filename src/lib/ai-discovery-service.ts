@@ -315,7 +315,7 @@ class AiDiscoveryServiceClient {
     }
 
     /**
-     * Get category rankings (top 3 per category)
+     * Get category rankings (top 3 per category) - FIXED for correct API structure
      */
     async getCategoryRankings(): Promise<CategoryStats[]> {
         try {
@@ -324,46 +324,83 @@ class AiDiscoveryServiceClient {
                 headers: { 'Content-Type': 'application/json' },
             });
 
-            const data = await this.handleResponse<any>(response);
+            const data = await this.handleResponse<{
+                success: boolean;
+                category_rankings: Record<string, Array<{
+                    rank: number;
+                    provider_name: string;
+                    quality_score: number;
+                    cost_per_1k_tokens: number | null;
+                    primary_model: string;
+                    is_active: boolean;
+                }>>;
+                total_categories: number;
+                total_top_providers: number;
+            }>(response);
 
-            if (Array.isArray(data)) {
-                return data.map((category: any) => ({
-                    category: category.category || 'text_generation',
-                    active_count: category.active_count || 0,
-                    top_3_providers: (category.top_3_providers || []).map((provider: any) => ({
-                        id: provider.id?.toString() || '',
-                        provider_name: provider.provider_name || '',
-                        category: provider.category || 'text_generation',
-                        category_rank: provider.category_rank || 1,
-                        is_top_3: provider.is_top_3 || true,
-                        env_var_name: provider.env_var_name || '',
-                        api_endpoint: provider.api_endpoint || '',
-                        cost_per_1k_tokens: provider.cost_per_1k_tokens || 0,
-                        quality_score: provider.quality_score || 0,
-                        response_time_ms: provider.response_time_ms || 0,
-                        monthly_usage: provider.monthly_usage || 0,
-                        last_tested: provider.last_performance_check || new Date().toISOString(),
-                        is_active: provider.is_active || false,
-                        ai_analysis: {
-                            strengths: [],
-                            weaknesses: [],
-                            use_cases: [],
-                            competitive_edge: 'Top performer in category'
-                        },
-                        created_at: provider.created_at || new Date().toISOString(),
-                        updated_at: provider.updated_at || new Date().toISOString()
-                    })),
-                    total_monthly_cost: category.total_monthly_cost || 0,
-                    avg_quality_score: category.avg_quality_score || 0,
-                    suggestion_count: 0,
-                    performance_metrics: {
-                        avg_response_time: 2000,
-                        total_monthly_usage: category.top_3_providers?.reduce((sum: number, p: any) => sum + (p.monthly_usage || 0), 0) || 0,
-                        cost_per_category: category.total_monthly_cost || 0
+            if (data.success && data.category_rankings) {
+                console.log('🔍 Raw category rankings:', data.category_rankings);
+
+                const categoryStats: CategoryStats[] = [];
+
+                // 🚨 FIXED: Parse the actual API structure
+                Object.entries(data.category_rankings).forEach(([categoryKey, providers]) => {
+                    if (Array.isArray(providers) && providers.length > 0) {
+                        // Map providers to the expected ActiveAIProvider format
+                        const top3Providers: ActiveAIProvider[] = providers.map((provider, index) => ({
+                            id: `${categoryKey}-${index}`, // Generate ID since API doesn't provide it
+                            provider_name: provider.provider_name,
+                            category: categoryKey as AIProviderCategory,
+                            category_rank: provider.rank,
+                            is_top_3: provider.rank <= 3,
+                            env_var_name: `${provider.provider_name.toUpperCase().replace(/\s+/g, '_')}_API_KEY`,
+                            api_endpoint: '',
+                            cost_per_1k_tokens: provider.cost_per_1k_tokens || 0,
+                            quality_score: provider.quality_score,
+                            response_time_ms: 1000, // Default value
+                            monthly_usage: 10000, // Default value
+                            last_tested: new Date().toISOString(),
+                            is_active: provider.is_active,
+                            ai_analysis: {
+                                strengths: [`Top ${provider.rank} in ${categoryKey.replace('_', ' ')}`],
+                                weaknesses: [],
+                                use_cases: [provider.primary_model],
+                                competitive_edge: `Rank ${provider.rank} performer in ${categoryKey.replace('_', ' ')} category`,
+                                performance_metrics: {
+                                    reliability_score: provider.quality_score / 5,
+                                    speed_score: 0.8,
+                                    cost_efficiency: provider.cost_per_1k_tokens ? Math.max(0, 1 - provider.cost_per_1k_tokens / 0.01) : 0.8
+                                }
+                            },
+                            created_at: new Date().toISOString(),
+                            updated_at: new Date().toISOString()
+                        }));
+
+                        // Calculate category totals
+                        const totalCost = top3Providers.reduce((sum, p) => sum + (p.cost_per_1k_tokens * p.monthly_usage / 1000), 0);
+                        const avgQuality = top3Providers.reduce((sum, p) => sum + p.quality_score, 0) / top3Providers.length;
+
+                        categoryStats.push({
+                            category: categoryKey as AIProviderCategory,
+                            active_count: top3Providers.filter(p => p.is_active).length,
+                            top_3_providers: top3Providers,
+                            total_monthly_cost: totalCost,
+                            avg_quality_score: avgQuality,
+                            suggestion_count: 0, // Will be filled from other endpoints
+                            performance_metrics: {
+                                avg_response_time: 1000,
+                                total_monthly_usage: top3Providers.reduce((sum, p) => sum + p.monthly_usage, 0),
+                                cost_per_category: totalCost
+                            }
+                        });
                     }
-                }));
+                });
+
+                console.log('✅ Processed category stats:', categoryStats);
+                return categoryStats;
             }
 
+            console.warn('⚠️ Category rankings API response missing expected structure');
             return [];
 
         } catch (error) {
