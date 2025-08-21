@@ -243,7 +243,7 @@ class AiDiscoveryServiceClient {
     }
 
     /**
-     * Get discovered suggestions (Table 2)
+     * Get discovered suggestions (Table 2) - FIXED for correct API structure
      */
     async getDiscoveredSuggestions(): Promise<DiscoveredAIProvider[]> {
         try {
@@ -252,61 +252,82 @@ class AiDiscoveryServiceClient {
                 headers: { 'Content-Type': 'application/json' },
             });
 
-            const data = await this.handleResponse<DiscoveredSuggestionsApiResponse>(response);
+            const data = await this.handleResponse<{
+                success: boolean;
+                suggestions: Array<{
+                    id: number;
+                    provider_name: string;
+                    suggested_env_var_name: string;
+                    category: string;
+                    use_type: string;
+                    estimated_cost_per_1k_tokens: number | null;
+                    estimated_quality_score: number;
+                    website_url: string;
+                    recommendation_priority: string;
+                    unique_features: string;
+                    research_notes: string;
+                    discovered_date: string;
+                }>;
+                total_count: number;
+                filter: any;
+            }>(response);
 
-            if (data.discovered_suggestions_by_category) {
-                let flatSuggestions: DiscoveredAIProvider[] = [];
+            if (data.success && Array.isArray(data.suggestions)) {
+                console.log('🔍 Raw discovered suggestions:', data.suggestions);
 
-                Object.values(data.discovered_suggestions_by_category).forEach((categoryArray: any) => {
-                    if (Array.isArray(categoryArray)) {
-                        const mappedSuggestions = categoryArray.map((suggestion: any) => ({
-                            id: suggestion.id?.toString() || '',
-                            provider_name: suggestion.provider_name || '',
-                            category: suggestion.category || 'text_generation',
-                            discovery_source: suggestion.discovery_source || 'web_research',
-                            recommendation_priority: suggestion.recommendation_priority || 'medium',
-                            estimated_cost_per_1k: suggestion.estimated_cost_per_1k_tokens || 0,
-                            estimated_quality: suggestion.estimated_quality_score || 0,
-                            unique_features: suggestion.unique_features ?
-                                (typeof suggestion.unique_features === 'string' ?
-                                    JSON.parse(suggestion.unique_features.replace(/'/g, '"')) :
-                                    suggestion.unique_features) : [],
-                            market_positioning: suggestion.use_type || 'general',
-                            competitive_advantages: suggestion.unique_features ?
-                                (typeof suggestion.unique_features === 'string' ?
-                                    JSON.parse(suggestion.unique_features.replace(/'/g, '"')) :
-                                    suggestion.unique_features) : [],
-                            integration_complexity: 'medium' as IntegrationComplexity,
-                            review_status: 'pending' as ReviewStatus,
-                            admin_notes: suggestion.research_notes || '',
-                            ai_analysis: {
-                                market_gap: `Potential gap in ${suggestion.category} category`,
-                                adoption_recommendation: `Consider for ${suggestion.recommendation_priority} priority adoption`,
-                                risk_assessment: 'Standard integration risk - API based',
-                                implementation_timeline: '1-2 weeks',
-                                potential_impact: {
-                                    cost_savings_estimate: suggestion.estimated_cost_per_1k_tokens ?
-                                        Math.max(0, 0.001 - suggestion.estimated_cost_per_1k_tokens) * 1000000 : 0,
-                                    performance_improvement: suggestion.estimated_quality_score || 0,
-                                    new_capabilities: suggestion.unique_features ?
-                                        (typeof suggestion.unique_features === 'string' ?
-                                            JSON.parse(suggestion.unique_features.replace(/'/g, '"')) :
-                                            suggestion.unique_features) : []
-                                }
-                            },
-                            discovered_at: suggestion.discovered_date || new Date().toISOString(),
-                            reviewed_at: undefined,
-                            promoted_at: undefined
-                        }));
-
-                        flatSuggestions = flatSuggestions.concat(mappedSuggestions);
+                const mappedSuggestions: DiscoveredAIProvider[] = data.suggestions.map((suggestion) => {
+                    // Parse unique_features JSON string
+                    let uniqueFeatures: string[] = [];
+                    try {
+                        if (suggestion.unique_features) {
+                            uniqueFeatures = typeof suggestion.unique_features === 'string'
+                                ? JSON.parse(suggestion.unique_features.replace(/'/g, '"'))
+                                : suggestion.unique_features;
+                        }
+                    } catch (e) {
+                        console.warn('Failed to parse unique_features:', suggestion.unique_features);
+                        uniqueFeatures = [];
                     }
+
+                    return {
+                        id: suggestion.id.toString(),
+                        provider_name: suggestion.provider_name,
+                        category: suggestion.category as AIProviderCategory,
+                        discovery_source: 'ai_research',
+                        recommendation_priority: suggestion.recommendation_priority as RecommendationPriority,
+                        estimated_cost_per_1k: suggestion.estimated_cost_per_1k_tokens || 0,
+                        estimated_quality: suggestion.estimated_quality_score || 0,
+                        unique_features: uniqueFeatures,
+                        market_positioning: suggestion.use_type || 'general',
+                        competitive_advantages: uniqueFeatures, // Use same as unique_features for now
+                        integration_complexity: 'medium' as IntegrationComplexity,
+                        review_status: 'pending' as ReviewStatus,
+                        admin_notes: suggestion.research_notes || '',
+                        ai_analysis: {
+                            market_gap: `Potential opportunity in ${suggestion.category} category`,
+                            adoption_recommendation: `Consider for ${suggestion.recommendation_priority} priority adoption`,
+                            risk_assessment: 'Standard integration risk - API based',
+                            implementation_timeline: suggestion.recommendation_priority === 'high' ? '1-2 weeks' : '2-4 weeks',
+                            potential_impact: {
+                                cost_savings_estimate: suggestion.estimated_cost_per_1k_tokens
+                                    ? Math.max(0, 0.001 - suggestion.estimated_cost_per_1k_tokens) * 1000000
+                                    : 0,
+                                performance_improvement: suggestion.estimated_quality_score || 0,
+                                new_capabilities: uniqueFeatures
+                            }
+                        },
+                        discovered_at: suggestion.discovered_date,
+                        reviewed_at: undefined,
+                        promoted_at: undefined
+                    };
                 });
 
-                return flatSuggestions;
+                console.log('✅ Processed discovered suggestions:', mappedSuggestions);
+                return mappedSuggestions;
             }
 
-            return Array.isArray(data) ? data : [];
+            console.warn('⚠️ Discovered suggestions API response missing expected structure');
+            return [];
 
         } catch (error) {
             console.error('❌ Failed to fetch discovered suggestions:', error);
