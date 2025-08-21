@@ -50,26 +50,36 @@ interface DiscoveredSuggestionsApiResponse {
     next_steps: string[];
 }
 
-// 🚨 NEW: Dashboard API Response Type
+// 🚨 FIXED: Correct Dashboard API Response Type
 interface DashboardApiResponse {
     success: boolean;
-    dashboard_data: {
-        summary_stats: {
-            total_active: number;
-            pending_suggestions: number;
-            high_priority_suggestions: number;
-            monthly_cost: number;
-            avg_quality_score: number;
-            categories_covered: number;
-            total_monthly_usage: number;
+    dashboard: {
+        active_providers: {
+            by_category: Array<{
+                category: string;
+                total: number;
+                active: number;
+                top_3: number;
+            }>;
+            total: number;
         };
-        system_health: {
-            overall_status: string;
-            active_providers_healthy: number;
-            total_providers: number;
-            last_health_check: string;
+        discovered_providers: {
+            by_category: Array<{
+                category: string;
+                total: number;
+                high_priority: number;
+            }>;
+            total: number;
         };
-        last_updated: string;
+        recent_discoveries: Array<{
+            id: number;
+            provider_name: string;
+            category: string;
+            recommendation_priority: string;
+            discovered_date: string;
+        }>;
+        system_status: string;
+        last_discovery_cycle: string;
     };
 }
 
@@ -99,7 +109,7 @@ class AiDiscoveryServiceClient {
     }
 
     /**
-     * 🚨 NEW: Get dashboard data (the missing endpoint!)
+     * 🚨 FIXED: Get dashboard data - Updated for correct API structure!
      */
     async getDashboardSummary(): Promise<DashboardSummaryStats & { system_health?: SystemHealthStatus; last_updated: string }> {
         try {
@@ -110,27 +120,50 @@ class AiDiscoveryServiceClient {
 
             const data = await this.handleResponse<DashboardApiResponse>(response);
 
-            if (data.success && data.dashboard_data) {
-                // 🔧 FIXED: Properly type-cast system_health
-                const systemHealth: SystemHealthStatus | undefined = data.dashboard_data.system_health ? {
-                    overall_status: (data.dashboard_data.system_health.overall_status === 'healthy' ||
-                        data.dashboard_data.system_health.overall_status === 'degraded' ||
-                        data.dashboard_data.system_health.overall_status === 'critical')
-                        ? data.dashboard_data.system_health.overall_status as 'healthy' | 'degraded' | 'critical'
-                        : 'healthy', // Default fallback
-                    active_providers_healthy: data.dashboard_data.system_health.active_providers_healthy,
-                    total_providers: data.dashboard_data.system_health.total_providers,
-                    last_health_check: data.dashboard_data.system_health.last_health_check
-                } : undefined;
+            if (data.success && data.dashboard) {
+                console.log('🔍 Raw dashboard data:', data.dashboard);
 
-                return {
-                    ...data.dashboard_data.summary_stats,
-                    system_health: systemHealth,
-                    last_updated: data.dashboard_data.last_updated
+                // 🚨 FIXED: Calculate summary stats from actual API structure
+                const totalActive = data.dashboard.active_providers.total;
+                const totalSuggestions = data.dashboard.discovered_providers.total;
+
+                // Calculate high priority suggestions
+                const highPrioritySuggestions = data.dashboard.discovered_providers.by_category
+                    .reduce((sum, cat) => sum + cat.high_priority, 0);
+
+                // Calculate categories covered
+                const categoriesCovered = data.dashboard.active_providers.by_category
+                    .filter(cat => cat.active > 0).length;
+
+                // Create proper system health object
+                const systemHealth: SystemHealthStatus = {
+                    overall_status: (data.dashboard.system_status === 'operational' ? 'healthy' :
+                        data.dashboard.system_status === 'degraded' ? 'degraded' :
+                            'critical') as 'healthy' | 'degraded' | 'critical',
+                    active_providers_healthy: totalActive,
+                    total_providers: totalActive,
+                    last_health_check: data.dashboard.last_discovery_cycle
                 };
+
+                const summaryStats = {
+                    total_active: totalActive,
+                    pending_suggestions: totalSuggestions,
+                    high_priority_suggestions: highPrioritySuggestions,
+                    monthly_cost: 0, // Will be calculated from other endpoints
+                    avg_quality_score: 0, // Will be calculated from other endpoints
+                    categories_covered: categoriesCovered,
+                    total_monthly_usage: 0, // Will be calculated from other endpoints
+                    system_health: systemHealth,
+                    last_updated: data.dashboard.last_discovery_cycle
+                };
+
+                console.log('✅ Calculated summary stats:', summaryStats);
+
+                return summaryStats;
             }
 
             // Fallback if response structure is different
+            console.warn('⚠️ Dashboard API response missing expected structure');
             return {
                 total_active: 0,
                 pending_suggestions: 0,
