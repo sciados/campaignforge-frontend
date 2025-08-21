@@ -5,6 +5,7 @@
  * 🔍 Provider discovery, review workflow, and promotion system
  * ⚡ New endpoints for AI Platform Discovery Dashboard v2.0
  * 🎛️ Provider enable/disable toggle functionality
+ * 🚨 FIXED: Added missing dashboard API call for summary stats
  */
 
 import { useState, useCallback, useEffect, useMemo } from 'react'
@@ -49,6 +50,29 @@ interface DiscoveredSuggestionsApiResponse {
     next_steps: string[];
 }
 
+// 🚨 NEW: Dashboard API Response Type
+interface DashboardApiResponse {
+    success: boolean;
+    dashboard_data: {
+        summary_stats: {
+            total_active: number;
+            pending_suggestions: number;
+            high_priority_suggestions: number;
+            monthly_cost: number;
+            avg_quality_score: number;
+            categories_covered: number;
+            total_monthly_usage: number;
+        };
+        system_health: {
+            overall_status: string;
+            active_providers_healthy: number;
+            total_providers: number;
+            last_health_check: string;
+        };
+        last_updated: string;
+    };
+}
+
 // ============================================================================
 // ENHANCED AI DISCOVERY SERVICE CLIENT
 // ============================================================================
@@ -71,6 +95,56 @@ class AiDiscoveryServiceClient {
             return await response.json();
         } catch (error) {
             throw new Error(`Failed to parse response: ${error}`);
+        }
+    }
+
+    /**
+     * 🚨 NEW: Get dashboard data (the missing endpoint!)
+     */
+    async getDashboardSummary(): Promise<DashboardSummaryStats & { system_health?: SystemHealthStatus; last_updated: string }> {
+        try {
+            const response = await fetch(`${this.backendUrl}/api/admin/ai-discovery/dashboard`, {
+                method: 'GET',
+                headers: { 'Content-Type': 'application/json' },
+            });
+
+            const data = await this.handleResponse<DashboardApiResponse>(response);
+
+            if (data.success && data.dashboard_data) {
+                // 🔧 FIXED: Properly type-cast system_health
+                const systemHealth: SystemHealthStatus | undefined = data.dashboard_data.system_health ? {
+                    overall_status: (data.dashboard_data.system_health.overall_status === 'healthy' ||
+                        data.dashboard_data.system_health.overall_status === 'degraded' ||
+                        data.dashboard_data.system_health.overall_status === 'critical')
+                        ? data.dashboard_data.system_health.overall_status as 'healthy' | 'degraded' | 'critical'
+                        : 'healthy', // Default fallback
+                    active_providers_healthy: data.dashboard_data.system_health.active_providers_healthy,
+                    total_providers: data.dashboard_data.system_health.total_providers,
+                    last_health_check: data.dashboard_data.system_health.last_health_check
+                } : undefined;
+
+                return {
+                    ...data.dashboard_data.summary_stats,
+                    system_health: systemHealth,
+                    last_updated: data.dashboard_data.last_updated
+                };
+            }
+
+            // Fallback if response structure is different
+            return {
+                total_active: 0,
+                pending_suggestions: 0,
+                high_priority_suggestions: 0,
+                monthly_cost: 0,
+                avg_quality_score: 0,
+                categories_covered: 0,
+                total_monthly_usage: 0,
+                last_updated: new Date().toISOString()
+            };
+
+        } catch (error) {
+            console.error('❌ Failed to fetch dashboard summary:', error);
+            throw error;
         }
     }
 
@@ -325,11 +399,13 @@ class AiDiscoveryServiceClient {
     }
 
     /**
-     * Get complete dashboard data
+     * 🚨 FIXED: Get complete dashboard data - NOW CALLS DASHBOARD ENDPOINT!
      */
     async getDashboardData(): Promise<DiscoveryDashboardData> {
         try {
-            const [activeProviders, discoveredSuggestions, categoryStats] = await Promise.all([
+            // 🚨 NEW: Call the dashboard endpoint FIRST to get real summary stats
+            const [dashboardSummary, activeProviders, discoveredSuggestions, categoryStats] = await Promise.all([
+                this.getDashboardSummary(), // 🚨 This is the missing call!
                 this.getActiveProviders(),
                 this.getDiscoveredSuggestions(),
                 this.getCategoryRankings()
@@ -342,23 +418,24 @@ class AiDiscoveryServiceClient {
                 active_providers: activeProviders,
                 discovered_suggestions: discoveredSuggestions,
                 category_stats: categoryStats,
+                // 🚨 FIXED: Use real dashboard summary stats instead of calculated ones
                 summary_stats: {
-                    total_active: activeProviders.length,
-                    pending_suggestions: pendingSuggestions.length,
-                    high_priority_suggestions: highPrioritySuggestions.length,
-                    monthly_cost: categoryStats.reduce((sum, c) => sum + c.total_monthly_cost, 0),
-                    avg_quality_score: categoryStats.length > 0 ?
-                        categoryStats.reduce((sum, c) => sum + c.avg_quality_score, 0) / categoryStats.length : 0,
-                    categories_covered: categoryStats.length,
-                    total_monthly_usage: activeProviders.reduce((sum, p) => sum + p.monthly_usage, 0)
+                    total_active: dashboardSummary.total_active || activeProviders.length,
+                    pending_suggestions: dashboardSummary.pending_suggestions || pendingSuggestions.length,
+                    high_priority_suggestions: dashboardSummary.high_priority_suggestions || highPrioritySuggestions.length,
+                    monthly_cost: dashboardSummary.monthly_cost || categoryStats.reduce((sum, c) => sum + c.total_monthly_cost, 0),
+                    avg_quality_score: dashboardSummary.avg_quality_score || (categoryStats.length > 0 ?
+                        categoryStats.reduce((sum, c) => sum + c.avg_quality_score, 0) / categoryStats.length : 0),
+                    categories_covered: dashboardSummary.categories_covered || categoryStats.length,
+                    total_monthly_usage: dashboardSummary.total_monthly_usage || activeProviders.reduce((sum, p) => sum + p.monthly_usage, 0)
                 },
-                system_health: {
+                system_health: dashboardSummary.system_health || {
                     overall_status: 'healthy',
                     active_providers_healthy: activeProviders.filter(p => p.is_active).length,
                     total_providers: activeProviders.length,
                     last_health_check: new Date().toISOString()
                 },
-                last_updated: new Date().toISOString()
+                last_updated: dashboardSummary.last_updated || new Date().toISOString()
             };
         } catch (error) {
             console.error('❌ Failed to fetch dashboard data:', error);
@@ -546,12 +623,25 @@ export function useEnhancedAiDiscoveryService() {
         try {
             setIsLoading(true);
             setError(null);
+
+            console.log('🚀 Loading dashboard data with dashboard API call...');
+
+            // 🚨 FIXED: This now calls getDashboardData() which includes the dashboard endpoint!
             const data = await client.getDashboardData();
+
+            console.log('✅ Dashboard data loaded:', {
+                summary_stats: data.summary_stats,
+                active_providers: data.active_providers.length,
+                discovered_suggestions: data.discovered_suggestions.length,
+                category_stats: data.category_stats.length
+            });
+
             setDashboardData(data);
             setLastUpdated(new Date());
             return data;
         } catch (err) {
             const errorMessage = err instanceof Error ? err.message : 'Failed to load dashboard data';
+            console.error('❌ Dashboard data loading failed:', errorMessage);
             setError(errorMessage);
             throw err;
         } finally {
@@ -727,6 +817,7 @@ export function useEnhancedAiDiscoveryService() {
     // Auto-load data on mount
     useEffect(() => {
         const timer = setTimeout(() => {
+            console.log('🔄 Auto-loading dashboard data on mount...');
             loadDashboardData().catch(err => {
                 console.warn('Auto-load failed (non-critical):', err);
             });
@@ -761,7 +852,9 @@ export function useEnhancedAiDiscoveryService() {
             pending_suggestions: 0,
             high_priority_suggestions: 0,
             monthly_cost: 0,
-            avg_quality_score: 0
+            avg_quality_score: 0,
+            categories_covered: 0,
+            total_monthly_usage: 0
         },
 
         // Filtered data helpers
