@@ -174,12 +174,33 @@ const AIPlatformDiscoveryDashboard: React.FC = () => {
     }
   };
 
-  // Handle discovery scan (existing)
+  // Handle discovery scan - UPDATED with force refresh
   const handleDiscoveryScan = async () => {
     try {
+      // Run the discovery scan
       await runDiscoveryScan();
+
+      // 🚀 FORCE REFRESH: Reload all dashboard data after discovery completes
+      console.log("Discovery completed! Refreshing dashboard data...");
+
+      await Promise.all([
+        loadDashboardData(), // This should refresh everything
+      ]);
+
+      // Show success message
+      console.log("✅ Dashboard refreshed with new discoveries!");
+
+      // Optional: Show user notification
+      alert("🎉 Discovery completed! Dashboard updated with new AI platforms.");
     } catch (err) {
       console.error("Failed to run discovery scan:", err);
+
+      // Show error message
+      alert(
+        `❌ Discovery failed: ${
+          err instanceof Error ? err.message : "Unknown error"
+        }`
+      );
     }
   };
 
