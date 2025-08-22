@@ -285,6 +285,16 @@ const AIPlatformDiscoveryDashboard: React.FC = () => {
   // 🔧 FIXED: Use the enhanced service utility for consistent cost formatting
   const formatCost = enhancedDiscoveryUtils.formatCost;
 
+  // Add this after the formatCost assignment to debug
+  console.log(
+    "🔍 DEBUG: Sample provider costs:",
+    activeProviders.slice(0, 3).map((p) => ({
+      name: p.provider_name,
+      cost: p.cost_per_1k_tokens,
+      formatted: formatCost(p.cost_per_1k_tokens),
+    }))
+  );
+
   // Filter providers based on search and category
   const filteredActiveProviders = activeProviders.filter((provider) => {
     const matchesSearch = provider.provider_name
