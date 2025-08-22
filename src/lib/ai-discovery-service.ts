@@ -141,7 +141,15 @@ const transformApiData = (apiResponse: {
         providersCount: providers.length,
         suggestionsCount: suggestions.length,
         sampleProvider: providers[0],
-        sampleSuggestion: suggestions[0]
+        sampleSuggestion: suggestions[0],
+        // 🔍 NEW: Debug actual cost values from API
+        providerCosts: providers.slice(0, 5).map(p => ({
+            name: p.provider_name,
+            raw_cost: p.cost_per_1k_tokens,
+            cost_type: typeof p.cost_per_1k_tokens,
+            is_null: p.cost_per_1k_tokens === null,
+            is_undefined: p.cost_per_1k_tokens === undefined
+        }))
     });
 
     // Transform providers to match expected structure
@@ -153,8 +161,10 @@ const transformApiData = (apiResponse: {
         is_top_3: provider.is_top_3 === true,
         env_var_name: provider.env_var_name,
         api_endpoint: '',
-        // Fix null cost values with proper fallback
-        cost_per_1k_tokens: provider.cost_per_1k_tokens || 0.001,
+        // Fix null cost values - but preserve actual costs when they exist
+        cost_per_1k_tokens: provider.cost_per_1k_tokens !== null && provider.cost_per_1k_tokens !== undefined
+            ? provider.cost_per_1k_tokens
+            : 0.001,
         quality_score: provider.quality_score,
         // Ensure boolean values are properly handled
         is_active: provider.is_active !== false,
@@ -813,7 +823,7 @@ export const enhancedDiscoveryUtils = {
     },
 
     formatCost: (cost: number): string => {
-        if (cost <= 0.001) return 'FREE';
+        if (cost < 0.001) return 'FREE';
         if (cost < 1) return `${(cost * 1000).toFixed(3)}m`;
         return `${cost.toFixed(3)}`;
     },
