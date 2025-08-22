@@ -813,7 +813,7 @@ export const enhancedDiscoveryUtils = {
     },
 
     formatCost: (cost: number): string => {
-        if (cost < 0.001) return 'FREE';
+        if (cost <= 0.001) return 'FREE';
         if (cost < 1) return `${(cost * 1000).toFixed(3)}m`;
         return `${cost.toFixed(3)}`;
     },
