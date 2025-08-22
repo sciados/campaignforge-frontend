@@ -156,9 +156,20 @@ const AIPlatformDiscoveryDashboard: React.FC = () => {
     notes?: string
   ) => {
     try {
-      await reviewSuggestion(suggestionId, action, notes);
+      await reviewSuggestion(suggestionId, {
+        action: action,
+        admin_notes: notes,
+      });
+
+      // Show success message
+      alert(`✅ Suggestion ${action}d successfully!`);
     } catch (err) {
       console.error("Failed to review suggestion:", err);
+      alert(
+        `❌ Failed to ${action} suggestion: ${
+          err instanceof Error ? err.message : "Unknown error"
+        }`
+      );
     }
   };
 
