@@ -1,4 +1,4 @@
-// Updated AIPlatformDiscoveryDashboard.tsx with toggle functionality
+// Updated AIPlatformDiscoveryDashboard.tsx with toggle functionality and FIXED cost formatting
 
 import React, { useState } from "react";
 import {
@@ -31,7 +31,10 @@ import {
   ToggleLeft,
   ToggleRight,
 } from "lucide-react";
-import { useEnhancedAiDiscoveryService } from "@/lib/ai-discovery-service";
+import {
+  useEnhancedAiDiscoveryService,
+  enhancedDiscoveryUtils,
+} from "@/lib/ai-discovery-service";
 import { ToggleSwitch } from "@/components/ui/toggle-switch";
 import type {
   ActiveAIProvider,
@@ -179,9 +182,20 @@ const AIPlatformDiscoveryDashboard: React.FC = () => {
     apiKey?: string
   ) => {
     try {
-      await promoteSuggestion(suggestionId, { api_key: apiKey });
+      await promoteSuggestion(suggestionId, {
+        api_key: apiKey,
+        activate_immediately: true,
+      });
+
+      // Show success message
+      alert(`✅ Suggestion promoted to active provider successfully!`);
     } catch (err) {
       console.error("Failed to promote suggestion:", err);
+      alert(
+        `❌ Failed to promote suggestion: ${
+          err instanceof Error ? err.message : "Unknown error"
+        }`
+      );
     }
   };
 
@@ -268,11 +282,8 @@ const AIPlatformDiscoveryDashboard: React.FC = () => {
     }
   };
 
-  const formatCost = (cost: number) => {
-    if (cost < 0.001) return `$${(cost * 1000000).toFixed(1)}µ`;
-    if (cost < 1) return `$${(cost * 1000).toFixed(3)}m`;
-    return `$${cost.toFixed(3)}`;
-  };
+  // 🔧 FIXED: Use the enhanced service utility for consistent cost formatting
+  const formatCost = enhancedDiscoveryUtils.formatCost;
 
   // Filter providers based on search and category
   const filteredActiveProviders = activeProviders.filter((provider) => {
@@ -640,7 +651,9 @@ const AIPlatformDiscoveryDashboard: React.FC = () => {
                                 Monthly Usage:
                               </span>
                               <span className="font-medium">
-                                {(provider.monthly_usage / 1000).toFixed(0)}K
+                                {enhancedDiscoveryUtils.formatUsage(
+                                  provider.monthly_usage
+                                )}
                               </span>
                             </div>
                           </div>
@@ -1109,12 +1122,14 @@ const AIPlatformDiscoveryDashboard: React.FC = () => {
               <p>• ${summaryStats.monthly_cost.toFixed(0)} monthly spend</p>
               <p>
                 • Average cost:{" "}
-                {formatCost(
-                  activeProviders.reduce(
-                    (sum, p) => sum + p.cost_per_1k_tokens,
-                    0
-                  ) / Math.max(activeProviders.length, 1)
-                )}
+                {activeProviders.length > 0
+                  ? formatCost(
+                      activeProviders.reduce(
+                        (sum, p) => sum + p.cost_per_1k_tokens,
+                        0
+                      ) / activeProviders.length
+                    )
+                  : "FREE"}
                 /1K tokens
               </p>
               <p>
