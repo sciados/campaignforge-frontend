@@ -153,57 +153,39 @@ const transformApiData = (apiResponse: {
     });
 
     // Transform providers to match expected structure
-    const activeProviders: ActiveAIProvider[] = providers.map((provider: any) => {
-        // 🔍 TEMP: Add realistic costs for testing different providers
-        let actualCost = provider.cost_per_1k_tokens;
-
-        // If API is returning 0.001 for everything, let's use realistic costs based on provider names
-        if (actualCost === 0.001 || actualCost === null || actualCost === undefined) {
-            const providerName = provider.provider_name.toLowerCase();
-            if (providerName.includes('gpt-4') || providerName.includes('claude')) {
-                actualCost = 0.03; // $30 per 1M tokens
-            } else if (providerName.includes('gpt-3') || providerName.includes('groq')) {
-                actualCost = 0.002; // $2 per 1M tokens  
-            } else if (providerName.includes('llama') || providerName.includes('mistral')) {
-                actualCost = 0.0007; // $0.7 per 1M tokens
-            } else if (providerName.includes('dall-e') || providerName.includes('midjourney')) {
-                actualCost = 0.04; // $40 per 1M tokens (image gen)
-            } else if (providerName.includes('stability') || providerName.includes('replicate')) {
-                actualCost = 0.0001; // Very cheap
-            } else {
-                actualCost = 0.001; // Default fallback
+    const activeProviders: ActiveAIProvider[] = providers.map((provider: any) => ({
+        id: provider.id.toString(),
+        provider_name: provider.provider_name,
+        category: provider.category as AIProviderCategory,
+        category_rank: provider.category_rank,
+        is_top_3: provider.is_top_3 === true,
+        env_var_name: provider.env_var_name,
+        api_endpoint: '',
+        // Use real database values, with minimal fallback for null/undefined
+        cost_per_1k_tokens: provider.cost_per_1k_tokens !== null && provider.cost_per_1k_tokens !== undefined
+            ? provider.cost_per_1k_tokens
+            : 0.001,
+        quality_score: provider.quality_score,
+        // Ensure boolean values are properly handled
+        is_active: provider.is_active !== false,
+        // Add missing fields with defaults
+        response_time_ms: provider.response_time_ms || 500,
+        monthly_usage: provider.monthly_usage || 10000,
+        last_tested: provider.discovered_date,
+        ai_analysis: {
+            strengths: [`Top ${provider.category_rank} in ${provider.category.replace('_', ' ')}`],
+            weaknesses: [],
+            use_cases: [provider.primary_model || 'general'],
+            competitive_edge: `${provider.provider_name} - Quality score: ${provider.quality_score}`,
+            performance_metrics: {
+                reliability_score: provider.quality_score / 5,
+                speed_score: 0.8,
+                cost_efficiency: provider.cost_per_1k_tokens ? Math.max(0, 1 - provider.cost_per_1k_tokens / 0.01) : 0.8
             }
-        }
-
-        return {
-            id: provider.id.toString(),
-            provider_name: provider.provider_name,
-            category: provider.category as AIProviderCategory,
-            category_rank: provider.category_rank,
-            is_top_3: provider.is_top_3 === true,
-            env_var_name: provider.env_var_name,
-            api_endpoint: '',
-            cost_per_1k_tokens: actualCost,
-            quality_score: provider.quality_score,
-            is_active: provider.is_active !== false,
-            response_time_ms: provider.response_time_ms || 500,
-            monthly_usage: provider.monthly_usage || 10000,
-            last_tested: provider.discovered_date,
-            ai_analysis: {
-                strengths: [`Top ${provider.category_rank} in ${provider.category.replace('_', ' ')}`],
-                weaknesses: [],
-                use_cases: [provider.primary_model || 'general'],
-                competitive_edge: `${provider.provider_name} - Quality score: ${provider.quality_score}`,
-                performance_metrics: {
-                    reliability_score: provider.quality_score / 5,
-                    speed_score: 0.8,
-                    cost_efficiency: actualCost ? Math.max(0, 1 - actualCost / 0.01) : 0.8
-                }
-            },
-            created_at: provider.discovered_date,
-            updated_at: provider.discovered_date
-        };
-    });
+        },
+        created_at: provider.discovered_date,
+        updated_at: provider.discovered_date
+    }));
 
     // Transform suggestions to match expected structure  
     const discoveredSuggestions: DiscoveredAIProvider[] = suggestions.map((suggestion: any) => {
@@ -841,9 +823,9 @@ export const enhancedDiscoveryUtils = {
     },
 
     formatCost: (cost: number): string => {
-        if (cost === 0 || cost < 0.0001) return 'FREE';
-        if (cost < 1) return `$${(cost * 1000).toFixed(3)}m`;  // ✅ Added $ sign
-        return `$${cost.toFixed(3)}`;
+        if (cost < 0.001) return 'FREE';
+        if (cost < 1) return `${(cost * 1000).toFixed(3)}m`;
+        return `${cost.toFixed(3)}`;
     },
 
     formatUsage: (usage: number): string => {
