@@ -137,6 +137,13 @@ const transformApiData = (apiResponse: {
     const providers = apiResponse.providers || [];
     const suggestions = apiResponse.suggestions || [];
 
+    console.log('🔧 TRANSFORM DEBUG - Input data:', {
+        providersCount: providers.length,
+        suggestionsCount: suggestions.length,
+        sampleProvider: providers[0],
+        sampleSuggestion: suggestions[0]
+    });
+
     // Transform providers to match expected structure
     const activeProviders: ActiveAIProvider[] = providers.map((provider: any) => ({
         id: provider.id.toString(),
@@ -232,17 +239,38 @@ const transformApiData = (apiResponse: {
     });
 
     // Generate summary stats from the actual data
+    const totalActive = activeProviders.filter(p => p.is_active).length;
+    const pendingSuggestions = discoveredSuggestions.filter(s => s.review_status === 'pending').length;
+    const highPrioritySuggestions = discoveredSuggestions.filter(s => s.recommendation_priority === 'high').length;
+    const monthlyCost = activeProviders.reduce((sum, p) => sum + (p.cost_per_1k_tokens * p.monthly_usage / 1000), 0);
+    const avgQuality = activeProviders.length > 0
+        ? activeProviders.reduce((sum, p) => sum + p.quality_score, 0) / activeProviders.length
+        : 0;
+    const categoriesCovered = new Set(activeProviders.filter(p => p.is_active).map(p => p.category)).size;
+    const totalUsage = activeProviders.reduce((sum, p) => sum + p.monthly_usage, 0);
+
     const summaryStats: DashboardSummaryStats = {
-        total_active: activeProviders.filter(p => p.is_active).length,
-        pending_suggestions: discoveredSuggestions.filter(s => s.review_status === 'pending').length,
-        high_priority_suggestions: discoveredSuggestions.filter(s => s.recommendation_priority === 'high').length,
-        monthly_cost: activeProviders.reduce((sum, p) => sum + (p.cost_per_1k_tokens * p.monthly_usage / 1000), 0),
-        avg_quality_score: activeProviders.length > 0
-            ? activeProviders.reduce((sum, p) => sum + p.quality_score, 0) / activeProviders.length
-            : 0,
-        categories_covered: new Set(activeProviders.filter(p => p.is_active).map(p => p.category)).size,
-        total_monthly_usage: activeProviders.reduce((sum, p) => sum + p.monthly_usage, 0)
+        total_active: totalActive,
+        pending_suggestions: pendingSuggestions,
+        high_priority_suggestions: highPrioritySuggestions,
+        monthly_cost: monthlyCost,
+        avg_quality_score: avgQuality,
+        categories_covered: categoriesCovered,
+        total_monthly_usage: totalUsage
     };
+
+    console.log('🔧 TRANSFORM DEBUG - Calculated summary stats:', {
+        total_active: totalActive,
+        pending_suggestions: pendingSuggestions,
+        high_priority_suggestions: highPrioritySuggestions,
+        monthly_cost: monthlyCost,
+        avg_quality_score: avgQuality,
+        categories_covered: categoriesCovered,
+        total_monthly_usage: totalUsage,
+        activeProvidersCount: activeProviders.length,
+        activeProvidersActiveCount: activeProviders.filter(p => p.is_active).length,
+        discoveredSuggestionsCount: discoveredSuggestions.length
+    });
 
     // Generate category stats from real data
     const categories: AIProviderCategory[] = ['text_generation', 'image_generation', 'video_generation', 'audio_generation', 'multimodal'];
@@ -828,6 +856,36 @@ export function useEnhancedAiDiscoveryService() {
                 system_health: data.system_health
             });
 
+            // 🔧 CRITICAL: Log the exact data being set
+            console.log('🔍 DETAILED SUMMARY STATS DEBUG:', {
+                total_active: data.summary_stats.total_active,
+                pending_suggestions: data.summary_stats.pending_suggestions,
+                high_priority_suggestions: data.summary_stats.high_priority_suggestions,
+                monthly_cost: data.summary_stats.monthly_cost,
+                avg_quality_score: data.summary_stats.avg_quality_score,
+                categories_covered: data.summary_stats.categories_covered,
+                total_monthly_usage: data.summary_stats.total_monthly_usage
+            });
+
+            // 🔧 CRITICAL: Log active providers details
+            console.log('🔍 ACTIVE PROVIDERS DEBUG:', {
+                total_providers: data.active_providers.length,
+                active_providers: data.active_providers.filter(p => p.is_active).length,
+                provider_names: data.active_providers.map(p => ({ name: p.provider_name, active: p.is_active }))
+            });
+
+            // 🔧 CRITICAL: Log discovered suggestions details
+            console.log('🔍 DISCOVERED SUGGESTIONS DEBUG:', {
+                total_suggestions: data.discovered_suggestions.length,
+                pending_suggestions: data.discovered_suggestions.filter(s => s.review_status === 'pending').length,
+                high_priority: data.discovered_suggestions.filter(s => s.recommendation_priority === 'high').length,
+                suggestion_details: data.discovered_suggestions.map(s => ({
+                    name: s.provider_name,
+                    status: s.review_status,
+                    priority: s.recommendation_priority
+                }))
+            });
+
             setDashboardData(data);
             setLastUpdated(new Date());
             return data;
@@ -986,6 +1044,14 @@ export function useEnhancedAiDiscoveryService() {
         runDiscoveryScan,
         updateRankings,
         bulkPromoteSuggestions,
+
+        // 🔧 DEBUG: Log what we're returning
+        _debug: {
+            hasDashboardData: !!dashboardData,
+            summaryStatsRaw: dashboardData?.summary_stats,
+            activeProvidersCount: dashboardData?.active_providers?.length || 0,
+            discoveredSuggestionsCount: dashboardData?.discovered_suggestions?.length || 0
+        },
 
         // Computed values - 🔧 ENHANCED: Use real data with comprehensive fallbacks
         activeProviders: dashboardData?.active_providers || [],
