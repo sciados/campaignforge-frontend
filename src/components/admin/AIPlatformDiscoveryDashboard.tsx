@@ -285,16 +285,6 @@ const AIPlatformDiscoveryDashboard: React.FC = () => {
   // 🔧 FIXED: Use the enhanced service utility for consistent cost formatting
   const formatCost = enhancedDiscoveryUtils.formatCost;
 
-  // Add this after the formatCost assignment to debug
-  console.log(
-    "🔍 DEBUG: Sample provider costs:",
-    activeProviders.slice(0, 3).map((p) => ({
-      name: p.provider_name,
-      cost: p.cost_per_1k_tokens,
-      formatted: formatCost(p.cost_per_1k_tokens),
-    }))
-  );
-
   // Filter providers based on search and category
   const filteredActiveProviders = activeProviders.filter((provider) => {
     const matchesSearch = provider.provider_name
@@ -567,131 +557,155 @@ const AIPlatformDiscoveryDashboard: React.FC = () => {
 
                     {/* Top 3 Providers */}
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      {category.top_3_providers.map((provider) => (
-                        <div
-                          key={provider.id}
-                          className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow"
-                        >
-                          {/* 🆕 Bulk Selection Checkbox */}
-                          {bulkSelectMode && (
-                            <div className="flex items-center justify-between mb-3">
-                              <input
-                                type="checkbox"
-                                checked={selectedProviders.has(provider.id)}
-                                onChange={() =>
-                                  handleSelectProvider(provider.id)
-                                }
-                                className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500"
-                              />
-                              <span className="text-xs text-gray-500">
-                                Select
-                              </span>
-                            </div>
-                          )}
+                      {category.top_3_providers.map((provider) => {
+                        const costColors =
+                          enhancedDiscoveryUtils.getCostTierColor(
+                            provider.cost_per_1k_tokens
+                          );
+                        const costBadge =
+                          enhancedDiscoveryUtils.getCostTierBadge(
+                            provider.cost_per_1k_tokens
+                          );
 
-                          <div className="flex items-start justify-between mb-3">
-                            <div>
-                              <div className="flex items-center gap-2">
-                                <h4 className="font-medium text-gray-900">
-                                  {provider.provider_name}
-                                </h4>
-                                <span className="text-lg">
-                                  {getRankBadge(provider.category_rank)}
+                        return (
+                          <div
+                            key={provider.id}
+                            className={`border rounded-lg p-4 hover:shadow-md transition-shadow ${costColors.border} ${costColors.bg}`}
+                          >
+                            {/* 🆕 Bulk Selection Checkbox */}
+                            {bulkSelectMode && (
+                              <div className="flex items-center justify-between mb-3">
+                                <input
+                                  type="checkbox"
+                                  checked={selectedProviders.has(provider.id)}
+                                  onChange={() =>
+                                    handleSelectProvider(provider.id)
+                                  }
+                                  className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500"
+                                />
+                                <span className="text-xs text-gray-500">
+                                  Select
                                 </span>
                               </div>
-                              <p className="text-sm text-gray-600">
-                                {formatCost(provider.cost_per_1k_tokens)}/1K
-                                tokens
+                            )}
+
+                            <div className="flex items-start justify-between mb-3">
+                              <div>
+                                <div className="flex items-center gap-2">
+                                  <h4
+                                    className={`font-medium ${costColors.text}`}
+                                  >
+                                    {provider.provider_name}
+                                  </h4>
+                                  <span className="text-lg">
+                                    {getRankBadge(provider.category_rank)}
+                                  </span>
+                                </div>
+                                <div className="flex items-center gap-2 mt-1">
+                                  <p
+                                    className={`text-sm font-medium ${costColors.text}`}
+                                  >
+                                    {formatCost(provider.cost_per_1k_tokens)}/1K
+                                    tokens
+                                  </p>
+                                  <span
+                                    className={`px-2 py-0.5 rounded-full text-xs font-medium ${costBadge.color}`}
+                                  >
+                                    {costBadge.label}
+                                  </span>
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-1">
+                                {Array.from({ length: 5 }).map((_, i) => (
+                                  <Star
+                                    key={i}
+                                    className={`w-3 h-3 ${
+                                      i < Math.floor(provider.quality_score)
+                                        ? "fill-yellow-400 text-yellow-400"
+                                        : "text-gray-300"
+                                    }`}
+                                  />
+                                ))}
+                                <span className="text-xs text-gray-600 ml-1">
+                                  {provider.quality_score.toFixed(1)}
+                                </span>
+                              </div>
+                            </div>
+
+                            {/* 🆕 Provider Status Toggle */}
+                            <div className="mb-3 p-2 bg-white bg-opacity-50 rounded-lg">
+                              <div className="flex items-center justify-between">
+                                <span
+                                  className={`text-sm font-medium ${costColors.text}`}
+                                >
+                                  Provider Status
+                                </span>
+                                <ToggleSwitch
+                                  enabled={provider.is_active}
+                                  onToggle={() =>
+                                    handleToggleProvider(
+                                      provider.id,
+                                      provider.is_active
+                                    )
+                                  }
+                                  disabled={toggleLoading.has(provider.id)}
+                                  loading={toggleLoading.has(provider.id)}
+                                  size="sm"
+                                />
+                              </div>
+                              <p className="text-xs text-gray-500 mt-1">
+                                {provider.is_active
+                                  ? "✅ Active & receiving requests"
+                                  : "⏸️ Disabled - not in use"}
                               </p>
                             </div>
-                            <div className="flex items-center gap-1">
-                              {Array.from({ length: 5 }).map((_, i) => (
-                                <Star
-                                  key={i}
-                                  className={`w-3 h-3 ${
-                                    i < Math.floor(provider.quality_score)
-                                      ? "fill-yellow-400 text-yellow-400"
-                                      : "text-gray-300"
-                                  }`}
-                                />
-                              ))}
-                              <span className="text-xs text-gray-600 ml-1">
-                                {provider.quality_score.toFixed(1)}
-                              </span>
-                            </div>
-                          </div>
 
-                          {/* 🆕 Provider Status Toggle */}
-                          <div className="mb-3 p-2 bg-gray-50 rounded-lg">
-                            <div className="flex items-center justify-between">
-                              <span className="text-sm font-medium text-gray-700">
-                                Provider Status
-                              </span>
-                              <ToggleSwitch
-                                enabled={provider.is_active}
-                                onToggle={() =>
-                                  handleToggleProvider(
-                                    provider.id,
-                                    provider.is_active
+                            <div className="space-y-2 mb-3">
+                              <div className="flex items-center justify-between text-sm">
+                                <span className="text-gray-600">
+                                  Response Time:
+                                </span>
+                                <span className="font-medium">
+                                  {provider.response_time_ms}ms
+                                </span>
+                              </div>
+                              <div className="flex items-center justify-between text-sm">
+                                <span className="text-gray-600">
+                                  Monthly Usage:
+                                </span>
+                                <span className="font-medium">
+                                  {enhancedDiscoveryUtils.formatUsage(
+                                    provider.monthly_usage
+                                  )}
+                                </span>
+                              </div>
+                            </div>
+
+                            <div className="flex gap-2">
+                              <button
+                                onClick={() =>
+                                  alert(`Testing ${provider.provider_name}...`)
+                                }
+                                className="flex-1 bg-blue-600 text-white text-xs px-3 py-1 rounded hover:bg-blue-700 transition-colors flex items-center justify-center gap-1"
+                              >
+                                <TestTube className="w-3 h-3" />
+                                Test
+                              </button>
+                              <button
+                                onClick={() =>
+                                  alert(
+                                    `Viewing details for ${provider.provider_name}`
                                   )
                                 }
-                                disabled={toggleLoading.has(provider.id)}
-                                loading={toggleLoading.has(provider.id)}
-                                size="sm"
-                              />
-                            </div>
-                            <p className="text-xs text-gray-500 mt-1">
-                              {provider.is_active
-                                ? "✅ Active & receiving requests"
-                                : "⏸️ Disabled - not in use"}
-                            </p>
-                          </div>
-
-                          <div className="space-y-2 mb-3">
-                            <div className="flex items-center justify-between text-sm">
-                              <span className="text-gray-600">
-                                Response Time:
-                              </span>
-                              <span className="font-medium">
-                                {provider.response_time_ms}ms
-                              </span>
-                            </div>
-                            <div className="flex items-center justify-between text-sm">
-                              <span className="text-gray-600">
-                                Monthly Usage:
-                              </span>
-                              <span className="font-medium">
-                                {enhancedDiscoveryUtils.formatUsage(
-                                  provider.monthly_usage
-                                )}
-                              </span>
+                                className="flex-1 bg-gray-100 text-gray-700 text-xs px-3 py-1 rounded hover:bg-gray-200 transition-colors flex items-center justify-center gap-1"
+                              >
+                                <Eye className="w-3 h-3" />
+                                Details
+                              </button>
                             </div>
                           </div>
-
-                          <div className="flex gap-2">
-                            <button
-                              onClick={() =>
-                                alert(`Testing ${provider.provider_name}...`)
-                              }
-                              className="flex-1 bg-blue-600 text-white text-xs px-3 py-1 rounded hover:bg-blue-700 transition-colors flex items-center justify-center gap-1"
-                            >
-                              <TestTube className="w-3 h-3" />
-                              Test
-                            </button>
-                            <button
-                              onClick={() =>
-                                alert(
-                                  `Viewing details for ${provider.provider_name}`
-                                )
-                              }
-                              className="flex-1 bg-gray-100 text-gray-700 text-xs px-3 py-1 rounded hover:bg-gray-200 transition-colors flex items-center justify-center gap-1"
-                            >
-                              <Eye className="w-3 h-3" />
-                              Details
-                            </button>
-                          </div>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
 
                     {/* Additional Providers in Category */}
@@ -715,70 +729,102 @@ const AIPlatformDiscoveryDashboard: React.FC = () => {
                               Other Providers ({otherProviders.length})
                             </h5>
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                              {otherProviders.map((provider) => (
-                                <div
-                                  key={`other-${provider.id}-${provider.category}`}
-                                  className="border border-gray-200 rounded-lg p-3 text-sm"
-                                >
-                                  {/* 🆕 Bulk Selection for Other Providers */}
-                                  {bulkSelectMode && (
+                              {otherProviders.map((provider) => {
+                                const costColors =
+                                  enhancedDiscoveryUtils.getCostTierColor(
+                                    provider.cost_per_1k_tokens
+                                  );
+                                const costBadge =
+                                  enhancedDiscoveryUtils.getCostTierBadge(
+                                    provider.cost_per_1k_tokens
+                                  );
+
+                                return (
+                                  <div
+                                    key={`other-${provider.id}-${provider.category}`}
+                                    className={`border rounded-lg p-3 text-sm ${costColors.border} ${costColors.bg}`}
+                                  >
+                                    {/* 🆕 Bulk Selection for Other Providers */}
+                                    {bulkSelectMode && (
+                                      <div className="flex items-center justify-between mb-2">
+                                        <input
+                                          type="checkbox"
+                                          checked={selectedProviders.has(
+                                            provider.id
+                                          )}
+                                          onChange={() =>
+                                            handleSelectProvider(provider.id)
+                                          }
+                                          className="w-3 h-3 text-blue-600 bg-gray-100 border-gray-300 rounded"
+                                        />
+                                      </div>
+                                    )}
+
                                     <div className="flex items-center justify-between mb-2">
-                                      <input
-                                        type="checkbox"
-                                        checked={selectedProviders.has(
+                                      <span
+                                        className={`font-medium ${costColors.text}`}
+                                      >
+                                        {provider.provider_name}
+                                      </span>
+                                      <div className="flex items-center gap-1">
+                                        <span
+                                          className={`text-xs font-medium ${costColors.text}`}
+                                        >
+                                          {formatCost(
+                                            provider.cost_per_1k_tokens
+                                          )}
+                                        </span>
+                                        <span
+                                          className={`px-1 py-0.5 rounded text-xs font-medium ${costBadge.color}`}
+                                        >
+                                          {costBadge.label}
+                                        </span>
+                                      </div>
+                                    </div>
+
+                                    {/* 🆕 Mini Toggle for Other Providers */}
+                                    <div className="flex items-center justify-between mb-2">
+                                      <div className="flex items-center gap-1">
+                                        {Array.from({ length: 5 }).map(
+                                          (_, i) => (
+                                            <Star
+                                              key={i}
+                                              className={`w-2 h-2 ${
+                                                i <
+                                                Math.floor(
+                                                  provider.quality_score
+                                                )
+                                                  ? "fill-yellow-400 text-yellow-400"
+                                                  : "text-gray-300"
+                                              }`}
+                                            />
+                                          )
+                                        )}
+                                      </div>
+                                      <ToggleSwitch
+                                        enabled={provider.is_active}
+                                        onToggle={() =>
+                                          handleToggleProvider(
+                                            provider.id,
+                                            provider.is_active
+                                          )
+                                        }
+                                        disabled={toggleLoading.has(
                                           provider.id
                                         )}
-                                        onChange={() =>
-                                          handleSelectProvider(provider.id)
-                                        }
-                                        className="w-3 h-3 text-blue-600 bg-gray-100 border-gray-300 rounded"
+                                        loading={toggleLoading.has(provider.id)}
+                                        size="sm"
                                       />
                                     </div>
-                                  )}
 
-                                  <div className="flex items-center justify-between mb-2">
-                                    <span className="font-medium">
-                                      {provider.provider_name}
-                                    </span>
-                                    <span className="text-xs text-gray-500">
-                                      {formatCost(provider.cost_per_1k_tokens)}
-                                    </span>
+                                    <p className="text-xs text-gray-500">
+                                      {provider.is_active
+                                        ? "Active"
+                                        : "Disabled"}
+                                    </p>
                                   </div>
-
-                                  {/* 🆕 Mini Toggle for Other Providers */}
-                                  <div className="flex items-center justify-between mb-2">
-                                    <div className="flex items-center gap-1">
-                                      {Array.from({ length: 5 }).map((_, i) => (
-                                        <Star
-                                          key={i}
-                                          className={`w-2 h-2 ${
-                                            i <
-                                            Math.floor(provider.quality_score)
-                                              ? "fill-yellow-400 text-yellow-400"
-                                              : "text-gray-300"
-                                          }`}
-                                        />
-                                      ))}
-                                    </div>
-                                    <ToggleSwitch
-                                      enabled={provider.is_active}
-                                      onToggle={() =>
-                                        handleToggleProvider(
-                                          provider.id,
-                                          provider.is_active
-                                        )
-                                      }
-                                      disabled={toggleLoading.has(provider.id)}
-                                      loading={toggleLoading.has(provider.id)}
-                                      size="sm"
-                                    />
-                                  </div>
-
-                                  <p className="text-xs text-gray-500">
-                                    {provider.is_active ? "Active" : "Disabled"}
-                                  </p>
-                                </div>
-                              ))}
+                                );
+                              })}
                             </div>
                           </div>
                         )

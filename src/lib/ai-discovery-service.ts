@@ -832,6 +832,39 @@ export const enhancedDiscoveryUtils = {
         if (usage > 1000000) return `${(usage / 1000000).toFixed(1)}M`;
         if (usage > 1000) return `${(usage / 1000).toFixed(1)}K`;
         return usage.toString();
+    },
+
+    // 🆕 ADD THESE TWO FUNCTIONS:
+    getCostTierColor: (cost: number): { bg: string; text: string; border: string } => {
+        if (cost < 0.001) {
+            return {
+                bg: 'bg-green-50',
+                text: 'text-green-700',
+                border: 'border-green-200'
+            };
+        } else if (cost >= 0.01) {
+            return {
+                bg: 'bg-red-50',
+                text: 'text-red-700',
+                border: 'border-red-200'
+            };
+        } else {
+            return {
+                bg: 'bg-blue-50',
+                text: 'text-blue-700',
+                border: 'border-blue-200'
+            };
+        }
+    },
+
+    getCostTierBadge: (cost: number): { label: string; color: string } => {
+        if (cost < 0.001) {
+            return { label: 'Budget', color: 'bg-green-100 text-green-800' };
+        } else if (cost >= 0.01) {
+            return { label: 'Premium', color: 'bg-red-100 text-red-800' };
+        } else {
+            return { label: 'Standard', color: 'bg-blue-100 text-blue-800' };
+        }
     }
 };
 
