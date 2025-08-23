@@ -523,7 +523,7 @@ const AIPlatformDiscoveryDashboard: React.FC = () => {
         <div className="p-6">
           {activeTab === "active" ? (
             <div className="space-y-6">
-              {/* Category Sections */}
+              {/* Category Sections - Top 3 Providers Only */}
               {categoryStats
                 .filter((category) => category.active_count > 0)
                 .map((category) => (
@@ -555,7 +555,7 @@ const AIPlatformDiscoveryDashboard: React.FC = () => {
                       </div>
                     </div>
 
-                    {/* Top 3 Providers */}
+                    {/* Top 3 Providers Only */}
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                       {category.top_3_providers.map((provider) => {
                         const costColors =
@@ -707,131 +707,122 @@ const AIPlatformDiscoveryDashboard: React.FC = () => {
                         );
                       })}
                     </div>
-
-                    {/* Additional Providers in Category */}
-                    {(() => {
-                      const categoryProviders = filteredActiveProviders.filter(
-                        (p) => p.category === category.category
-                      );
-
-                      const top3ProviderNames = new Set(
-                        category.top_3_providers.map((p) => p.provider_name)
-                      );
-
-                      const otherProviders = categoryProviders.filter(
-                        (p) => !top3ProviderNames.has(p.provider_name)
-                      );
-
-                      return (
-                        otherProviders.length > 0 && (
-                          <div className="mt-4">
-                            <h5 className="text-sm font-medium text-gray-700 mb-2">
-                              Other Providers ({otherProviders.length})
-                            </h5>
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                              {otherProviders.map((provider) => {
-                                const costColors =
-                                  enhancedDiscoveryUtils.getCostTierColor(
-                                    provider.cost_per_1k_tokens
-                                  );
-                                const costBadge =
-                                  enhancedDiscoveryUtils.getCostTierBadge(
-                                    provider.cost_per_1k_tokens
-                                  );
-
-                                return (
-                                  <div
-                                    key={`other-${provider.id}-${provider.category}`}
-                                    className={`border rounded-lg p-3 text-sm ${costColors.border} ${costColors.bg}`}
-                                  >
-                                    {/* 🆕 Bulk Selection for Other Providers */}
-                                    {bulkSelectMode && (
-                                      <div className="flex items-center justify-between mb-2">
-                                        <input
-                                          type="checkbox"
-                                          checked={selectedProviders.has(
-                                            provider.id
-                                          )}
-                                          onChange={() =>
-                                            handleSelectProvider(provider.id)
-                                          }
-                                          className="w-3 h-3 text-blue-600 bg-gray-100 border-gray-300 rounded"
-                                        />
-                                      </div>
-                                    )}
-
-                                    <div className="flex items-center justify-between mb-2">
-                                      <span
-                                        className={`font-medium ${costColors.text}`}
-                                      >
-                                        {provider.provider_name}
-                                      </span>
-                                      <div className="flex items-center gap-1">
-                                        <span
-                                          className={`text-xs font-medium ${costColors.text}`}
-                                        >
-                                          {formatCost(
-                                            provider.cost_per_1k_tokens
-                                          )}
-                                        </span>
-                                        <span
-                                          className={`px-1 py-0.5 rounded text-xs font-medium ${costBadge.color}`}
-                                        >
-                                          {costBadge.label}
-                                        </span>
-                                      </div>
-                                    </div>
-
-                                    {/* 🆕 Mini Toggle for Other Providers */}
-                                    <div className="flex items-center justify-between mb-2">
-                                      <div className="flex items-center gap-1">
-                                        {Array.from({ length: 5 }).map(
-                                          (_, i) => (
-                                            <Star
-                                              key={i}
-                                              className={`w-2 h-2 ${
-                                                i <
-                                                Math.floor(
-                                                  provider.quality_score
-                                                )
-                                                  ? "fill-yellow-400 text-yellow-400"
-                                                  : "text-gray-300"
-                                              }`}
-                                            />
-                                          )
-                                        )}
-                                      </div>
-                                      <ToggleSwitch
-                                        enabled={provider.is_active}
-                                        onToggle={() =>
-                                          handleToggleProvider(
-                                            provider.id,
-                                            provider.is_active
-                                          )
-                                        }
-                                        disabled={toggleLoading.has(
-                                          provider.id
-                                        )}
-                                        loading={toggleLoading.has(provider.id)}
-                                        size="sm"
-                                      />
-                                    </div>
-
-                                    <p className="text-xs text-gray-500">
-                                      {provider.is_active
-                                        ? "Active"
-                                        : "Disabled"}
-                                    </p>
-                                  </div>
-                                );
-                              })}
-                            </div>
-                          </div>
-                        )
-                      );
-                    })()}
                   </div>
                 ))}
+
+              {/* Other Providers Section - Now at the bottom after all categories */}
+              {(() => {
+                // Get all providers that are NOT in the top 3 of any category
+                const allTop3ProviderNames = new Set(
+                  categoryStats.flatMap((cat) =>
+                    cat.top_3_providers.map((p) => p.provider_name)
+                  )
+                );
+
+                const otherProviders = filteredActiveProviders.filter(
+                  (p) => !allTop3ProviderNames.has(p.provider_name)
+                );
+
+                return (
+                  otherProviders.length > 0 && (
+                    <div className="mt-8 pt-6 border-t border-gray-200">
+                      <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                        Other Providers ({otherProviders.length})
+                      </h3>
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                        {otherProviders.map((provider) => {
+                          const costColors =
+                            enhancedDiscoveryUtils.getCostTierColor(
+                              provider.cost_per_1k_tokens
+                            );
+                          const costBadge =
+                            enhancedDiscoveryUtils.getCostTierBadge(
+                              provider.cost_per_1k_tokens
+                            );
+
+                          return (
+                            <div
+                              key={`other-${provider.id}`}
+                              className={`border rounded-lg p-3 text-sm ${costColors.border} ${costColors.bg}`}
+                            >
+                              {/* 🆕 Bulk Selection for Other Providers */}
+                              {bulkSelectMode && (
+                                <div className="flex items-center justify-between mb-2">
+                                  <input
+                                    type="checkbox"
+                                    checked={selectedProviders.has(provider.id)}
+                                    onChange={() =>
+                                      handleSelectProvider(provider.id)
+                                    }
+                                    className="w-3 h-3 text-blue-600 bg-gray-100 border-gray-300 rounded"
+                                  />
+                                </div>
+                              )}
+
+                              <div className="flex items-center justify-between mb-2">
+                                <span
+                                  className={`font-medium ${costColors.text}`}
+                                >
+                                  {provider.provider_name}
+                                </span>
+                                <div className="flex items-center gap-1">
+                                  <span
+                                    className={`text-xs font-medium ${costColors.text}`}
+                                  >
+                                    {formatCost(provider.cost_per_1k_tokens)}
+                                  </span>
+                                  <span
+                                    className={`px-1 py-0.5 rounded text-xs font-medium ${costBadge.color}`}
+                                  >
+                                    {costBadge.label}
+                                  </span>
+                                </div>
+                              </div>
+
+                              <div className="flex items-center justify-between mb-2">
+                                <div className="flex items-center gap-1">
+                                  {Array.from({ length: 5 }).map((_, i) => (
+                                    <Star
+                                      key={i}
+                                      className={`w-2 h-2 ${
+                                        i < Math.floor(provider.quality_score)
+                                          ? "fill-yellow-400 text-yellow-400"
+                                          : "text-gray-300"
+                                      }`}
+                                    />
+                                  ))}
+                                </div>
+                                <ToggleSwitch
+                                  enabled={provider.is_active}
+                                  onToggle={() =>
+                                    handleToggleProvider(
+                                      provider.id,
+                                      provider.is_active
+                                    )
+                                  }
+                                  disabled={toggleLoading.has(provider.id)}
+                                  loading={toggleLoading.has(provider.id)}
+                                  size="sm"
+                                />
+                              </div>
+
+                              <div className="flex items-center justify-between text-xs text-gray-500">
+                                <span>
+                                  {getCategoryIcon(provider.category)}{" "}
+                                  {provider.category.replace("_", " ")}
+                                </span>
+                                <span>
+                                  {provider.is_active ? "Active" : "Disabled"}
+                                </span>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )
+                );
+              })()}
             </div>
           ) : (
             // Suggestions Tab (existing content)
