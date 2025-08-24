@@ -7,7 +7,7 @@
 
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { motion } from "framer-motion";
 
@@ -61,11 +61,7 @@ const UserTypeRouter: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    checkUserTypeAndRoute();
-  }, [pathname]);
-
-  const checkUserTypeAndRoute = async () => {
+  const checkUserTypeAndRoute = useCallback(async () => {
     setIsLoading(true);
     setError(null);
 
@@ -84,11 +80,9 @@ const UserTypeRouter: React.FC = () => {
         setUserProfile(data.user_profile);
         setDashboardConfig(data.dashboard_config);
 
-        // Handle routing based on user type and onboarding status
         const profile = data.user_profile;
 
         if (!profile.user_type) {
-          // User hasn't selected type yet - show type selector
           if (pathname !== "/user-selection") {
             router.push("/user-selection");
           }
@@ -96,14 +90,12 @@ const UserTypeRouter: React.FC = () => {
         }
 
         if (!profile.onboarding_completed) {
-          // User has type but hasn't completed onboarding
           if (pathname !== "/onboarding") {
             router.push("/onboarding");
           }
           return;
         }
 
-        // User is fully set up - route to appropriate dashboard
         const expectedPath = profile.dashboard_route;
         if (pathname !== expectedPath && pathname.startsWith("/dashboard")) {
           router.push(expectedPath);
@@ -116,7 +108,11 @@ const UserTypeRouter: React.FC = () => {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [router, pathname]); // ✅ fixed: added dependencies
+
+  useEffect(() => {
+    checkUserTypeAndRoute();
+  }, [checkUserTypeAndRoute]); // ✅ only depends on the memoized callback
 
   const handleTypeSelection = async (userType: string) => {
     // This will be handled by the UserTypeSelector component
@@ -184,7 +180,7 @@ const UserTypeRouter: React.FC = () => {
               Welcome, {userProfile.user_type_display}! 👋
             </h1>
             <p className="text-gray-600 mb-6">
-              Let's complete your setup to unlock all features.
+              Lets complete your setup to unlock all features.
             </p>
             <OnboardingCompleteForm userProfile={userProfile} />
           </div>

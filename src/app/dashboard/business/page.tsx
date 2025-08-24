@@ -7,7 +7,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import BusinessDashboard from "../../../components/dashboards/BusinessDashboard";
+import BusinessDashboard from "../../../components/dashboards/business/BusinessDashboard";
 
 export default function BusinessDashboardPage() {
   const [config, setConfig] = useState(null);
