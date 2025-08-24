@@ -4,7 +4,7 @@
  * 🛠️ Helper functions for user type operations
  */
 
-export type UserType = 'affiliate_marketer' | 'content_creator' | 'business_owner';
+export type UserType = 'AFFILIATE_MARKETER' | 'CONTENT_CREATOR' | 'BUSINESS_OWNER';
 
 export interface UserProfile {
     id: string;
@@ -39,9 +39,9 @@ export const getUserDashboardRoute = (userType: UserType | null): string => {
     if (!userType) return '/user-selection';
 
     const routes = {
-        affiliate_marketer: '/dashboard/affiliate',
-        content_creator: '/dashboard/creator',
-        business_owner: '/dashboard/business'
+        AFFILIATE_MARKETER: '/dashboard/affiliate',
+        CONTENT_CREATOR: '/dashboard/creator',
+        BUSINESS_OWNER: '/dashboard/business'
     };
 
     return routes[userType] || '/dashboard';
@@ -51,9 +51,9 @@ export const getUserTypeDisplayName = (userType: UserType | null): string => {
     if (!userType) return 'User';
 
     const displayNames = {
-        affiliate_marketer: '💰 Affiliate Marketer',
-        content_creator: '🎬 Content Creator',
-        business_owner: '🏢 Business Owner'
+        AFFILIATE_MARKETER: '💰 Affiliate Marketer',
+        CONTENT_CREATOR: '🎬 Content Creator',
+        BUSINESS_OWNER: '🏢 Business Owner'
     };
 
     return displayNames[userType] || 'User';
@@ -63,9 +63,9 @@ export const getUserTypeThemeColor = (userType: UserType | null): string => {
     if (!userType) return 'blue';
 
     const themeColors = {
-        affiliate_marketer: 'green',
-        content_creator: 'purple',
-        business_owner: 'blue'
+        AFFILIATE_MARKETER: 'green',
+        CONTENT_CREATOR: 'purple',
+        BUSINESS_OWNER: 'blue'
     };
 
     return themeColors[userType] || 'blue';
@@ -79,15 +79,15 @@ export const getUserTypeFeatures = (userType: UserType | null): string[] => {
     if (!userType) return [];
 
     const features = {
-        affiliate_marketer: [
+        AFFILIATE_MARKETER: [
             'competitor_tracking', 'commission_analysis', 'compliance_check',
             'ad_creative_generator', 'email_sequences', 'traffic_analysis'
         ],
-        content_creator: [
+        CONTENT_CREATOR: [
             'viral_analysis', 'trend_detection', 'content_optimization',
             'audience_insights', 'brand_partnerships', 'cross_platform'
         ],
-        business_owner: [
+        BUSINESS_OWNER: [
             'market_research', 'lead_generation', 'competitor_analysis',
             'customer_insights', 'sales_optimization', 'roi_tracking'
         ]
@@ -98,12 +98,12 @@ export const getUserTypeFeatures = (userType: UserType | null): string[] => {
 
 export const getUserTypeLimits = (userType: UserType | null, tier: string = 'free') => {
     const baseLimits = {
-        affiliate_marketer: { campaigns: 10, analysis: 25 },
-        content_creator: { campaigns: 15, analysis: 20 },
-        business_owner: { campaigns: 8, analysis: 15 }
+        AFFILIATE_MARKETER: { campaigns: 10, analysis: 25 },
+        CONTENT_CREATOR: { campaigns: 15, analysis: 20 },
+        BUSINESS_OWNER: { campaigns: 8, analysis: 15 }
     };
 
-    const base = baseLimits[userType || 'business_owner'];
+    const base = baseLimits[userType || 'BUSINESS_OWNER'];
 
     // Adjust based on tier
     const multipliers = {

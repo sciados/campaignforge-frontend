@@ -18,7 +18,7 @@ export default function OnboardingPage() {
 
   const getAvailableGoals = () => {
     const goalsByType = {
-      affiliate_marketer: [
+      AFFILIATE_MARKETER: [
         "Increase commission rates",
         "Track top competitors",
         "Improve conversion rates",
@@ -26,7 +26,7 @@ export default function OnboardingPage() {
         "Automate campaign optimization",
         "Scale traffic sources",
       ],
-      content_creator: [
+      CONTENT_CREATOR: [
         "Go viral more often",
         "Grow follower count",
         "Increase engagement rates",
@@ -34,7 +34,7 @@ export default function OnboardingPage() {
         "Create better content",
         "Cross-platform growth",
       ],
-      business_owner: [
+      BUSINESS_OWNER: [
         "Generate more leads",
         "Increase sales revenue",
         "Understand market trends",

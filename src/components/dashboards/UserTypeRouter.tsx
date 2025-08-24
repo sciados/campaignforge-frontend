@@ -194,11 +194,11 @@ const UserTypeRouter: React.FC = () => {
     if (!dashboardConfig) return null;
 
     switch (userProfile.user_type) {
-      case "affiliate_marketer":
+      case "AFFILIATE_MARKETER":
         return <AffiliateDashboard config={dashboardConfig} />;
-      case "content_creator":
+      case "CONTENT_CREATOR":
         return <CreatorDashboard config={dashboardConfig} />;
-      case "business_owner":
+      case "BUSINESS_OWNER":
         return <BusinessDashboard config={dashboardConfig} />;
       default:
         return (
@@ -244,7 +244,7 @@ const OnboardingCompleteForm: React.FC<OnboardingCompleteFormProps> = ({
   const [isLoading, setIsLoading] = useState(false);
 
   const availableGoals = {
-    affiliate_marketer: [
+    AFFILIATE_MARKETER: [
       "Increase commission rates",
       "Track top competitors",
       "Improve conversion rates",
@@ -252,7 +252,7 @@ const OnboardingCompleteForm: React.FC<OnboardingCompleteFormProps> = ({
       "Automate campaign optimization",
       "Scale traffic sources",
     ],
-    content_creator: [
+    CONTENT_CREATOR: [
       "Go viral more often",
       "Grow follower count",
       "Increase engagement rates",
@@ -260,7 +260,7 @@ const OnboardingCompleteForm: React.FC<OnboardingCompleteFormProps> = ({
       "Create better content",
       "Cross-platform growth",
     ],
-    business_owner: [
+    BUSINESS_OWNER: [
       "Generate more leads",
       "Increase sales revenue",
       "Understand market trends",
