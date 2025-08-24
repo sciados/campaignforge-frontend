@@ -22,21 +22,21 @@ interface UserType {
 
 interface UserTypeSelectorProps {
   onTypeSelect?: (userType: string) => void;
-  showDetection?: boolean;
+  showDetectionOption?: boolean;
   className?: string;
 }
 
 const UserTypeSelector: React.FC<UserTypeSelectorProps> = ({
   onTypeSelect,
-  showDetection = true,
+  showDetectionOption = true,
   className = "",
 }) => {
   const router = useRouter();
   const [selectedType, setSelectedType] = useState<string>("");
   const [detectedType, setDetectedType] = useState<string>("");
   const [isLoading, setIsLoading] = useState(false);
-  const [showDetection, setShowDetectionForm] = useState(false);
-  const [detectionData, setDetectionData] = useState({
+  const [showDetectionForm, setShowDetectionForm] = useState(false);
+  const [detectionFormData, setDetectionFormData] = useState({
     description: "",
     goals: [] as string[],
     currentActivities: [] as string[],
@@ -93,7 +93,7 @@ const UserTypeSelector: React.FC<UserTypeSelectorProps> = ({
   };
 
   const handleTypeDetection = async () => {
-    if (!detectionData.description.trim()) {
+    if (!detectionFormData.description.trim()) {
       alert("Please provide a description of what you do");
       return;
     }
@@ -105,7 +105,7 @@ const UserTypeSelector: React.FC<UserTypeSelectorProps> = ({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify(detectionData),
+        body: JSON.stringify(detectionFormData),
       });
 
       const data = await response.json();
@@ -151,11 +151,11 @@ const UserTypeSelector: React.FC<UserTypeSelectorProps> = ({
         credentials: "include",
         body: JSON.stringify({
           user_type: userType,
-          goals: detectionData.goals,
+          goals: detectionFormData.goals,
           experience_level: "beginner",
-          current_activities: detectionData.currentActivities,
-          interests: detectionData.interests,
-          description: detectionData.description,
+          current_activities: detectionFormData.currentActivities,
+          interests: detectionFormData.interests,
+          description: detectionFormData.description,
         }),
       });
 
@@ -176,8 +176,8 @@ const UserTypeSelector: React.FC<UserTypeSelectorProps> = ({
   };
 
   const addGoal = (goal: string) => {
-    if (goal && !detectionData.goals.includes(goal)) {
-      setDetectionData((prev) => ({
+    if (goal && !detectionFormData.goals.includes(goal)) {
+      setDetectionFormData((prev) => ({
         ...prev,
         goals: [...prev.goals, goal],
       }));
@@ -185,7 +185,7 @@ const UserTypeSelector: React.FC<UserTypeSelectorProps> = ({
   };
 
   const removeGoal = (goal: string) => {
-    setDetectionData((prev) => ({
+    setDetectionFormData((prev) => ({
       ...prev,
       goals: prev.goals.filter((g) => g !== goal),
     }));
@@ -226,7 +226,7 @@ const UserTypeSelector: React.FC<UserTypeSelectorProps> = ({
       </div>
 
       {/* Smart Detection Section */}
-      {showDetection && (
+      {showDetectionOption && (
         <div className="mb-8">
           <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg p-6 border border-blue-200">
             <div className="flex items-center justify-between mb-4">
@@ -234,10 +234,10 @@ const UserTypeSelector: React.FC<UserTypeSelectorProps> = ({
                 🧠 Smart Recommendation
               </h2>
               <button
-                onClick={() => setShowDetectionForm(!showDetection)}
+                onClick={() => setShowDetectionForm(!showDetectionForm)}
                 className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
               >
-                {showDetection ? "Hide" : "Get Recommendation"}
+                {showDetectionForm ? "Hide" : "Get Recommendation"}
               </button>
             </div>
 
@@ -247,7 +247,7 @@ const UserTypeSelector: React.FC<UserTypeSelectorProps> = ({
             </p>
 
             <AnimatePresence>
-              {showDetection && (
+              {showDetectionForm && (
                 <motion.div
                   initial={{ opacity: 0, height: 0 }}
                   animate={{ opacity: 1, height: "auto" }}
@@ -260,9 +260,9 @@ const UserTypeSelector: React.FC<UserTypeSelectorProps> = ({
                       What do you do? (Describe your current activities)
                     </label>
                     <textarea
-                      value={detectionData.description}
+                      value={detectionFormData.description}
                       onChange={(e) =>
-                        setDetectionData((prev) => ({
+                        setDetectionFormData((prev) => ({
                           ...prev,
                           description: e.target.value,
                         }))
@@ -283,9 +283,9 @@ const UserTypeSelector: React.FC<UserTypeSelectorProps> = ({
                         <button
                           key={goal}
                           onClick={() => addGoal(goal)}
-                          disabled={detectionData.goals.includes(goal)}
+                          disabled={detectionFormData.goals.includes(goal)}
                           className={`px-3 py-1 text-sm rounded-full border transition-colors ${
-                            detectionData.goals.includes(goal)
+                            detectionFormData.goals.includes(goal)
                               ? "bg-blue-100 text-blue-800 border-blue-300 cursor-not-allowed"
                               : "bg-white text-gray-600 border-gray-300 hover:bg-gray-50 cursor-pointer"
                           }`}
@@ -296,10 +296,10 @@ const UserTypeSelector: React.FC<UserTypeSelectorProps> = ({
                     </div>
 
                     {/* Selected Goals */}
-                    {detectionData.goals.length > 0 && (
+                    {detectionFormData.goals.length > 0 && (
                       <div className="flex flex-wrap gap-2">
                         <span className="text-sm text-gray-600">Selected:</span>
-                        {detectionData.goals.map((goal) => (
+                        {detectionFormData.goals.map((goal) => (
                           <span
                             key={goal}
                             className="inline-flex items-center px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full"
@@ -319,7 +319,9 @@ const UserTypeSelector: React.FC<UserTypeSelectorProps> = ({
 
                   <button
                     onClick={handleTypeDetection}
-                    disabled={isLoading || !detectionData.description.trim()}
+                    disabled={
+                      isLoading || !detectionFormData.description.trim()
+                    }
                     className="w-full px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:from-blue-700 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 font-medium"
                   >
                     {isLoading ? (
