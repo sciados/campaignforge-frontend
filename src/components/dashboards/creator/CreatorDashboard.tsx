@@ -29,8 +29,52 @@ interface CreatorDashboardProps {
   config: DashboardConfig;
 }
 
+interface CreatorMetrics {
+  followers: number;
+  followerGrowth: number;
+  engagement: number;
+  engagementGrowth: number;
+  viralScore: number;
+  monthlyEarnings: number;
+}
+
+interface ContentPipeline {
+  published: number;
+  draft: number;
+  scheduled: number;
+  ideas: number;
+}
+
+interface ViralOpportunity {
+  id: number;
+  type: string;
+  title: string;
+  description: string;
+  urgency: "high" | "medium" | "low";
+  platform: string;
+  impact: string;
+}
+
+interface RecentContent {
+  id: number;
+  title: string;
+  type: string;
+  platform: string;
+  views: number;
+  engagement: number;
+  performance: "excellent" | "good" | "average" | "poor";
+  growth: number;
+}
+
+interface DashboardData {
+  creatorMetrics: CreatorMetrics;
+  contentPipeline: ContentPipeline;
+  viralOpportunities: ViralOpportunity[];
+  recentContent: RecentContent[];
+}
+
 const CreatorDashboard: React.FC<CreatorDashboardProps> = ({ config }) => {
-  const [dashboardData, setDashboardData] = useState({
+  const [dashboardData, setDashboardData] = useState<DashboardData>({
     creatorMetrics: {
       followers: 0,
       followerGrowth: 0,
@@ -170,7 +214,7 @@ const CreatorDashboard: React.FC<CreatorDashboardProps> = ({ config }) => {
     }).format(amount);
   };
 
-  const getUrgencyColor = (urgency: string) => {
+  const getUrgencyColor = (urgency: "high" | "medium" | "low") => {
     switch (urgency) {
       case "high":
         return "text-red-600 bg-red-100 border-red-200";
@@ -200,7 +244,9 @@ const CreatorDashboard: React.FC<CreatorDashboardProps> = ({ config }) => {
     }
   };
 
-  const getPerformanceIcon = (performance: string) => {
+  const getPerformanceIcon = (
+    performance: "excellent" | "good" | "average" | "poor"
+  ) => {
     switch (performance) {
       case "excellent":
         return "🔥";
