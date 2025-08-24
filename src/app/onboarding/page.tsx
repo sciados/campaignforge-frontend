@@ -1,10 +1,10 @@
-// src/app / onboarding / page.tsx;
+// src/app/onboarding/page.tsx
 /**
  * Onboarding Completion Page
  * ✅ Complete user setup after type selection
  */
 
-("use client");
+"use client";
 
 import { useState } from "react";
 import { useUserType } from "@/lib/hooks/useUserType";
@@ -91,7 +91,7 @@ export default function OnboardingPage() {
               Welcome, {userProfile.user_type_display}! 👋
             </h1>
             <p className="text-gray-600">
-              Lets personalize your experience with a few quick questions.
+              Let us personalize your experience with a few quick questions.
             </p>
           </div>
 

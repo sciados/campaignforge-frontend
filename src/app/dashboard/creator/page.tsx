@@ -1,15 +1,15 @@
-// src/app/dashboard/affiliate/page.tsx
+// src/app/dashboard/creator/page.tsx
 /**
- * Affiliate Marketer Dashboard Page
- * 💰 Commission Command Center
+ * Content Creator Dashboard Page
+ * 🎬 Creator Studio Pro
  */
 
 "use client";
 
 import { useEffect, useState } from "react";
-import AffiliateDashboard from "@/components/dashboards/affiliate/AffiliateDashboard";
+import CreatorDashboard from "@/components/dashboards/creator/CreatorDashboard";
 
-export default function AffiliateDashboardPage() {
+export default function CreatorDashboardPage() {
   const [config, setConfig] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -37,7 +37,7 @@ export default function AffiliateDashboardPage() {
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
       </div>
     );
   }
@@ -51,7 +51,7 @@ export default function AffiliateDashboardPage() {
           </h2>
           <button
             onClick={() => window.location.reload()}
-            className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+            className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
           >
             Try Again
           </button>
@@ -60,5 +60,5 @@ export default function AffiliateDashboardPage() {
     );
   }
 
-  return <AffiliateDashboard config={config} />;
+  return <CreatorDashboard config={config} />;
 }

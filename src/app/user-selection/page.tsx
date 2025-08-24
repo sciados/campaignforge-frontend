@@ -4,7 +4,7 @@
  * 🎭 Where users choose their user type during onboarding
  */
 
-import UserTypeSelector from "../../components/user-types/UserTypeSelector";
+import UserTypeSelector from "@/components/user-types/UserTypeSelector";
 
 export default function UserSelectionPage() {
   return (
