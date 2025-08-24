@@ -44,8 +44,8 @@ const UserTypeSelector: React.FC<UserTypeSelectorProps> = ({
   });
 
   const [userTypes, setUserTypes] = useState<Record<string, UserType>>({
-    AFFILIATE_MARKETER: {
-      value: "AFFILIATE_MARKETER",
+    affiliate_marketer: {
+      value: "affiliate_marketer",
       emoji: "💰",
       title: "Affiliate Marketer",
       description: "Promote products and earn commissions",
@@ -56,16 +56,16 @@ const UserTypeSelector: React.FC<UserTypeSelectorProps> = ({
       ],
       pricing_start: "$149/month",
     },
-    CONTENT_CREATOR: {
-      value: "CONTENT_CREATOR",
+    content_creator: {
+      value: "content_creator",
       emoji: "🎬",
       title: "Content Creator",
       description: "Create viral content and grow your audience",
       features: ["Viral analysis", "Trend detection", "Brand partnerships"],
       pricing_start: "$99/month",
     },
-    BUSINESS_OWNER: {
-      value: "BUSINESS_OWNER",
+    business_owner: {
+      value: "business_owner",
       emoji: "🏢",
       title: "Business Owner",
       description: "Generate leads and grow your business",
