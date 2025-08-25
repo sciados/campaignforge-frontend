@@ -1,92 +1,142 @@
-'use client'
+"use client";
 
 // Force dynamic rendering
-export const dynamic = 'force-dynamic'
+export const dynamic = "force-dynamic";
 
-import React, { useState } from 'react'
-import { useRouter } from 'next/navigation'
-import Link from 'next/link'
-import { Eye, EyeOff, ArrowRight } from 'lucide-react'
+import React, { useState } from "react";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { Eye, EyeOff, ArrowRight } from "lucide-react";
 
 export default function LoginPage() {
   const [formData, setFormData] = useState({
-    email: '',
-    password: ''
-  })
-  const [showPassword, setShowPassword] = useState(false)
-  const [error, setError] = useState('')
-  const [isLoading, setIsLoading] = useState(false)
-  
-  const router = useRouter()
+    email: "",
+    password: "",
+  });
+  const [showPassword, setShowPassword] = useState(false);
+  const [error, setError] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+
+  const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setError('')
-    setIsLoading(true)
+    e.preventDefault();
+    setError("");
+    setIsLoading(true);
 
     try {
-      const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://campaign-backend-production-e2db.up.railway.app'
-      
+      const API_BASE_URL =
+        process.env.NEXT_PUBLIC_API_URL ||
+        "https://campaign-backend-production-e2db.up.railway.app";
+
       // Step 1: Login to get access token
       const response = await fetch(`${API_BASE_URL}/api/auth/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData)
-      })
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(formData),
+      });
 
       if (response.ok) {
-        const data = await response.json()
-        if (typeof window !== 'undefined') {
-          localStorage.setItem('authToken', data.access_token)
+        const data = await response.json();
+        if (typeof window !== "undefined") {
+          localStorage.setItem("authToken", data.access_token);
         }
-        
+
         try {
-          // Step 2: Get user profile to check role
-          console.log('🔍 Getting user profile to determine dashboard...')
-          const profileResponse = await fetch(`${API_BASE_URL}/api/auth/profile`, {
-            headers: { 'Authorization': `Bearer ${data.access_token}` }
-          })
-          
-          if (profileResponse.ok) {
-            const userProfile = await profileResponse.json()
-            console.log('✅ User profile loaded:', userProfile.email, userProfile.role)
-            
-            // Redirect based on role
-            if (userProfile.role === 'admin') {
-              console.log('👑 Admin user, redirecting to admin dashboard')
-              router.push('/admin')
+          // Step 2: Get the appropriate dashboard route using the new endpoint
+          console.log("🎯 Getting dashboard route for user...");
+          const routeResponse = await fetch(
+            `${API_BASE_URL}/api/auth/dashboard-route`,
+            {
+              headers: { Authorization: `Bearer ${data.access_token}` },
+            }
+          );
+
+          if (routeResponse.ok) {
+            const routeData = await routeResponse.json();
+            console.log("✅ Dashboard route determined:", routeData);
+
+            // Redirect to the appropriate dashboard
+            if (routeData.route) {
+              console.log(`🚀 Redirecting to: ${routeData.route}`);
+              router.push(routeData.route);
             } else {
-              console.log('👤 Regular user, redirecting to user dashboard')
-              router.push('/dashboard')
+              console.log(
+                "📋 No specific route, redirecting to user selection"
+              );
+              router.push("/user-selection");
             }
           } else {
-            console.warn('⚠️ Profile fetch failed, defaulting to user dashboard')
-            // Fallback to user dashboard if profile fetch fails
-            router.push('/dashboard')
+            console.warn(
+              "⚠️ Dashboard route fetch failed, using fallback logic"
+            );
+
+            // Fallback: Use user data from login response
+            const user = data.user;
+            if (user.role === "admin") {
+              console.log(
+                "👑 Admin user (fallback), redirecting to admin dashboard"
+              );
+              router.push("/admin");
+            } else if (user.user_type === "affiliate_marketer") {
+              console.log(
+                "💰 Affiliate marketer (fallback), redirecting to affiliate dashboard"
+              );
+              router.push("/dashboard/affiliate");
+            } else if (user.user_type === "content_creator") {
+              console.log(
+                "🎬 Content creator (fallback), redirecting to creator dashboard"
+              );
+              router.push("/dashboard/creator");
+            } else if (user.user_type === "business_owner") {
+              console.log(
+                "🏢 Business owner (fallback), redirecting to business dashboard"
+              );
+              router.push("/dashboard/business");
+            } else {
+              console.log(
+                "❓ User without type (fallback), redirecting to user selection"
+              );
+              router.push("/user-selection");
+            }
           }
-        } catch (profileError) {
-          console.error('❌ Profile fetch error:', profileError)
-          // Fallback to user dashboard if profile fetch fails
-          router.push('/dashboard')
+        } catch (routeError) {
+          console.error("❌ Dashboard route fetch error:", routeError);
+
+          // Final fallback: Try to use user data from login response
+          const user = data.user;
+          if (user && user.role === "admin") {
+            router.push("/admin");
+          } else if (user && user.user_type) {
+            const dashboardRoutes: { [key: string]: string } = {
+              affiliate_marketer: "/dashboard/affiliate",
+              content_creator: "/dashboard/creator",
+              business_owner: "/dashboard/business",
+            };
+            router.push(dashboardRoutes[user.user_type] || "/user-selection");
+          } else {
+            // Ultimate fallback
+            router.push("/dashboard");
+          }
         }
       } else {
-        const errorData = await response.json()
-        setError(errorData.detail || 'Login failed')
+        const errorData = await response.json();
+        setError(errorData.detail || "Login failed");
       }
     } catch (error) {
-      console.error('Login error:', error)
-      setError('Network error - please try again')
+      console.error("Login error:", error);
+      setError("Network error - please try again");
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      [e.target.name]: e.target.value
-    }))
-  }
+      [e.target.name]: e.target.value,
+    }));
+  };
 
   return (
     <div className="min-h-screen bg-white flex">
@@ -102,7 +152,8 @@ export default function LoginPage() {
             <span className="font-semibold">CampaignForge.</span>
           </h1>
           <p className="text-lg text-gray-600 leading-relaxed">
-            Transform any content into complete marketing campaigns with AI-powered intelligence.
+            Transform any content into complete marketing campaigns with
+            AI-powered intelligence.
           </p>
         </div>
       </div>
@@ -130,7 +181,10 @@ export default function LoginPage() {
 
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-black mb-2">
+              <label
+                htmlFor="email"
+                className="block text-sm font-medium text-black mb-2"
+              >
                 Email
               </label>
               <input
@@ -146,14 +200,17 @@ export default function LoginPage() {
             </div>
 
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-black mb-2">
+              <label
+                htmlFor="password"
+                className="block text-sm font-medium text-black mb-2"
+              >
                 Password
               </label>
               <div className="relative">
                 <input
                   id="password"
                   name="password"
-                  type={showPassword ? 'text' : 'password'}
+                  type={showPassword ? "text" : "password"}
                   required
                   value={formData.password}
                   onChange={handleChange}
@@ -165,7 +222,11 @@ export default function LoginPage() {
                   onClick={() => setShowPassword(!showPassword)}
                   className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-black transition-colors"
                 >
-                  {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                  {showPassword ? (
+                    <EyeOff className="h-5 w-5" />
+                  ) : (
+                    <Eye className="h-5 w-5" />
+                  )}
                 </button>
               </div>
             </div>
@@ -178,7 +239,10 @@ export default function LoginPage() {
                 />
                 <span className="ml-2 text-sm text-gray-600">Remember me</span>
               </label>
-              <a href="#" className="text-sm text-black hover:text-gray-700 transition-colors">
+              <a
+                href="#"
+                className="text-sm text-black hover:text-gray-700 transition-colors"
+              >
                 Forgot password?
               </a>
             </div>
@@ -201,8 +265,11 @@ export default function LoginPage() {
 
           <div className="mt-8 text-center">
             <p className="text-gray-600">
-              Do not have an account?{' '}
-              <Link href="/register" className="text-black font-medium hover:text-gray-700 transition-colors">
+              Do not have an account?{" "}
+              <Link
+                href="/register"
+                className="text-black font-medium hover:text-gray-700 transition-colors"
+              >
                 Create account
               </Link>
             </p>
@@ -210,15 +277,21 @@ export default function LoginPage() {
 
           <div className="mt-8 pt-8 border-t border-gray-200">
             <div className="flex items-center justify-center space-x-4 text-sm text-gray-500">
-              <a href="#" className="hover:text-black transition-colors">Privacy</a>
+              <a href="#" className="hover:text-black transition-colors">
+                Privacy
+              </a>
               <span>•</span>
-              <a href="#" className="hover:text-black transition-colors">Terms</a>
+              <a href="#" className="hover:text-black transition-colors">
+                Terms
+              </a>
               <span>•</span>
-              <a href="#" className="hover:text-black transition-colors">Support</a>
+              <a href="#" className="hover:text-black transition-colors">
+                Support
+              </a>
             </div>
           </div>
         </div>
       </div>
     </div>
-  )
+  );
 }
