@@ -1985,6 +1985,30 @@ class ApiClient {
 
     return this.handleResponse(response)
   }
+
+  // Add to ApiClient class
+  async getUserTypeConfig(): Promise<any> {
+    const response = await fetch(`${this.baseURL}/api/user-types/dashboard-config`, {
+      headers: this.getHeaders()
+    })
+    return this.handleResponse(response)
+  }
+
+  async getCurrentUserType(): Promise<any> {
+    const response = await fetch(`${this.baseURL}/api/user-types/current`, {
+      headers: this.getHeaders()
+    })
+    return this.handleResponse(response)
+  }
+
+  async selectUserType(data: any): Promise<any> {
+    const response = await fetch(`${this.baseURL}/api/user-types/select`, {
+      method: 'POST',
+      headers: this.getHeaders(),
+      body: JSON.stringify(data)
+    })
+    return this.handleResponse(response)
+  }
 }
 
 // ============================================================================
@@ -2264,7 +2288,12 @@ function useApi() {
     saveAffiliatePreferences: apiClient.saveAffiliatePreferences.bind(apiClient),
     generateAffiliateLink: apiClient.generateAffiliateLink.bind(apiClient),
     trackAffiliateClick: apiClient.trackAffiliateClick.bind(apiClient),
-    getAffiliatePerformance: apiClient.getAffiliatePerformance.bind(apiClient)
+    getAffiliatePerformance: apiClient.getAffiliatePerformance.bind(apiClient),
+
+    // Add to useApi() return
+    getUserTypeConfig: apiClient.getUserTypeConfig.bind(apiClient),
+    getCurrentUserType: apiClient.getCurrentUserType.bind(apiClient),
+    selectUserType: apiClient.selectUserType.bind(apiClient)
   }
 }
 

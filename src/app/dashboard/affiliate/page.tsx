@@ -8,20 +8,21 @@
 
 import { useEffect, useState } from "react";
 import AffiliateDashboard from "@/components/dashboards/affiliate/AffiliateDashboard";
+import { useApi } from "@/lib/api";
 
 export default function AffiliateDashboardPage() {
   const [config, setConfig] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
+  const api = useApi();
 
   useEffect(() => {
     fetchDashboardConfig();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const fetchDashboardConfig = async () => {
     try {
-      const response = await fetch("/api/user-types/dashboard-config", {
-        credentials: "include",
-      });
+      const response = await api.getUserTypeConfig();
       const data = await response.json();
 
       if (data.success) {
