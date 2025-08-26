@@ -1,15 +1,10 @@
-// src/components/user-types/UserTypeSelector.tsx
-/**
- * User Type Selector Component for CampaignForge Multi-User System
- * 🎭 Allows users to select their user type during onboarding
- * 🎯 Provides intelligent type detection and recommendations
- */
-
+// src/components/user-types/UserTypeSelector.tsx - FIXED VERSION
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
+import { useApi } from "@/lib/api";
 
 interface UserType {
   value: string;
@@ -32,6 +27,8 @@ const UserTypeSelector: React.FC<UserTypeSelectorProps> = ({
   className = "",
 }) => {
   const router = useRouter();
+  const api = useApi();
+
   const [selectedType, setSelectedType] = useState<string>("");
   const [detectedType, setDetectedType] = useState<string>("");
   const [isLoading, setIsLoading] = useState(false);
@@ -74,23 +71,21 @@ const UserTypeSelector: React.FC<UserTypeSelectorProps> = ({
     },
   });
 
-  // Load available user types on mount
-  useEffect(() => {
-    fetchUserTypes();
-  }, []);
-
-  const fetchUserTypes = async () => {
+  const fetchUserTypes = useCallback(async () => {
     try {
-      const response = await fetch("/api/user-types/types");
-      const data = await response.json();
+      const response = await api.getAllUserTypes();
 
-      if (data.success) {
-        setUserTypes(data.user_types);
+      if (response.success) {
+        setUserTypes(response.user_types);
       }
     } catch (error) {
       console.error("Failed to fetch user types:", error);
     }
-  };
+  }, [api]);
+
+  useEffect(() => {
+    fetchUserTypes();
+  }, [fetchUserTypes]);
 
   const handleTypeDetection = async () => {
     if (!detectionFormData.description.trim()) {
@@ -101,24 +96,17 @@ const UserTypeSelector: React.FC<UserTypeSelectorProps> = ({
     setIsLoading(true);
 
     try {
-      const response = await fetch("/api/user-types/detect", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify(detectionFormData),
-      });
+      const response = await api.detectUserType(detectionFormData);
 
-      const data = await response.json();
-
-      if (data.success) {
-        setDetectedType(data.detected_type);
-        setSelectedType(data.detected_type);
+      if (response.success) {
+        setDetectedType(response.detected_type);
+        setSelectedType(response.detected_type);
         setShowDetectionForm(false);
 
         // Show detection result with animation
         setTimeout(() => {
           const element = document.getElementById(
-            `type-card-${data.detected_type}`
+            `type-card-${response.detected_type}`
           );
           if (element) {
             element.scrollIntoView({ behavior: "smooth", block: "center" });
@@ -145,25 +133,18 @@ const UserTypeSelector: React.FC<UserTypeSelectorProps> = ({
     setIsLoading(true);
 
     try {
-      const response = await fetch("/api/user-types/select", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({
-          user_type: userType,
-          goals: detectionFormData.goals,
-          experience_level: "beginner",
-          current_activities: detectionFormData.currentActivities,
-          interests: detectionFormData.interests,
-          description: detectionFormData.description,
-        }),
+      const response = await api.selectUserType({
+        user_type: userType,
+        goals: detectionFormData.goals,
+        experience_level: "beginner",
+        current_activities: detectionFormData.currentActivities,
+        interests: detectionFormData.interests,
+        description: detectionFormData.description,
       });
 
-      const data = await response.json();
-
-      if (data.success) {
+      if (response.success) {
         // Redirect to dashboard
-        router.push(data.user_profile.dashboard_route);
+        router.push(response.user_profile.dashboard_route);
       } else {
         alert("Failed to set user type. Please try again.");
       }

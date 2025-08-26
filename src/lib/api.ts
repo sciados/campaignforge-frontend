@@ -1,13 +1,13 @@
 // src/lib/api.ts - COMPLETE CLEAN VERSION - NO DUPLICATE EXPORTS
 /**
  * Enhanced API client for CampaignForge with streamlined 2-step workflow
- * 🔧 UPDATED: Cleaned legacy 4-step workflow references
- * 🧹 CLEANED: Removed old workflow interfaces and methods
- * 🔧 FIXED: Robust response handling for all backend response formats
- * 🎯 FIXED: generateContent method handles both success/error response formats
- * 🔧 NEW: Complete enhanced email generation API integration
- * ✅ FIXED: All duplicate exports removed
- * 🎯 FIXED: AI Discovery Service endpoints now call service directly
+ * ðŸ”§ UPDATED: Cleaned legacy 4-step workflow references
+ * ðŸ§¹ CLEANED: Removed old workflow interfaces and methods
+ * ðŸ”§ FIXED: Robust response handling for all backend response formats
+ * ðŸŽ¯ FIXED: generateContent method handles both success/error response formats
+ * ðŸ”§ NEW: Complete enhanced email generation API integration
+ * âœ… FIXED: All duplicate exports removed
+ * ðŸŽ¯ FIXED: AI Discovery Service endpoints now call service directly
  */
 
 import { useState, useCallback, useEffect } from 'react'
@@ -16,13 +16,13 @@ import type { Campaign, CampaignCreateRequest } from './types/campaign'
 
 const API_BASE_URL = 'https://campaign-backend-production-e2db.up.railway.app'
 
-console.log('🔍 Environment check:')
+console.log('ðŸ” Environment check:')
 console.log('- process.env.NEXT_PUBLIC_API_URL:', process.env.NEXT_PUBLIC_API_URL)
 console.log('- API_BASE_URL being used:', API_BASE_URL)
 console.log('- Window location:', typeof window !== 'undefined' ? window.location.href : 'SSR')
 
 // ============================================================================
-// 🎯 ROBUST RESPONSE TYPES - Handles Multiple Backend Response Formats
+// ðŸŽ¯ ROBUST RESPONSE TYPES - Handles Multiple Backend Response Formats
 // ============================================================================
 
 export async function createCampaign(data: CampaignCreateRequest): Promise<Campaign> {
@@ -69,7 +69,7 @@ export interface LegacyResponse {
 }
 
 // ============================================================================
-// 🔧 NEW: ENHANCED EMAIL GENERATION TYPES
+// ðŸ”§ NEW: ENHANCED EMAIL GENERATION TYPES
 // ============================================================================
 
 export interface EmailGenerationRequest {
@@ -203,7 +203,7 @@ export interface EmailSystemHealthResponse {
 }
 
 // ============================================================================
-// 🔧 UPDATED TYPES FOR 2-STEP WORKFLOW
+// ðŸ”§ UPDATED TYPES FOR 2-STEP WORKFLOW
 // ============================================================================
 
 /** export interface Campaign {
@@ -223,7 +223,7 @@ export interface EmailSystemHealthResponse {
   user_id: string
   company_id: string
 
-  // 🆕 NEW: Auto-Analysis Fields (matching backend CampaignResponse)
+  // ðŸ†• NEW: Auto-Analysis Fields (matching backend CampaignResponse)
   salespage_url?: string
   auto_analysis_enabled?: boolean
   auto_analysis_status?: string
@@ -237,7 +237,7 @@ export interface EmailSystemHealthResponse {
   content_count?: number
   total_steps?: number
 
-  // 🆕 NEW: Auto-analysis workflow fields
+  // ðŸ†• NEW: Auto-analysis workflow fields
   content_types?: string[]
   content_tone?: string
   content_style?: string
@@ -252,7 +252,7 @@ export interface EmailSystemHealthResponse {
   last_activity?: string
 } */
 
-// 🔧 UPDATED: Campaign creation interface
+// ðŸ”§ UPDATED: Campaign creation interface
 interface CampaignCreateData {
   title: string
   description?: string
@@ -262,7 +262,7 @@ interface CampaignCreateData {
   tone?: string
   style?: string
 
-  // 🆕 NEW: Auto-Analysis Fields for streamlined workflow
+  // ðŸ†• NEW: Auto-Analysis Fields for streamlined workflow
   salespage_url?: string
   auto_analysis_enabled?: boolean
   content_types?: string[]
@@ -288,7 +288,7 @@ export interface DemoToggleResponse {
   action: string
 }
 
-// 🔧 UPDATED: Workflow State for 2-step process
+// ðŸ”§ UPDATED: Workflow State for 2-step process
 export interface WorkflowStateResponse {
   campaign_id: string
   workflow_state: string
@@ -327,7 +327,7 @@ export interface WorkflowStateResponse {
   updated_at: string
 }
 
-// 🆕 NEW: Workflow progress data for save progress
+// ðŸ†• NEW: Workflow progress data for save progress
 export interface WorkflowProgressData {
   workflow_state?: string
   completion_percentage?: number
@@ -336,7 +336,7 @@ export interface WorkflowProgressData {
   generate_content_after_analysis?: boolean
 }
 
-// 🔧 UPDATED: Campaign Intelligence Response
+// ðŸ”§ UPDATED: Campaign Intelligence Response
 export interface CampaignIntelligenceResponse {
   campaign_id: string
   intelligence_entries: Array<{
@@ -525,7 +525,7 @@ export class CreditError extends Error {
 }
 
 // ============================================================================
-// 🎯 ROBUST RESPONSE DETECTION UTILITIES
+// ðŸŽ¯ ROBUST RESPONSE DETECTION UTILITIES
 // ============================================================================
 
 function isStandardResponse(response: any): response is StandardResponse {
@@ -584,7 +584,7 @@ export function getErrorMessage(error: unknown): string {
 }
 
 // ============================================================================
-// 🆕 NEW: DEMO CAMPAIGN UTILITY FUNCTIONS
+// ðŸ†• NEW: DEMO CAMPAIGN UTILITY FUNCTIONS
 // ============================================================================
 
 const demoUtils = {
@@ -653,7 +653,7 @@ const demoUtils = {
 }
 
 // ============================================================================
-// 🔧 NEW: EMAIL GENERATION UTILITY FUNCTIONS
+// ðŸ”§ NEW: EMAIL GENERATION UTILITY FUNCTIONS
 // ============================================================================
 
 const emailUtils = {
@@ -779,7 +779,7 @@ const emailUtils = {
 }
 
 // ============================================================================
-// 🔧 NEW: EMAIL GENERATION CONSTANTS
+// ðŸ”§ NEW: EMAIL GENERATION CONSTANTS
 // ============================================================================
 
 const EMAIL_CONSTANTS = {
@@ -850,13 +850,13 @@ class ApiClient {
     }
   }
 
-  // 🎯 ROBUST RESPONSE HANDLER - Handles Multiple Backend Response Formats
+  // ðŸŽ¯ ROBUST RESPONSE HANDLER - Handles Multiple Backend Response Formats
   private async handleResponse<T>(response: Response): Promise<T> {
     if (response.ok) {
       try {
         const responseData = await response.json()
 
-        // 🎯 ROBUST: Handle standardized responses
+        // ðŸŽ¯ ROBUST: Handle standardized responses
         if (isStandardResponse(responseData)) {
           if (!responseData.success) {
             throw new ApiError(
@@ -872,7 +872,7 @@ class ApiClient {
           return responseData.data as T
         }
 
-        // 🎯 ROBUST: Handle legacy responses
+        // ðŸŽ¯ ROBUST: Handle legacy responses
         if (isLegacyResponse(responseData)) {
           // Check for error indicators in legacy format
           if (hasErrorIndicators(responseData)) {
@@ -886,7 +886,7 @@ class ApiClient {
           return responseData as T
         }
 
-        // 🎯 ROBUST: Handle plain JSON responses
+        // ðŸŽ¯ ROBUST: Handle plain JSON responses
         return responseData as T
 
       } catch (jsonError) {
@@ -930,25 +930,25 @@ class ApiClient {
     )
   }
 
-  // 🎯 ROBUST CONTENT GENERATION HANDLER
+  // ðŸŽ¯ ROBUST CONTENT GENERATION HANDLER
   private async handleContentGenerationResponse(response: Response): Promise<GeneratedContent> {
     let responseData: any
 
     try {
       responseData = await response.json()
-      console.log('🔍 Raw backend response:', responseData)
+      console.log('ðŸ” Raw backend response:', responseData)
     } catch (jsonError) {
-      console.error('❌ JSON parsing failed:', jsonError)
+      console.error('âŒ JSON parsing failed:', jsonError)
       throw new ApiError(`Invalid JSON response: ${jsonError}`)
     }
 
-    // 🎯 ROBUST: Check for error conditions first
+    // ðŸŽ¯ ROBUST: Check for error conditions first
     if (!response.ok) {
       const errorMessage = extractErrorMessage(responseData)
       throw new ApiError(errorMessage, response.status, responseData)
     }
 
-    // 🎯 ROBUST: Handle standardized success response
+    // ðŸŽ¯ ROBUST: Handle standardized success response
     if (isStandardResponse(responseData)) {
       if (!responseData.success) {
         throw new ApiError(
@@ -985,7 +985,7 @@ class ApiClient {
       }
     }
 
-    // 🎯 ROBUST: Handle legacy response format
+    // ðŸŽ¯ ROBUST: Handle legacy response format
     if (isLegacyResponse(responseData)) {
       // Check for error indicators
       if (hasErrorIndicators(responseData)) {
@@ -1011,8 +1011,8 @@ class ApiClient {
       }
     }
 
-    // 🎯 ROBUST: Fallback for unexpected response format
-    console.warn('⚠️ Unexpected response format, attempting to extract content:', responseData)
+    // ðŸŽ¯ ROBUST: Fallback for unexpected response format
+    console.warn('âš ï¸ Unexpected response format, attempting to extract content:', responseData)
 
     return {
       content_id: responseData.id || responseData.content_id || 'unknown-id',
@@ -1103,15 +1103,136 @@ class ApiClient {
     return this.handleResponse<User>(response)
   }
 
+  // Add these methods to your ApiClient class, after the existing 3 user type methods:
+
+  async getUserTypeConfig(): Promise<any> {
+    const response = await fetch(`${this.baseURL}/api/user-types/dashboard-config`, {
+      headers: this.getHeaders()
+    })
+    return this.handleResponse(response)
+  }
+
+  async getCurrentUserType(): Promise<any> {
+    const response = await fetch(`${this.baseURL}/api/user-types/current`, {
+      headers: this.getHeaders()
+    })
+    return this.handleResponse(response)
+  }
+
+  async selectUserType(data: any): Promise<any> {
+    const response = await fetch(`${this.baseURL}/api/user-types/select`, {
+      method: 'POST',
+      headers: this.getHeaders(),
+      body: JSON.stringify(data)
+    })
+    return this.handleResponse(response)
+  }
+
+  async detectUserType(request: {
+    description: string
+    goals?: string[]
+    current_activities?: string[]
+    interests?: string[]
+  }): Promise<any> {
+    console.log('Detecting user type:', request)
+
+    const response = await fetch(`${this.baseURL}/api/user-types/detect`, {
+      method: 'POST',
+      headers: this.getHeaders(),
+      body: JSON.stringify(request)
+    })
+
+    return this.handleResponse(response)
+  }
+
+  async completeOnboarding(goals: string[], experienceLevel: string): Promise<any> {
+    console.log('Completing onboarding:', { goals, experienceLevel })
+
+    const response = await fetch(`${this.baseURL}/api/user-types/complete-onboarding`, {
+      method: 'POST',
+      headers: this.getHeaders(),
+      body: JSON.stringify({
+        goals,
+        experience_level: experienceLevel
+      })
+    })
+
+    return this.handleResponse(response)
+  }
+
+  async getAllUserTypes(): Promise<any> {
+    const response = await fetch(`${this.baseURL}/api/user-types/types`, {
+      headers: this.getHeaders()
+    })
+
+    return this.handleResponse(response)
+  }
+
+  async getUserRecommendations(): Promise<any> {
+    const response = await fetch(`${this.baseURL}/api/user-types/recommendations`, {
+      headers: this.getHeaders()
+    })
+
+    return this.handleResponse(response)
+  }
+
+  async getUserUsageSummary(): Promise<any> {
+    const response = await fetch(`${this.baseURL}/api/user-types/usage-summary`, {
+      headers: this.getHeaders()
+    })
+
+    return this.handleResponse(response)
+  }
+
+  async checkUpgradeEligibility(): Promise<any> {
+    const response = await fetch(`${this.baseURL}/api/user-types/upgrade-check`, {
+      headers: this.getHeaders()
+    })
+
+    return this.handleResponse(response)
+  }
+
+  async getWelcomeMessage(): Promise<any> {
+    try {
+      const response = await fetch(`${this.baseURL}/api/user-types/welcome-message`, {
+        headers: this.getHeaders()
+      })
+
+      return this.handleResponse(response)
+    } catch (error) {
+      // Return fallback message instead of throwing
+      return {
+        success: true,
+        welcome_message: "Welcome to CampaignForge!",
+        user_type: null
+      }
+    }
+  }
+
+  async migrateUserType(newUserType: string, reason?: string): Promise<any> {
+    console.log('Migrating user type:', { newUserType, reason })
+
+    const response = await fetch(`${this.baseURL}/api/user-types/migrate`, {
+      method: 'POST',
+      headers: this.getHeaders(),
+      body: JSON.stringify({
+        new_user_type: newUserType,
+        reason
+      })
+    })
+
+    return this.handleResponse(response)
+  }
+
   // ============================================================================
-  // 🔧 NEW: ENHANCED EMAIL GENERATION METHODS
+  // ðŸ”§ NEW: ENHANCED EMAIL GENERATION METHODS
   // ============================================================================
 
   /**
    * Generate enhanced email sequence with AI learning
    */
   async generateEnhancedEmails(request: EmailGenerationRequest): Promise<EmailGenerationResponse> {
-    console.log('📧 Generating enhanced emails:', request)
+    console.log('ðŸ“§ Generating enhanced emails:', request)
 
     try {
       const response = await fetch(`${this.baseURL}/api/intelligence/emails/enhanced-emails/generate`, {
@@ -1125,11 +1246,11 @@ class ApiClient {
       }
 
       const result = await response.json()
-      console.log('✅ Enhanced emails generated successfully:', result)
+      console.log('âœ… Enhanced emails generated successfully:', result)
 
       return result
     } catch (error) {
-      console.error('❌ Enhanced email generation error:', error)
+      console.error('âŒ Enhanced email generation error:', error)
       throw error
     }
   }
@@ -1138,7 +1259,7 @@ class ApiClient {
    * Track email performance for learning system
    */
   async trackEmailPerformance(request: PerformanceTrackingRequest): Promise<PerformanceTrackingResponse> {
-    console.log('📊 Tracking email performance:', request)
+    console.log('ðŸ“Š Tracking email performance:', request)
 
     try {
       const response = await fetch(`${this.baseURL}/api/intelligence/emails/enhanced-emails/track-performance`, {
@@ -1152,11 +1273,11 @@ class ApiClient {
       }
 
       const result = await response.json()
-      console.log('✅ Performance tracking successful:', result)
+      console.log('âœ… Performance tracking successful:', result)
 
       return result
     } catch (error) {
-      console.error('❌ Performance tracking error:', error)
+      console.error('âŒ Performance tracking error:', error)
       throw error
     }
   }
@@ -1177,7 +1298,7 @@ class ApiClient {
 
       return response.json()
     } catch (error) {
-      console.error('❌ Learning analytics error:', error)
+      console.error('âŒ Learning analytics error:', error)
       throw error
     }
   }
@@ -1198,7 +1319,7 @@ class ApiClient {
 
       return response.json()
     } catch (error) {
-      console.error('❌ Email system health check error:', error)
+      console.error('âŒ Email system health check error:', error)
       throw error
     }
   }
@@ -1225,7 +1346,7 @@ class ApiClient {
 
       return response.json()
     } catch (error) {
-      console.error('❌ Template seeding error:', error)
+      console.error('âŒ Template seeding error:', error)
       throw error
     }
   }
@@ -1251,7 +1372,7 @@ class ApiClient {
 
       return response.json()
     } catch (error) {
-      console.error('❌ Learning trigger error:', error)
+      console.error('âŒ Learning trigger error:', error)
       throw error
     }
   }
@@ -1289,7 +1410,7 @@ class ApiClient {
 
       return response.json()
     } catch (error) {
-      console.error('❌ Enhanced email test error:', error)
+      console.error('âŒ Enhanced email test error:', error)
       throw error
     }
   }
@@ -1316,13 +1437,13 @@ class ApiClient {
 
       return response.json()
     } catch (error) {
-      console.error('❌ System status check error:', error)
+      console.error('âŒ System status check error:', error)
       throw error
     }
   }
 
   // ============================================================================
-  // 🆕 DEMO PREFERENCE MANAGEMENT METHODS
+  // ðŸ†• DEMO PREFERENCE MANAGEMENT METHODS
   // ============================================================================
 
   /**
@@ -1458,13 +1579,13 @@ class ApiClient {
   }
 
   // ============================================================================
-  // 🔧 UPDATED CAMPAIGN METHODS FOR 2-STEP WORKFLOW
+  // ðŸ”§ UPDATED CAMPAIGN METHODS FOR 2-STEP WORKFLOW
   // ============================================================================
 
   async createCampaign(campaignData: CampaignCreateData): Promise<Campaign> {
     const dataWithDefaults = {
       campaign_type: 'universal',
-      // 🆕 NEW: Auto-analysis defaults for streamlined workflow
+      // ðŸ†• NEW: Auto-analysis defaults for streamlined workflow
       auto_analysis_enabled: campaignData.auto_analysis_enabled ?? true,
       content_types: campaignData.content_types || ["email", "social_post", "ad_copy"],
       content_tone: campaignData.content_tone || "conversational",
@@ -1473,7 +1594,7 @@ class ApiClient {
       ...campaignData
     }
 
-    console.log('🚀 Creating campaign with streamlined workflow data:', dataWithDefaults)
+    console.log('ðŸš€ Creating campaign with streamlined workflow data:', dataWithDefaults)
 
     const response = await fetch(`${this.baseURL}/api/campaigns`, {
       method: 'POST',
@@ -1484,7 +1605,7 @@ class ApiClient {
     return this.handleResponse<Campaign>(response)
   }
 
-  // 🆕 ENHANCED: Updated getCampaigns method with demo awareness
+  // ðŸ†• ENHANCED: Updated getCampaigns method with demo awareness
   async getCampaigns(params?: {
     page?: number
     limit?: number
@@ -1505,22 +1626,22 @@ class ApiClient {
       ? `${baseUrl}?${searchParams.toString()}`
       : baseUrl
 
-    console.log('🔍 getCampaigns URL:', fullUrl)
+    console.log('ðŸ” getCampaigns URL:', fullUrl)
 
     try {
       const response = await fetch(fullUrl, {
         headers: this.getHeaders()
       })
 
-      console.log('✅ getCampaigns response status:', response.status)
+      console.log('âœ… getCampaigns response status:', response.status)
 
       if (!response.ok) {
-        console.error('❌ getCampaigns failed:', response.status, response.statusText)
+        console.error('âŒ getCampaigns failed:', response.status, response.statusText)
         throw new Error(`HTTP ${response.status}: ${response.statusText}`)
       }
 
       const data = await this.handleResponse<Campaign[]>(response)
-      console.log('✅ getCampaigns success, got', Array.isArray(data) ? data.length : 'unknown', 'campaigns')
+      console.log('âœ… getCampaigns success, got', Array.isArray(data) ? data.length : 'unknown', 'campaigns')
 
       // Add helpful logging for demo campaigns and new workflow
       if (Array.isArray(data)) {
@@ -1528,14 +1649,14 @@ class ApiClient {
         const realCampaigns = data.filter((c: any) => !c.is_demo)
         const autoAnalysisEnabled = data.filter((c: any) => c.auto_analysis_enabled).length
 
-        console.log(`📊 Campaigns loaded: ${realCampaigns.length} real, ${demoCampaigns.length} demo`)
-        console.log(`🔬 Auto-analysis enabled: ${autoAnalysisEnabled}/${data.length} campaigns`)
+        console.log(`ðŸ“Š Campaigns loaded: ${realCampaigns.length} real, ${demoCampaigns.length} demo`)
+        console.log(`ðŸ”¬ Auto-analysis enabled: ${autoAnalysisEnabled}/${data.length} campaigns`)
       }
 
       return data
 
     } catch (error) {
-      console.error('❌ getCampaigns error:', error)
+      console.error('âŒ getCampaigns error:', error)
       throw error
     }
   }
@@ -1577,30 +1698,30 @@ class ApiClient {
   }
 
   async getGeneratedContent(campaignId: string): Promise<any[]> {
-    console.log('🔍 getGeneratedContent called for campaign:', campaignId)
+    console.log('ðŸ” getGeneratedContent called for campaign:', campaignId)
 
     try {
       const response = await fetch(`${this.baseURL}/api/intelligence/content/${campaignId}`, {
         headers: this.getHeaders()
       })
 
-      console.log('✅ getGeneratedContent response status:', response.status)
+      console.log('âœ… getGeneratedContent response status:', response.status)
 
       if (!response.ok) {
         if (response.status === 404) {
-          console.warn('⚠️ Content endpoint not found, returning empty array')
+          console.warn('âš ï¸ Content endpoint not found, returning empty array')
           return []
         }
         throw new Error(`HTTP ${response.status}: ${response.statusText}`)
       }
 
       const data = await this.handleResponse<any[]>(response)
-      console.log('✅ getGeneratedContent success, got', Array.isArray(data) ? data.length : 'unknown', 'content items')
+      console.log('âœ… getGeneratedContent success, got', Array.isArray(data) ? data.length : 'unknown', 'content items')
 
       return data
 
     } catch (error) {
-      console.error('❌ getGeneratedContent error:', error)
+      console.error('âŒ getGeneratedContent error:', error)
       return []
     }
   }
@@ -1715,7 +1836,7 @@ class ApiClient {
   }
 
   // ============================================================================
-  // 🔧 UPDATED WORKFLOW METHODS FOR 2-STEP PROCESS
+  // ðŸ”§ UPDATED WORKFLOW METHODS FOR 2-STEP PROCESS
   // ============================================================================
 
   async getWorkflowState(campaignId: string): Promise<WorkflowStateResponse> {
@@ -1726,7 +1847,7 @@ class ApiClient {
     return this.handleResponse<WorkflowStateResponse>(response)
   }
 
-  // 🆕 NEW: Save workflow progress for streamlined workflow
+  // ðŸ†• NEW: Save workflow progress for streamlined workflow
   async saveWorkflowProgress(campaignId: string, progressData: WorkflowProgressData): Promise<{
     success: boolean
     message: string
@@ -1748,7 +1869,7 @@ class ApiClient {
   }
 
   // ============================================================================
-  // 🔧 UPDATED INTELLIGENCE METHODS
+  // ðŸ”§ UPDATED INTELLIGENCE METHODS
   // ============================================================================
 
   async analyzeURL(data: {
@@ -1794,13 +1915,13 @@ class ApiClient {
     return this.handleResponse(response)
   }
 
-  // 🎯 ROBUST CONTENT GENERATION METHOD - Handles All Backend Response Formats
+  // ðŸŽ¯ ROBUST CONTENT GENERATION METHOD - Handles All Backend Response Formats
   async generateContent(data: {
     content_type: string
     campaign_id: string
     preferences?: Record<string, any>
   }): Promise<GeneratedContent> {
-    console.log('🎯 Generating content with data:', data)
+    console.log('ðŸŽ¯ Generating content with data:', data)
 
     const requestData = {
       content_type: data.content_type,
@@ -1809,7 +1930,7 @@ class ApiClient {
       prompt: `Generate ${data.content_type} content`
     }
 
-    console.log('📡 Sending request to backend:', requestData)
+    console.log('ðŸ“¡ Sending request to backend:', requestData)
 
     const response = await fetch(`${this.baseURL}/api/intelligence/content/generate`, {
       method: 'POST',
@@ -1817,14 +1938,14 @@ class ApiClient {
       body: JSON.stringify(requestData)
     })
 
-    // 🎯 ROBUST: Use specialized content generation response handler
+    // ðŸŽ¯ ROBUST: Use specialized content generation response handler
     const result = await this.handleContentGenerationResponse(response)
-    console.log('✅ Content generation successful:', result)
+    console.log('âœ… Content generation successful:', result)
 
     return result
   }
 
-  // 🔧 UPDATED: Campaign intelligence method with proper parameters
+  // ðŸ”§ UPDATED: Campaign intelligence method with proper parameters
   async getCampaignIntelligence(
     campaignId: string,
     skip: number = 0,
@@ -1844,7 +1965,7 @@ class ApiClient {
   }
 
   // ============================================================================
-  // 🔧 UPDATED DASHBOARD METHODS (Enhanced with Demo Info & 2-Step Workflow)
+  // ðŸ”§ UPDATED DASHBOARD METHODS (Enhanced with Demo Info & 2-Step Workflow)
   // ============================================================================
 
   async getDashboardStats(): Promise<{
@@ -1869,7 +1990,7 @@ class ApiClient {
     company_id: string
     generated_at: string
   }> {
-    // 🔧 FIXED: Use correct endpoint path matching backend
+    // ðŸ”§ FIXED: Use correct endpoint path matching backend
     const response = await fetch(`${this.baseURL}/api/campaigns/stats/stats`, {
       headers: this.getHeaders()
     })
@@ -1985,30 +2106,6 @@ class ApiClient {
 
     return this.handleResponse(response)
   }
-
-  // Add to ApiClient class
-  async getUserTypeConfig(): Promise<any> {
-    const response = await fetch(`${this.baseURL}/api/user-types/dashboard-config`, {
-      headers: this.getHeaders()
-    })
-    return this.handleResponse(response)
-  }
-
-  async getCurrentUserType(): Promise<any> {
-    const response = await fetch(`${this.baseURL}/api/user-types/current`, {
-      headers: this.getHeaders()
-    })
-    return this.handleResponse(response)
-  }
-
-  async selectUserType(data: any): Promise<any> {
-    const response = await fetch(`${this.baseURL}/api/user-types/select`, {
-      method: 'POST',
-      headers: this.getHeaders(),
-      body: JSON.stringify(data)
-    })
-    return this.handleResponse(response)
-  }
 }
 
 // ============================================================================
@@ -2018,7 +2115,7 @@ class ApiClient {
 const apiClient = new ApiClient()
 
 // ============================================================================
-// 🔧 NEW: ENHANCED EMAIL GENERATION REACT HOOK
+// ðŸ”§ NEW: ENHANCED EMAIL GENERATION REACT HOOK
 // ============================================================================
 
 function useEnhancedEmailGeneration() {
@@ -2145,7 +2242,7 @@ function useEnhancedEmailGeneration() {
 }
 
 // ============================================================================
-// 🆕 NEW: DEMO PREFERENCE REACT HOOK
+// ðŸ†• NEW: DEMO PREFERENCE REACT HOOK
 // ============================================================================
 
 function useDemoPreferences() {
@@ -2214,7 +2311,7 @@ function useDemoPreferences() {
 }
 
 // ============================================================================
-// 🔧 UPDATED REACT HOOK FOR API ACCESS (Enhanced with AI Discovery Service)
+// ðŸ”§ UPDATED REACT HOOK FOR API ACCESS (Enhanced with AI Discovery Service)
 // ============================================================================
 
 function useApi() {
@@ -2225,7 +2322,7 @@ function useApi() {
     logout: apiClient.logout.bind(apiClient),
     getUserProfile: apiClient.getUserProfile.bind(apiClient),
 
-    // 🔧 NEW: Enhanced email generation methods
+    // ðŸ”§ NEW: Enhanced email generation methods
     generateEnhancedEmails: apiClient.generateEnhancedEmails.bind(apiClient),
     trackEmailPerformance: apiClient.trackEmailPerformance.bind(apiClient),
     getEmailLearningAnalytics: apiClient.getEmailLearningAnalytics.bind(apiClient),
@@ -2235,7 +2332,7 @@ function useApi() {
     testEnhancedEmailGeneration: apiClient.testEnhancedEmailGeneration.bind(apiClient),
     getEnhancedEmailSystemStatus: apiClient.getEnhancedEmailSystemStatus.bind(apiClient),
 
-    // 🆕 Demo preference methods
+    // ðŸ†• Demo preference methods
     getDemoPreferences: apiClient.getDemoPreferences.bind(apiClient),
     updateDemoPreferences: apiClient.updateDemoPreferences.bind(apiClient),
     toggleDemoVisibility: apiClient.toggleDemoVisibility.bind(apiClient),
@@ -2243,7 +2340,7 @@ function useApi() {
     createDemoManually: apiClient.createDemoManually.bind(apiClient),
     getCampaignsWithDemo: apiClient.getCampaignsWithDemo.bind(apiClient),
 
-    // 🔧 Campaign operations (enhanced for 2-step workflow)
+    // ðŸ”§ Campaign operations (enhanced for 2-step workflow)
     createCampaign: apiClient.createCampaign.bind(apiClient),
     getCampaigns: apiClient.getCampaigns.bind(apiClient),
     getCampaign: apiClient.getCampaign.bind(apiClient),
@@ -2263,17 +2360,17 @@ function useApi() {
     getContentStats: apiClient.getContentStats.bind(apiClient),
     duplicateContent: apiClient.duplicateContent.bind(apiClient),
 
-    // 🔧 Workflow operations (updated for 2-step process)
+    // ðŸ”§ Workflow operations (updated for 2-step process)
     getWorkflowState: apiClient.getWorkflowState.bind(apiClient),
     saveWorkflowProgress: apiClient.saveWorkflowProgress.bind(apiClient),
 
-    // 🔧 Intelligence operations (updated)
+    // ðŸ”§ Intelligence operations (updated)
     analyzeURL: apiClient.analyzeURL.bind(apiClient),
     uploadDocument: apiClient.uploadDocument.bind(apiClient),
     generateContent: apiClient.generateContent.bind(apiClient),
     getCampaignIntelligence: apiClient.getCampaignIntelligence.bind(apiClient),
 
-    // 🔧 Dashboard (enhanced with demo info & 2-step workflow)
+    // ðŸ”§ Dashboard (enhanced with demo info & 2-step workflow)
     getDashboardStats: apiClient.getDashboardStats.bind(apiClient),
     getCampaignStats: apiClient.getCampaignStats.bind(apiClient),
     getCompanyStats: apiClient.getCompanyStats.bind(apiClient),
@@ -2290,10 +2387,17 @@ function useApi() {
     trackAffiliateClick: apiClient.trackAffiliateClick.bind(apiClient),
     getAffiliatePerformance: apiClient.getAffiliatePerformance.bind(apiClient),
 
-    // Add to useApi() return
-    getUserTypeConfig: apiClient.getUserTypeConfig.bind(apiClient),
     getCurrentUserType: apiClient.getCurrentUserType.bind(apiClient),
-    selectUserType: apiClient.selectUserType.bind(apiClient)
+    getUserTypeConfig: apiClient.getUserTypeConfig.bind(apiClient),
+    selectUserType: apiClient.selectUserType.bind(apiClient),
+    detectUserType: apiClient.detectUserType.bind(apiClient),
+    completeOnboarding: apiClient.completeOnboarding.bind(apiClient),
+    getAllUserTypes: apiClient.getAllUserTypes.bind(apiClient),
+    getUserRecommendations: apiClient.getUserRecommendations.bind(apiClient),
+    getUserUsageSummary: apiClient.getUserUsageSummary.bind(apiClient),
+    checkUpgradeEligibility: apiClient.checkUpgradeEligibility.bind(apiClient),
+    getWelcomeMessage: apiClient.getWelcomeMessage.bind(apiClient),
+    migrateUserType: apiClient.migrateUserType.bind(apiClient)
   }
 }
 
