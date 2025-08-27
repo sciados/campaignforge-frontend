@@ -42,6 +42,7 @@ export interface StandardResponse<T = any> {
   status?: 'success' | 'error' | 'partial' | 'pending'
   message?: string
   data?: T
+  config?: T  // Add this line
   error?: string
   error_code?: string
   timestamp?: string
@@ -856,7 +857,7 @@ class ApiClient {
       try {
         const responseData = await response.json()
 
-        // ðŸŽ¯ ROBUST: Handle standardized responses
+        // Handle standardized responses
         if (isStandardResponse(responseData)) {
           if (!responseData.success) {
             throw new ApiError(
@@ -868,32 +869,35 @@ class ApiClient {
               responseData.request_id
             )
           }
-          // Return the data portion for standardized responses
-          return responseData.data as T
+
+          // FIXED: Check for both data and config properties
+          if (responseData.data !== undefined) {
+            return responseData.data as T
+          }
+          if (responseData.config !== undefined) {
+            return responseData.config as T
+          }
+
+          // If neither exists, return the whole response minus metadata
+          const { success, status, message, error, timestamp, request_id, ...actualData } = responseData
+          return actualData as T
         }
 
-        // ðŸŽ¯ ROBUST: Handle legacy responses
+        // Handle legacy responses (unchanged)
         if (isLegacyResponse(responseData)) {
-          // Check for error indicators in legacy format
           if (hasErrorIndicators(responseData)) {
-            throw new ApiError(
-              extractErrorMessage(responseData),
-              response.status,
-              responseData
-            )
+            throw new ApiError(extractErrorMessage(responseData), response.status, responseData)
           }
-          // Return the whole object for legacy responses
           return responseData as T
         }
 
-        // ðŸŽ¯ ROBUST: Handle plain JSON responses
+        // Handle plain JSON responses
         return responseData as T
 
       } catch (jsonError) {
         if (jsonError instanceof ApiError) {
           throw jsonError
         }
-        // If JSON parsing fails, return empty object
         return {} as T
       }
     }
@@ -1109,6 +1113,19 @@ class ApiClient {
     const response = await fetch(`${this.baseURL}/api/user-types/dashboard-config`, {
       headers: this.getHeaders()
     })
+
+    if (!response.ok) {
+      throw new Error(`Failed to get dashboard config: ${response.statusText}`)
+    }
+
+    const responseData = await response.json()
+
+    // Handle the specific response format for dashboard config
+    if (responseData.success && responseData.config) {
+      return responseData.config  // Return the config directly
+    }
+
+    // Fallback to standard handling
     return this.handleResponse(response)
   }
 
