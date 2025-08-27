@@ -1241,6 +1241,44 @@ class ApiClient {
     return this.handleResponse(response)
   }
 
+  // ============================================================================// ============================================================================
+  // ðŸ”§ NEW: ENHANCED SOCIAL MEDIA PLATFORM STATS METHODS
+  // ============================================================================
+
+  // Add to ApiClient class
+  async getRecommendedPlatforms(): Promise<{ recommended_platforms: string[] }> {
+    const response = await fetch(`${this.baseURL}/api/user-social/recommended-platforms`, {
+      headers: this.getHeaders()
+    })
+    return this.handleResponse(response)
+  }
+
+  async addSocialProfile(
+    platform: string,
+    username: string,
+    followers: number = 0,
+    engagement_rate: number = 0
+  ): Promise<{ message: string; profile_id: string }> {
+    const response = await fetch(`${this.baseURL}/api/user-social/profiles`, {
+      method: 'POST',
+      headers: this.getHeaders(),
+      body: JSON.stringify({
+        platform,
+        username,
+        followers,
+        engagement_rate
+      })
+    })
+    return this.handleResponse(response)
+  }
+
+  async getUserSocialProfiles(): Promise<{ profiles: any[] }> {
+    const response = await fetch(`${this.baseURL}/api/user-social/profiles`, {
+      headers: this.getHeaders()
+    })
+    return this.handleResponse(response)
+  }
+
   // ============================================================================
   // ðŸ”§ NEW: ENHANCED EMAIL GENERATION METHODS
   // ============================================================================
@@ -2414,7 +2452,12 @@ function useApi() {
     getUserUsageSummary: apiClient.getUserUsageSummary.bind(apiClient),
     checkUpgradeEligibility: apiClient.checkUpgradeEligibility.bind(apiClient),
     getWelcomeMessage: apiClient.getWelcomeMessage.bind(apiClient),
-    migrateUserType: apiClient.migrateUserType.bind(apiClient)
+    migrateUserType: apiClient.migrateUserType.bind(apiClient),
+
+    // Social media platform methods
+    getRecommendedPlatforms: apiClient.getRecommendedPlatforms.bind(apiClient),
+    addSocialProfile: apiClient.addSocialProfile.bind(apiClient),
+    getUserSocialProfiles: apiClient.getUserSocialProfiles.bind(apiClient)
   }
 }
 
