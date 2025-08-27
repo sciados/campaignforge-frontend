@@ -1,110 +1,115 @@
-'use client'
+"use client";
 
-import React, { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
-import Link from 'next/link'
-import { Eye, EyeOff, ArrowRight, Check } from 'lucide-react'
+import React, { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { Eye, EyeOff, ArrowRight, Check } from "lucide-react";
+import { useUserNavigation } from "@/lib/hooks/useUserNavigation";
 
 // Force this page to never be statically rendered
-export const dynamic = 'force-dynamic'
-export const runtime = 'edge'
+export const dynamic = "force-dynamic";
+export const runtime = "edge";
 
 export default function RegisterPage() {
-  const [mounted, setMounted] = useState(false)
+  const [mounted, setMounted] = useState(false);
   const [formData, setFormData] = useState({
-    firstName: '',
-    lastName: '',
-    email: '',
-    password: '',
-    confirmPassword: '',
-    company: '',
-    agreeToTerms: false
-  })
-  const [showPassword, setShowPassword] = useState(false)
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
-  const [error, setError] = useState('')
-  const [isLoading, setIsLoading] = useState(false)
-  
-  const router = useRouter()
+    firstName: "",
+    lastName: "",
+    email: "",
+    password: "",
+    confirmPassword: "",
+    company: "",
+    agreeToTerms: false,
+  });
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [error, setError] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+
+  const router = useRouter();
+  const { navigateToDashboard } = useUserNavigation();
 
   // Ensure component is mounted before accessing browser APIs
   useEffect(() => {
-    setMounted(true)
-  }, [])
+    setMounted(true);
+  }, []);
 
   if (!mounted) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-white">
         <div className="w-6 h-6 border-2 border-black border-t-transparent rounded-full animate-spin"></div>
       </div>
-    )
+    );
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setError('')
+    e.preventDefault();
+    setError("");
 
     // Validation
     if (formData.password !== formData.confirmPassword) {
-      setError('Passwords do not match')
-      return
+      setError("Passwords do not match");
+      return;
     }
 
     if (formData.password.length < 8) {
-      setError('Password must be at least 8 characters long')
-      return
+      setError("Password must be at least 8 characters long");
+      return;
     }
 
     if (!formData.agreeToTerms) {
-      setError('Please agree to the Terms of Service and Privacy Policy')
-      return
+      setError("Please agree to the Terms of Service and Privacy Policy");
+      return;
     }
 
-    setIsLoading(true)
+    setIsLoading(true);
 
     try {
-      const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://campaign-backend-production-e2db.up.railway.app'
-      
+      const API_BASE_URL =
+        process.env.NEXT_PUBLIC_API_URL ||
+        "https://campaign-backend-production-e2db.up.railway.app";
+
       const userData = {
         email: formData.email,
         password: formData.password,
         full_name: `${formData.firstName} ${formData.lastName}`,
-        company_name: formData.company || 'Default Company'
-      }
+        company_name: formData.company || "Default Company",
+      };
 
       const response = await fetch(`${API_BASE_URL}/api/auth/register`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(userData)
-      })
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(userData),
+      });
 
       if (response.ok) {
-        const data = await response.json()
-        if (typeof window !== 'undefined') {
-          localStorage.setItem('authToken', data.access_token)
+        const data = await response.json();
+        if (typeof window !== "undefined") {
+          localStorage.setItem("authToken", data.access_token);
         }
-        
-        router.push('/dashboard')
+
+        // Always redirect new users to user selection for onboarding
+        router.push("/user-selection");
       } else {
-        const errorData = await response.json()
-        console.error('Registration error:', errorData)
-        setError(errorData.detail || 'Registration failed')
+        const errorData = await response.json();
+        console.error("Registration error:", errorData);
+        setError(errorData.detail || "Registration failed");
       }
     } catch (error) {
-      console.error('Network error:', error)
-      setError('Network error - please try again')
+      console.error("Network error:", error);
+      setError("Network error - please try again");
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value, type, checked } = e.target
-    setFormData(prev => ({
+    const { name, value, type, checked } = e.target;
+    setFormData((prev) => ({
       ...prev,
-      [name]: type === 'checkbox' ? checked : value
-    }))
-  }
+      [name]: type === "checkbox" ? checked : value,
+    }));
+  };
 
   return (
     <div className="min-h-screen bg-white flex">
@@ -120,15 +125,16 @@ export default function RegisterPage() {
             <span className="font-semibold">RodgersDigital.</span>
           </h1>
           <p className="text-lg text-gray-600 leading-relaxed mb-8">
-            Join thousands of marketers transforming content into complete campaigns with AI.
+            Join thousands of marketers transforming content into complete
+            campaigns with AI.
           </p>
-          
+
           {/* Benefits */}
           <div className="space-y-4">
             {[
-              'Process any content type',
-              'AI-powered campaign generation',
-              'Complete marketing workflows'
+              "AI-powered campaign intelligence",
+              "Multi-user type specialization",
+              "Complete marketing workflows",
             ].map((benefit, index) => (
               <div key={index} className="flex items-center space-x-3">
                 <div className="w-5 h-5 bg-black rounded-full flex items-center justify-center">
@@ -152,8 +158,12 @@ export default function RegisterPage() {
           </div>
 
           <div className="hidden lg:block mb-8">
-            <h2 className="text-3xl font-light text-black mb-2">Create account</h2>
-            <p className="text-gray-600">Get started with your free account</p>
+            <h2 className="text-3xl font-light text-black mb-2">
+              Create account
+            </h2>
+            <p className="text-gray-600">
+              Get started with your specialized dashboard
+            </p>
           </div>
 
           {error && (
@@ -166,7 +176,10 @@ export default function RegisterPage() {
             {/* Name Fields */}
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label htmlFor="firstName" className="block text-sm font-medium text-black mb-2">
+                <label
+                  htmlFor="firstName"
+                  className="block text-sm font-medium text-black mb-2"
+                >
                   First name
                 </label>
                 <input
@@ -181,7 +194,10 @@ export default function RegisterPage() {
                 />
               </div>
               <div>
-                <label htmlFor="lastName" className="block text-sm font-medium text-black mb-2">
+                <label
+                  htmlFor="lastName"
+                  className="block text-sm font-medium text-black mb-2"
+                >
                   Last name
                 </label>
                 <input
@@ -199,7 +215,10 @@ export default function RegisterPage() {
 
             {/* Email */}
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-black mb-2">
+              <label
+                htmlFor="email"
+                className="block text-sm font-medium text-black mb-2"
+              >
                 Email
               </label>
               <input
@@ -216,7 +235,10 @@ export default function RegisterPage() {
 
             {/* Company */}
             <div>
-              <label htmlFor="company" className="block text-sm font-medium text-black mb-2">
+              <label
+                htmlFor="company"
+                className="block text-sm font-medium text-black mb-2"
+              >
                 Company
               </label>
               <input
@@ -233,14 +255,17 @@ export default function RegisterPage() {
 
             {/* Password */}
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-black mb-2">
+              <label
+                htmlFor="password"
+                className="block text-sm font-medium text-black mb-2"
+              >
                 Password
               </label>
               <div className="relative">
                 <input
                   id="password"
                   name="password"
-                  type={showPassword ? 'text' : 'password'}
+                  type={showPassword ? "text" : "password"}
                   required
                   value={formData.password}
                   onChange={handleChange}
@@ -252,21 +277,28 @@ export default function RegisterPage() {
                   onClick={() => setShowPassword(!showPassword)}
                   className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-black transition-colors"
                 >
-                  {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                  {showPassword ? (
+                    <EyeOff className="h-5 w-5" />
+                  ) : (
+                    <Eye className="h-5 w-5" />
+                  )}
                 </button>
               </div>
             </div>
 
             {/* Confirm Password */}
             <div>
-              <label htmlFor="confirmPassword" className="block text-sm font-medium text-black mb-2">
+              <label
+                htmlFor="confirmPassword"
+                className="block text-sm font-medium text-black mb-2"
+              >
                 Confirm password
               </label>
               <div className="relative">
                 <input
                   id="confirmPassword"
                   name="confirmPassword"
-                  type={showConfirmPassword ? 'text' : 'password'}
+                  type={showConfirmPassword ? "text" : "password"}
                   required
                   value={formData.confirmPassword}
                   onChange={handleChange}
@@ -278,7 +310,11 @@ export default function RegisterPage() {
                   onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                   className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-black transition-colors"
                 >
-                  {showConfirmPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                  {showConfirmPassword ? (
+                    <EyeOff className="h-5 w-5" />
+                  ) : (
+                    <Eye className="h-5 w-5" />
+                  )}
                 </button>
               </div>
             </div>
@@ -294,13 +330,22 @@ export default function RegisterPage() {
                 onChange={handleChange}
                 className="h-4 w-4 text-black focus:ring-black border-gray-300 rounded mt-1"
               />
-              <label htmlFor="agreeToTerms" className="text-sm text-gray-600 leading-relaxed">
-                I agree to the{' '}
-                <a href="#" className="text-black hover:text-gray-700 transition-colors">
+              <label
+                htmlFor="agreeToTerms"
+                className="text-sm text-gray-600 leading-relaxed"
+              >
+                I agree to the{" "}
+                <a
+                  href="#"
+                  className="text-black hover:text-gray-700 transition-colors"
+                >
                   Terms of Service
-                </a>{' '}
-                and{' '}
-                <a href="#" className="text-black hover:text-gray-700 transition-colors">
+                </a>{" "}
+                and{" "}
+                <a
+                  href="#"
+                  className="text-black hover:text-gray-700 transition-colors"
+                >
                   Privacy Policy
                 </a>
               </label>
@@ -324,8 +369,11 @@ export default function RegisterPage() {
 
           <div className="mt-8 text-center">
             <p className="text-gray-600">
-              Already have an account?{' '}
-              <Link href="/login" className="text-black font-medium hover:text-gray-700 transition-colors">
+              Already have an account?{" "}
+              <Link
+                href="/login"
+                className="text-black font-medium hover:text-gray-700 transition-colors"
+              >
                 Sign in
               </Link>
             </p>
@@ -333,15 +381,21 @@ export default function RegisterPage() {
 
           <div className="mt-8 pt-8 border-t border-gray-200">
             <div className="flex items-center justify-center space-x-4 text-sm text-gray-500">
-              <a href="#" className="hover:text-black transition-colors">Privacy</a>
+              <a href="#" className="hover:text-black transition-colors">
+                Privacy
+              </a>
               <span>•</span>
-              <a href="#" className="hover:text-black transition-colors">Terms</a>
+              <a href="#" className="hover:text-black transition-colors">
+                Terms
+              </a>
               <span>•</span>
-              <a href="#" className="hover:text-black transition-colors">Support</a>
+              <a href="#" className="hover:text-black transition-colors">
+                Support
+              </a>
             </div>
           </div>
         </div>
       </div>
     </div>
-  )
+  );
 }
