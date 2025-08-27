@@ -202,28 +202,188 @@ const BusinessDashboard: React.FC<BusinessDashboardProps> = ({ config }) => {
 
   // ---------------- Render ----------------
   if (isLoading) {
-    return <div className="p-6">Loading...</div>;
+    return (
+      <div className="min-h-screen bg-gray-50 p-6">
+        <div className="max-w-7xl mx-auto">
+          <div className="animate-pulse">
+            <div className="h-8 bg-gray-200 rounded w-64 mb-6"></div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+              {[1, 2, 3, 4].map((i) => (
+                <div key={i} className="bg-white p-6 rounded-lg shadow">
+                  <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
+                  <div className="h-8 bg-gray-200 rounded w-1/2"></div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <div className="bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-6 py-4 flex justify-between">
-          <h1 className="text-2xl font-bold text-gray-900">
-            🏢 {config.dashboard_title}
-          </h1>
-          <Link
-            href="/campaigns/create-workflow?type=lead_generation"
-            legacyBehavior
-          >
-            <a className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
-              🎯 {config.main_cta}
-            </a>
-          </Link>
+    // Add after the header div
+    <div className="max-w-7xl mx-auto px-6 py-8">
+      {/* Business Metrics */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="bg-white rounded-lg shadow-sm border p-6 mb-8"
+      >
+        <h2 className="text-lg font-semibold text-gray-900 mb-4">
+          Business Growth Metrics
+        </h2>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+          <div className="text-center">
+            <div className="text-2xl font-bold text-blue-600">
+              {formatCurrency(dashboardData.businessMetrics.revenue)}
+            </div>
+            <div className="text-sm text-gray-600">Monthly Revenue</div>
+            <div className="text-xs text-green-600 font-medium">
+              📈 +{dashboardData.businessMetrics.revenueGrowth}%
+            </div>
+          </div>
+          <div className="text-center">
+            <div className="text-2xl font-bold text-green-600">
+              {formatNumber(dashboardData.businessMetrics.leads)}
+            </div>
+            <div className="text-sm text-gray-600">New Leads</div>
+            <div className="text-xs text-green-600 font-medium">
+              👥 +{dashboardData.businessMetrics.leadGrowth}%
+            </div>
+          </div>
+          <div className="text-center">
+            <div className="text-2xl font-bold text-purple-600">
+              {dashboardData.businessMetrics.conversion}%
+            </div>
+            <div className="text-sm text-gray-600">Conversion Rate</div>
+            <div className="text-xs text-green-600 font-medium">
+              🎯 +{dashboardData.businessMetrics.conversionGrowth}%
+            </div>
+          </div>
+          <div className="text-center">
+            <div className="text-2xl font-bold text-orange-600">
+              {dashboardData.marketingROI.roi}%
+            </div>
+            <div className="text-sm text-gray-600">Marketing ROI</div>
+            <div className="text-xs text-gray-500">Return on investment</div>
+          </div>
         </div>
+      </motion.div>
+
+      <div className="grid lg:grid-cols-2 gap-8">
+        {/* Market Intelligence */}
+        <motion.div
+          initial={{ opacity: 0, x: -20 }}
+          animate={{ opacity: 1, x: 0 }}
+          className="bg-white rounded-lg shadow-sm border"
+        >
+          <div className="p-6 border-b">
+            <h2 className="text-lg font-semibold text-gray-900">
+              📊 Market Intelligence
+            </h2>
+          </div>
+          <div className="p-6">
+            <div className="space-y-4">
+              {dashboardData.marketIntelligence.map((intel) => (
+                <div
+                  key={intel.id}
+                  className="border rounded-lg p-4 hover:bg-gray-50"
+                >
+                  <div className="flex items-start justify-between mb-2">
+                    <div className="flex-1">
+                      <div className="flex items-center space-x-2 mb-1">
+                        <span className="text-lg">
+                          {getIntelligenceIcon(intel.type)}
+                        </span>
+                        <span className="font-semibold text-gray-900">
+                          {intel.title}
+                        </span>
+                        <span
+                          className={`px-2 py-1 text-xs rounded-full border ${getImpactColor(
+                            intel.impact
+                          )}`}
+                        >
+                          {intel.impact}
+                        </span>
+                      </div>
+                      <p className="text-sm text-gray-600 mb-2">
+                        {intel.description}
+                      </p>
+                      <div className="flex items-center space-x-2">
+                        <span
+                          className={`px-2 py-1 text-xs rounded-full ${getSourceColor(
+                            intel.source
+                          )}`}
+                        >
+                          {intel.source.replace("_", " ")}
+                        </span>
+                        <span className="text-xs text-gray-500">
+                          {intel.timestamp}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                  <button className="text-blue-600 hover:text-blue-700 text-sm font-medium">
+                    View Details →
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        </motion.div>
+
+        {/* Lead Pipeline */}
+        <motion.div
+          initial={{ opacity: 0, x: 20 }}
+          animate={{ opacity: 1, x: 0 }}
+          className="bg-white rounded-lg shadow-sm border"
+        >
+          <div className="p-6 border-b">
+            <h2 className="text-lg font-semibold text-gray-900">
+              Lead Pipeline
+            </h2>
+          </div>
+          <div className="p-6">
+            <div className="space-y-4">
+              {dashboardData.leadPipeline.map((pipeline) => (
+                <div
+                  key={pipeline.id}
+                  className="flex items-center justify-between"
+                >
+                  <div className="flex-1">
+                    <div className="font-medium text-gray-900">
+                      {pipeline.source}
+                    </div>
+                    <div className="flex items-center space-x-4 text-sm">
+                      <span className="text-gray-600">
+                        👥 {pipeline.leads} leads
+                      </span>
+                      <span className="text-gray-600">
+                        💰 {formatCurrency(pipeline.revenue)}
+                      </span>
+                      <span className="text-gray-600">
+                        🎯 {pipeline.conversion}%
+                      </span>
+                      <span
+                        className={`font-medium ${
+                          pipeline.growth >= 0
+                            ? "text-green-600"
+                            : "text-red-600"
+                        }`}
+                      >
+                        {pipeline.growth >= 0 ? "📈" : "📉"}{" "}
+                        {pipeline.growth >= 0 ? "+" : ""}
+                        {pipeline.growth}%
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </motion.div>
       </div>
-      {/* ...rest of your JSX... */}
     </div>
   );
 };

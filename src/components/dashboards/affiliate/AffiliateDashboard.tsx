@@ -210,7 +210,179 @@ const AffiliateDashboard: React.FC<AffiliateDashboardProps> = ({ config }) => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Full JSX same as yours with fixes above */}
+      {/* Header */}
+      <div className="bg-white shadow-sm border-b">
+        <div className="max-w-7xl px-6 py-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900 flex items-center">
+                💰 {config.dashboard_title}
+              </h1>
+              <p className="text-gray-600 mt-1">
+                Track competitors and optimize your affiliate campaigns for
+                maximum commissions.
+              </p>
+            </div>
+            <div className="flex items-center space-x-4">
+              <div className="text-right">
+                <div className="text-sm text-gray-500">Campaign Analyses</div>
+                <div className="text-lg font-semibold text-gray-900">
+                  {config.user_profile.usage_summary.analysis.used}/
+                  {config.user_profile.usage_summary.analysis.limit}
+                </div>
+              </div>
+              <Link
+                href="/campaigns/create-workflow?type=competitor_tracking"
+                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium"
+              >
+                🔍 {config.main_cta}
+              </Link>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="max-w-7xl px-6 py-8">
+        {/* Commission Metrics */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bg-white rounded-lg shadow-sm border p-6 mb-8"
+        >
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">
+            Commission Command Center
+          </h2>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+            <div className="text-center">
+              <div className="text-2xl font-bold text-green-600">
+                {formatCurrency(dashboardData.commissionMetrics.thisMonth)}
+              </div>
+              <div className="text-sm text-gray-600">This Month</div>
+              <div className="text-xs text-green-600 font-medium">
+                📈 +{dashboardData.commissionMetrics.growth}%
+              </div>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl font-bold text-blue-600">
+                ${dashboardData.commissionMetrics.epc}
+              </div>
+              <div className="text-sm text-gray-600">EPC Average</div>
+              <div className="text-xs text-gray-500">Earnings per click</div>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl font-bold text-purple-600">
+                {dashboardData.campaignStatus.active}
+              </div>
+              <div className="text-sm text-gray-600">Active Campaigns</div>
+              <div className="text-xs text-gray-500">Currently running</div>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl font-bold text-orange-600">
+                {dashboardData.commissionMetrics.topOffer}
+              </div>
+              <div className="text-sm text-gray-600">Top Offer</div>
+              <div className="text-xs text-gray-500">This month</div>
+            </div>
+          </div>
+        </motion.div>
+
+        <div className="grid lg:grid-cols-2 gap-8">
+          {/* Competitor Intelligence Feed */}
+          <motion.div
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.1 }}
+            className="bg-white rounded-lg shadow-sm border"
+          >
+            <div className="p-6 border-b">
+              <h2 className="text-lg font-semibold text-gray-900">
+                🔍 Competitor Intelligence
+              </h2>
+            </div>
+            <div className="p-6">
+              <div className="space-y-4">
+                {dashboardData.competitorFeed.map((item) => (
+                  <div
+                    key={item.id}
+                    className="border rounded-lg p-4 hover:bg-gray-50"
+                  >
+                    <div className="flex items-start justify-between mb-2">
+                      <div className="flex-1">
+                        <div className="flex items-center space-x-2 mb-1">
+                          <span className="text-lg">
+                            {getImpactIcon(item.type)}
+                          </span>
+                          <span className="font-semibold text-gray-900">
+                            {item.competitor && `${item.competitor} `}
+                            {item.description}
+                          </span>
+                          <span
+                            className={`px-2 py-1 text-xs rounded-full ${getImpactColor(
+                              item.impact
+                            )}`}
+                          >
+                            {item.impact}
+                          </span>
+                        </div>
+                        <div className="text-xs text-gray-500">{item.time}</div>
+                      </div>
+                    </div>
+                    <button className="text-green-600 hover:text-green-700 text-sm font-medium">
+                      Analyze →
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </motion.div>
+
+          {/* Recent Campaign Performance */}
+          <motion.div
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.2 }}
+            className="bg-white rounded-lg shadow-sm border"
+          >
+            <div className="p-6 border-b">
+              <h2 className="text-lg font-semibold text-gray-900">
+                Campaign Performance
+              </h2>
+            </div>
+            <div className="p-6">
+              <div className="space-y-4">
+                {dashboardData.recentCampaigns.map((campaign) => (
+                  <div
+                    key={campaign.id}
+                    className="flex items-center justify-between"
+                  >
+                    <div className="flex-1">
+                      <div className="font-medium text-gray-900">
+                        {campaign.name}
+                      </div>
+                      <div className="flex items-center space-x-4 text-sm">
+                        <span className="text-gray-600">
+                          💰 {formatCurrency(campaign.earnings)}
+                        </span>
+                        <span
+                          className={`font-medium ${
+                            campaign.ctr_change >= 0
+                              ? "text-green-600"
+                              : "text-red-600"
+                          }`}
+                        >
+                          {campaign.ctr_change >= 0 ? "📈" : "📉"}{" "}
+                          {campaign.ctr_change >= 0 ? "+" : ""}
+                          {campaign.ctr_change}%
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </motion.div>
+        </div>
+      </div>
     </div>
   );
 };
