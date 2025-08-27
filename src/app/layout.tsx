@@ -1,4 +1,4 @@
-// src/app/layout.tsx - Updated with Sidebar Navigation
+// src/app/layout.tsx - Updated with left-aligned content and right sidebar space
 "use client";
 
 import { useState } from "react";
@@ -22,7 +22,7 @@ export default function RootLayout({
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const pathname = usePathname();
 
-  // Hide sidebar on login/register pages
+  // Hide sidebar on auth pages
   const hideSidebar =
     pathname === "/login" ||
     pathname === "/register" ||
@@ -41,31 +41,45 @@ export default function RootLayout({
       <body className="font-inter antialiased bg-white text-black">
         <AppErrorBoundary>
           {hideSidebar ? (
-            // Full-width layout for auth pages
             children
           ) : (
-            // Layout with sidebar for dashboard pages
             <div className="flex h-screen bg-gray-100">
+              {/* Left Sidebar - Fixed width */}
               <UserTypeSidebar
                 isOpen={sidebarOpen}
                 onClose={() => setSidebarOpen(false)}
               />
 
-              <div className="flex-1 flex flex-col overflow-hidden lg:ml-0">
-                {/* Mobile header */}
-                <header className="bg-white shadow-sm border-b border-gray-200 lg:hidden">
-                  <div className="flex items-center justify-between h-16 px-6">
-                    <button
-                      onClick={() => setSidebarOpen(true)}
-                      className="p-2 rounded-md text-gray-400 hover:text-gray-600"
-                    >
-                      ☰
-                    </button>
-                    <span className="text-lg font-semibold">CampaignForge</span>
-                  </div>
-                </header>
+              {/* Main Content Area - Left aligned with reserved right space */}
+              <div className="flex flex-1 overflow-hidden">
+                {/* Primary Content */}
+                <div className="flex-1 flex flex-col min-w-0">
+                  {/* Mobile header */}
+                  <header className="bg-white shadow-sm border-b border-gray-200 lg:hidden">
+                    <div className="flex items-center justify-between h-16 px-6">
+                      <button
+                        onClick={() => setSidebarOpen(true)}
+                        className="p-2 rounded-md text-gray-400 hover:text-gray-600"
+                      >
+                        ☰
+                      </button>
+                      <span className="text-lg font-semibold">
+                        CampaignForge
+                      </span>
+                    </div>
+                  </header>
 
-                <main className="flex-1 overflow-auto">{children}</main>
+                  {/* Main content */}
+                  <main className="flex-1 overflow-auto">{children}</main>
+                </div>
+
+                {/* Right Sidebar Space - Hidden for now, ready for future use */}
+                <div className="hidden xl:block w-80 bg-white border-l border-gray-200">
+                  {/* Future right sidebar content goes here */}
+                  <div className="p-6 text-center text-gray-500">
+                    Right sidebar space reserved
+                  </div>
+                </div>
               </div>
             </div>
           )}

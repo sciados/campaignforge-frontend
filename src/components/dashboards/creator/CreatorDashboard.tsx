@@ -282,10 +282,10 @@ const CreatorDashboard: React.FC<CreatorDashboardProps> = ({ config }) => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-full bg-gray-50">
       {/* Header */}
       <div className="bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-6 py-4">
+        <div className="max-w-6xl px-6 py-4">
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-2xl font-bold text-gray-900 flex items-center">
@@ -315,7 +315,7 @@ const CreatorDashboard: React.FC<CreatorDashboardProps> = ({ config }) => {
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-6 py-8">
+      <div className="max-w-6xl px-6 py-8">
         {/* Creator Scorecard */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
