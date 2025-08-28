@@ -1,4 +1,4 @@
-// src/components/user-types/UserTypeSelector.tsx - FIXED VERSION
+// src/components/user-types/UserTypeSelector.tsx - DEBUG VERSION
 "use client";
 
 import React, { useState, useEffect, useCallback } from "react";
@@ -33,6 +33,7 @@ const UserTypeSelector: React.FC<UserTypeSelectorProps> = ({
   const [detectedType, setDetectedType] = useState<string>("");
   const [isLoading, setIsLoading] = useState(false);
   const [showDetectionForm, setShowDetectionForm] = useState(false);
+  const [debugInfo, setDebugInfo] = useState<any>(null);
   const [detectionFormData, setDetectionFormData] = useState({
     description: "",
     goals: [] as string[],
@@ -130,8 +131,18 @@ const UserTypeSelector: React.FC<UserTypeSelectorProps> = ({
     }
 
     setIsLoading(true);
+    setError("");
 
     try {
+      console.log("🔄 Calling api.selectUserType with:", {
+        user_type: userType,
+        goals: detectionFormData.goals,
+        experience_level: "beginner",
+        current_activities: detectionFormData.currentActivities,
+        interests: detectionFormData.interests,
+        description: detectionFormData.description,
+      });
+
       const response = await api.selectUserType({
         user_type: userType,
         goals: detectionFormData.goals,
@@ -141,19 +152,50 @@ const UserTypeSelector: React.FC<UserTypeSelectorProps> = ({
         description: detectionFormData.description,
       });
 
-      console.log("Full API response:", response);
+      console.log("📥 Full API response:", response);
+      console.log("📥 Response type:", typeof response);
+      console.log("📥 Response keys:", Object.keys(response || {}));
 
-      // FIXED: Check for the actual success indicators in your response
-      if (response.user_profile && response.next_step) {
-        // The API is telling us the next step is 'complete_onboarding'
+      // Store debug info to display on screen
+      setDebugInfo({
+        response,
+        responseType: typeof response,
+        responseKeys: Object.keys(response || {}),
+        timestamp: new Date().toISOString(),
+      });
+
+      // Try different response format checks
+      if (response && response.success) {
+        console.log("✅ Response has success: true, proceeding to onboarding");
+        router.push("/onboarding");
+      } else if (response && response.user_profile) {
+        console.log("✅ Response has user_profile, proceeding to onboarding");
+        router.push("/onboarding");
+      } else if (
+        response &&
+        response.message &&
+        response.message.includes("success")
+      ) {
+        console.log(
+          "✅ Response message indicates success, proceeding to onboarding"
+        );
+        router.push("/onboarding");
+      } else if (response && typeof response === "object" && !response.error) {
+        console.log(
+          "✅ Response is object without error, proceeding to onboarding"
+        );
         router.push("/onboarding");
       } else {
-        console.error("Unexpected response format:", response);
-        setError("Failed to set user type. Please try again.");
+        console.error("❌ Unexpected response format:", response);
+        setError(`API returned unexpected format. Check debug info below.`);
       }
     } catch (error) {
-      console.error("API call failed:", error);
-      setError("Failed to set user type. Please try again.");
+      console.error("❌ API call failed:", error);
+      setError(`API call failed: ${error}`);
+      setDebugInfo({
+        error: error?.toString(),
+        timestamp: new Date().toISOString(),
+      });
     } finally {
       setIsLoading(false);
     }
@@ -190,6 +232,32 @@ const UserTypeSelector: React.FC<UserTypeSelectorProps> = ({
 
   return (
     <div className={`max-w-6xl mx-auto p-6 ${className}`}>
+      {/* Debug Info Display */}
+      {debugInfo && (
+        <div className="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-xl">
+          <h3 className="font-semibold text-yellow-800 mb-2">
+            🐛 Debug Information:
+          </h3>
+          <pre className="text-xs overflow-auto bg-white p-2 rounded border">
+            {JSON.stringify(debugInfo, null, 2)}
+          </pre>
+          <div className="mt-2 space-x-2">
+            <button
+              onClick={() => router.push("/onboarding")}
+              className="px-3 py-1 bg-blue-600 text-white text-sm rounded"
+            >
+              Force Continue to Onboarding
+            </button>
+            <button
+              onClick={() => setDebugInfo(null)}
+              className="px-3 py-1 bg-gray-600 text-white text-sm rounded"
+            >
+              Hide Debug Info
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <div className="text-center mb-8">
         <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
@@ -208,11 +276,13 @@ const UserTypeSelector: React.FC<UserTypeSelectorProps> = ({
           </div>
         )}
       </div>
+
       {error && (
         <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl text-center">
           <p className="text-red-600">{error}</p>
         </div>
       )}
+
       {/* Smart Detection Section */}
       {showDetectionOption && (
         <div className="mb-8">
