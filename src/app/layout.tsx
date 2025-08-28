@@ -1,4 +1,4 @@
-// src/app/layout.tsx - Updated with left-aligned content and right sidebar space
+// src/app/layout.tsx - Fixed to handle campaigns routes properly
 "use client";
 
 import { useState } from "react";
@@ -22,12 +22,16 @@ export default function RootLayout({
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const pathname = usePathname();
 
-  // Hide sidebar on auth pages
+  // Define which routes should show the sidebar (dashboard-style pages)
+  const showSidebar = pathname.startsWith("/dashboard");
+
+  // Hide sidebar completely on auth pages and standalone pages
   const hideSidebar =
     pathname === "/login" ||
     pathname === "/register" ||
     pathname === "/user-selection" ||
-    pathname === "/onboarding";
+    pathname === "/onboarding" ||
+    pathname.startsWith("/campaigns"); // Hide sidebar for all campaign pages
 
   return (
     <html lang="en" className={inter.variable}>
@@ -41,8 +45,10 @@ export default function RootLayout({
       <body className="font-inter antialiased bg-white text-black">
         <AppErrorBoundary>
           {hideSidebar ? (
-            children
-          ) : (
+            // Standalone pages (auth, campaigns) - no sidebar
+            <div className="min-h-screen">{children}</div>
+          ) : showSidebar ? (
+            // Dashboard pages - with sidebar
             <div className="flex h-screen bg-gray-100">
               {/* Left Sidebar - Fixed width */}
               <UserTypeSidebar
@@ -82,6 +88,9 @@ export default function RootLayout({
                 </div>
               </div>
             </div>
+          ) : (
+            // Other pages - simple layout
+            <div className="min-h-screen">{children}</div>
           )}
         </AppErrorBoundary>
       </body>
