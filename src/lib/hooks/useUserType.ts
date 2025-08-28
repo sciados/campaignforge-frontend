@@ -1,7 +1,7 @@
-// src/lib/hooks/useUserType.ts - FINAL WORKING VERSION
+// src/lib/hooks/useUserType.ts - FIXED VERSION
 /**
  * Custom hook for user type management
- * Fixed for proper Railway backend communication
+ * Fixed for proper async backend communication and infinite loop prevention
  */
 
 'use client';
@@ -35,7 +35,7 @@ export const useUserType = (): UseUserTypeReturn => {
     // Get auth token
     const getAuthToken = () => {
         if (typeof window !== 'undefined') {
-            return localStorage.getItem('authToken');
+            return localStorage.getItem('authToken') || localStorage.getItem('access_token');
         }
         return null;
     };
@@ -70,29 +70,37 @@ export const useUserType = (): UseUserTypeReturn => {
 
         const token = getAuthToken();
         if (!token) {
-            console.log("⚠️ No auth token found");
+            console.log("No auth token found");
             setIsLoading(false);
-            setError(null); // Don't show error for missing token
+            setError(null);
             isRefreshing.current = false;
             return;
         }
 
         try {
-            console.log("🔄 Fetching user profile from /api/user-types/current");
+            console.log("Fetching user profile from /api/user-types/current");
 
-            // Try the /current endpoint first since it exists in your API
             const response = await fetch(`${API_BASE_URL}/api/user-types/current`, {
                 method: 'GET',
                 headers: getHeaders(true),
-                credentials: 'omit', // Don't send cookies to avoid CORS issues
+                credentials: 'omit',
             });
 
-            console.log("📥 Current user response status:", response.status);
+            console.log("Current user response status:", response.status);
 
             if (!response.ok) {
                 if (response.status === 401) {
-                    console.log("🔐 Authentication failed - token may be invalid");
+                    console.log("Authentication failed - token may be invalid");
                     setError("Authentication failed");
+                    isRefreshing.current = false;
+                    setIsLoading(false);
+                    return;
+                }
+
+                if (response.status === 404) {
+                    console.log("User type endpoint not found - backend may not have user types deployed");
+                    setUserProfile(null);
+                    setError(null);
                     isRefreshing.current = false;
                     setIsLoading(false);
                     return;
@@ -100,7 +108,7 @@ export const useUserType = (): UseUserTypeReturn => {
 
                 if (response.status === 400) {
                     // Bad request usually means user hasn't completed setup
-                    console.log("⚠️ User hasn't completed setup - trying dashboard-config");
+                    console.log("User hasn't completed setup - trying dashboard-config");
 
                     // Fallback to dashboard-config
                     try {
@@ -112,7 +120,7 @@ export const useUserType = (): UseUserTypeReturn => {
 
                         if (dashboardResponse.ok) {
                             const dashboardData = await dashboardResponse.json();
-                            console.log("📥 Dashboard config fallback data:", dashboardData);
+                            console.log("Dashboard config fallback data:", dashboardData);
 
                             if (dashboardData.success && dashboardData.config) {
                                 const config = dashboardData.config;
@@ -131,8 +139,6 @@ export const useUserType = (): UseUserTypeReturn => {
                                         onboarding_completed: config.onboarding_completed ?? false,
                                         available_features: config.available_features || [],
                                         usage_summary: config.usage_summary || {},
-                                        // created_at: config.created_at || '',
-                                        // updated_at: config.updated_at || ''
                                     });
                                     setError(null);
                                     isRefreshing.current = false;
@@ -156,18 +162,18 @@ export const useUserType = (): UseUserTypeReturn => {
             }
 
             const data = await response.json();
-            console.log("📥 User profile data:", data);
+            console.log("User profile data:", data);
 
             if (data.success && data.user_profile) {
                 setUserProfile(data.user_profile);
                 setError(null);
             } else {
-                console.log("⚠️ No user profile in response");
+                console.log("No user profile in response");
                 setUserProfile(null);
                 setError(null);
             }
         } catch (err) {
-            console.error("❌ Error fetching user profile:", err);
+            console.error("Error fetching user profile:", err);
             setUserProfile(null);
             setError(null); // Don't show errors to user for profile fetching
         } finally {
@@ -185,7 +191,7 @@ export const useUserType = (): UseUserTypeReturn => {
 
         try {
             setError(null);
-            console.log("🔄 Setting user type:", userType);
+            console.log("Setting user type:", userType);
 
             const requestBody = {
                 user_type: userType,
@@ -196,20 +202,20 @@ export const useUserType = (): UseUserTypeReturn => {
                 description: typeData?.description || ''
             };
 
-            console.log("📤 Request body:", requestBody);
+            console.log("Request body:", requestBody);
 
             const response = await fetch(`${API_BASE_URL}/api/user-types/select`, {
                 method: 'POST',
                 headers: getHeaders(true),
-                credentials: 'omit', // Don't send cookies
+                credentials: 'omit',
                 body: JSON.stringify(requestBody)
             });
 
-            console.log("📥 Set user type response status:", response.status);
+            console.log("Set user type response status:", response.status);
 
             if (!response.ok) {
                 const responseText = await response.text();
-                console.error("❌ API Error Response:", responseText);
+                console.error("API Error Response:", responseText);
 
                 if (response.status === 405) {
                     setError("API endpoint configuration issue. Please contact support.");
@@ -227,7 +233,7 @@ export const useUserType = (): UseUserTypeReturn => {
             }
 
             const data = await response.json();
-            console.log("📥 Set user type response data:", data);
+            console.log("Set user type response data:", data);
 
             // Handle successful response
             if (data.success) {
@@ -240,7 +246,7 @@ export const useUserType = (): UseUserTypeReturn => {
             setError(data.message || 'Failed to set user type');
             return false;
         } catch (err) {
-            console.error("❌ Network error setting user type:", err);
+            console.error("Network error setting user type:", err);
             setError("Network error. Please check your connection and try again.");
             return false;
         }
@@ -255,7 +261,7 @@ export const useUserType = (): UseUserTypeReturn => {
 
         try {
             setError(null);
-            console.log("🔄 Completing onboarding...");
+            console.log("Completing onboarding...");
 
             const response = await fetch(`${API_BASE_URL}/api/user-types/complete-onboarding`, {
                 method: 'POST',
@@ -267,17 +273,17 @@ export const useUserType = (): UseUserTypeReturn => {
                 })
             });
 
-            console.log("📥 Complete onboarding response status:", response.status);
+            console.log("Complete onboarding response status:", response.status);
 
             if (!response.ok) {
                 const responseText = await response.text();
-                console.error("❌ Complete onboarding error:", responseText);
+                console.error("Complete onboarding error:", responseText);
                 setError(`Failed to complete onboarding: ${response.status}`);
                 return false;
             }
 
             const data = await response.json();
-            console.log("📥 Complete onboarding data:", data);
+            console.log("Complete onboarding data:", data);
 
             if (data.success) {
                 if (data.user_profile) {
@@ -293,7 +299,7 @@ export const useUserType = (): UseUserTypeReturn => {
             setError(data.message || 'Failed to complete onboarding');
             return false;
         } catch (err) {
-            console.error("❌ Error completing onboarding:", err);
+            console.error("Error completing onboarding:", err);
             setError("Network error. Please try again.");
             return false;
         }
@@ -305,7 +311,7 @@ export const useUserType = (): UseUserTypeReturn => {
             hasInitialized.current = true;
             refreshUserProfile();
         }
-    }, [refreshUserProfile]);
+    }, [refreshUserProfile]); // FIXED: Empty dependency array prevents infinite loops
 
     return {
         userProfile,

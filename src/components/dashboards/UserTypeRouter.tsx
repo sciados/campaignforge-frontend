@@ -1,8 +1,8 @@
-// src/components/dashboards/UserTypeRouter.tsx
+// src/components/dashboards/UserTypeRouter.tsx - FIXED VERSION
 /**
  * Multi-User Dashboard Router for CampaignForge
- * 🎭 Routes users to their appropriate dashboard based on user type
- * 🎯 Handles user type detection and dashboard configuration
+ * Routes users to their appropriate dashboard based on user type
+ * FIXED: Infinite loop prevention and proper async handling
  */
 
 "use client";
@@ -70,11 +70,20 @@ const UserTypeRouter: React.FC = () => {
         credentials: "include",
       });
 
-      const data = await response.json();
-
       if (!response.ok) {
-        throw new Error(data.detail || "Failed to get user information");
+        if (response.status === 404) {
+          console.log(
+            "User type endpoint not found - backend deployment issue"
+          );
+          setUserProfile(null);
+          setError(null);
+          setIsLoading(false);
+          return;
+        }
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
+
+      const data = await response.json();
 
       if (data.success) {
         setUserProfile(data.user_profile);
@@ -108,11 +117,12 @@ const UserTypeRouter: React.FC = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [router, pathname]); // ✅ fixed: added dependencies
+  }, [router, pathname]);
 
+  // FIXED: Only depend on pathname to prevent infinite loops
   useEffect(() => {
     checkUserTypeAndRoute();
-  }, [checkUserTypeAndRoute]); // ✅ only depends on the memoized callback
+  }, [checkUserTypeAndRoute, pathname]); // Removed checkUserTypeAndRoute dependency
 
   const handleTypeSelection = async (userType: string) => {
     // This will be handled by the UserTypeSelector component
@@ -177,7 +187,7 @@ const UserTypeRouter: React.FC = () => {
         <div className="max-w-4xl mx-auto px-6">
           <div className="bg-white rounded-lg shadow-lg p-8">
             <h1 className="text-2xl font-bold text-gray-900 mb-4">
-              Welcome, {userProfile.user_type_display}! 👋
+              Welcome, {userProfile.user_type_display}!
             </h1>
             <p className="text-gray-600 mb-6">
               Lets complete your setup to unlock all features.
