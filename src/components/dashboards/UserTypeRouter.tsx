@@ -122,7 +122,8 @@ const UserTypeRouter: React.FC = () => {
   // FIXED: Only depend on pathname to prevent infinite loops
   useEffect(() => {
     checkUserTypeAndRoute();
-  }, [checkUserTypeAndRoute, pathname]); // Removed checkUserTypeAndRoute dependency
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pathname]); // Removed checkUserTypeAndRoute dependency
 
   const handleTypeSelection = async (userType: string) => {
     // This will be handled by the UserTypeSelector component
