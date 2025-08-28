@@ -129,7 +129,6 @@ const UserTypeSelector: React.FC<UserTypeSelectorProps> = ({
       return;
     }
 
-    // Default behavior: set user type and redirect
     setIsLoading(true);
 
     try {
@@ -142,17 +141,24 @@ const UserTypeSelector: React.FC<UserTypeSelectorProps> = ({
         description: detectionFormData.description,
       });
 
-      console.log("Select user type response:", response); // Debug log
+      // DEBUG: Log the actual response
+      console.log("Full API response:", response);
+      console.log("Response.success:", response?.success);
+      console.log("Response keys:", Object.keys(response || {}));
 
-      // FIXED: Check for success and redirect to onboarding instead of dashboard
-      if (response.success) {
-        // Always redirect new users to onboarding first
+      // Check multiple possible success indicators
+      if (
+        response.success ||
+        response.message?.includes("User type set") ||
+        response.user_profile
+      ) {
         router.push("/onboarding");
       } else {
+        console.error("Response indicates failure:", response);
         setError("Failed to set user type. Please try again.");
       }
     } catch (error) {
-      console.error("User type selection failed:", error);
+      console.error("API call failed:", error);
       setError("Failed to set user type. Please try again.");
     } finally {
       setIsLoading(false);
