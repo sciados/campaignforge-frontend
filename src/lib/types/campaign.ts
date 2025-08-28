@@ -19,7 +19,7 @@ export interface Campaign {
   updated_at: string
   user_id: string
   company_id: string
-  
+
   // Missing properties from original api.ts (restored)
   is_demo?: boolean
   auto_analysis_enabled?: boolean
@@ -30,7 +30,7 @@ export interface Campaign {
   content_tone?: string
   content_style?: string
   generate_content_after_analysis?: boolean
-  
+
   // Enhanced workflow fields for 2-step process
   workflow_state?: string
   completion_percentage?: number
@@ -38,12 +38,12 @@ export interface Campaign {
   intelligence_count?: number
   content_count?: number
   total_steps?: number
-  
+
   // Related data (populated via joins or separate queries)
   input_sources?: InputSource[]
   intelligence?: CampaignIntelligence[]
   generated_content?: GeneratedContent[]
-  
+
   // Computed fields
   generated_content_count?: number
   confidence_score?: number
@@ -52,31 +52,32 @@ export interface Campaign {
 }
 
 export interface CampaignSettings {
+  is_demo: boolean | undefined
   // Universal campaign settings
   campaign_type?: CampaignType
   input_source_type?: string
   created_from?: string
-  
+
   // Analysis preferences
   auto_analyze_inputs?: boolean
   analysis_depth?: 'basic' | 'comprehensive' | 'deep'
   include_vsl_detection?: boolean
-  
+
   // Content generation preferences
   default_tone?: string
   default_style?: string
   content_preferences?: ContentPreferences
-  
+
   // Intelligence settings
   keyword_extraction?: boolean
   competitive_analysis?: boolean
   campaign_angle_generation?: boolean
-  
+
   // Processing settings
   auto_process_uploads?: boolean
   batch_processing_enabled?: boolean
   notification_preferences?: NotificationSettings
-  
+
   // Custom settings
   custom_fields?: Record<string, any>
   integrations?: IntegrationSettings
@@ -119,7 +120,7 @@ export interface CampaignCreateRequest {
   tone?: string
   style?: string
   settings?: Partial<CampaignSettings>
-  
+
   // Auto-analysis fields for streamlined workflow
   salespage_url?: string
   auto_analysis_enabled?: boolean
@@ -138,7 +139,7 @@ export interface CampaignUpdateRequest {
   style?: string
   settings?: Partial<CampaignSettings>
   status?: CampaignStatus
-  
+
   // Auto-analysis updates
   auto_analysis_enabled?: boolean
   content_types?: string[]
@@ -236,7 +237,7 @@ export interface CampaignCloneRequest {
 }
 
 // Enums and Type Unions
-export type CampaignType = 
+export type CampaignType =
   | 'universal'
   | 'social_media'
   | 'email_marketing'
@@ -250,7 +251,7 @@ export type CampaignType =
   | 'brand_awareness'
   | 'competitive_analysis'
 
-export type CampaignStatus = 
+export type CampaignStatus =
   | 'draft'
   | 'active'
   | 'paused'
@@ -259,7 +260,7 @@ export type CampaignStatus =
   | 'processing'
   | 'error'
 
-export type ActivityType = 
+export type ActivityType =
   | 'campaign_created'
   | 'campaign_updated'
   | 'input_added'
