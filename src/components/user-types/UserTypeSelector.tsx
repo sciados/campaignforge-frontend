@@ -141,20 +141,14 @@ const UserTypeSelector: React.FC<UserTypeSelectorProps> = ({
         description: detectionFormData.description,
       });
 
-      // DEBUG: Log the actual response
       console.log("Full API response:", response);
-      console.log("Response.success:", response?.success);
-      console.log("Response keys:", Object.keys(response || {}));
 
-      // Check multiple possible success indicators
-      if (
-        response.success ||
-        response.message?.includes("User type set") ||
-        response.user_profile
-      ) {
+      // FIXED: Check for the actual success indicators in your response
+      if (response.user_profile && response.next_step) {
+        // The API is telling us the next step is 'complete_onboarding'
         router.push("/onboarding");
       } else {
-        console.error("Response indicates failure:", response);
+        console.error("Unexpected response format:", response);
         setError("Failed to set user type. Please try again.");
       }
     } catch (error) {
