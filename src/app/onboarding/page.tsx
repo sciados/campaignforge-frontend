@@ -1,12 +1,12 @@
 // src/app/onboarding/page.tsx
 /**
- * Onboarding Completion Page
- * ✅ Complete user setup after type selection
+ * Debug version of Onboarding Completion Page
+ * This version includes extensive debugging to identify the loading issue
  */
 
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useUserType } from "@/lib/hooks/useUserType";
 import { motion } from "framer-motion";
 
@@ -15,6 +15,45 @@ export default function OnboardingPage() {
   const [goals, setGoals] = useState<string[]>([]);
   const [experienceLevel, setExperienceLevel] = useState("beginner");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [debugInfo, setDebugInfo] = useState<any>({});
+
+  // Debug logging to identify the issue
+  useEffect(() => {
+    console.log("🔍 Onboarding Debug Info:", {
+      isLoading,
+      userProfile,
+      userProfileExists: !!userProfile,
+      userProfileType: typeof userProfile,
+      timestamp: new Date().toISOString(),
+    });
+
+    setDebugInfo({
+      isLoading,
+      userProfile,
+      userProfileExists: !!userProfile,
+      userProfileType: typeof userProfile,
+      timestamp: new Date().toISOString(),
+    });
+  }, [isLoading, userProfile]);
+
+  // Add timeout fallback to prevent infinite loading
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      if (isLoading) {
+        console.error(
+          "⚠️ Onboarding page stuck in loading state for 10+ seconds"
+        );
+        // Force show error state after 10 seconds
+        setDebugInfo((prev: any) => ({
+          ...prev,
+          forceError: true,
+          errorMessage: "Loading timeout - please check useUserType hook",
+        }));
+      }
+    }, 10000);
+
+    return () => clearTimeout(timeout);
+  }, [isLoading]);
 
   const getAvailableGoals = () => {
     const goalsByType = {
@@ -62,22 +101,98 @@ export default function OnboardingPage() {
     }
 
     setIsSubmitting(true);
-    const success = await completeOnboarding(goals, experienceLevel);
+    try {
+      const success = await completeOnboarding(goals, experienceLevel);
 
-    if (!success) {
+      if (!success) {
+        setIsSubmitting(false);
+        alert("Failed to complete onboarding. Please try again.");
+      }
+    } catch (error) {
+      console.error("Error completing onboarding:", error);
       setIsSubmitting(false);
-      alert("Failed to complete onboarding. Please try again.");
+      alert("Error completing onboarding. Please try again.");
     }
   };
 
-  if (isLoading || !userProfile) {
+  // Show debug info if there's a timeout error
+  if (debugInfo.forceError) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+      <div className="min-h-screen bg-gray-50 py-12">
+        <div className="max-w-2xl mx-auto px-6">
+          <div className="bg-white rounded-lg shadow-lg p-8">
+            <div className="text-center mb-8">
+              <h1 className="text-3xl font-bold text-red-600 mb-4">
+                Debug: Loading Error
+              </h1>
+              <p className="text-gray-600 mb-4">
+                The onboarding page is stuck in loading state.
+              </p>
+
+              <div className="bg-gray-100 p-4 rounded-lg text-left">
+                <h3 className="font-semibold mb-2">Debug Information:</h3>
+                <pre className="text-sm overflow-auto">
+                  {JSON.stringify(debugInfo, null, 2)}
+                </pre>
+              </div>
+
+              <div className="mt-6 space-y-2 text-sm text-left">
+                <p>
+                  <strong>Likely causes:</strong>
+                </p>
+                <ul className="list-disc list-inside space-y-1 text-gray-600">
+                  <li>useUserType hook is not implemented correctly</li>
+                  <li>API call to fetch user profile is failing</li>
+                  <li>Authentication token is missing or invalid</li>
+                  <li>Backend endpoint is not responding</li>
+                </ul>
+              </div>
+
+              <button
+                onClick={() => (window.location.href = "/dashboard")}
+                className="mt-6 px-4 py-2 bg-blue-600 text-white rounded-lg"
+              >
+                Skip to Dashboard
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
     );
   }
 
+  // Show loading with debug info
+  if (isLoading || !userProfile) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mb-4"></div>
+        <p className="text-gray-600 mb-4">Loading your onboarding...</p>
+
+        {/* Debug info display */}
+        <div className="bg-white rounded-lg shadow p-4 max-w-md">
+          <h3 className="font-semibold mb-2 text-sm">Debug Info:</h3>
+          <div className="text-xs space-y-1 text-gray-600">
+            <div>Loading: {isLoading ? "true" : "false"}</div>
+            <div>User Profile: {userProfile ? "exists" : "null"}</div>
+            <div>Profile Type: {userProfile?.user_type || "none"}</div>
+            <div>Timestamp: {new Date().toLocaleTimeString()}</div>
+          </div>
+        </div>
+
+        <button
+          onClick={() => {
+            console.log("🔄 Force refresh - checking useUserType");
+            window.location.reload();
+          }}
+          className="mt-4 px-4 py-2 bg-gray-200 text-gray-700 rounded-lg text-sm"
+        >
+          Force Refresh
+        </button>
+      </div>
+    );
+  }
+
+  // Normal onboarding flow (only renders if userProfile exists)
   return (
     <div className="min-h-screen bg-gray-50 py-12">
       <div className="max-w-2xl mx-auto px-6">
@@ -88,7 +203,8 @@ export default function OnboardingPage() {
         >
           <div className="text-center mb-8">
             <h1 className="text-3xl font-bold text-gray-900 mb-4">
-              Welcome, {userProfile.user_type_display}! 👋
+              Welcome, {userProfile.user_type_display || userProfile.user_type}!
+              👋
             </h1>
             <p className="text-gray-600">
               Let us personalize your experience with a few quick questions.
