@@ -1,4 +1,4 @@
-// src/app/campaigns/page.tsx - TARGETED FIXES FOR API CONNECTION
+// src/app/campaigns/page.tsx - SSR FIX FOR LOCALSTORAGE
 "use client";
 
 import React, { useState, useEffect, useCallback, useRef } from "react";
@@ -49,6 +49,7 @@ export default function CampaignsPage() {
   const [connectionStatus, setConnectionStatus] = useState<
     "checking" | "connected" | "failed"
   >("checking");
+  const [mounted, setMounted] = useState(false); // SSR FIX
 
   // UI State
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
@@ -59,31 +60,66 @@ export default function CampaignsPage() {
   const isInitialized = useRef(false);
   const isLoadingData = useRef(false);
 
-  // FIXED: Enhanced error handling with specific error types
+  // SSR FIX: Handle mounting
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // SSR FIX: Safe localStorage access
+  const getStorageItem = useCallback(
+    (key: string): string | null => {
+      if (typeof window === "undefined" || !mounted) return null;
+      try {
+        return localStorage.getItem(key);
+      } catch {
+        return null;
+      }
+    },
+    [mounted]
+  );
+
+  const setStorageItem = useCallback(
+    (key: string, value: string): void => {
+      if (typeof window === "undefined" || !mounted) return;
+      try {
+        localStorage.setItem(key, value);
+      } catch {
+        // Silently fail
+      }
+    },
+    [mounted]
+  );
+
+  const clearStorage = useCallback((): void => {
+    if (typeof window === "undefined" || !mounted) return;
+    try {
+      localStorage.clear();
+    } catch {
+      // Silently fail
+    }
+  }, [mounted]);
+
+  // Enhanced error handling
   const handleApiError = useCallback(
     (error: any): string => {
       console.error("API Error Details:", error);
 
       if (!error) return "Unknown error occurred";
 
-      // Network connection errors
       if (error.name === "TypeError" && error.message?.includes("fetch")) {
         return "Connection failed. Backend server may be down or unreachable.";
       }
 
-      // CORS errors
       if (error.message?.includes("CORS")) {
         return "CORS error. Check backend CORS configuration.";
       }
 
-      // HTTP status errors
       if (error.response?.status) {
         const status = error.response.status;
         switch (status) {
           case 401:
-            // Auto-redirect to login
             setTimeout(() => {
-              localStorage.clear();
+              clearStorage();
               router.push("/login");
             }, 2000);
             return "Session expired. Redirecting to login...";
@@ -104,23 +140,21 @@ export default function CampaignsPage() {
         }
       }
 
-      // Generic error messages
       if (error.message?.includes("Failed to fetch")) {
         return "Network error. Check internet connection and backend status.";
       }
 
       return error.message || "An unexpected error occurred";
     },
-    [router]
+    [router, clearStorage]
   );
 
-  // FIXED: Connection test before main API calls
+  // Connection test
   const testConnection = useCallback(async (): Promise<boolean> => {
     try {
-      console.log("🔍 Testing backend connection...");
+      console.log("Testing backend connection...");
       setConnectionStatus("checking");
 
-      // Test the simplest endpoint first
       const response = await fetch(
         "https://campaign-backend-production-e2db.up.railway.app/health",
         {
@@ -128,31 +162,30 @@ export default function CampaignsPage() {
           headers: {
             Accept: "application/json",
           },
-          // Add timeout
-          signal: AbortSignal.timeout(10000), // 10 second timeout
+          signal: AbortSignal.timeout(10000),
         }
       );
 
       if (response.ok) {
-        console.log("✅ Backend connection successful");
+        console.log("Backend connection successful");
         setConnectionStatus("connected");
         return true;
       } else {
-        console.error("❌ Backend health check failed:", response.status);
+        console.error("Backend health check failed:", response.status);
         setConnectionStatus("failed");
         return false;
       }
     } catch (error) {
-      console.error("❌ Connection test failed:", error);
+      console.error("Connection test failed:", error);
       setConnectionStatus("failed");
       return false;
     }
   }, []);
 
-  // FIXED: Simplified demo creation for new users
+  // Demo creation for new users
   const createDemoForNewUser = useCallback(async (): Promise<void> => {
     try {
-      console.log("🎯 Creating demo campaign for new user...");
+      console.log("Creating demo campaign for new user...");
 
       const demoPayload = {
         title: "Welcome Demo - AI Marketing Intelligence",
@@ -178,31 +211,28 @@ export default function CampaignsPage() {
       const demoCampaign = await api.createCampaign(demoPayload);
 
       if (demoCampaign) {
-        console.log("✅ Demo campaign created:", demoCampaign);
+        console.log("Demo campaign created:", demoCampaign);
         setCampaigns((prev) => [demoCampaign, ...prev]);
-
-        // Store demo creation flag
-        localStorage.setItem("demo_campaign_created", "true");
+        setStorageItem("demo_campaign_created", "true");
       }
     } catch (error) {
-      console.error("❌ Demo campaign creation failed:", error);
-      // Don't throw - demo failure shouldn't block the page
+      console.error("Demo campaign creation failed:", error);
     }
-  }, [api]);
+  }, [api, setStorageItem]);
 
-  // FIXED: Robust data loading with connection testing
+  // Robust data loading
   const loadInitialData = useCallback(async (): Promise<void> => {
-    if (isLoadingData.current) {
-      console.log("⏸️ Load already in progress, skipping...");
+    if (isLoadingData.current || !mounted) {
+      console.log("Load already in progress or not mounted, skipping...");
       return;
     }
 
-    console.log("🚀 Starting loadInitialData...");
+    console.log("Starting loadInitialData...");
     isLoadingData.current = true;
     setError(null);
 
     try {
-      // Step 1: Test connection first
+      // Test connection first
       const connectionOk = await testConnection();
       if (!connectionOk) {
         throw new Error(
@@ -210,69 +240,73 @@ export default function CampaignsPage() {
         );
       }
 
-      // Step 2: Check authentication
+      // Check authentication - SSR SAFE
       const authToken =
-        localStorage.getItem("access_token") ||
-        localStorage.getItem("authToken");
+        getStorageItem("access_token") || getStorageItem("authToken");
       if (!authToken) {
         throw new Error("No authentication token found. Please login again.");
       }
 
-      console.log("🔑 Auth token found, loading user profile...");
+      console.log("Auth token found, loading user profile...");
 
-      // Step 3: Load user profile
+      // Load user profile
       const userProfile = await api.getUserProfile();
-      console.log("✅ User profile loaded:", userProfile);
+      console.log("User profile loaded:", userProfile);
       setUser(userProfile);
 
-      // Step 4: Load campaigns with error handling
-      console.log("📞 Loading campaigns...");
+      // Load campaigns
+      console.log("Loading campaigns...");
       const campaignsData = await api.getCampaigns({ limit: 50 });
-      console.log("✅ Campaigns loaded:", campaignsData);
+      console.log("Campaigns loaded:", campaignsData);
 
       if (Array.isArray(campaignsData)) {
         setCampaigns(campaignsData);
-        console.log(`📊 Set ${campaignsData.length} campaigns`);
+        console.log(`Set ${campaignsData.length} campaigns`);
 
         // Check if we need demo campaign for first-time users
         if (campaignsData.length === 0) {
-          console.log("👤 New user detected, creating demo campaign...");
+          console.log("New user detected, creating demo campaign...");
           await createDemoForNewUser();
         }
       } else {
-        console.warn("⚠️ Invalid campaigns data, setting empty array");
+        console.warn("Invalid campaigns data, setting empty array");
         setCampaigns([]);
       }
     } catch (err) {
-      console.error("❌ loadInitialData error:", err);
+      console.error("loadInitialData error:", err);
       const errorMessage = handleApiError(err);
       setError(errorMessage);
 
-      // If it's an auth error, the handler will redirect
       if (errorMessage.includes("Session expired")) {
-        return; // Don't set loading to false, let redirect happen
+        return;
       }
     } finally {
       isLoadingData.current = false;
       setIsLoading(false);
-      console.log("🏁 loadInitialData completed");
+      console.log("loadInitialData completed");
     }
-  }, [testConnection, api, createDemoForNewUser, handleApiError]);
+  }, [
+    api,
+    testConnection,
+    handleApiError,
+    getStorageItem,
+    mounted,
+    createDemoForNewUser,
+  ]);
 
-  // FIXED: Simplified initialization
+  // Initialization effect - SSR SAFE
   useEffect(() => {
-    if (isInitialized.current) {
-      console.log("⏸️ Already initialized, skipping...");
+    if (!mounted || isInitialized.current) {
       return;
     }
 
-    console.log("🔥 Initializing campaigns page...");
+    console.log("Initializing campaigns page...");
 
-    // Check authentication first
+    // Check authentication - SSR SAFE
     const authToken =
-      localStorage.getItem("access_token") || localStorage.getItem("authToken");
+      getStorageItem("access_token") || getStorageItem("authToken");
     if (!authToken) {
-      console.log("🔒 No auth token, redirecting to login...");
+      console.log("No auth token, redirecting to login...");
       setIsLoading(false);
       router.push("/login");
       return;
@@ -280,7 +314,7 @@ export default function CampaignsPage() {
 
     isInitialized.current = true;
     loadInitialData();
-  }, [router, loadInitialData]);
+  }, [mounted, router, loadInitialData, getStorageItem]);
 
   // Filter campaigns effect
   useEffect(() => {
@@ -303,9 +337,9 @@ export default function CampaignsPage() {
     setFilteredCampaigns(filtered);
   }, [campaigns, searchQuery, statusFilter]);
 
-  // FIXED: Manual retry function
+  // Manual retry
   const handleRetry = useCallback(() => {
-    console.log("🔄 Manual retry triggered");
+    console.log("Manual retry triggered");
     setError(null);
     setIsLoading(true);
     setConnectionStatus("checking");
@@ -318,13 +352,13 @@ export default function CampaignsPage() {
     }, 500);
   }, [loadInitialData]);
 
-  // Logout handler
+  // Logout handler - SSR SAFE
   const handleLogout = useCallback(() => {
-    localStorage.clear();
+    clearStorage();
     router.push("/login");
-  }, [router]);
+  }, [router, clearStorage]);
 
-  // Campaign management handlers (unchanged)
+  // Campaign management handlers
   const handleCreateCampaign = useCallback(
     async (campaignData: {
       title: string;
@@ -398,7 +432,12 @@ export default function CampaignsPage() {
     setStatusFilter("all");
   }, []);
 
-  // FIXED: Enhanced loading state with connection status
+  // SSR SAFE: Don't render until mounted
+  if (!mounted) {
+    return null;
+  }
+
+  // Loading state
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -415,7 +454,6 @@ export default function CampaignsPage() {
             {connectionStatus === "failed" && "Connection issues detected..."}
           </p>
 
-          {/* Connection Status Indicator */}
           <div className="flex items-center justify-center space-x-2 mb-4">
             {connectionStatus === "checking" && (
               <>
@@ -448,9 +486,7 @@ export default function CampaignsPage() {
               <div>User: {user ? "✅ Loaded" : "⏳ Loading"}</div>
               <div>
                 Auth Token:{" "}
-                {localStorage.getItem("access_token")
-                  ? "✅ Present"
-                  : "❌ Missing"}
+                {getStorageItem("access_token") ? "✅ Present" : "❌ Missing"}
               </div>
             </div>
 
@@ -494,7 +530,6 @@ export default function CampaignsPage() {
           </div>
 
           <div className="flex items-center space-x-4">
-            {/* Connection Status Indicator in Header */}
             <div
               className={`flex items-center space-x-2 px-3 py-1 rounded-full ${
                 connectionStatus === "connected"
@@ -619,7 +654,6 @@ export default function CampaignsPage() {
         {/* Main Content */}
         <main className="flex-1 p-6">
           <div className="max-w-7xl mx-auto space-y-8">
-            {/* Header */}
             <div className="flex justify-between items-center">
               <div>
                 <h1 className="text-3xl font-bold text-gray-900">
@@ -639,7 +673,6 @@ export default function CampaignsPage() {
               </button>
             </div>
 
-            {/* FIXED: Enhanced Error Display */}
             {error && (
               <div className="bg-red-50 border-l-4 border-red-500 rounded-lg p-4">
                 <div className="flex items-start space-x-3">
@@ -694,7 +727,6 @@ export default function CampaignsPage() {
               </div>
             )}
 
-            {/* Empty State or Campaigns */}
             {campaigns.length === 0 && !error ? (
               <div className="text-center py-12">
                 <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8 max-w-2xl mx-auto">
@@ -710,7 +742,6 @@ export default function CampaignsPage() {
                     source and generates multiple content types automatically.
                   </p>
 
-                  {/* Process Steps */}
                   <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
                     {[
                       {
@@ -775,7 +806,6 @@ export default function CampaignsPage() {
                     </button>
                   </div>
 
-                  {/* Connection Status */}
                   <div className="mt-6 pt-6 border-t border-gray-200">
                     <div className="flex items-center justify-center space-x-2 text-sm">
                       <div
@@ -810,7 +840,7 @@ export default function CampaignsPage() {
                           onChange={(e) => setSearchQuery(e.target.value)}
                           className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                         />
-                        <Search className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none h-5 w-5 text-gray-400" />
+                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
                       </div>
                     </div>
 
@@ -865,7 +895,6 @@ export default function CampaignsPage() {
                   />
                 )}
 
-                {/* Recent Campaigns Activity */}
                 <div className="bg-white rounded-xl shadow-sm border border-gray-200">
                   <div className="p-6 border-b border-gray-200">
                     <div className="flex items-center justify-between">
