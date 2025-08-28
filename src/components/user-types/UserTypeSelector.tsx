@@ -1,10 +1,10 @@
-// src/components/user-types/UserTypeSelector.tsx - DEBUG VERSION
+// src/components/user-types/UserTypeSelector.tsx - FIXED FOR EXISTING HOOK
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { motion, AnimatePresence } from "framer-motion";
-import { useApi } from "@/lib/api";
+import { motion } from "framer-motion";
+import { useUserType } from "@/lib/hooks/useUserType";
 
 interface UserType {
   value: string;
@@ -27,21 +27,16 @@ const UserTypeSelector: React.FC<UserTypeSelectorProps> = ({
   className = "",
 }) => {
   const router = useRouter();
-  const api = useApi();
+  const {
+    setUserType,
+    isLoading: hookLoading,
+    error: hookError,
+  } = useUserType();
   const [error, setError] = useState("");
   const [selectedType, setSelectedType] = useState<string>("");
-  const [detectedType, setDetectedType] = useState<string>("");
-  const [isLoading, setIsLoading] = useState(false);
-  const [showDetectionForm, setShowDetectionForm] = useState(false);
-  const [debugInfo, setDebugInfo] = useState<any>(null);
-  const [detectionFormData, setDetectionFormData] = useState({
-    description: "",
-    goals: [] as string[],
-    currentActivities: [] as string[],
-    interests: [] as string[],
-  });
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const [userTypes, setUserTypes] = useState<Record<string, UserType>>({
+  const [userTypes] = useState<Record<string, UserType>>({
     affiliate_marketer: {
       value: "affiliate_marketer",
       emoji: "💰",
@@ -72,192 +67,64 @@ const UserTypeSelector: React.FC<UserTypeSelectorProps> = ({
     },
   });
 
-  const fetchUserTypes = useCallback(async () => {
-    try {
-      const response = await api.getAllUserTypes();
-
-      if (response.success) {
-        setUserTypes(response.user_types);
-      }
-    } catch (error) {
-      console.error("Failed to fetch user types:", error);
-    }
-  }, [api]);
-
+  // Display any hook errors
   useEffect(() => {
-    fetchUserTypes();
-  }, [fetchUserTypes]);
-
-  const handleTypeDetection = async () => {
-    if (!detectionFormData.description.trim()) {
-      alert("Please provide a description of what you do");
-      return;
+    if (hookError) {
+      setError(hookError);
     }
-
-    setIsLoading(true);
-
-    try {
-      const response = await api.detectUserType(detectionFormData);
-
-      if (response.success) {
-        setDetectedType(response.detected_type);
-        setSelectedType(response.detected_type);
-        setShowDetectionForm(false);
-
-        // Show detection result with animation
-        setTimeout(() => {
-          const element = document.getElementById(
-            `type-card-${response.detected_type}`
-          );
-          if (element) {
-            element.scrollIntoView({ behavior: "smooth", block: "center" });
-          }
-        }, 100);
-      }
-    } catch (error) {
-      console.error("Type detection failed:", error);
-      alert("Failed to detect user type. Please select manually.");
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  }, [hookError]);
 
   const handleTypeSelect = async (userType: string) => {
+    // Just select the type for now, don't submit yet
     setSelectedType(userType);
+    setError("");
 
     if (onTypeSelect) {
       onTypeSelect(userType);
+    }
+  };
+
+  const handleSubmit = async () => {
+    if (!selectedType) {
+      setError("Please select a user type");
       return;
     }
 
-    setIsLoading(true);
+    setIsSubmitting(true);
     setError("");
 
     try {
-      console.log("🔄 Calling api.selectUserType with:", {
-        user_type: userType,
-        goals: detectionFormData.goals,
+      console.log("🔄 Submitting user type selection:", selectedType);
+
+      // Use the correct method name from your existing hook
+      const success = await setUserType(selectedType as any, {
+        goals: [],
         experience_level: "beginner",
-        current_activities: detectionFormData.currentActivities,
-        interests: detectionFormData.interests,
-        description: detectionFormData.description,
+        current_activities: [],
+        interests: [],
+        description: "",
       });
 
-      const response = await api.selectUserType({
-        user_type: userType,
-        goals: detectionFormData.goals,
-        experience_level: "beginner",
-        current_activities: detectionFormData.currentActivities,
-        interests: detectionFormData.interests,
-        description: detectionFormData.description,
-      });
-
-      console.log("📥 Full API response:", response);
-      console.log("📥 Response type:", typeof response);
-      console.log("📥 Response keys:", Object.keys(response || {}));
-
-      // Store debug info to display on screen
-      setDebugInfo({
-        response,
-        responseType: typeof response,
-        responseKeys: Object.keys(response || {}),
-        timestamp: new Date().toISOString(),
-      });
-
-      // Try different response format checks
-      if (response && response.success) {
-        console.log("✅ Response has success: true, proceeding to onboarding");
-        router.push("/onboarding");
-      } else if (response && response.user_profile) {
-        console.log("✅ Response has user_profile, proceeding to onboarding");
-        router.push("/onboarding");
-      } else if (
-        response &&
-        response.message &&
-        response.message.includes("success")
-      ) {
+      if (success) {
         console.log(
-          "✅ Response message indicates success, proceeding to onboarding"
-        );
-        router.push("/onboarding");
-      } else if (response && typeof response === "object" && !response.error) {
-        console.log(
-          "✅ Response is object without error, proceeding to onboarding"
+          "✅ User type selected successfully, navigating to onboarding"
         );
         router.push("/onboarding");
       } else {
-        console.error("❌ Unexpected response format:", response);
-        setError(`API returned unexpected format. Check debug info below.`);
+        setError("Failed to save user type. Please try again.");
       }
     } catch (error) {
-      console.error("❌ API call failed:", error);
-      setError(`API call failed: ${error}`);
-      setDebugInfo({
-        error: error?.toString(),
-        timestamp: new Date().toISOString(),
-      });
+      console.error("❌ Error in handleSubmit:", error);
+      setError("An error occurred. Please try again.");
     } finally {
-      setIsLoading(false);
+      setIsSubmitting(false);
     }
   };
 
-  const addGoal = (goal: string) => {
-    if (goal && !detectionFormData.goals.includes(goal)) {
-      setDetectionFormData((prev) => ({
-        ...prev,
-        goals: [...prev.goals, goal],
-      }));
-    }
-  };
-
-  const removeGoal = (goal: string) => {
-    setDetectionFormData((prev) => ({
-      ...prev,
-      goals: prev.goals.filter((g) => g !== goal),
-    }));
-  };
-
-  const commonGoals = [
-    "Increase revenue",
-    "Grow audience",
-    "Generate leads",
-    "Build brand",
-    "Improve conversions",
-    "Create viral content",
-    "Track competitors",
-    "Automate marketing",
-    "Scale business",
-    "Find new opportunities",
-  ];
+  const isLoading = hookLoading || isSubmitting;
 
   return (
     <div className={`max-w-6xl mx-auto p-6 ${className}`}>
-      {/* Debug Info Display */}
-      {debugInfo && (
-        <div className="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-xl">
-          <h3 className="font-semibold text-yellow-800 mb-2">
-            🐛 Debug Information:
-          </h3>
-          <pre className="text-xs overflow-auto bg-white p-2 rounded border">
-            {JSON.stringify(debugInfo, null, 2)}
-          </pre>
-          <div className="mt-2 space-x-2">
-            <button
-              onClick={() => router.push("/onboarding")}
-              className="px-3 py-1 bg-blue-600 text-white text-sm rounded"
-            >
-              Force Continue to Onboarding
-            </button>
-            <button
-              onClick={() => setDebugInfo(null)}
-              className="px-3 py-1 bg-gray-600 text-white text-sm rounded"
-            >
-              Hide Debug Info
-            </button>
-          </div>
-        </div>
-      )}
-
       {/* Header */}
       <div className="text-center mb-8">
         <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
@@ -267,152 +134,11 @@ const UserTypeSelector: React.FC<UserTypeSelectorProps> = ({
           Select the option that best describes you to unlock personalized
           features and insights
         </p>
-
-        {detectedType && (
-          <div className="inline-flex items-center px-4 py-2 bg-green-100 text-green-800 rounded-lg mb-4">
-            <span className="text-sm font-medium">
-              🎯 We recommend: {userTypes[detectedType]?.title}
-            </span>
-          </div>
-        )}
       </div>
 
       {error && (
         <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl text-center">
           <p className="text-red-600">{error}</p>
-        </div>
-      )}
-
-      {/* Smart Detection Section */}
-      {showDetectionOption && (
-        <div className="mb-8">
-          <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg p-6 border border-blue-200">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-semibold text-gray-900">
-                🧠 Smart Recommendation
-              </h2>
-              <button
-                onClick={() => setShowDetectionForm(!showDetectionForm)}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
-              >
-                {showDetectionForm ? "Hide" : "Get Recommendation"}
-              </button>
-            </div>
-
-            <p className="text-gray-600 mb-4">
-              Not sure which option fits you best? Tell us what you do and we
-              will recommend the perfect user type.
-            </p>
-
-            <AnimatePresence>
-              {showDetectionForm && (
-                <motion.div
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: "auto" }}
-                  exit={{ opacity: 0, height: 0 }}
-                  className="space-y-4"
-                >
-                  {/* Description Input */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      What do you do? (Describe your current activities)
-                    </label>
-                    <textarea
-                      value={detectionFormData.description}
-                      onChange={(e) =>
-                        setDetectionFormData((prev) => ({
-                          ...prev,
-                          description: e.target.value,
-                        }))
-                      }
-                      placeholder="e.g., I promote fitness products on social media and earn commissions..."
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                      rows={3}
-                    />
-                  </div>
-
-                  {/* Goals Selection */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      What are your main goals? (Click to add)
-                    </label>
-                    <div className="flex flex-wrap gap-2 mb-2">
-                      {commonGoals.map((goal) => (
-                        <button
-                          key={goal}
-                          onClick={() => addGoal(goal)}
-                          disabled={detectionFormData.goals.includes(goal)}
-                          className={`px-3 py-1 text-sm rounded-full border transition-colors ${
-                            detectionFormData.goals.includes(goal)
-                              ? "bg-blue-100 text-blue-800 border-blue-300 cursor-not-allowed"
-                              : "bg-white text-gray-600 border-gray-300 hover:bg-gray-50 cursor-pointer"
-                          }`}
-                        >
-                          {goal}
-                        </button>
-                      ))}
-                    </div>
-
-                    {/* Selected Goals */}
-                    {detectionFormData.goals.length > 0 && (
-                      <div className="flex flex-wrap gap-2">
-                        <span className="text-sm text-gray-600">Selected:</span>
-                        {detectionFormData.goals.map((goal) => (
-                          <span
-                            key={goal}
-                            className="inline-flex items-center px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full"
-                          >
-                            {goal}
-                            <button
-                              onClick={() => removeGoal(goal)}
-                              className="ml-1 text-blue-600 hover:text-blue-800"
-                            >
-                              ×
-                            </button>
-                          </span>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-
-                  <button
-                    onClick={handleTypeDetection}
-                    disabled={
-                      isLoading || !detectionFormData.description.trim()
-                    }
-                    className="w-full px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:from-blue-700 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 font-medium"
-                  >
-                    {isLoading ? (
-                      <span className="flex items-center justify-center">
-                        <svg
-                          className="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                        >
-                          <circle
-                            className="opacity-25"
-                            cx="12"
-                            cy="12"
-                            r="10"
-                            stroke="currentColor"
-                            strokeWidth="4"
-                          ></circle>
-                          <path
-                            className="opacity-75"
-                            fill="currentColor"
-                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                          ></path>
-                        </svg>
-                        Analyzing...
-                      </span>
-                    ) : (
-                      "🎯 Get My Recommendation"
-                    )}
-                  </button>
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
         </div>
       )}
 
@@ -429,20 +155,9 @@ const UserTypeSelector: React.FC<UserTypeSelectorProps> = ({
               selectedType === key
                 ? "border-blue-500 bg-blue-50 shadow-lg scale-105"
                 : "border-gray-200 hover:border-gray-300"
-            } ${
-              detectedType === key
-                ? "ring-4 ring-green-200 ring-opacity-50"
-                : ""
             }`}
             onClick={() => handleTypeSelect(key)}
           >
-            {/* Recommended Badge */}
-            {detectedType === key && (
-              <div className="absolute -top-2 -right-2 bg-green-500 text-white text-xs font-bold px-2 py-1 rounded-full">
-                Recommended
-              </div>
-            )}
-
             {/* Selected Indicator */}
             {selectedType === key && (
               <div className="absolute -top-2 -left-2 bg-blue-500 text-white rounded-full p-1">
@@ -521,12 +236,12 @@ const UserTypeSelector: React.FC<UserTypeSelectorProps> = ({
           className="text-center"
         >
           <button
-            onClick={() => handleTypeSelect(selectedType)}
-            disabled={isLoading}
+            onClick={handleSubmit}
+            disabled={isLoading || !selectedType}
             className="px-8 py-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:from-blue-700 hover:to-purple-700 disabled:opacity-50 transition-all duration-200 font-semibold text-lg shadow-lg hover:shadow-xl"
           >
             {isLoading ? (
-              <span className="flex items-center">
+              <span className="flex items-center justify-center">
                 <svg
                   className="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
                   fill="none"
@@ -549,7 +264,7 @@ const UserTypeSelector: React.FC<UserTypeSelectorProps> = ({
                 Setting up your experience...
               </span>
             ) : (
-              `Continue as ${userTypes[selectedType]?.title} →`
+              `Continue as ${userTypes[selectedType]?.title}`
             )}
           </button>
 
