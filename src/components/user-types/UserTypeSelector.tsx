@@ -28,7 +28,7 @@ const UserTypeSelector: React.FC<UserTypeSelectorProps> = ({
 }) => {
   const router = useRouter();
   const api = useApi();
-
+  const [error, setError] = useState("");
   const [selectedType, setSelectedType] = useState<string>("");
   const [detectedType, setDetectedType] = useState<string>("");
   const [isLoading, setIsLoading] = useState(false);
@@ -142,15 +142,18 @@ const UserTypeSelector: React.FC<UserTypeSelectorProps> = ({
         description: detectionFormData.description,
       });
 
+      console.log("Select user type response:", response); // Debug log
+
+      // FIXED: Check for success and redirect to onboarding instead of dashboard
       if (response.success) {
-        // Redirect to dashboard
-        router.push(response.user_profile.dashboard_route);
+        // Always redirect new users to onboarding first
+        router.push("/onboarding");
       } else {
-        alert("Failed to set user type. Please try again.");
+        setError("Failed to set user type. Please try again.");
       }
     } catch (error) {
       console.error("User type selection failed:", error);
-      alert("Failed to set user type. Please try again.");
+      setError("Failed to set user type. Please try again.");
     } finally {
       setIsLoading(false);
     }
@@ -205,7 +208,11 @@ const UserTypeSelector: React.FC<UserTypeSelectorProps> = ({
           </div>
         )}
       </div>
-
+      {error && (
+        <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl text-center">
+          <p className="text-red-600">{error}</p>
+        </div>
+      )}
       {/* Smart Detection Section */}
       {showDetectionOption && (
         <div className="mb-8">
