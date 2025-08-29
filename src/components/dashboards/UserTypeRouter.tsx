@@ -119,6 +119,18 @@ const UserTypeRouter: React.FC = () => {
     }
   }, [router, pathname]);
 
+  // Add this inside your UserTypeRouter component
+  useEffect(() => {
+    console.log("UserTypeRouter render triggered by:", {
+      pathname,
+      userProfile: userProfile?.id,
+      isLoading,
+      error,
+      userType: userProfile?.user_type,
+      onboardingComplete: userProfile?.onboarding_completed,
+    });
+  }, [pathname, userProfile, isLoading, error]);
+
   // FIXED: Only depend on pathname to prevent infinite loops
   useEffect(() => {
     checkUserTypeAndRoute();
