@@ -61,7 +61,7 @@ const UserTypeRouter: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const checkUserTypeAndRoute = useCallback(async () => {
+  const checkUserTypeAndRoute = async () => {
     setIsLoading(true);
     setError(null);
 
@@ -117,7 +117,7 @@ const UserTypeRouter: React.FC = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [router, pathname]);
+  };
 
   // Add this inside your UserTypeRouter component
   useEffect(() => {

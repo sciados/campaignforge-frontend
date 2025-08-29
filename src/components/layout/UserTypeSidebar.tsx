@@ -1,4 +1,4 @@
-// src/components/layout/UserTypeSidebar.tsx
+// src/components/layout/UserTypeSidebar.tsx - FIXED VERSION
 "use client";
 
 import React, { useState, useEffect } from "react";
@@ -29,7 +29,8 @@ const UserTypeSidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
 
-  const loadUserProfile = React.useCallback(async () => {
+  // Fix: Remove useCallback and api dependency to prevent infinite loop
+  const loadUserProfile = async () => {
     try {
       const config = await api.getUserTypeConfig();
       setUserProfile(config.user_profile);
@@ -38,11 +39,13 @@ const UserTypeSidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
     } finally {
       setIsLoading(false);
     }
-  }, [api]);
+  };
 
+  // Fix: Use empty dependency array to run only once on mount
   useEffect(() => {
     loadUserProfile();
-  }, [loadUserProfile]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Empty dependency array - runs only once
 
   const handleLogout = async () => {
     setIsLoggingOut(true);
@@ -92,7 +95,7 @@ const UserTypeSidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
         href: "/dashboard/analytics",
         label: "Analytics",
         icon: "📊",
-        isActive: pathname.startsWith("/dashboard//analytics"),
+        isActive: pathname.startsWith("/dashboard/analytics"), // Fixed double slash
       },
       {
         href: "/dashboard/settings",
