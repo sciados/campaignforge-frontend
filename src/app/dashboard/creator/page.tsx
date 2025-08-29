@@ -34,7 +34,8 @@ export default function CreatorDashboardPage() {
 
   useEffect(() => {
     fetchDashboardConfig();
-  }, [fetchDashboardConfig]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Empty dependency array - runs only once
 
   if (isLoading) {
     return (
