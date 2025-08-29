@@ -11,7 +11,8 @@ export default function AffiliateDashboardPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchDashboardConfig = useCallback(async () => {
+  // Fix: Remove useCallback and api dependency to prevent infinite loop
+  const fetchDashboardConfig = async () => {
     try {
       setError(null);
       console.log("Loading dashboard config...");
@@ -30,11 +31,36 @@ export default function AffiliateDashboardPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [api]);
+  };
 
+  // Fix: Use empty dependency array to run only once on mount
   useEffect(() => {
     fetchDashboardConfig();
-  }, [fetchDashboardConfig]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Empty dependency array - runs only once
+
+  // Manual retry function for error cases
+  const handleRetry = useCallback(async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      console.log("Retrying dashboard config...");
+
+      const configData = await api.getUserTypeConfig();
+      console.log("Dashboard config loaded:", configData);
+
+      setConfig(configData);
+    } catch (error) {
+      console.error("Failed to load dashboard config:", error);
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : "Failed to load dashboard configuration";
+      setError(errorMessage);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [api]);
 
   if (isLoading) {
     return (
@@ -60,7 +86,7 @@ export default function AffiliateDashboardPage() {
           <p className="text-gray-600 mb-4">{error}</p>
           <div className="space-x-4">
             <button
-              onClick={fetchDashboardConfig}
+              onClick={handleRetry}
               className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
             >
               Try Again
@@ -85,7 +111,7 @@ export default function AffiliateDashboardPage() {
             No dashboard configuration found
           </h2>
           <button
-            onClick={fetchDashboardConfig}
+            onClick={handleRetry}
             className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
           >
             Reload
