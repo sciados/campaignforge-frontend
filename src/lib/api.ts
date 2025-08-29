@@ -1651,7 +1651,7 @@ class ApiClient {
 
     console.log('ðŸš€ Creating campaign with streamlined workflow data:', dataWithDefaults)
 
-    const response = await fetch(`${this.baseURL}/api/campaigns`, {
+    const response = await fetch(`${this.baseURL}/api/campaigns/`, {
       method: 'POST',
       headers: this.getHeaders(),
       body: JSON.stringify(dataWithDefaults)
@@ -1668,7 +1668,7 @@ class ApiClient {
     search?: string
     skip?: number
   }): Promise<Campaign[]> {
-    const baseUrl = `${this.baseURL}/api/campaigns`
+    const baseUrl = `${this.baseURL}/api/campaigns/`
 
     const searchParams = new URLSearchParams()
     if (params?.page) searchParams.set('page', params.page.toString())

@@ -95,10 +95,10 @@ const UserTypeSidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
         isActive: pathname.startsWith("/analytics"),
       },
       {
-        href: "/settings",
+        href: "/dashboard/settings",
         label: "Settings",
         icon: "⚙️",
-        isActive: pathname.startsWith("/settings"),
+        isActive: pathname.startsWith("/dashboard/settings"),
       },
     ];
 
