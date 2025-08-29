@@ -86,10 +86,10 @@ const UserTypeSidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
 
     const commonItems = [
       {
-        href: "/content-library",
+        href: "/dashboard/content-library",
         label: "Content Library",
         icon: "📚",
-        isActive: pathname.startsWith("/content-library"),
+        isActive: pathname.startsWith("/dashboard/content-library"),
       },
       {
         href: "/dashboard/analytics",
