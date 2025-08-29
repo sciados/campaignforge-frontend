@@ -1,16 +1,26 @@
-'use client'
+// src/app/dashboard/settings/page.tsx
 
-import { User, Bell, Shield, CreditCard, Palette, Globe, ArrowLeft } from 'lucide-react'
-import { useRouter } from 'next/navigation'
+"use client";
 
-export const dynamic = 'force-dynamic'
+import {
+  User,
+  Bell,
+  Shield,
+  CreditCard,
+  Palette,
+  Globe,
+  ArrowLeft,
+} from "lucide-react";
+import { useRouter } from "next/navigation";
+
+export const dynamic = "force-dynamic";
 
 export default function SettingsPage() {
-  const router = useRouter()
+  const router = useRouter();
 
   const handleBack = () => {
-    router.back()
-  }
+    router.back();
+  };
 
   return (
     <div className="min-h-screen bg-white">
@@ -26,7 +36,9 @@ export default function SettingsPage() {
             </button>
             <div>
               <h1 className="text-xl font-semibold text-black">Settings</h1>
-              <p className="text-sm text-gray-600">Manage your account and preferences</p>
+              <p className="text-sm text-gray-600">
+                Manage your account and preferences
+              </p>
             </div>
           </div>
         </div>
@@ -67,12 +79,16 @@ export default function SettingsPage() {
           {/* Settings Content */}
           <div className="lg:col-span-3">
             <div className="bg-white rounded-2xl border border-gray-200 p-8 shadow-sm">
-              <h2 className="text-xl font-medium text-black mb-8">Profile Settings</h2>
-              
+              <h2 className="text-xl font-medium text-black mb-8">
+                Profile Settings
+              </h2>
+
               <div className="space-y-8">
                 {/* Profile Picture */}
                 <div>
-                  <label className="block text-sm font-medium text-black mb-4">Profile Picture</label>
+                  <label className="block text-sm font-medium text-black mb-4">
+                    Profile Picture
+                  </label>
                   <div className="flex items-center space-x-4">
                     <div className="w-16 h-16 bg-black rounded-full flex items-center justify-center text-white font-medium text-xl">
                       U
@@ -91,7 +107,9 @@ export default function SettingsPage() {
                 {/* Name Fields */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
-                    <label className="block text-sm font-medium text-black mb-3">First Name</label>
+                    <label className="block text-sm font-medium text-black mb-3">
+                      First Name
+                    </label>
                     <input
                       type="text"
                       className="w-full px-4 py-3 bg-gray-100 border-none rounded-lg focus:outline-none focus:bg-white focus:ring-2 focus:ring-blue-500/20 transition-all"
@@ -99,7 +117,9 @@ export default function SettingsPage() {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-black mb-3">Last Name</label>
+                    <label className="block text-sm font-medium text-black mb-3">
+                      Last Name
+                    </label>
                     <input
                       type="text"
                       className="w-full px-4 py-3 bg-gray-100 border-none rounded-lg focus:outline-none focus:bg-white focus:ring-2 focus:ring-blue-500/20 transition-all"
@@ -110,7 +130,9 @@ export default function SettingsPage() {
 
                 {/* Email */}
                 <div>
-                  <label className="block text-sm font-medium text-black mb-3">Email Address</label>
+                  <label className="block text-sm font-medium text-black mb-3">
+                    Email Address
+                  </label>
                   <input
                     type="email"
                     className="w-full px-4 py-3 bg-gray-100 border-none rounded-lg focus:outline-none focus:bg-white focus:ring-2 focus:ring-blue-500/20 transition-all"
@@ -120,7 +142,9 @@ export default function SettingsPage() {
 
                 {/* Company */}
                 <div>
-                  <label className="block text-sm font-medium text-black mb-3">Company</label>
+                  <label className="block text-sm font-medium text-black mb-3">
+                    Company
+                  </label>
                   <input
                     type="text"
                     className="w-full px-4 py-3 bg-gray-100 border-none rounded-lg focus:outline-none focus:bg-white focus:ring-2 focus:ring-blue-500/20 transition-all"
@@ -130,7 +154,9 @@ export default function SettingsPage() {
 
                 {/* Bio */}
                 <div>
-                  <label className="block text-sm font-medium text-black mb-3">Bio</label>
+                  <label className="block text-sm font-medium text-black mb-3">
+                    Bio
+                  </label>
                   <textarea
                     rows={4}
                     className="w-full px-4 py-3 bg-gray-100 border-none rounded-lg focus:outline-none focus:bg-white focus:ring-2 focus:ring-blue-500/20 transition-all resize-none"
@@ -140,7 +166,9 @@ export default function SettingsPage() {
 
                 {/* Timezone */}
                 <div>
-                  <label className="block text-sm font-medium text-black mb-3">Timezone</label>
+                  <label className="block text-sm font-medium text-black mb-3">
+                    Timezone
+                  </label>
                   <select className="w-full px-4 py-3 bg-gray-100 border-none rounded-lg focus:outline-none focus:bg-white focus:ring-2 focus:ring-blue-500/20 transition-all">
                     <option>UTC (GMT+0)</option>
                     <option>Eastern Time (GMT-5)</option>
@@ -167,12 +195,18 @@ export default function SettingsPage() {
             <div className="mt-8 space-y-6">
               {/* Account Security */}
               <div className="bg-white rounded-2xl border border-gray-200 p-8 shadow-sm">
-                <h3 className="text-lg font-medium text-black mb-6">Account Security</h3>
+                <h3 className="text-lg font-medium text-black mb-6">
+                  Account Security
+                </h3>
                 <div className="space-y-4">
                   <div className="flex items-center justify-between py-3">
                     <div>
-                      <h4 className="text-sm font-medium text-black">Two-Factor Authentication</h4>
-                      <p className="text-sm text-gray-600">Add an extra layer of security to your account</p>
+                      <h4 className="text-sm font-medium text-black">
+                        Two-Factor Authentication
+                      </h4>
+                      <p className="text-sm text-gray-600">
+                        Add an extra layer of security to your account
+                      </p>
                     </div>
                     <button className="bg-gray-100 hover:bg-gray-200 px-4 py-2 rounded-lg text-black font-medium transition-colors">
                       Enable
@@ -180,8 +214,12 @@ export default function SettingsPage() {
                   </div>
                   <div className="flex items-center justify-between py-3">
                     <div>
-                      <h4 className="text-sm font-medium text-black">Change Password</h4>
-                      <p className="text-sm text-gray-600">Update your account password</p>
+                      <h4 className="text-sm font-medium text-black">
+                        Change Password
+                      </h4>
+                      <p className="text-sm text-gray-600">
+                        Update your account password
+                      </p>
                     </div>
                     <button className="bg-gray-100 hover:bg-gray-200 px-4 py-2 rounded-lg text-black font-medium transition-colors">
                       Change
@@ -192,22 +230,36 @@ export default function SettingsPage() {
 
               {/* Notifications */}
               <div className="bg-white rounded-2xl border border-gray-200 p-8 shadow-sm">
-                <h3 className="text-lg font-medium text-black mb-6">Notification Preferences</h3>
+                <h3 className="text-lg font-medium text-black mb-6">
+                  Notification Preferences
+                </h3>
                 <div className="space-y-4">
                   <div className="flex items-center justify-between py-3">
                     <div>
-                      <h4 className="text-sm font-medium text-black">Email Notifications</h4>
-                      <p className="text-sm text-gray-600">Receive updates about your campaigns</p>
+                      <h4 className="text-sm font-medium text-black">
+                        Email Notifications
+                      </h4>
+                      <p className="text-sm text-gray-600">
+                        Receive updates about your campaigns
+                      </p>
                     </div>
                     <label className="relative inline-flex items-center cursor-pointer">
-                      <input type="checkbox" className="sr-only peer" defaultChecked />
+                      <input
+                        type="checkbox"
+                        className="sr-only peer"
+                        defaultChecked
+                      />
                       <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-black"></div>
                     </label>
                   </div>
                   <div className="flex items-center justify-between py-3">
                     <div>
-                      <h4 className="text-sm font-medium text-black">Push Notifications</h4>
-                      <p className="text-sm text-gray-600">Get notified on your devices</p>
+                      <h4 className="text-sm font-medium text-black">
+                        Push Notifications
+                      </h4>
+                      <p className="text-sm text-gray-600">
+                        Get notified on your devices
+                      </p>
                     </div>
                     <label className="relative inline-flex items-center cursor-pointer">
                       <input type="checkbox" className="sr-only peer" />
@@ -216,11 +268,19 @@ export default function SettingsPage() {
                   </div>
                   <div className="flex items-center justify-between py-3">
                     <div>
-                      <h4 className="text-sm font-medium text-black">Weekly Reports</h4>
-                      <p className="text-sm text-gray-600">Summary of your campaign performance</p>
+                      <h4 className="text-sm font-medium text-black">
+                        Weekly Reports
+                      </h4>
+                      <p className="text-sm text-gray-600">
+                        Summary of your campaign performance
+                      </p>
                     </div>
                     <label className="relative inline-flex items-center cursor-pointer">
-                      <input type="checkbox" className="sr-only peer" defaultChecked />
+                      <input
+                        type="checkbox"
+                        className="sr-only peer"
+                        defaultChecked
+                      />
                       <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-black"></div>
                     </label>
                   </div>
@@ -229,12 +289,18 @@ export default function SettingsPage() {
 
               {/* Danger Zone */}
               <div className="bg-white rounded-2xl border border-red-200 p-8 shadow-sm">
-                <h3 className="text-lg font-medium text-red-900 mb-6">Danger Zone</h3>
+                <h3 className="text-lg font-medium text-red-900 mb-6">
+                  Danger Zone
+                </h3>
                 <div className="space-y-4">
                   <div className="flex items-center justify-between py-3">
                     <div>
-                      <h4 className="text-sm font-medium text-red-900">Delete Account</h4>
-                      <p className="text-sm text-red-600">Permanently delete your account and all data</p>
+                      <h4 className="text-sm font-medium text-red-900">
+                        Delete Account
+                      </h4>
+                      <p className="text-sm text-red-600">
+                        Permanently delete your account and all data
+                      </p>
                     </div>
                     <button className="bg-red-100 hover:bg-red-200 px-4 py-2 rounded-lg text-red-900 font-medium transition-colors">
                       Delete Account
@@ -247,5 +313,5 @@ export default function SettingsPage() {
         </div>
       </div>
     </div>
-  )
+  );
 }

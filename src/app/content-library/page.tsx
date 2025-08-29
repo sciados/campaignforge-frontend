@@ -1,4 +1,4 @@
-// src/app/dashboard/content-library/page.tsx - COMPLETE REDESIGN
+// src/app/content-library/page.tsx - COMPLETE REDESIGN
 "use client";
 
 import React, { useEffect, useState, useCallback, useRef } from "react";
