@@ -62,7 +62,7 @@ class IntelligenceWorkflowService {
         try {
             console.log(`🚀 Starting complete analysis workflow for campaign: ${campaignId}`);
 
-            const response = await fetch(`${this.apiBase}/campaigns/${campaignId}/analyze-and-store`, {
+            const response = await fetch(`${this.apiBase}/analysis/campaigns/${campaignId}/analyze-and-store`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
