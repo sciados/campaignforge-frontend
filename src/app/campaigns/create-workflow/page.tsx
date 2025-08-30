@@ -1,188 +1,246 @@
-// src/app/campaigns/create-workflow/page.tsx
-'use client'
-import React, { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
-import { ArrowLeft, CheckCircle, Loader2, Brain, Sparkles } from 'lucide-react'
-import { useApi } from '@/lib/api'
-import { useCampaignStore } from '@/lib/stores/campaignStore'
-import { useIntelligenceStore } from '@/lib/stores/intelligenceStore'
+// src/app/campaigns/create-workflow/page.tsx - UPDATED with complete workflow integration
+"use client";
+import React, { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import {
+  ArrowLeft,
+  CheckCircle,
+  Loader2,
+  Brain,
+  Sparkles,
+  AlertCircle,
+  RefreshCw,
+} from "lucide-react";
+import { useApi } from "@/lib/api";
+import { useCampaignStore } from "@/lib/stores/campaignStore";
+import { useIntelligenceWorkflow } from "@/lib/services/intelligenceWorkflowService";
 
 // Import step components
-import Step1Setup from './components/Step1Setup'
-import Step2ContentGeneration from './components/Step2ContentGeneration'
+import Step1Setup from "./components/Step1Setup";
+import Step2ContentGeneration from "./components/Step2ContentGeneration";
 
 interface WorkflowState {
-  currentStep: number
+  currentStep: number;
   campaignData: {
-    id?: string
-    title: string
-    description: string
-    keywords: string[]
-    target_audience: string
-    product_name: string
-    salespage_url: string
-    affiliate_link: string
-  }
-  isStep1Locked: boolean
-  isAnalyzing: boolean
-  analysisComplete: boolean
+    id?: string;
+    title: string;
+    description: string;
+    keywords: string[];
+    target_audience: string;
+    product_name: string;
+    salespage_url: string;
+    affiliate_link: string;
+  };
+  isStep1Locked: boolean;
+  isAnalyzing: boolean;
+  analysisComplete: boolean;
+  intelligenceEnhanced: boolean;
+  intelligenceId?: string;
+  confidenceScore: number;
 }
 
 export default function CreateWorkflowPage() {
-  const router = useRouter()
-  const api = useApi()
-  const { createCampaign } = useCampaignStore()
-  const { analyzeURL, isAnalyzing, analysisProgress, currentAnalysisStep } = useIntelligenceStore()
+  const router = useRouter();
+  const api = useApi();
+  const { createCampaign } = useCampaignStore();
+  const {
+    isAnalyzing,
+    analysisProgress,
+    currentStep: analysisStep,
+    error: workflowError,
+    runCompleteWorkflow,
+    getEnhancedIntelligenceForContent,
+  } = useIntelligenceWorkflow();
 
   const [workflow, setWorkflow] = useState<WorkflowState>({
     currentStep: 1,
     campaignData: {
-      title: '',
-      description: '',
+      title: "",
+      description: "",
       keywords: [],
-      target_audience: '',
-      product_name: '',
-      salespage_url: '',
-      affiliate_link: ''
+      target_audience: "",
+      product_name: "",
+      salespage_url: "",
+      affiliate_link: "",
     },
     isStep1Locked: false,
     isAnalyzing: false,
-    analysisComplete: false
-  })
+    analysisComplete: false,
+    intelligenceEnhanced: false,
+    confidenceScore: 0,
+  });
 
-  const [error, setError] = useState<string | null>(null)
-  const [isCreating, setIsCreating] = useState(false)
+  const [error, setError] = useState<string | null>(null);
+  const [isCreating, setIsCreating] = useState(false);
 
   // Auto-advance to Step 3 when analysis completes
   useEffect(() => {
-    if (workflow.currentStep === 2 && workflow.analysisComplete && !isAnalyzing) {
-      console.log('🎯 Analysis complete, advancing to Step 3')
+    if (
+      workflow.currentStep === 2 &&
+      workflow.analysisComplete &&
+      !isAnalyzing
+    ) {
+      console.log("Analysis complete, advancing to Step 3");
       setTimeout(() => {
-        setWorkflow(prev => ({ ...prev, currentStep: 3 }))
-      }, 1500) // Brief delay to show completion
+        setWorkflow((prev) => ({ ...prev, currentStep: 3 }));
+      }, 1500);
     }
-  }, [workflow.analysisComplete, isAnalyzing, workflow.currentStep])
+  }, [workflow.analysisComplete, isAnalyzing, workflow.currentStep]);
 
   const handleStep1Complete = async (campaignData: {
-    title: string
-    description: string
-    keywords: string[]
-    target_audience: string
-    product_name: string
-    salespage_url: string
-    affiliate_link: string
+    title: string;
+    description: string;
+    keywords: string[];
+    target_audience: string;
+    product_name: string;
+    salespage_url: string;
+    affiliate_link: string;
   }) => {
-    setIsCreating(true)
-    setError(null)
+    setIsCreating(true);
+    setError(null);
 
     try {
-      console.log('🚀 Creating campaign with enhanced data:', campaignData)
-      
+      console.log("Creating campaign with enhanced data:", campaignData);
+
       // Create campaign with new fields
       const campaign = await createCampaign({
         ...campaignData,
-        campaign_type: 'universal',
+        campaign_type: "universal",
         settings: {
-          workflow_type: 'streamlined_auto_analysis',
+          workflow_type: "streamlined_auto_analysis",
           step_1_completed: true,
           locked_after_step_1: true,
           product_name: campaignData.product_name,
           salespage_url: campaignData.salespage_url,
           affiliate_link: campaignData.affiliate_link,
-          auto_analysis_enabled: true
-        }
-      })
+          auto_analysis_enabled: true,
+        },
+      });
 
-      console.log('✅ Campaign created successfully:', campaign.id)
+      console.log("Campaign created successfully:", campaign.id);
 
       // Lock Step 1 and advance to Step 2 (Analysis)
-      setWorkflow(prev => ({
+      setWorkflow((prev) => ({
         ...prev,
         currentStep: 2,
         campaignData: { ...campaignData, id: campaign.id },
         isStep1Locked: true,
-        isAnalyzing: true
-      }))
+        isAnalyzing: true,
+      }));
 
-      // Start automatic background analysis
-      await startBackgroundAnalysis(campaign.id, campaignData.salespage_url)
-
+      // UPDATED: Start complete analysis workflow (Steps 2, 3, 4)
+      await startCompleteAnalysisWorkflow(campaign.id, campaignData);
     } catch (error) {
-      console.error('❌ Failed to create campaign:', error)
-      setError(error instanceof Error ? error.message : 'Failed to create campaign')
+      console.error("Failed to create campaign:", error);
+      setError(
+        error instanceof Error ? error.message : "Failed to create campaign"
+      );
     } finally {
-      setIsCreating(false)
+      setIsCreating(false);
     }
-  }
+  };
 
-  const startBackgroundAnalysis = async (campaignId: string, salespageUrl: string) => {
+  const startCompleteAnalysisWorkflow = async (
+    campaignId: string,
+    campaignData: any
+  ) => {
     try {
-      console.log('🔍 Starting automatic salespage analysis...', salespageUrl)
-      
-      setWorkflow(prev => ({ ...prev, isAnalyzing: true }))
+      console.log(
+        "Starting complete analysis workflow for campaign:",
+        campaignId
+      );
 
-      // Use the intelligence store to analyze the URL
-      await analyzeURL(campaignId, salespageUrl)
+      setWorkflow((prev) => ({ ...prev, isAnalyzing: true }));
 
-      console.log('✅ Analysis completed successfully')
-      
-      setWorkflow(prev => ({ 
-        ...prev, 
-        isAnalyzing: false, 
-        analysisComplete: true 
-      }))
+      // Run the complete workflow: Analysis + Storage + Enhancement
+      const result = await runCompleteWorkflow(
+        campaignId,
+        {
+          salespage_url: campaignData.salespage_url,
+          product_name: campaignData.product_name,
+          auto_enhance: true,
+        },
+        (progress, step) => {
+          // Update UI with progress
+          console.log(`Workflow progress: ${progress}% - ${step}`);
+        }
+      );
 
+      console.log("Complete workflow result:", result);
+
+      setWorkflow((prev) => ({
+        ...prev,
+        isAnalyzing: false,
+        analysisComplete: true,
+        intelligenceEnhanced: result.enhanced,
+        intelligenceId: result.intelligence_id,
+        confidenceScore: result.confidence_score,
+      }));
     } catch (error) {
-      console.error('❌ Analysis failed:', error)
-      setError(`Analysis failed: ${error instanceof Error ? error.message : 'Unknown error'}`)
-      
-      setWorkflow(prev => ({ 
-        ...prev, 
-        isAnalyzing: false, 
-        analysisComplete: false 
-      }))
+      console.error("Complete analysis workflow failed:", error);
+      const errorMessage =
+        error instanceof Error ? error.message : "Analysis workflow failed";
+      setError(`Analysis failed: ${errorMessage}`);
+
+      setWorkflow((prev) => ({
+        ...prev,
+        isAnalyzing: false,
+        analysisComplete: false,
+      }));
     }
-  }
+  };
 
   const handleContentGenerated = () => {
     // Redirect to campaign content library
     if (workflow.campaignData.id) {
-      router.push(`/campaigns/${workflow.campaignData.id}/content`)
+      router.push(`/campaigns/${workflow.campaignData.id}/content`);
     }
-  }
+  };
 
   const handleGoToCampaign = () => {
     if (workflow.campaignData.id) {
-      router.push(`/campaigns/${workflow.campaignData.id}`)
+      router.push(`/campaigns/${workflow.campaignData.id}`);
     }
-  }
+  };
+
+  const handleRetryAnalysis = async () => {
+    if (!workflow.campaignData.id) return;
+
+    setError(null);
+    await startCompleteAnalysisWorkflow(
+      workflow.campaignData.id,
+      workflow.campaignData
+    );
+  };
 
   const getStepStatus = (stepNumber: number) => {
-    if (stepNumber < workflow.currentStep) return 'completed'
-    if (stepNumber === workflow.currentStep) return 'active'
-    return 'pending'
-  }
+    if (stepNumber < workflow.currentStep) return "completed";
+    if (stepNumber === workflow.currentStep) return "active";
+    return "pending";
+  };
 
   const getStepIcon = (stepNumber: number, status: string) => {
-    if (status === 'completed') {
-      return <CheckCircle className="h-5 w-5 text-green-600" />
+    if (status === "completed") {
+      return <CheckCircle className="h-5 w-5 text-green-600" />;
     }
-    if (status === 'active' && stepNumber === 2) {
-      return <Loader2 className="h-5 w-5 text-blue-600 animate-spin" />
+    if (status === "active" && stepNumber === 2) {
+      return <Loader2 className="h-5 w-5 text-blue-600 animate-spin" />;
     }
-    if (status === 'active' && stepNumber === 3) {
-      return <Sparkles className="h-5 w-5 text-purple-600" />
+    if (status === "active" && stepNumber === 3) {
+      return <Sparkles className="h-5 w-5 text-purple-600" />;
     }
     return (
-      <div className={`w-6 h-6 rounded-full flex items-center justify-center text-sm font-medium ${
-        status === 'active' 
-          ? 'bg-purple-600 text-white' 
-          : 'bg-gray-200 text-gray-600'
-      }`}>
+      <div
+        className={`w-6 h-6 rounded-full flex items-center justify-center text-sm font-medium ${
+          status === "active"
+            ? "bg-purple-600 text-white"
+            : "bg-gray-200 text-gray-600"
+        }`}
+      >
         {stepNumber}
       </div>
-    )
-  }
+    );
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -191,19 +249,22 @@ export default function CreateWorkflowPage() {
         <div className="max-w-4xl mx-auto flex items-center justify-between">
           <div className="flex items-center space-x-4">
             <button
-              onClick={() => router.push('/campaigns')}
+              onClick={() => router.push("/campaigns")}
               className="w-8 h-8 flex items-center justify-center text-gray-500 hover:text-gray-700 transition-colors rounded-lg hover:bg-gray-100"
             >
               <ArrowLeft className="h-5 w-5" />
             </button>
             <div>
-              <h1 className="text-xl font-bold text-gray-900">Create New Campaign</h1>
+              <h1 className="text-xl font-bold text-gray-900">
+                Create New Campaign
+              </h1>
               <p className="text-sm text-gray-500">
-                Streamlined auto-analysis • Step {workflow.currentStep} of 3
+                Enhanced auto-analysis with intelligence enhancement • Step{" "}
+                {workflow.currentStep} of 3
               </p>
             </div>
           </div>
-          
+
           {workflow.campaignData.id && (
             <button
               onClick={handleGoToCampaign}
@@ -220,12 +281,12 @@ export default function CreateWorkflowPage() {
         <div className="mb-8">
           <div className="flex items-center justify-between mb-4">
             {[
-              { num: 1, title: 'Setup Campaign' },
-              { num: 2, title: 'Auto Analysis' },
-              { num: 3, title: 'Generate Content' }
+              { num: 1, title: "Setup Campaign" },
+              { num: 2, title: "AI Analysis & Enhancement" },
+              { num: 3, title: "Generate Content" },
             ].map((step, index) => {
-              const status = getStepStatus(step.num)
-              
+              const status = getStepStatus(step.num);
+
               return (
                 <div key={step.num} className="flex items-center flex-1">
                   <div className="flex flex-col items-center">
@@ -233,39 +294,52 @@ export default function CreateWorkflowPage() {
                       {getStepIcon(step.num, status)}
                     </div>
                     <div className="text-center">
-                      <div className={`text-sm font-medium ${
-                        status === 'active' 
-                          ? step.num === 2 ? 'text-blue-600' : 'text-purple-600'
-                          : status === 'completed' 
-                          ? 'text-green-600'
-                          : 'text-gray-500'
-                      }`}>
+                      <div
+                        className={`text-sm font-medium ${
+                          status === "active"
+                            ? step.num === 2
+                              ? "text-blue-600"
+                              : "text-purple-600"
+                            : status === "completed"
+                            ? "text-green-600"
+                            : "text-gray-500"
+                        }`}
+                      >
                         {step.title}
                       </div>
-                      {step.num === 2 && workflow.currentStep === 2 && workflow.isAnalyzing && (
-                        <div className="text-xs text-blue-600 mt-1">Processing...</div>
-                      )}
-                      {step.num === 2 && workflow.currentStep === 2 && workflow.analysisComplete && (
-                        <div className="text-xs text-green-600 mt-1">Complete!</div>
+                      {step.num === 2 && workflow.currentStep === 2 && (
+                        <div
+                          className={`text-xs mt-1 ${
+                            workflow.analysisComplete
+                              ? "text-green-600"
+                              : "text-blue-600"
+                          }`}
+                        >
+                          {workflow.analysisComplete
+                            ? "Complete!"
+                            : "Processing..."}
+                        </div>
                       )}
                     </div>
                   </div>
-                  
+
                   {index < 2 && (
-                    <div className={`flex-1 h-0.5 mx-4 ${
-                      step.num < workflow.currentStep 
-                        ? 'bg-green-500' 
-                        : workflow.currentStep === 2 && step.num === 1
-                        ? 'bg-blue-500'
-                        : 'bg-gray-200'
-                    }`} />
+                    <div
+                      className={`flex-1 h-0.5 mx-4 ${
+                        step.num < workflow.currentStep
+                          ? "bg-green-500"
+                          : workflow.currentStep === 2 && step.num === 1
+                          ? "bg-blue-500"
+                          : "bg-gray-200"
+                      }`}
+                    />
                   )}
                 </div>
-              )
+              );
             })}
           </div>
 
-          {/* Analysis Progress Bar */}
+          {/* Enhanced Analysis Progress Bar */}
           {workflow.currentStep === 2 && (
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
               <div className="flex items-center justify-between mb-4">
@@ -275,13 +349,19 @@ export default function CreateWorkflowPage() {
                   </div>
                   <div>
                     <h3 className="font-semibold text-blue-900">
-                      {workflow.analysisComplete ? 'Analysis Complete!' : 'Analyzing Your Product'}
+                      {workflow.analysisComplete
+                        ? "Analysis & Enhancement Complete!"
+                        : "AI-Powered Intelligence Analysis"}
                     </h3>
                     <p className="text-sm text-blue-700">
-                      {workflow.analysisComplete 
-                        ? 'Intelligence extracted and ready for content generation'
-                        : currentAnalysisStep || 'Processing salespage content...'
-                      }
+                      {workflow.analysisComplete
+                        ? `Intelligence extracted and enhanced${
+                            workflow.intelligenceEnhanced
+                              ? " with AI amplification"
+                              : ""
+                          }`
+                        : analysisStep ||
+                          "Analyzing salespage and enhancing intelligence..."}
                     </p>
                   </div>
                 </div>
@@ -289,23 +369,28 @@ export default function CreateWorkflowPage() {
                   <CheckCircle className="h-8 w-8 text-green-600" />
                 )}
               </div>
-              
+
               <div className="mb-4">
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-sm font-medium text-blue-900">
-                    {workflow.analysisComplete ? 'Complete' : 'Progress'}
+                    {workflow.analysisComplete ? "Complete" : "Progress"}
                   </span>
                   <span className="text-sm text-blue-700">
-                    {workflow.analysisComplete ? '100' : Math.round(analysisProgress)}%
+                    {workflow.analysisComplete
+                      ? "100"
+                      : Math.round(analysisProgress)}
+                    %
                   </span>
                 </div>
                 <div className="w-full bg-blue-200 rounded-full h-3">
-                  <div 
+                  <div
                     className={`h-3 rounded-full transition-all duration-500 ${
-                      workflow.analysisComplete ? 'bg-green-500' : 'bg-blue-600'
+                      workflow.analysisComplete ? "bg-green-500" : "bg-blue-600"
                     }`}
-                    style={{ 
-                      width: `${workflow.analysisComplete ? 100 : analysisProgress}%` 
+                    style={{
+                      width: `${
+                        workflow.analysisComplete ? 100 : analysisProgress
+                      }%`,
                     }}
                   />
                 </div>
@@ -313,7 +398,9 @@ export default function CreateWorkflowPage() {
 
               {workflow.campaignData.salespage_url && (
                 <div className="bg-white rounded-lg p-4 border border-blue-200">
-                  <h4 className="font-medium text-blue-900 mb-2">Analyzing:</h4>
+                  <h4 className="font-medium text-blue-900 mb-2">
+                    Processing:
+                  </h4>
                   <div className="space-y-2 text-sm">
                     <div className="flex items-center justify-between">
                       <span className="text-blue-700">Product:</span>
@@ -327,6 +414,14 @@ export default function CreateWorkflowPage() {
                         {workflow.campaignData.salespage_url}
                       </span>
                     </div>
+                    {workflow.confidenceScore > 0 && (
+                      <div className="flex items-center justify-between">
+                        <span className="text-blue-700">Confidence:</span>
+                        <span className="font-medium text-blue-900">
+                          {Math.round(workflow.confidenceScore * 100)}%
+                        </span>
+                      </div>
+                    )}
                   </div>
                 </div>
               )}
@@ -336,7 +431,11 @@ export default function CreateWorkflowPage() {
                   <div className="flex items-center text-green-700">
                     <CheckCircle className="h-5 w-5 mr-2" />
                     <span className="text-sm font-medium">
-                      Ready to generate content! Moving to Step 3...
+                      Intelligence analysis complete
+                      {workflow.intelligenceEnhanced
+                        ? " with AI enhancement"
+                        : ""}
+                      ! Moving to Step 3...
                     </span>
                   </div>
                 </div>
@@ -346,15 +445,30 @@ export default function CreateWorkflowPage() {
         </div>
 
         {/* Error Display */}
-        {error && (
+        {(error || workflowError) && (
           <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
-            <p className="text-red-700 text-sm">{error}</p>
-            <button 
-              onClick={() => setError(null)}
-              className="text-red-600 hover:text-red-800 text-sm font-medium mt-2"
-            >
-              Dismiss
-            </button>
+            <div className="flex items-start space-x-3">
+              <AlertCircle className="h-5 w-5 text-red-500 flex-shrink-0 mt-0.5" />
+              <div className="flex-1">
+                <p className="text-red-700 text-sm">{error || workflowError}</p>
+                {workflow.currentStep === 2 && (
+                  <button
+                    onClick={handleRetryAnalysis}
+                    className="mt-2 text-red-600 hover:text-red-800 text-sm font-medium flex items-center"
+                    disabled={isAnalyzing}
+                  >
+                    <RefreshCw className="h-3 w-3 mr-1" />
+                    Retry Analysis
+                  </button>
+                )}
+              </div>
+              <button
+                onClick={() => setError(null)}
+                className="text-red-600 hover:text-red-800 text-sm"
+              >
+                Dismiss
+              </button>
+            </div>
           </div>
         )}
 
@@ -371,27 +485,32 @@ export default function CreateWorkflowPage() {
 
           {workflow.currentStep === 2 && (
             <div className="p-8 text-center">
-              {workflow.isAnalyzing ? (
+              {workflow.isAnalyzing || isAnalyzing ? (
                 <div className="space-y-6">
                   <div className="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center mx-auto">
                     <Loader2 className="h-10 w-10 text-blue-600 animate-spin" />
                   </div>
                   <div>
                     <h3 className="text-xl font-semibold text-gray-900 mb-2">
-                      AI is analyzing your product...
+                      AI is analyzing and enhancing your intelligence...
                     </h3>
                     <p className="text-gray-600 max-w-md mx-auto">
-                      We are extracting insights from your salespage to create targeted content. 
-                      This usually takes 30-60 seconds.
+                      We are extracting insights from your salespage and
+                      automatically enhancing them with AI-powered competitive
+                      intelligence. This usually takes 60-90 seconds.
                     </p>
                   </div>
                   <div className="bg-blue-50 rounded-lg p-4 max-w-md mx-auto">
-                    <h4 className="font-medium text-blue-900 mb-2">What we are doing:</h4>
+                    <h4 className="font-medium text-blue-900 mb-2">
+                      Enhanced Workflow:
+                    </h4>
                     <ul className="text-sm text-blue-700 space-y-1">
                       <li>• Analyzing product features and benefits</li>
                       <li>• Identifying target audience signals</li>
                       <li>• Extracting key selling points</li>
                       <li>• Finding competitive advantages</li>
+                      <li>• Enhancing with AI-powered insights</li>
+                      <li>• Adding scientific backing and credibility</li>
                     </ul>
                   </div>
                 </div>
@@ -402,20 +521,29 @@ export default function CreateWorkflowPage() {
                   </div>
                   <div>
                     <h3 className="text-xl font-semibold text-gray-900 mb-2">
-                      Analysis Complete!
+                      Intelligence Analysis & Enhancement Complete!
                     </h3>
                     <p className="text-gray-600 max-w-md mx-auto">
-                      Your product intelligence has been extracted and enhanced. 
-                      Ready to generate high-converting content.
+                      Your product intelligence has been extracted and enhanced
+                      with AI amplification. Ready to generate high-converting
+                      content.
                     </p>
                   </div>
                   <div className="bg-green-50 rounded-lg p-4 max-w-md mx-auto">
-                    <h4 className="font-medium text-green-900 mb-2">Intelligence Extracted:</h4>
+                    <h4 className="font-medium text-green-900 mb-2">
+                      Intelligence Enhanced:
+                    </h4>
                     <ul className="text-sm text-green-700 space-y-1">
                       <li>✅ Product positioning and benefits</li>
                       <li>✅ Target audience insights</li>
                       <li>✅ Competitive differentiation</li>
                       <li>✅ Key messaging frameworks</li>
+                      {workflow.intelligenceEnhanced && (
+                        <>
+                          <li>✅ AI-powered scientific backing</li>
+                          <li>✅ Enhanced credibility markers</li>
+                        </>
+                      )}
                     </ul>
                   </div>
                 </div>
@@ -429,9 +557,16 @@ export default function CreateWorkflowPage() {
                       Analysis Failed
                     </h3>
                     <p className="text-gray-600 max-w-md mx-auto">
-                      We couldn not analyze your salespage. Please check the URL and try again.
+                      We could not analyze your salespage. Please check the URL
+                      and try again.
                     </p>
                   </div>
+                  <button
+                    onClick={handleRetryAnalysis}
+                    className="px-6 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors"
+                  >
+                    Retry Analysis
+                  </button>
                 </div>
               )}
             </div>
@@ -441,38 +576,52 @@ export default function CreateWorkflowPage() {
             <Step2ContentGeneration
               campaignId={workflow.campaignData.id}
               campaignTitle={workflow.campaignData.title}
-              sourcesAnalyzed={1} // We analyzed the salespage
+              sourcesAnalyzed={1}
               onContentGenerated={handleContentGenerated}
               analysisComplete={workflow.analysisComplete}
+              intelligenceEnhanced={workflow.intelligenceEnhanced}
+              getEnhancedIntelligence={getEnhancedIntelligenceForContent}
             />
           )}
         </div>
 
-        {/* Workflow Info */}
+        {/* Enhanced Workflow Info */}
         <div className="mt-6 bg-gradient-to-r from-blue-50 to-purple-50 border border-blue-200 rounded-lg p-6">
-          <h3 className="font-medium text-blue-900 mb-2">🚀 Auto-Analysis Workflow</h3>
+          <h3 className="font-medium text-blue-900 mb-2">
+            🚀 Enhanced Auto-Analysis Workflow
+          </h3>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
             <div>
               <div className="font-medium text-blue-800">Step 1: Setup</div>
-              <div className="text-blue-700">Campaign details + product info</div>
+              <div className="text-blue-700">
+                Campaign details + product info
+              </div>
             </div>
             <div>
-              <div className="font-medium text-blue-800">Step 2: AI Analysis</div>
-              <div className="text-blue-700">Automatic salespage intelligence extraction</div>
+              <div className="font-medium text-blue-800">
+                Step 2: AI Analysis & Enhancement
+              </div>
+              <div className="text-blue-700">
+                Automatic intelligence extraction + AI amplification
+              </div>
             </div>
             <div>
               <div className="font-medium text-blue-800">Step 3: Generate</div>
-              <div className="text-blue-700">Create content using extracted insights</div>
+              <div className="text-blue-700">
+                Create content using enhanced insights
+              </div>
             </div>
           </div>
           <div className="mt-4 p-3 bg-white rounded-lg border border-blue-200">
             <p className="text-sm text-blue-600">
-              <strong>New:</strong> No manual source adding required! We automatically analyze your salespage 
-              and extract intelligence and AI Enhance the intelligence to create new and unique targeted marketing content.
+              <strong>NEW:</strong> Complete integration! We automatically
+              analyze your salespage, store the intelligence in the database,
+              enhance it with AI amplification, and make it available for
+              powerful content generation.
             </p>
           </div>
         </div>
       </div>
     </div>
-  )
+  );
 }
