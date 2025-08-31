@@ -38,12 +38,12 @@ interface EnhancedIntelligence {
     statistics: any;
 }
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://campaignforge-backend-production.up.railway.app';
+// const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://campaignforge-backend-production.up.railway.app';
 
 class IntelligenceWorkflowService {
     private apiBase: string;
 
-    constructor(apiBase: string = '${API_BASE_URL}/api/intelligence') {
+    constructor(apiBase: string = '/api/intelligence') {
         this.apiBase = apiBase;
     }
 
@@ -210,9 +210,9 @@ class IntelligenceWorkflowService {
      */
     async debugAvailableEndpoints(): Promise<any> {
         const endpoints = [
-            `${this.apiBase}/analysis/campaigns/{id}/analyze-and-store`,
+            `${this.apiBase}/analysis/campaigns/{campaignId}/analyze-and-store`,
             `${this.apiBase}/analysis/url`,
-            `${this.apiBase}/campaigns/{id}/workflow-status`,
+            `${this.apiBase}/campaigns/{campaignId}/workflow-status`,
             `${this.apiBase}/analysis/status`,
             `${this.apiBase}/analysis/health`
         ];
@@ -222,7 +222,7 @@ class IntelligenceWorkflowService {
         const results = [];
         for (const endpoint of endpoints) {
             try {
-                const testUrl = endpoint.replace('{id}', 'test');
+                const testUrl = endpoint.replace('{campaignid}', 'test');
                 const response = await fetch(testUrl, {
                     method: 'GET',
                     headers: {
