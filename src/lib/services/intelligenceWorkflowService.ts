@@ -38,10 +38,12 @@ interface EnhancedIntelligence {
     statistics: any;
 }
 
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://campaignforge-backend-production.up.railway.app';
+
 class IntelligenceWorkflowService {
     private apiBase: string;
 
-    constructor(apiBase: string = '/api/intelligence') {
+    constructor(apiBase: string = '${API_BASE_URL}/api/intelligence') {
         this.apiBase = apiBase;
     }
 

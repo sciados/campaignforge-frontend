@@ -30,7 +30,9 @@ export const useUserType = (): UseUserTypeReturn => {
     const isRefreshing = useRef(false);
 
     // Get backend URL
-    const API_BASE_URL = "https://campaign-backend-production-e2db.up.railway.app";
+    const API_BASE_URL =
+        process.env.NEXT_PUBLIC_API_URL ||
+        "https://campaign-backend-production-e2db.up.railway.app";
 
     // Get auth token
     const getAuthToken = () => {
