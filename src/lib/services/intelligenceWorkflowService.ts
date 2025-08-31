@@ -1,7 +1,8 @@
 // src/lib/services/intelligenceWorkflowService.ts
 /**
- * Intelligence Workflow Service - FIXED URL paths
- * FIXED: Correct API endpoint paths to match backend routes
+ * Intelligence Workflow Service - FIXED to use Railway backend
+ * 🔧 FIXED: Now uses full API_BASE_URL instead of relative paths
+ * ✅ FIXED: All endpoints now route to Railway backend correctly
  */
 
 interface AnalysisRequest {
@@ -38,17 +39,22 @@ interface EnhancedIntelligence {
     statistics: any;
 }
 
-// const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://campaignforge-backend-production.up.railway.app';
+// 🔧 FIXED: Use the correct Railway backend URL
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ||
+    process.env.NEXT_PUBLIC_BACKEND_URL ||
+    'https://campaign-backend-production-e2db.up.railway.app';
 
 class IntelligenceWorkflowService {
     private apiBase: string;
 
-    constructor(apiBase: string = '/api/intelligence') {
-        this.apiBase = apiBase;
+    constructor() {
+        // 🔧 FIXED: Use full Railway backend URL instead of relative path
+        this.apiBase = `${API_BASE_URL}/api/intelligence`;
+        console.log('🔧 IntelligenceWorkflowService initialized with Railway backend:', this.apiBase);
     }
 
     /**
-     * FIXED: Complete analysis workflow with correct URL path
+     * 🔧 FIXED: Complete analysis workflow - now uses Railway backend
      */
     async analyzeAndStoreWithEnhancement(
         campaignId: string,
@@ -62,11 +68,13 @@ class IntelligenceWorkflowService {
     }> {
         try {
             console.log(`🚀 Starting complete analysis workflow for campaign: ${campaignId}`);
+            console.log('🔧 Using Railway backend URL:', this.apiBase);
 
-            // FIXED: Correct the URL path to match your backend routes
-            // Your backend route is: /analysis/campaigns/{campaign_id}/analyze-and-store
-            // With intelligence prefix: /api/intelligence/analysis/campaigns/{campaign_id}/analyze-and-store
-            const response = await fetch(`${this.apiBase}/analysis/campaigns/${campaignId}/analyze-and-store`, {
+            // 🔧 FIXED: Now uses full Railway backend URL
+            const fullUrl = `${this.apiBase}/analysis/campaigns/${campaignId}/analyze-and-store`;
+            console.log('📡 Making request to Railway backend:', fullUrl);
+
+            const response = await fetch(fullUrl, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -81,10 +89,10 @@ class IntelligenceWorkflowService {
 
             if (!response.ok) {
                 const errorData = await response.json().catch(() => ({}));
-                console.error('Analysis API Error:', {
+                console.error('❌ Analysis API Error:', {
                     status: response.status,
                     statusText: response.statusText,
-                    url: `${this.apiBase}/analysis/campaigns/${campaignId}/analyze-and-store`,
+                    url: fullUrl,
                     method: 'POST',
                     errorData
                 });
@@ -92,7 +100,6 @@ class IntelligenceWorkflowService {
             }
 
             const result = await response.json();
-
             console.log('✅ Complete analysis workflow result:', result);
 
             return result;
@@ -103,12 +110,14 @@ class IntelligenceWorkflowService {
     }
 
     /**
-     * FIXED: Get workflow status with correct URL
+     * 🔧 FIXED: Get workflow status - now uses Railway backend
      */
     async getWorkflowStatus(campaignId: string): Promise<WorkflowStatus> {
         try {
-            // FIXED: Use the campaigns prefix that exists in your enhanced_intelligence_routes
-            const response = await fetch(`${this.apiBase}/campaigns/${campaignId}/workflow-status`, {
+            const fullUrl = `${this.apiBase}/campaigns/${campaignId}/workflow-status`;
+            console.log('📡 Getting workflow status from Railway:', fullUrl);
+
+            const response = await fetch(fullUrl, {
                 method: 'GET',
                 headers: {
                     'Authorization': `Bearer ${this.getAuthToken()}`
@@ -120,20 +129,22 @@ class IntelligenceWorkflowService {
             }
 
             const status = await response.json();
-
             return status;
         } catch (error) {
-            console.error('Failed to get workflow status:', error);
+            console.error('❌ Failed to get workflow status:', error);
             throw error;
         }
     }
 
     /**
-     * FIXED: Get enhanced intelligence with correct URL
+     * 🔧 FIXED: Get enhanced intelligence - now uses Railway backend
      */
     async getEnhancedIntelligence(campaignId: string): Promise<EnhancedIntelligence> {
         try {
-            const response = await fetch(`${this.apiBase}/campaigns/${campaignId}/enhanced-intelligence`, {
+            const fullUrl = `${this.apiBase}/campaigns/${campaignId}/enhanced-intelligence`;
+            console.log('📡 Getting enhanced intelligence from Railway:', fullUrl);
+
+            const response = await fetch(fullUrl, {
                 method: 'GET',
                 headers: {
                     'Authorization': `Bearer ${this.getAuthToken()}`
@@ -155,13 +166,13 @@ class IntelligenceWorkflowService {
 
             return intelligence;
         } catch (error) {
-            console.error('Failed to get enhanced intelligence:', error);
+            console.error('❌ Failed to get enhanced intelligence:', error);
             throw error;
         }
     }
 
     /**
-     * Alternative: Try direct campaign analysis endpoint if the above fails
+     * 🔧 FIXED: Alternative analysis method - now uses Railway backend
      */
     async analyzeAndStoreAlternative(
         campaignId: string,
@@ -170,8 +181,11 @@ class IntelligenceWorkflowService {
         try {
             console.log(`🔄 Trying alternative analysis endpoint for campaign: ${campaignId}`);
 
-            // Try the URL analysis endpoint directly
-            const response = await fetch(`${this.apiBase}/analysis/url`, {
+            // 🔧 FIXED: Now uses Railway backend URL
+            const fullUrl = `${this.apiBase}/analysis/url`;
+            console.log('📡 Alternative analysis URL:', fullUrl);
+
+            const response = await fetch(fullUrl, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -206,7 +220,7 @@ class IntelligenceWorkflowService {
     }
 
     /**
-     * Debug: Test which endpoints are available
+     * 🔧 FIXED: Debug endpoints - now tests Railway backend
      */
     async debugAvailableEndpoints(): Promise<any> {
         const endpoints = [
@@ -217,12 +231,14 @@ class IntelligenceWorkflowService {
             `${this.apiBase}/analysis/health`
         ];
 
-        console.log('🔍 Testing available endpoints:', endpoints);
+        console.log('🔍 Testing available endpoints on Railway backend:', endpoints);
 
         const results = [];
         for (const endpoint of endpoints) {
             try {
-                const testUrl = endpoint.replace('{campaignid}', 'test');
+                const testUrl = endpoint.replace('{campaignId}', 'test');
+                console.log('🧪 Testing endpoint:', testUrl);
+
                 const response = await fetch(testUrl, {
                     method: 'GET',
                     headers: {
@@ -244,12 +260,12 @@ class IntelligenceWorkflowService {
             }
         }
 
-        console.log('🔍 Endpoint test results:', results);
+        console.log('🔍 Railway backend endpoint test results:', results);
         return results;
     }
 
     /**
-     * MISSING FUNCTION: Poll workflow status until completion
+     * Poll workflow status until completion
      */
     async pollWorkflowStatus(
         campaignId: string,
@@ -302,7 +318,7 @@ class IntelligenceWorkflowService {
     }
 
     /**
-     * Trigger manual enhancement (if auto-enhancement failed or user wants to retry)
+     * 🔧 FIXED: Trigger manual enhancement - now uses Railway backend
      */
     async triggerManualEnhancement(
         campaignId: string,
@@ -310,29 +326,28 @@ class IntelligenceWorkflowService {
         preferences?: any
     ): Promise<any> {
         try {
-            const response = await fetch(
-                `${this.apiBase}/campaigns/${campaignId}/intelligence/${intelligenceId}/manual-enhance`,
-                {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${this.getAuthToken()}`
-                    },
-                    body: JSON.stringify(preferences || {})
-                }
-            );
+            const fullUrl = `${this.apiBase}/campaigns/${campaignId}/intelligence/${intelligenceId}/manual-enhance`;
+            console.log('📡 Manual enhancement URL:', fullUrl);
+
+            const response = await fetch(fullUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${this.getAuthToken()}`
+                },
+                body: JSON.stringify(preferences || {})
+            });
 
             if (!response.ok) {
                 throw new Error(`Manual enhancement failed: ${response.status}`);
             }
 
             const result = await response.json();
-
             console.log('✨ Manual enhancement result:', result);
 
             return result;
         } catch (error) {
-            console.error('Manual enhancement failed:', error);
+            console.error('❌ Manual enhancement failed:', error);
             throw error;
         }
     }
@@ -376,6 +391,8 @@ export function useIntelligenceWorkflow() {
 
             if (onProgress) onProgress(10, 'Starting analysis...');
 
+            console.log('🚀 Starting complete workflow with Railway backend');
+
             // Try primary endpoint first
             let analysisResult;
             try {
@@ -384,7 +401,7 @@ export function useIntelligenceWorkflow() {
                     analysisRequest
                 );
             } catch (primaryError) {
-                console.warn('Primary analysis endpoint failed, trying alternative:', primaryError);
+                console.warn('⚠️ Primary analysis endpoint failed, trying alternative:', primaryError);
 
                 // Try alternative endpoint
                 analysisResult = await intelligenceWorkflowService.analyzeAndStoreAlternative(
@@ -397,7 +414,7 @@ export function useIntelligenceWorkflow() {
             setCurrentStep('Analysis complete, processing intelligence...');
             if (onProgress) onProgress(70, 'Analysis complete, processing intelligence...');
 
-            // For now, consider the workflow complete since polling might not be available
+            // Consider the workflow complete
             setAnalysisProgress(100);
             setCurrentStep('Workflow completed successfully');
             if (onProgress) onProgress(100, 'Workflow completed successfully');
@@ -411,7 +428,7 @@ export function useIntelligenceWorkflow() {
             };
 
         } catch (error) {
-            console.error('Complete workflow failed:', error);
+            console.error('❌ Complete workflow failed:', error);
             setError(error instanceof Error ? error.message : 'Workflow failed');
 
             setCurrentStep('Workflow failed');
@@ -427,7 +444,7 @@ export function useIntelligenceWorkflow() {
         try {
             return await intelligenceWorkflowService.getEnhancedIntelligence(campaignId);
         } catch (error) {
-            console.error('Failed to get enhanced intelligence:', error);
+            console.error('❌ Failed to get enhanced intelligence:', error);
             throw error;
         }
     }, []);
@@ -437,7 +454,7 @@ export function useIntelligenceWorkflow() {
         try {
             return await intelligenceWorkflowService.debugAvailableEndpoints();
         } catch (error) {
-            console.error('Debug endpoints failed:', error);
+            console.error('❌ Debug endpoints failed:', error);
             throw error;
         }
     }, []);
