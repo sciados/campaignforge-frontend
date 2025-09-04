@@ -142,7 +142,7 @@ class IntelligenceWorkflowService {
     async getEnhancedIntelligence(campaignId: string): Promise<EnhancedIntelligence> {
         try {
             // FIXED: Add /analysis to the path
-            const fullUrl = `${this.apiBase}/analysis/campaigns/${campaignId}/enhanced-intelligence`;
+            const fullUrl = `${this.apiBase}/campaigns/${campaignId}/enhanced-intelligence`;
             console.log('📡 Getting enhanced intelligence from Railway:', fullUrl);
 
             const response = await fetch(fullUrl, {

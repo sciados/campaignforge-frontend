@@ -1246,7 +1246,7 @@ class ApiClient {
   // ============================================================================
 
   async getEnhancedIntelligence(campaignId: string): Promise<any> {
-    const response = await fetch(`${this.baseURL}/api/intelligence/analysis/campaigns/${campaignId}/enhanced-intelligence`, {
+    const response = await fetch(`${this.baseURL}/api/intelligence/campaigns/${campaignId}/enhanced-intelligence`, {
       headers: this.getHeaders()
     })
     return this.handleResponse(response)
