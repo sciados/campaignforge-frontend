@@ -1245,6 +1245,13 @@ class ApiClient {
   // ðŸ”§ NEW: ENHANCED SOCIAL MEDIA PLATFORM STATS METHODS
   // ============================================================================
 
+  async getEnhancedIntelligence(campaignId: string): Promise<any> {
+    const response = await fetch(`${this.baseURL}/api/intelligence/analysis/campaigns/${campaignId}/enhanced-intelligence`, {
+      headers: this.getHeaders()
+    })
+    return this.handleResponse(response)
+  }
+
   // Add to ApiClient class
   async getRecommendedPlatforms(): Promise<{ recommended_platforms: string[] }> {
     const response = await fetch(`${this.baseURL}/api/user-social/recommended-platforms`, {
@@ -2418,6 +2425,7 @@ function useApi() {
     // ðŸ”§ Workflow operations (updated for 2-step process)
     getWorkflowState: apiClient.getWorkflowState.bind(apiClient),
     saveWorkflowProgress: apiClient.saveWorkflowProgress.bind(apiClient),
+    getEnhancedIntelligence: apiClient.getEnhancedIntelligence.bind(apiClient),
 
     // ðŸ”§ Intelligence operations (updated)
     analyzeURL: apiClient.analyzeURL.bind(apiClient),
