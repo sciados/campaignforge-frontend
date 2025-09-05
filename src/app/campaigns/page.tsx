@@ -427,6 +427,57 @@ export default function CampaignsPage() {
     [api, handleApiError]
   );
 
+  const debugStoragePerformance = useCallback(async () => {
+    try {
+      console.log("Starting storage debug test...");
+
+      const response = await fetch(
+        "https://campaign-backend-production-e2db.up.railway.app/api/intelligence/debug-storage",
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${
+              getStorageItem("access_token") || getStorageItem("authToken")
+            }`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            url: "https://debug-test.com",
+          }),
+        }
+      );
+
+      const result = await response.json();
+      console.log("Storage debug result:", result);
+
+      // Show result in alert or you can create a modal
+      if (result.status === "success") {
+        alert(
+          `Storage Debug Complete!\n` +
+            `Create: ${result.create_time}s\n` +
+            `Minimal Update: ${result.minimal_update_time}s\n` +
+            `Complex Update: ${result.complex_update_time}s\n` +
+            `Total: ${result.total_time}s\n\n` +
+            `Check Railway logs for detailed timing.`
+        );
+      } else {
+        alert(`Storage Debug Failed: ${result.error}`);
+      }
+    } catch (error: unknown) {
+      console.error("Debug storage failed:", error);
+
+      // Type-safe error handling
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : typeof error === "string"
+          ? error
+          : "Unknown error occurred";
+
+      alert(`Debug failed: ${errorMessage}\nCheck console for details.`);
+    }
+  }, [getStorageItem]);
+
   const clearFilters = useCallback(() => {
     setSearchQuery("");
     setStatusFilter("all");
@@ -639,6 +690,23 @@ export default function CampaignsPage() {
               </button>
             ))}
 
+            <div className="pt-4 border-t border-gray-200 mt-4">
+              <button
+                onClick={debugStoragePerformance}
+                className="w-full flex items-center space-x-3 px-3 py-2 text-left rounded-lg transition-colors text-orange-600 hover:bg-orange-50"
+              >
+                <Database className="w-5 h-5" />
+                <span className="font-medium">Debug Storage</span>
+              </button>
+
+              <button
+                onClick={() => router.push("/admin")}
+                className="w-full flex items-center space-x-3 px-3 py-2 text-left rounded-lg transition-colors text-gray-600 hover:bg-red-50 hover:text-red-700"
+              >
+                <Shield className="w-5 h-5" />
+                <span className="font-medium">Admin Panel</span>
+              </button>
+            </div>
             <div className="pt-4 border-t border-gray-200 mt-4">
               <button
                 onClick={() => router.push("/admin")}
