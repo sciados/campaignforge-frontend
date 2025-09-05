@@ -432,7 +432,7 @@ export default function CampaignsPage() {
       console.log("Starting storage debug test...");
 
       const response = await fetch(
-        "https://campaign-backend-production-e2db.up.railway.app/api/intelligence/debug-storage",
+        "https://campaign-backend-production-e2db.up.railway.app/api/intelligence/analysis/debug-storage",
         {
           method: "POST",
           headers: {
