@@ -1,21 +1,52 @@
+// File: src/app/login/page.tsx
+// Login page with type-safe dashboard routing and user authentication
 "use client";
-
-// Force dynamic rendering
-export const dynamic = "force-dynamic";
 
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Eye, EyeOff, ArrowRight } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+
+export const dynamic = "force-dynamic";
+
+const API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_URL ||
+  "https://campaign-backend-production-e2db.up.railway.app";
+
+interface LoginFormData {
+  email: string;
+  password: string;
+}
+
+interface User {
+  role: string;
+  user_type?: string;
+  [key: string]: any;
+}
+
+interface LoginResponse {
+  access_token: string;
+  user: User;
+}
+
+interface RouteResponse {
+  route?: string;
+}
+
+type UserType = "affiliate_marketer" | "content_creator" | "business_owner";
 
 export default function LoginPage() {
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<LoginFormData>({
     email: "",
     password: "",
   });
-  const [showPassword, setShowPassword] = useState(false);
-  const [error, setError] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState<boolean>(false);
+  const [error, setError] = useState<string>("");
+  const [isLoading, setIsLoading] = useState<boolean>(false);
 
   const router = useRouter();
 
@@ -25,11 +56,6 @@ export default function LoginPage() {
     setIsLoading(true);
 
     try {
-      const API_BASE_URL =
-        process.env.NEXT_PUBLIC_API_URL ||
-        "https://campaign-backend-production-e2db.up.railway.app";
-
-      // Step 1: Login to get access token
       const response = await fetch(`${API_BASE_URL}/api/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -37,14 +63,12 @@ export default function LoginPage() {
       });
 
       if (response.ok) {
-        const data = await response.json();
+        const data: LoginResponse = await response.json();
         if (typeof window !== "undefined") {
           localStorage.setItem("authToken", data.access_token);
         }
 
         try {
-          // Step 2: Get the appropriate dashboard route using the new endpoint
-          console.log("🎯 Getting dashboard route for user...");
           const routeResponse = await fetch(
             `${API_BASE_URL}/api/auth/dashboard-route`,
             {
@@ -53,69 +77,56 @@ export default function LoginPage() {
           );
 
           if (routeResponse.ok) {
-            const routeData = await routeResponse.json();
-            console.log("✅ Dashboard route determined:", routeData);
-
-            // Redirect to the appropriate dashboard
+            const routeData: RouteResponse = await routeResponse.json();
             if (routeData.route) {
-              console.log(`🚀 Redirecting to: ${routeData.route}`);
               router.push(routeData.route);
             } else {
-              console.log(
-                "📋 No specific route, redirecting to user selection"
-              );
               router.push("/user-selection");
             }
           } else {
-            console.warn(
-              "⚠️ Dashboard route fetch failed, using fallback logic"
-            );
-
-            // Fallback: Use user data from login response
+            // Fallback routing logic with type safety
             const user = data.user;
             if (user.role === "admin") {
-              console.log(
-                "👑 Admin user (fallback), redirecting to admin dashboard"
-              );
               router.push("/admin");
-            } else if (user.user_type === "affiliate_marketer") {
-              console.log(
-                "💰 Affiliate marketer (fallback), redirecting to affiliate dashboard"
-              );
-              router.push("/dashboard/affiliate");
-            } else if (user.user_type === "content_creator") {
-              console.log(
-                "🎬 Content creator (fallback), redirecting to creator dashboard"
-              );
-              router.push("/dashboard/creator");
-            } else if (user.user_type === "business_owner") {
-              console.log(
-                "🏢 Business owner (fallback), redirecting to business dashboard"
-              );
-              router.push("/dashboard/business");
+            } else if (user.user_type) {
+              const dashboardRoutes: Record<UserType, string> = {
+                affiliate_marketer: "/dashboard/affiliate",
+                content_creator: "/dashboard/creator",
+                business_owner: "/dashboard/business",
+              };
+
+              // Type-safe access to dashboard routes
+              const userType = user.user_type as UserType;
+              if (userType in dashboardRoutes) {
+                router.push(dashboardRoutes[userType]);
+              } else {
+                router.push("/user-selection");
+              }
             } else {
-              console.log(
-                "❓ User without type (fallback), redirecting to user selection"
-              );
               router.push("/user-selection");
             }
           }
         } catch (routeError) {
-          console.error("❌ Dashboard route fetch error:", routeError);
+          console.error("Dashboard route fetch error:", routeError);
 
-          // Final fallback: Try to use user data from login response
+          // Final fallback with type safety
           const user = data.user;
           if (user && user.role === "admin") {
             router.push("/admin");
           } else if (user && user.user_type) {
-            const dashboardRoutes: { [key: string]: string } = {
+            const dashboardRoutes: Record<UserType, string> = {
               affiliate_marketer: "/dashboard/affiliate",
               content_creator: "/dashboard/creator",
               business_owner: "/dashboard/business",
             };
-            router.push(dashboardRoutes[user.user_type] || "/user-selection");
+
+            const userType = user.user_type as UserType;
+            if (userType in dashboardRoutes) {
+              router.push(dashboardRoutes[userType]);
+            } else {
+              router.push("/user-selection");
+            }
           } else {
-            // Ultimate fallback
             router.push("/dashboard");
           }
         }
@@ -174,48 +185,37 @@ export default function LoginPage() {
           </div>
 
           {error && (
-            <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl">
-              <p className="text-red-600 text-sm">{error}</p>
-            </div>
+            <Alert variant="destructive" className="mb-6">
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
           )}
 
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>
-              <label
-                htmlFor="email"
-                className="block text-sm font-medium text-black mb-2"
-              >
-                Email
-              </label>
-              <input
+              <Label htmlFor="email">Email</Label>
+              <Input
                 id="email"
                 name="email"
                 type="email"
                 required
                 value={formData.email}
                 onChange={handleChange}
-                className="w-full px-4 py-3 bg-gray-100 border-none rounded-lg text-sm focus:outline-none focus:bg-white focus:ring-2 focus:ring-blue-500/20 transition-all"
                 placeholder="Enter your email"
               />
             </div>
 
             <div>
-              <label
-                htmlFor="password"
-                className="block text-sm font-medium text-black mb-2"
-              >
-                Password
-              </label>
+              <Label htmlFor="password">Password</Label>
               <div className="relative">
-                <input
+                <Input
                   id="password"
                   name="password"
                   type={showPassword ? "text" : "password"}
                   required
                   value={formData.password}
                   onChange={handleChange}
-                  className="w-full px-4 py-3 bg-gray-100 border-none rounded-lg text-sm focus:outline-none focus:bg-white focus:ring-2 focus:ring-blue-500/20 transition-all pr-12"
                   placeholder="Enter your password"
+                  className="pr-12"
                 />
                 <button
                   type="button"
@@ -247,10 +247,11 @@ export default function LoginPage() {
               </a>
             </div>
 
-            <button
+            <Button
               type="submit"
               disabled={isLoading}
-              className="w-full bg-black text-white py-3 px-4 rounded-lg font-medium hover:bg-gray-900 focus:ring-2 focus:ring-black/20 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+              className="w-full"
+              size="lg"
             >
               {isLoading ? (
                 <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
@@ -260,12 +261,12 @@ export default function LoginPage() {
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </>
               )}
-            </button>
+            </Button>
           </form>
 
           <div className="mt-8 text-center">
             <p className="text-gray-600">
-              Do not have an account?{" "}
+              Don not have an account?{" "}
               <Link
                 href="/register"
                 className="text-black font-medium hover:text-gray-700 transition-colors"

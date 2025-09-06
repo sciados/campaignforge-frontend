@@ -1,14 +1,22 @@
+// src/app/register/page.tsx
+
 "use client";
 
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Eye, EyeOff, ArrowRight, Check } from "lucide-react";
-import { useUserNavigation } from "@/lib/hooks/useUserNavigation";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
-// Force this page to never be statically rendered
 export const dynamic = "force-dynamic";
 export const runtime = "edge";
+
+const API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_URL ||
+  "https://campaign-backend-production-e2db.up.railway.app";
 
 export default function RegisterPage() {
   const [mounted, setMounted] = useState(false);
@@ -27,9 +35,7 @@ export default function RegisterPage() {
   const [isLoading, setIsLoading] = useState(false);
 
   const router = useRouter();
-  const { navigateToDashboard } = useUserNavigation();
 
-  // Ensure component is mounted before accessing browser APIs
   useEffect(() => {
     setMounted(true);
   }, []);
@@ -46,7 +52,6 @@ export default function RegisterPage() {
     e.preventDefault();
     setError("");
 
-    // Validation
     if (formData.password !== formData.confirmPassword) {
       setError("Passwords do not match");
       return;
@@ -65,10 +70,6 @@ export default function RegisterPage() {
     setIsLoading(true);
 
     try {
-      const API_BASE_URL =
-        process.env.NEXT_PUBLIC_API_URL ||
-        "https://campaign-backend-production-e2db.up.railway.app";
-
       const userData = {
         email: formData.email,
         password: formData.password,
@@ -84,19 +85,13 @@ export default function RegisterPage() {
 
       if (response.ok) {
         const data = await response.json();
-        if (typeof window !== "undefined") {
-          localStorage.setItem("authToken", data.access_token);
-        }
-
-        // Always redirect new users to user selection for onboarding
+        localStorage.setItem("authToken", data.access_token);
         router.push("/user-selection");
       } else {
         const errorData = await response.json();
-        console.error("Registration error:", errorData);
         setError(errorData.detail || "Registration failed");
       }
     } catch (error) {
-      console.error("Network error:", error);
       setError("Network error - please try again");
     } finally {
       setIsLoading(false);
@@ -122,14 +117,13 @@ export default function RegisterPage() {
           <h1 className="text-4xl font-light text-black mb-6 leading-tight">
             Start creating with
             <br />
-            <span className="font-semibold">RodgersDigital.</span>
+            <span className="font-semibold">CampaignForge.</span>
           </h1>
           <p className="text-lg text-gray-600 leading-relaxed mb-8">
             Join thousands of marketers transforming content into complete
             campaigns with AI.
           </p>
 
-          {/* Benefits */}
           <div className="space-y-4">
             {[
               "AI-powered campaign intelligence",
@@ -167,47 +161,35 @@ export default function RegisterPage() {
           </div>
 
           {error && (
-            <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl">
-              <p className="text-red-600 text-sm">{error}</p>
-            </div>
+            <Alert variant="destructive" className="mb-6">
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
           )}
 
           <form onSubmit={handleSubmit} className="space-y-5">
             {/* Name Fields */}
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label
-                  htmlFor="firstName"
-                  className="block text-sm font-medium text-black mb-2"
-                >
-                  First name
-                </label>
-                <input
+                <Label htmlFor="firstName">First name</Label>
+                <Input
                   id="firstName"
                   name="firstName"
                   type="text"
                   required
                   value={formData.firstName}
                   onChange={handleChange}
-                  className="w-full px-4 py-3 bg-gray-100 border-none rounded-lg text-sm focus:outline-none focus:bg-white focus:ring-2 focus:ring-blue-500/20 transition-all"
                   placeholder="John"
                 />
               </div>
               <div>
-                <label
-                  htmlFor="lastName"
-                  className="block text-sm font-medium text-black mb-2"
-                >
-                  Last name
-                </label>
-                <input
+                <Label htmlFor="lastName">Last name</Label>
+                <Input
                   id="lastName"
                   name="lastName"
                   type="text"
                   required
                   value={formData.lastName}
                   onChange={handleChange}
-                  className="w-full px-4 py-3 bg-gray-100 border-none rounded-lg text-sm focus:outline-none focus:bg-white focus:ring-2 focus:ring-blue-500/20 transition-all"
                   placeholder="Doe"
                 />
               </div>
@@ -215,62 +197,45 @@ export default function RegisterPage() {
 
             {/* Email */}
             <div>
-              <label
-                htmlFor="email"
-                className="block text-sm font-medium text-black mb-2"
-              >
-                Email
-              </label>
-              <input
+              <Label htmlFor="email">Email</Label>
+              <Input
                 id="email"
                 name="email"
                 type="email"
                 required
                 value={formData.email}
                 onChange={handleChange}
-                className="w-full px-4 py-3 bg-gray-100 border-none rounded-lg text-sm focus:outline-none focus:bg-white focus:ring-2 focus:ring-blue-500/20 transition-all"
                 placeholder="john@company.com"
               />
             </div>
 
             {/* Company */}
             <div>
-              <label
-                htmlFor="company"
-                className="block text-sm font-medium text-black mb-2"
-              >
-                Company
-              </label>
-              <input
+              <Label htmlFor="company">Company</Label>
+              <Input
                 id="company"
                 name="company"
                 type="text"
                 required
                 value={formData.company}
                 onChange={handleChange}
-                className="w-full px-4 py-3 bg-gray-100 border-none rounded-lg text-sm focus:outline-none focus:bg-white focus:ring-2 focus:ring-blue-500/20 transition-all"
                 placeholder="Your company name"
               />
             </div>
 
             {/* Password */}
             <div>
-              <label
-                htmlFor="password"
-                className="block text-sm font-medium text-black mb-2"
-              >
-                Password
-              </label>
+              <Label htmlFor="password">Password</Label>
               <div className="relative">
-                <input
+                <Input
                   id="password"
                   name="password"
                   type={showPassword ? "text" : "password"}
                   required
                   value={formData.password}
                   onChange={handleChange}
-                  className="w-full px-4 py-3 bg-gray-100 border-none rounded-lg text-sm focus:outline-none focus:bg-white focus:ring-2 focus:ring-blue-500/20 transition-all pr-12"
                   placeholder="8+ characters"
+                  className="pr-12"
                 />
                 <button
                   type="button"
@@ -288,22 +253,17 @@ export default function RegisterPage() {
 
             {/* Confirm Password */}
             <div>
-              <label
-                htmlFor="confirmPassword"
-                className="block text-sm font-medium text-black mb-2"
-              >
-                Confirm password
-              </label>
+              <Label htmlFor="confirmPassword">Confirm password</Label>
               <div className="relative">
-                <input
+                <Input
                   id="confirmPassword"
                   name="confirmPassword"
                   type={showConfirmPassword ? "text" : "password"}
                   required
                   value={formData.confirmPassword}
                   onChange={handleChange}
-                  className="w-full px-4 py-3 bg-gray-100 border-none rounded-lg text-sm focus:outline-none focus:bg-white focus:ring-2 focus:ring-blue-500/20 transition-all pr-12"
                   placeholder="Confirm password"
+                  className="pr-12"
                 />
                 <button
                   type="button"
@@ -330,7 +290,7 @@ export default function RegisterPage() {
                 onChange={handleChange}
                 className="h-4 w-4 text-black focus:ring-black border-gray-300 rounded mt-1"
               />
-              <label
+              <Label
                 htmlFor="agreeToTerms"
                 className="text-sm text-gray-600 leading-relaxed"
               >
@@ -348,13 +308,14 @@ export default function RegisterPage() {
                 >
                   Privacy Policy
                 </a>
-              </label>
+              </Label>
             </div>
 
-            <button
+            <Button
               type="submit"
               disabled={isLoading}
-              className="w-full bg-black text-white py-3 px-4 rounded-lg font-medium hover:bg-gray-900 focus:ring-2 focus:ring-black/20 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+              className="w-full"
+              size="lg"
             >
               {isLoading ? (
                 <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
@@ -364,7 +325,7 @@ export default function RegisterPage() {
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </>
               )}
-            </button>
+            </Button>
           </form>
 
           <div className="mt-8 text-center">
