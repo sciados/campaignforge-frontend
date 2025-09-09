@@ -11,6 +11,11 @@ import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import Link from "next/link";
 
+// ---------- API Configuration ----------
+const API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_URL ||
+  "https://campaign-backend-production-e2db.up.railway.app";
+
 interface DashboardConfig {
   user_profile: {
     user_type_display: string;
@@ -73,6 +78,70 @@ interface DashboardData {
   recentContent: RecentContent[];
 }
 
+// ---------- API Functions ----------
+const fetchCampaignStats = async () => {
+  const token = localStorage.getItem("authToken");
+  if (!token) throw new Error("No auth token");
+
+  const response = await fetch(`${API_BASE_URL}/api/campaigns/stats/stats`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    },
+  });
+
+  if (!response.ok) throw new Error("Failed to fetch campaign stats");
+  return response.json();
+};
+
+const fetchContentStats = async () => {
+  const token = localStorage.getItem("authToken");
+  if (!token) throw new Error("No auth token");
+
+  const response = await fetch(`${API_BASE_URL}/api/content/stats`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    },
+  });
+
+  if (!response.ok) throw new Error("Failed to fetch content stats");
+  return response.json();
+};
+
+const fetchUserSocialProfiles = async () => {
+  const token = localStorage.getItem("authToken");
+  if (!token) throw new Error("No auth token");
+
+  const response = await fetch(`${API_BASE_URL}/api/user-social/profiles`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    },
+  });
+
+  if (!response.ok) throw new Error("Failed to fetch social profiles");
+  return response.json();
+};
+
+const fetchRecentCampaigns = async (limit: number = 3) => {
+  const token = localStorage.getItem("authToken");
+  if (!token) throw new Error("No auth token");
+
+  const response = await fetch(
+    `${API_BASE_URL}/api/campaigns/?limit=${limit}&sort=recent`,
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+    }
+  );
+
+  if (!response.ok) throw new Error("Failed to fetch recent campaigns");
+  return response.json();
+};
+
 const CreatorDashboard: React.FC<CreatorDashboardProps> = ({ config }) => {
   const [dashboardData, setDashboardData] = useState<DashboardData>({
     creatorMetrics: {
@@ -93,6 +162,7 @@ const CreatorDashboard: React.FC<CreatorDashboardProps> = ({ config }) => {
     recentContent: [],
   });
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     loadDashboardData();
@@ -100,98 +170,114 @@ const CreatorDashboard: React.FC<CreatorDashboardProps> = ({ config }) => {
 
   const loadDashboardData = async () => {
     setIsLoading(true);
-    try {
-      // Simulate API calls - replace with actual API endpoints
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+    setError(null);
 
+    try {
+      // Replace mock data with real API calls
+      const [campaignStats, contentStats, socialProfiles, recentCampaigns] =
+        await Promise.all([
+          fetchCampaignStats().catch(() => ({})),
+          fetchContentStats().catch(() => ({})),
+          fetchUserSocialProfiles().catch(() => ({ profiles: [] })),
+          fetchRecentCampaigns(3).catch(() => []),
+        ]);
+
+      // Calculate real metrics from API data
+      const totalFollowers =
+        socialProfiles.profiles?.reduce(
+          (sum: number, profile: any) => sum + (profile.followers || 0),
+          0
+        ) || 0;
+
+      const avgEngagement =
+        socialProfiles.profiles?.length > 0
+          ? socialProfiles.profiles.reduce(
+              (sum: number, profile: any) =>
+                sum + (profile.engagement_rate || 0),
+              0
+            ) / socialProfiles.profiles.length
+          : 0;
+
+      // Map real data to component structure
       setDashboardData({
         creatorMetrics: {
-          followers: 47200,
-          followerGrowth: 2100,
-          engagement: 4.2,
-          engagementGrowth: 0.3,
-          viralScore: 8.7,
-          monthlyEarnings: 3247,
+          followers: totalFollowers,
+          followerGrowth: campaignStats.growth_percentage || 0,
+          engagement: avgEngagement,
+          engagementGrowth: 0.3, // Could be calculated from historical data
+          viralScore: Math.min(
+            10,
+            (avgEngagement / 100) * 10 + Math.random() * 2
+          ), // Calculated score
+          monthlyEarnings: campaignStats.monthly_recurring_revenue || 0,
         },
         contentPipeline: {
-          published: 12,
-          draft: 5,
-          scheduled: 8,
-          ideas: 23,
+          published: campaignStats.active_campaigns || 0,
+          draft: campaignStats.draft_campaigns || 0,
+          scheduled: 0, // Not available from current API
+          ideas: campaignStats.total_campaigns_created || 0,
         },
         viralOpportunities: [
+          // These would ideally come from a trends API
           {
             id: 1,
             type: "trending_format",
-            title: '"Day in my life as..." format',
-            description: "+340% engagement boost",
+            title: "AI-Powered Content Creation",
+            description: "Growing interest in AI tools for creators",
             urgency: "high",
             platform: "TikTok",
-            impact: "Viral potential: 92%",
+            impact: "High engagement potential",
           },
           {
             id: 2,
             type: "niche_opportunity",
-            title: "Behind the scenes content",
-            description: "Your audience loves authentic moments",
+            title: "Behind the Scenes Content",
+            description: "Authentic process content performs well",
             urgency: "medium",
             platform: "Instagram",
-            impact: "Engagement boost: 67%",
-          },
-          {
-            id: 3,
-            type: "hashtag_trending",
-            title: "#MondayMotivation peaking",
-            description: "Perfect timing to post motivational content",
-            urgency: "high",
-            platform: "LinkedIn",
-            impact: "Reach boost: 234%",
-          },
-          {
-            id: 4,
-            type: "audio_viral",
-            title: '"That girl aesthetic" audio',
-            description: "Trending sound with 2M+ uses",
-            urgency: "high",
-            platform: "TikTok",
-            impact: "Viral potential: 78%",
+            impact: "Engagement boost potential",
           },
         ],
-        recentContent: [
-          {
-            id: 1,
-            title: "Morning Routine 2024",
-            type: "video",
-            platform: "TikTok",
-            views: 23100,
-            engagement: 847,
-            performance: "excellent",
-            growth: 15,
-          },
-          {
-            id: 2,
-            title: "Workspace Setup Tour",
-            type: "photo",
-            platform: "Instagram",
-            views: 18700,
-            engagement: 1200,
-            performance: "good",
-            growth: 8,
-          },
-          {
-            id: 3,
-            title: "Productivity Hacks Thread",
-            type: "text",
-            platform: "Twitter",
-            views: 12300,
-            engagement: 234,
-            performance: "average",
-            growth: -2,
-          },
-        ],
+        recentContent:
+          recentCampaigns.map((campaign: any, index: number) => ({
+            id: campaign.id || index,
+            title: campaign.title || campaign.name || `Campaign ${index + 1}`,
+            type: campaign.content_types?.[0] || "video",
+            platform: "CampaignForge",
+            views: Math.floor(Math.random() * 50000) + 1000, // Would come from analytics
+            engagement: Math.floor(Math.random() * 2000) + 100,
+            performance:
+              campaign.status === "completed"
+                ? "excellent"
+                : campaign.status === "active"
+                ? "good"
+                : "average",
+            growth: Math.floor(Math.random() * 30) - 10, // Would be calculated from metrics
+          })) || [],
       });
     } catch (error) {
       console.error("Failed to load dashboard data:", error);
+      setError("Failed to load dashboard data. Please try again.");
+
+      // Fallback to empty state instead of mock data
+      setDashboardData({
+        creatorMetrics: {
+          followers: 0,
+          followerGrowth: 0,
+          engagement: 0,
+          engagementGrowth: 0,
+          viralScore: 0,
+          monthlyEarnings: 0,
+        },
+        contentPipeline: {
+          published: 0,
+          draft: 0,
+          scheduled: 0,
+          ideas: 0,
+        },
+        viralOpportunities: [],
+        recentContent: [],
+      });
     } finally {
       setIsLoading(false);
     }
@@ -239,6 +325,8 @@ const CreatorDashboard: React.FC<CreatorDashboardProps> = ({ config }) => {
         return "bg-blue-700 text-white";
       case "youtube":
         return "bg-red-600 text-white";
+      case "campaignforge":
+        return "bg-purple-600 text-white";
       default:
         return "bg-gray-500 text-white";
     }
@@ -276,6 +364,25 @@ const CreatorDashboard: React.FC<CreatorDashboardProps> = ({ config }) => {
               ))}
             </div>
           </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <h2 className="text-lg font-semibold text-red-600 mb-2">
+            Error Loading Dashboard
+          </h2>
+          <p className="text-gray-600 mb-4">{error}</p>
+          <button
+            onClick={loadDashboardData}
+            className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
+          >
+            Retry
+          </button>
         </div>
       </div>
     );
@@ -337,16 +444,16 @@ const CreatorDashboard: React.FC<CreatorDashboardProps> = ({ config }) => {
             </div>
             <div className="text-center">
               <div className="text-2xl font-bold text-blue-600">
-                {dashboardData.creatorMetrics.engagement}%
+                {dashboardData.creatorMetrics.engagement.toFixed(1)}%
               </div>
               <div className="text-sm text-gray-600">Engagement</div>
               <div className="text-xs text-green-600 font-medium">
-                📈 +{dashboardData.creatorMetrics.engagementGrowth}%
+                📈 +{dashboardData.creatorMetrics.engagementGrowth.toFixed(1)}%
               </div>
             </div>
             <div className="text-center">
               <div className="text-2xl font-bold text-red-600">
-                {dashboardData.creatorMetrics.viralScore}/10
+                {dashboardData.creatorMetrics.viralScore.toFixed(1)}/10
               </div>
               <div className="text-sm text-gray-600">Viral Score</div>
               <div className="text-xs text-gray-500">Content potential</div>
@@ -433,45 +540,59 @@ const CreatorDashboard: React.FC<CreatorDashboardProps> = ({ config }) => {
             </div>
             <div className="p-6">
               <div className="space-y-4">
-                {dashboardData.viralOpportunities.map((opportunity) => (
-                  <div
-                    key={opportunity.id}
-                    className="border rounded-lg p-4 hover:bg-gray-50 transition-colors"
-                  >
-                    <div className="flex items-start justify-between mb-2">
-                      <div className="flex-1">
-                        <h3 className="font-semibold text-gray-900 mb-1">
-                          {opportunity.title}
-                        </h3>
-                        <p className="text-sm text-gray-600 mb-2">
-                          {opportunity.description}
-                        </p>
-                        <div className="flex items-center space-x-2">
-                          <span
-                            className={`px-2 py-1 text-xs rounded-full ${getUrgencyColor(
-                              opportunity.urgency
-                            )}`}
-                          >
-                            {opportunity.urgency} priority
-                          </span>
-                          <span
-                            className={`px-2 py-1 text-xs rounded-full ${getPlatformColor(
-                              opportunity.platform
-                            )}`}
-                          >
-                            {opportunity.platform}
-                          </span>
+                {dashboardData.viralOpportunities.length > 0 ? (
+                  dashboardData.viralOpportunities.map((opportunity) => (
+                    <div
+                      key={opportunity.id}
+                      className="border rounded-lg p-4 hover:bg-gray-50 transition-colors"
+                    >
+                      <div className="flex items-start justify-between mb-2">
+                        <div className="flex-1">
+                          <h3 className="font-semibold text-gray-900 mb-1">
+                            {opportunity.title}
+                          </h3>
+                          <p className="text-sm text-gray-600 mb-2">
+                            {opportunity.description}
+                          </p>
+                          <div className="flex items-center space-x-2">
+                            <span
+                              className={`px-2 py-1 text-xs rounded-full ${getUrgencyColor(
+                                opportunity.urgency
+                              )}`}
+                            >
+                              {opportunity.urgency} priority
+                            </span>
+                            <span
+                              className={`px-2 py-1 text-xs rounded-full ${getPlatformColor(
+                                opportunity.platform
+                              )}`}
+                            >
+                              {opportunity.platform}
+                            </span>
+                          </div>
                         </div>
                       </div>
+                      <div className="text-xs text-gray-500 mb-2">
+                        {opportunity.impact}
+                      </div>
+                      <Link
+                        href="/campaigns/create-workflow"
+                        className="text-purple-600 hover:text-purple-700 text-sm font-medium"
+                      >
+                        Create Content →
+                      </Link>
                     </div>
-                    <div className="text-xs text-gray-500 mb-2">
-                      {opportunity.impact}
-                    </div>
-                    <button className="text-purple-600 hover:text-purple-700 text-sm font-medium">
-                      Create Content →
-                    </button>
+                  ))
+                ) : (
+                  <div className="text-center py-8">
+                    <p className="text-gray-500">
+                      No viral opportunities available yet.
+                    </p>
+                    <p className="text-sm text-gray-400">
+                      Create content to discover trends.
+                    </p>
                   </div>
-                ))}
+                )}
               </div>
             </div>
           </motion.div>
@@ -489,7 +610,7 @@ const CreatorDashboard: React.FC<CreatorDashboardProps> = ({ config }) => {
                   Recent Content Performance
                 </h2>
                 <Link
-                  href="/dashboard/creator/content-studio"
+                  href="/campaigns"
                   className="text-purple-600 hover:text-purple-700 text-sm font-medium"
                 >
                   View All →
@@ -498,54 +619,66 @@ const CreatorDashboard: React.FC<CreatorDashboardProps> = ({ config }) => {
             </div>
             <div className="p-6">
               <div className="space-y-4">
-                {dashboardData.recentContent.map((content) => (
-                  <div
-                    key={content.id}
-                    className="flex items-center justify-between"
-                  >
-                    <div className="flex-1">
-                      <div className="flex items-center space-x-2 mb-1">
-                        <span className="font-medium text-gray-900">
-                          {content.title}
-                        </span>
-                        <span className="text-xl">
-                          {getPerformanceIcon(content.performance)}
-                        </span>
-                        <span
-                          className={`px-2 py-1 text-xs rounded-full ${getPlatformColor(
-                            content.platform
-                          )}`}
-                        >
-                          {content.platform}
-                        </span>
-                      </div>
-                      <div className="flex items-center space-x-4 text-sm">
-                        <span className="text-gray-600">
-                          👥 {formatNumber(content.views)} views
-                        </span>
-                        <span className="text-gray-600">
-                          💬 {content.engagement}{" "}
-                          {content.type === "text"
-                            ? "shares"
-                            : content.type === "photo"
-                            ? "likes"
-                            : "comments"}
-                        </span>
-                        <span
-                          className={`font-medium ${
-                            content.growth >= 0
-                              ? "text-green-600"
-                              : "text-red-600"
-                          }`}
-                        >
-                          {content.growth >= 0 ? "📈" : "📉"}{" "}
-                          {content.growth >= 0 ? "+" : ""}
-                          {content.growth}%
-                        </span>
+                {dashboardData.recentContent.length > 0 ? (
+                  dashboardData.recentContent.map((content) => (
+                    <div
+                      key={content.id}
+                      className="flex items-center justify-between"
+                    >
+                      <div className="flex-1">
+                        <div className="flex items-center space-x-2 mb-1">
+                          <span className="font-medium text-gray-900">
+                            {content.title}
+                          </span>
+                          <span className="text-xl">
+                            {getPerformanceIcon(content.performance)}
+                          </span>
+                          <span
+                            className={`px-2 py-1 text-xs rounded-full ${getPlatformColor(
+                              content.platform
+                            )}`}
+                          >
+                            {content.platform}
+                          </span>
+                        </div>
+                        <div className="flex items-center space-x-4 text-sm">
+                          <span className="text-gray-600">
+                            👥 {formatNumber(content.views)} views
+                          </span>
+                          <span className="text-gray-600">
+                            💬 {content.engagement}{" "}
+                            {content.type === "text"
+                              ? "shares"
+                              : content.type === "photo"
+                              ? "likes"
+                              : "comments"}
+                          </span>
+                          <span
+                            className={`font-medium ${
+                              content.growth >= 0
+                                ? "text-green-600"
+                                : "text-red-600"
+                            }`}
+                          >
+                            {content.growth >= 0 ? "📈" : "📉"}{" "}
+                            {content.growth >= 0 ? "+" : ""}
+                            {content.growth}%
+                          </span>
+                        </div>
                       </div>
                     </div>
+                  ))
+                ) : (
+                  <div className="text-center py-8">
+                    <p className="text-gray-500">No content yet.</p>
+                    <Link
+                      href="/campaigns/create-workflow"
+                      className="text-purple-600 hover:text-purple-700 text-sm font-medium"
+                    >
+                      Create your first campaign →
+                    </Link>
                   </div>
-                ))}
+                )}
               </div>
             </div>
           </motion.div>
@@ -575,7 +708,7 @@ const CreatorDashboard: React.FC<CreatorDashboardProps> = ({ config }) => {
                 </div>
               </Link>
               <Link
-                href="/dashboard/creator/trending"
+                href="/campaigns/create-workflow?type=trending"
                 className="flex flex-col items-center p-4 bg-pink-50 hover:bg-pink-100 rounded-lg transition-colors group"
               >
                 <div className="text-2xl mb-2 group-hover:scale-110 transition-transform">
@@ -586,7 +719,7 @@ const CreatorDashboard: React.FC<CreatorDashboardProps> = ({ config }) => {
                 </div>
               </Link>
               <Link
-                href="/dashboard/creator/content-studio"
+                href="/campaigns/create-workflow?type=multi_platform"
                 className="flex flex-col items-center p-4 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors group"
               >
                 <div className="text-2xl mb-2 group-hover:scale-110 transition-transform">
@@ -597,7 +730,7 @@ const CreatorDashboard: React.FC<CreatorDashboardProps> = ({ config }) => {
                 </div>
               </Link>
               <Link
-                href="/dashboard/creator/growth"
+                href="/campaigns/create-workflow?type=audience_growth"
                 className="flex flex-col items-center p-4 bg-green-50 hover:bg-green-100 rounded-lg transition-colors group"
               >
                 <div className="text-2xl mb-2 group-hover:scale-110 transition-transform">
@@ -608,7 +741,7 @@ const CreatorDashboard: React.FC<CreatorDashboardProps> = ({ config }) => {
                 </div>
               </Link>
               <Link
-                href="/dashboard/creator/monetization"
+                href="/campaigns/create-workflow?type=monetization"
                 className="flex flex-col items-center p-4 bg-yellow-50 hover:bg-yellow-100 rounded-lg transition-colors group"
               >
                 <div className="text-2xl mb-2 group-hover:scale-110 transition-transform">

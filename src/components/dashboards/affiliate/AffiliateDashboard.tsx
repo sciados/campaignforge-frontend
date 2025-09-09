@@ -5,6 +5,11 @@ import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import Link from "next/link";
 
+// ---------- API Configuration ----------
+const API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_URL ||
+  "https://campaign-backend-production-e2db.up.railway.app";
+
 // ---------- Types ----------
 interface DashboardConfig {
   user_profile: {
@@ -59,6 +64,58 @@ interface AffiliateDashboardProps {
   config: DashboardConfig;
 }
 
+// ---------- API Functions ----------
+const fetchDashboardStats = async () => {
+  const token = localStorage.getItem("authToken");
+  if (!token) throw new Error("No auth token");
+
+  const response = await fetch(`${API_BASE_URL}/api/campaigns/stats/stats`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    },
+  });
+
+  if (!response.ok) throw new Error("Failed to fetch dashboard stats");
+  return response.json();
+};
+
+const fetchAffiliatePerformance = async (days: number = 30) => {
+  const token = localStorage.getItem("authToken");
+  if (!token) throw new Error("No auth token");
+
+  const response = await fetch(
+    `${API_BASE_URL}/api/campaigns/affiliate/performance?days=${days}`,
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+    }
+  );
+
+  if (!response.ok) throw new Error("Failed to fetch affiliate performance");
+  return response.json();
+};
+
+const fetchRecentCampaigns = async (limit: number = 5) => {
+  const token = localStorage.getItem("authToken");
+  if (!token) throw new Error("No auth token");
+
+  const response = await fetch(
+    `${API_BASE_URL}/api/campaigns/?limit=${limit}&sort=recent`,
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+    }
+  );
+
+  if (!response.ok) throw new Error("Failed to fetch recent campaigns");
+  return response.json();
+};
+
 // ---------- Component ----------
 const AffiliateDashboard: React.FC<AffiliateDashboardProps> = ({ config }) => {
   const [dashboardData, setDashboardData] = useState<DashboardData>({
@@ -68,6 +125,7 @@ const AffiliateDashboard: React.FC<AffiliateDashboardProps> = ({ config }) => {
     recentCampaigns: [],
   });
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     loadDashboardData();
@@ -75,17 +133,37 @@ const AffiliateDashboard: React.FC<AffiliateDashboardProps> = ({ config }) => {
 
   const loadDashboardData = async () => {
     setIsLoading(true);
+    setError(null);
+
     try {
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      // Replace mock data with real API calls
+      const [statsData, performanceData, campaignsData] = await Promise.all([
+        fetchDashboardStats(),
+        fetchAffiliatePerformance(30),
+        fetchRecentCampaigns(5),
+      ]);
+
+      // Map real data to component structure
       setDashboardData({
         commissionMetrics: {
-          thisMonth: 12847,
-          growth: 23,
-          epc: 2.14,
-          topOffer: "ProductX",
+          thisMonth:
+            statsData.monthly_recurring_revenue ||
+            performanceData.commission_metrics?.thisMonth ||
+            0,
+          growth:
+            statsData.growth_percentage ||
+            performanceData.commission_metrics?.growth ||
+            0,
+          epc: performanceData.commission_metrics?.epc || 0,
+          topOffer: performanceData.commission_metrics?.topOffer || "N/A",
         },
-        campaignStatus: { active: 8, paused: 3, testing: 2, winners: 4 },
-        competitorFeed: [
+        campaignStatus: {
+          active: statsData.active_campaigns || 0,
+          paused: statsData.paused_campaigns || 0,
+          testing: statsData.testing_campaigns || 0,
+          winners: statsData.winning_campaigns || 0,
+        },
+        competitorFeed: performanceData.competitor_feed || [
           {
             id: 1,
             type: "new_campaign",
@@ -101,51 +179,28 @@ const AffiliateDashboard: React.FC<AffiliateDashboardProps> = ({ config }) => {
             time: "4 hours ago",
             impact: "medium",
           },
-          {
-            id: 3,
-            type: "opportunity",
-            description: 'Low competition on "keto for men" keyword',
-            time: "6 hours ago",
-            impact: "high",
-          },
-          {
-            id: 4,
-            type: "analysis",
-            competitor: "TopAffiliate",
-            description: "landing page updated - view analysis",
-            time: "8 hours ago",
-            impact: "medium",
-          },
         ],
-        recentCampaigns: [
-          {
-            id: 1,
-            name: "ProductX Email Campaign",
-            type: "email",
-            earnings: 2847,
-            ctr_change: 15,
-            status: "active",
-          },
-          {
-            id: 2,
-            name: "ProductY Facebook Ads",
-            type: "facebook",
-            earnings: 1923,
-            ctr_change: -3,
-            status: "active",
-          },
-          {
-            id: 3,
-            name: "ProductZ YouTube Review",
-            type: "youtube",
-            earnings: 892,
-            ctr_change: 28,
-            status: "completed",
-          },
-        ],
+        recentCampaigns:
+          campaignsData.map((campaign: any) => ({
+            id: campaign.id,
+            name: campaign.title || campaign.name,
+            type: campaign.content_types?.[0] || "email",
+            earnings: campaign.estimated_revenue || 0,
+            ctr_change: campaign.performance_metrics?.ctr_change || 0,
+            status: campaign.status,
+          })) || [],
       });
     } catch (error) {
       console.error("Failed to load dashboard data:", error);
+      setError("Failed to load dashboard data. Please try again.");
+
+      // Fallback to empty state instead of mock data
+      setDashboardData({
+        commissionMetrics: { thisMonth: 0, growth: 0, epc: 0, topOffer: "N/A" },
+        campaignStatus: { active: 0, paused: 0, testing: 0, winners: 0 },
+        competitorFeed: [],
+        recentCampaigns: [],
+      });
     } finally {
       setIsLoading(false);
     }
@@ -180,7 +235,7 @@ const AffiliateDashboard: React.FC<AffiliateDashboardProps> = ({ config }) => {
       case "opportunity":
         return "💡";
       case "analysis":
-        return "🔍";
+        return "📊";
       default:
         return "📊";
     }
@@ -206,7 +261,24 @@ const AffiliateDashboard: React.FC<AffiliateDashboardProps> = ({ config }) => {
     );
   }
 
-  // (render stays unchanged from your original, except fixed links & currency formatting)
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <h2 className="text-lg font-semibold text-red-600 mb-2">
+            Error Loading Dashboard
+          </h2>
+          <p className="text-gray-600 mb-4">{error}</p>
+          <button
+            onClick={loadDashboardData}
+            className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -301,37 +373,50 @@ const AffiliateDashboard: React.FC<AffiliateDashboardProps> = ({ config }) => {
             </div>
             <div className="p-6">
               <div className="space-y-4">
-                {dashboardData.competitorFeed.map((item) => (
-                  <div
-                    key={item.id}
-                    className="border rounded-lg p-4 hover:bg-gray-50"
-                  >
-                    <div className="flex items-start justify-between mb-2">
-                      <div className="flex-1">
-                        <div className="flex items-center space-x-2 mb-1">
-                          <span className="text-lg">
-                            {getImpactIcon(item.type)}
-                          </span>
-                          <span className="font-semibold text-gray-900">
-                            {item.competitor && `${item.competitor} `}
-                            {item.description}
-                          </span>
-                          <span
-                            className={`px-2 py-1 text-xs rounded-full ${getImpactColor(
-                              item.impact
-                            )}`}
-                          >
-                            {item.impact}
-                          </span>
+                {dashboardData.competitorFeed.length > 0 ? (
+                  dashboardData.competitorFeed.map((item) => (
+                    <div
+                      key={item.id}
+                      className="border rounded-lg p-4 hover:bg-gray-50"
+                    >
+                      <div className="flex items-start justify-between mb-2">
+                        <div className="flex-1">
+                          <div className="flex items-center space-x-2 mb-1">
+                            <span className="text-lg">
+                              {getImpactIcon(item.type)}
+                            </span>
+                            <span className="font-semibold text-gray-900">
+                              {item.competitor && `${item.competitor} `}
+                              {item.description}
+                            </span>
+                            <span
+                              className={`px-2 py-1 text-xs rounded-full ${getImpactColor(
+                                item.impact
+                              )}`}
+                            >
+                              {item.impact}
+                            </span>
+                          </div>
+                          <div className="text-xs text-gray-500">
+                            {item.time}
+                          </div>
                         </div>
-                        <div className="text-xs text-gray-500">{item.time}</div>
                       </div>
+                      <button className="text-green-600 hover:text-green-700 text-sm font-medium">
+                        Analyze →
+                      </button>
                     </div>
-                    <button className="text-green-600 hover:text-green-700 text-sm font-medium">
-                      Analyze →
-                    </button>
+                  ))
+                ) : (
+                  <div className="text-center py-8">
+                    <p className="text-gray-500">
+                      No competitor intelligence available yet.
+                    </p>
+                    <p className="text-sm text-gray-400">
+                      Check back soon for updates.
+                    </p>
                   </div>
-                ))}
+                )}
               </div>
             </div>
           </motion.div>
@@ -350,34 +435,46 @@ const AffiliateDashboard: React.FC<AffiliateDashboardProps> = ({ config }) => {
             </div>
             <div className="p-6">
               <div className="space-y-4">
-                {dashboardData.recentCampaigns.map((campaign) => (
-                  <div
-                    key={campaign.id}
-                    className="flex items-center justify-between"
-                  >
-                    <div className="flex-1">
-                      <div className="font-medium text-gray-900">
-                        {campaign.name}
-                      </div>
-                      <div className="flex items-center space-x-4 text-sm">
-                        <span className="text-gray-600">
-                          💰 {formatCurrency(campaign.earnings)}
-                        </span>
-                        <span
-                          className={`font-medium ${
-                            campaign.ctr_change >= 0
-                              ? "text-green-600"
-                              : "text-red-600"
-                          }`}
-                        >
-                          {campaign.ctr_change >= 0 ? "📈" : "📉"}{" "}
-                          {campaign.ctr_change >= 0 ? "+" : ""}
-                          {campaign.ctr_change}%
-                        </span>
+                {dashboardData.recentCampaigns.length > 0 ? (
+                  dashboardData.recentCampaigns.map((campaign) => (
+                    <div
+                      key={campaign.id}
+                      className="flex items-center justify-between"
+                    >
+                      <div className="flex-1">
+                        <div className="font-medium text-gray-900">
+                          {campaign.name}
+                        </div>
+                        <div className="flex items-center space-x-4 text-sm">
+                          <span className="text-gray-600">
+                            💰 {formatCurrency(campaign.earnings)}
+                          </span>
+                          <span
+                            className={`font-medium ${
+                              campaign.ctr_change >= 0
+                                ? "text-green-600"
+                                : "text-red-600"
+                            }`}
+                          >
+                            {campaign.ctr_change >= 0 ? "📈" : "📉"}{" "}
+                            {campaign.ctr_change >= 0 ? "+" : ""}
+                            {campaign.ctr_change}%
+                          </span>
+                        </div>
                       </div>
                     </div>
+                  ))
+                ) : (
+                  <div className="text-center py-8">
+                    <p className="text-gray-500">No campaigns yet.</p>
+                    <Link
+                      href="/campaigns/create-workflow"
+                      className="text-green-600 hover:text-green-700 text-sm font-medium"
+                    >
+                      Create your first campaign →
+                    </Link>
                   </div>
-                ))}
+                )}
               </div>
             </div>
           </motion.div>

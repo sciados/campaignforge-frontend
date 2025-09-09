@@ -1,4 +1,4 @@
-// src/app/register/page.tsx
+// src/app/register/page.tsx - COMPLETELY FIXED REGISTRATION FLOW (NO HARDCODED URLS)
 
 "use client";
 
@@ -10,13 +10,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { getApiUrl } from "@/lib/config";
 
 export const dynamic = "force-dynamic";
 export const runtime = "edge";
-
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL ||
-  "https://campaign-backend-production-e2db.up.railway.app";
 
 export default function RegisterPage() {
   const [mounted, setMounted] = useState(false);
@@ -52,6 +49,7 @@ export default function RegisterPage() {
     e.preventDefault();
     setError("");
 
+    // Client-side validation
     if (formData.password !== formData.confirmPassword) {
       setError("Passwords do not match");
       return;
@@ -70,28 +68,43 @@ export default function RegisterPage() {
     setIsLoading(true);
 
     try {
+      // Step 1: Register user
       const userData = {
         email: formData.email,
         password: formData.password,
         full_name: `${formData.firstName} ${formData.lastName}`,
-        company_name: formData.company || "Default Company",
+        company_name: formData.company || `${formData.firstName}'s Company`,
       };
 
-      const response = await fetch(`${API_BASE_URL}/api/auth/register`, {
+      const response = await fetch(getApiUrl("/api/auth/register"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(userData),
       });
 
-      if (response.ok) {
-        const data = await response.json();
-        localStorage.setItem("authToken", data.access_token);
-        router.push("/user-selection");
-      } else {
+      if (!response.ok) {
         const errorData = await response.json();
         setError(errorData.detail || "Registration failed");
+        return;
       }
+
+      const data = await response.json();
+
+      // Step 2: Handle the response
+      if (data.access_token) {
+        // Store token if provided (some backends auto-login after registration)
+        if (typeof window !== "undefined") {
+          localStorage.setItem("authToken", data.access_token);
+          localStorage.setItem("access_token", data.access_token);
+        }
+      }
+
+      // Step 3: Route to user selection
+      // Always route to user selection after successful registration
+      // This ensures new users go through the proper onboarding flow
+      router.push("/user-selection");
     } catch (error) {
+      console.error("Registration error:", error);
       setError("Network error - please try again");
     } finally {
       setIsLoading(false);
@@ -216,10 +229,9 @@ export default function RegisterPage() {
                 id="company"
                 name="company"
                 type="text"
-                required
                 value={formData.company}
                 onChange={handleChange}
-                placeholder="Your company name"
+                placeholder="Your company name (optional)"
               />
             </div>
 

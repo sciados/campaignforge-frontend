@@ -1,5 +1,4 @@
-// File: src/app/login/page.tsx
-// Login page with type-safe dashboard routing and user authentication
+// src/app/login/page.tsx - COMPLETELY FIXED LOGIN FLOW (NO HARDCODED URLS)
 "use client";
 
 import React, { useState } from "react";
@@ -10,34 +9,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { getApiUrl } from "@/lib/config";
 
 export const dynamic = "force-dynamic";
-
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL ||
-  "https://campaign-backend-production-e2db.up.railway.app";
 
 interface LoginFormData {
   email: string;
   password: string;
 }
-
-interface User {
-  role: string;
-  user_type?: string;
-  [key: string]: any;
-}
-
-interface LoginResponse {
-  access_token: string;
-  user: User;
-}
-
-interface RouteResponse {
-  route?: string;
-}
-
-type UserType = "affiliate_marketer" | "content_creator" | "business_owner";
 
 export default function LoginPage() {
   const [formData, setFormData] = useState<LoginFormData>({
@@ -56,83 +35,78 @@ export default function LoginPage() {
     setIsLoading(true);
 
     try {
-      const response = await fetch(`${API_BASE_URL}/api/auth/login`, {
+      // Step 1: Login with credentials
+      const response = await fetch(getApiUrl("/api/auth/login"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(formData),
       });
 
-      if (response.ok) {
-        const data: LoginResponse = await response.json();
-        if (typeof window !== "undefined") {
-          localStorage.setItem("authToken", data.access_token);
-        }
-
-        try {
-          const routeResponse = await fetch(
-            `${API_BASE_URL}/api/auth/dashboard-route`,
-            {
-              headers: { Authorization: `Bearer ${data.access_token}` },
-            }
-          );
-
-          if (routeResponse.ok) {
-            const routeData: RouteResponse = await routeResponse.json();
-            if (routeData.route) {
-              router.push(routeData.route);
-            } else {
-              router.push("/user-selection");
-            }
-          } else {
-            // Fallback routing logic with type safety
-            const user = data.user;
-            if (user.role === "admin") {
-              router.push("/admin");
-            } else if (user.user_type) {
-              const dashboardRoutes: Record<UserType, string> = {
-                affiliate_marketer: "/dashboard/affiliate",
-                content_creator: "/dashboard/creator",
-                business_owner: "/dashboard/business",
-              };
-
-              // Type-safe access to dashboard routes
-              const userType = user.user_type as UserType;
-              if (userType in dashboardRoutes) {
-                router.push(dashboardRoutes[userType]);
-              } else {
-                router.push("/user-selection");
-              }
-            } else {
-              router.push("/user-selection");
-            }
-          }
-        } catch (routeError) {
-          console.error("Dashboard route fetch error:", routeError);
-
-          // Final fallback with type safety
-          const user = data.user;
-          if (user && user.role === "admin") {
-            router.push("/admin");
-          } else if (user && user.user_type) {
-            const dashboardRoutes: Record<UserType, string> = {
-              affiliate_marketer: "/dashboard/affiliate",
-              content_creator: "/dashboard/creator",
-              business_owner: "/dashboard/business",
-            };
-
-            const userType = user.user_type as UserType;
-            if (userType in dashboardRoutes) {
-              router.push(dashboardRoutes[userType]);
-            } else {
-              router.push("/user-selection");
-            }
-          } else {
-            router.push("/dashboard");
-          }
-        }
-      } else {
+      if (!response.ok) {
         const errorData = await response.json();
         setError(errorData.detail || "Login failed");
+        return;
+      }
+
+      const data = await response.json();
+
+      // Step 2: Store token
+      if (typeof window !== "undefined") {
+        localStorage.setItem("authToken", data.access_token);
+        localStorage.setItem("access_token", data.access_token); // Backup for compatibility
+      }
+
+      // Step 3: Get user profile to determine routing
+      try {
+        const profileResponse = await fetch(getApiUrl("/api/auth/profile"), {
+          headers: {
+            Authorization: `Bearer ${data.access_token}`,
+            "Content-Type": "application/json",
+          },
+        });
+
+        if (profileResponse.ok) {
+          const profile = await profileResponse.json();
+
+          // Route based on user profile
+          if (profile.role === "admin") {
+            router.push("/admin");
+            return;
+          }
+
+          // Check if user has completed user type selection
+          if (!profile.user_type) {
+            router.push("/user-selection");
+            return;
+          }
+
+          // Route to appropriate dashboard based on user type
+          const dashboardRoutes = {
+            affiliate_marketer: "/dashboard/affiliate",
+            content_creator: "/dashboard/creator",
+            business_owner: "/dashboard/business",
+          };
+
+          const dashboardRoute =
+            dashboardRoutes[profile.user_type as keyof typeof dashboardRoutes];
+
+          if (dashboardRoute) {
+            router.push(dashboardRoute);
+          } else {
+            // Fallback to generic dashboard
+            router.push("/dashboard/router");
+          }
+        } else {
+          // Profile fetch failed, route to user selection
+          console.warn(
+            "Could not fetch user profile, routing to user selection"
+          );
+          router.push("/user-selection");
+        }
+      } catch (profileError) {
+        console.error("Profile fetch error:", profileError);
+        // Fallback to user selection on any profile error
+        router.push("/user-selection");
       }
     } catch (error) {
       console.error("Login error:", error);

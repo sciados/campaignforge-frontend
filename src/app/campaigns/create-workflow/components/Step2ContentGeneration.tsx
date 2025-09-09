@@ -1,7 +1,7 @@
 // src/app/campaigns/create-workflow/components/Step2ContentGeneration.tsx
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import {
   Sparkles,
@@ -121,14 +121,8 @@ export default function Step2ContentGeneration({
     string | null
   >(null);
 
-  // Load enhanced intelligence on mount if available
-  useEffect(() => {
-    if (analysisComplete && intelligenceEnhanced && getEnhancedIntelligence) {
-      loadEnhancedIntelligence();
-    }
-  }, [analysisComplete, getEnhancedIntelligence, intelligenceEnhanced]);
-
-  const loadEnhancedIntelligence = async () => {
+  // Function declaration BEFORE useEffect
+  const loadEnhancedIntelligence = useCallback(async () => {
     try {
       if (getEnhancedIntelligence) {
         const intelligence = await getEnhancedIntelligence(campaignId);
@@ -137,7 +131,14 @@ export default function Step2ContentGeneration({
     } catch (err) {
       console.error("Failed to load enhanced intelligence:", err);
     }
-  };
+  }, [campaignId, getEnhancedIntelligence]);
+
+  // useEffect AFTER function declaration
+  useEffect(() => {
+    if (analysisComplete && intelligenceEnhanced) {
+      loadEnhancedIntelligence();
+    }
+  }, [analysisComplete, intelligenceEnhanced, loadEnhancedIntelligence]);
 
   const handleTypeToggle = (typeId: string) => {
     setSelectedTypes((prev) =>
@@ -189,7 +190,7 @@ export default function Step2ContentGeneration({
         setGeneratedContent((prev) => [...prev, placeholderContent]);
 
         try {
-          // Call the actual content generation API
+          // Call the actual content generation API using your exact method signature
           const result = await api.generateContent({
             campaign_id: campaignId,
             content_type: typeId,

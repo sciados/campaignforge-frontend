@@ -1,8 +1,7 @@
-// src/components/dashboards/UserTypeRouter.tsx - FIXED VERSION
+// src/components/dashboards/UserTypeRouter.tsx - COMPLETELY FIXED VERSION (NO HARDCODED URLS)
 /**
- * Multi-User Dashboard Router for CampaignForge
- * Routes users to their appropriate dashboard based on user type
- * FIXED: Infinite loop prevention and proper async handling
+ * Fixed User Type Router for CampaignForge
+ * Uses centralized config and simplified routing logic
  */
 
 "use client";
@@ -10,42 +9,31 @@
 import React, { useCallback, useEffect, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { motion } from "framer-motion";
+import { getApiUrl } from "@/lib/config";
 
 // Import dashboard components
 import AffiliateDashboard from "./affiliate/AffiliateDashboard";
 import CreatorDashboard from "./creator/CreatorDashboard";
 import BusinessDashboard from "./business/BusinessDashboard";
-import UserTypeSelector from "../user-types/UserTypeSelector";
 
 interface UserProfile {
   id: string;
   email: string;
   full_name: string;
   user_type: string | null;
-  user_type_display: string;
-  user_tier: string;
-  onboarding_status: string;
-  dashboard_route: string;
-  onboarding_completed: boolean;
-  usage_summary: {
-    campaigns: {
-      used: number;
-      limit: number;
-      available: number;
-      percentage: number;
-    };
-    analysis: {
-      used: number;
-      limit: number;
-      available: number;
-      percentage: number;
-    };
-  };
+  role: string;
+  user_type_display?: string;
+  onboarding_completed?: boolean;
 }
 
 interface DashboardConfig {
-  user_profile: UserProfile;
-  available_features: string[];
+  user_profile: {
+    user_type_display: string;
+    usage_summary: {
+      campaigns: { used: number; limit: number; percentage: number };
+      analysis: { used: number; limit: number; percentage: number };
+    };
+  };
   primary_widgets: string[];
   dashboard_title: string;
   main_cta: string;
@@ -61,87 +49,161 @@ const UserTypeRouter: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const checkUserTypeAndRoute = async () => {
+  const getAuthToken = () => {
+    if (typeof window === "undefined") return null;
+    return (
+      localStorage.getItem("authToken") || localStorage.getItem("access_token")
+    );
+  };
+
+  const checkUserAuthAndRoute = useCallback(async () => {
     setIsLoading(true);
     setError(null);
 
+    const token = getAuthToken();
+    if (!token) {
+      console.log("No auth token found, redirecting to login");
+      router.push("/login");
+      return;
+    }
+
     try {
-      const response = await fetch("/api/user-types/current", {
-        credentials: "include",
+      // Step 1: Get user profile from backend
+      const profileResponse = await fetch(getApiUrl("/api/auth/profile"), {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
       });
 
-      if (!response.ok) {
-        if (response.status === 404) {
-          console.log(
-            "User type endpoint not found - backend deployment issue"
-          );
-          setUserProfile(null);
-          setError(null);
-          setIsLoading(false);
+      if (!profileResponse.ok) {
+        if (profileResponse.status === 401) {
+          // Token is invalid, clear it and redirect to login
+          localStorage.removeItem("authToken");
+          localStorage.removeItem("access_token");
+          router.push("/login");
           return;
         }
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        throw new Error(`Profile fetch failed: ${profileResponse.statusText}`);
       }
 
-      const data = await response.json();
+      const profile = await profileResponse.json();
+      setUserProfile(profile);
 
-      if (data.success) {
-        setUserProfile(data.user_profile);
-        setDashboardConfig(data.dashboard_config);
+      // Step 2: Handle routing based on profile
+      if (profile.role === "admin") {
+        router.push("/admin");
+        return;
+      }
 
-        const profile = data.user_profile;
+      if (!profile.user_type) {
+        // User hasn't selected a user type yet
+        console.log("No user type found, redirecting to user selection");
+        router.push("/user-selection");
+        return;
+      }
 
-        if (!profile.user_type) {
-          if (pathname !== "/user-selection") {
-            router.push("/user-selection");
+      // Step 3: Get dashboard config for the user type
+      try {
+        const configResponse = await fetch(
+          getApiUrl("/api/user-types/dashboard-config"),
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "application/json",
+            },
           }
-          return;
-        }
+        );
 
-        if (!profile.onboarding_completed) {
-          if (pathname !== "/onboarding") {
-            router.push("/onboarding");
+        if (configResponse.ok) {
+          const configData = await configResponse.json();
+          if (configData.success && configData.config) {
+            setDashboardConfig(configData.config);
+          } else {
+            // Create fallback config
+            setDashboardConfig(createFallbackConfig(profile));
           }
-          return;
+        } else {
+          // Create fallback config if endpoint not available
+          setDashboardConfig(createFallbackConfig(profile));
         }
+      } catch (configError) {
+        console.warn(
+          "Dashboard config fetch failed, using fallback:",
+          configError
+        );
+        setDashboardConfig(createFallbackConfig(profile));
+      }
 
-        const expectedPath = profile.dashboard_route;
-        if (pathname !== expectedPath && pathname.startsWith("/dashboard")) {
-          router.push(expectedPath);
-          return;
-        }
+      // Step 4: Route to correct dashboard if not already there
+      const expectedPath = getDashboardPath(profile.user_type);
+      if (pathname !== expectedPath && pathname.startsWith("/dashboard")) {
+        console.log(`Routing from ${pathname} to ${expectedPath}`);
+        router.push(expectedPath);
       }
     } catch (error) {
-      console.error("Failed to check user type:", error);
+      console.error("Auth check failed:", error);
       setError("Failed to load user information. Please try again.");
     } finally {
       setIsLoading(false);
     }
+  }, [router, pathname]);
+
+  // Helper function to get dashboard path
+  const getDashboardPath = (userType: string): string => {
+    const routes = {
+      affiliate_marketer: "/dashboard/affiliate",
+      content_creator: "/dashboard/creator",
+      business_owner: "/dashboard/business",
+    };
+    return routes[userType as keyof typeof routes] || "/dashboard/router";
   };
 
-  // Add this inside your UserTypeRouter component
-  useEffect(() => {
-    console.log("UserTypeRouter render triggered by:", {
-      pathname,
-      userProfile: userProfile?.id,
-      isLoading,
-      error,
-      userType: userProfile?.user_type,
-      onboardingComplete: userProfile?.onboarding_completed,
-    });
-  }, [pathname, userProfile, isLoading, error]);
+  // Helper function to create fallback config
+  const createFallbackConfig = (profile: UserProfile): DashboardConfig => {
+    const userTypeDisplays = {
+      affiliate_marketer: "Affiliate Marketer",
+      content_creator: "Content Creator",
+      business_owner: "Business Owner",
+    };
 
-  // FIXED: Only depend on pathname to prevent infinite loops
-  useEffect(() => {
-    checkUserTypeAndRoute();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pathname]); // Removed checkUserTypeAndRoute dependency
+    const dashboardTitles = {
+      affiliate_marketer: "Affiliate Command Center",
+      content_creator: "Creator Studio Pro",
+      business_owner: "Business Growth Hub",
+    };
 
-  const handleTypeSelection = async (userType: string) => {
-    // This will be handled by the UserTypeSelector component
-    // which will redirect appropriately after setting the type
-    await checkUserTypeAndRoute();
+    const mainCTAs = {
+      affiliate_marketer: "Track Competitors",
+      content_creator: "Analyze Viral Content",
+      business_owner: "Generate Leads",
+    };
+
+    return {
+      user_profile: {
+        user_type_display:
+          userTypeDisplays[
+            profile.user_type as keyof typeof userTypeDisplays
+          ] || "User",
+        usage_summary: {
+          campaigns: { used: 0, limit: 10, percentage: 0 },
+          analysis: { used: 0, limit: 5, percentage: 0 },
+        },
+      },
+      primary_widgets: ["dashboard", "campaigns", "analytics"],
+      dashboard_title:
+        dashboardTitles[profile.user_type as keyof typeof dashboardTitles] ||
+        "Dashboard",
+      main_cta:
+        mainCTAs[profile.user_type as keyof typeof mainCTAs] || "Get Started",
+      theme_color: "blue",
+    };
   };
+
+  // Run auth check on mount and path changes
+  useEffect(() => {
+    checkUserAuthAndRoute();
+  }, [checkUserAuthAndRoute]);
 
   if (isLoading) {
     return (
@@ -173,48 +235,55 @@ const UserTypeRouter: React.FC = () => {
             Something went wrong
           </h2>
           <p className="text-gray-600 mb-4">{error}</p>
-          <button
-            onClick={() => window.location.reload()}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-          >
-            Try Again
-          </button>
+          <div className="space-y-2">
+            <button
+              onClick={checkUserAuthAndRoute}
+              className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            >
+              Try Again
+            </button>
+            <button
+              onClick={() => router.push("/login")}
+              className="w-full px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
+            >
+              Back to Login
+            </button>
+          </div>
         </motion.div>
       </div>
     );
   }
 
-  // Show user type selector if no user type is set
-  if (!userProfile?.user_type) {
+  // If no user profile or user type, redirect (this should be handled by the auth check)
+  if (!userProfile || !userProfile.user_type) {
     return (
-      <div className="min-h-screen bg-gray-50 py-8">
-        <UserTypeSelector onTypeSelect={handleTypeSelection} />
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="text-center"
+        >
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Redirecting to user setup...</p>
+        </motion.div>
       </div>
     );
   }
 
-  // Show onboarding if not completed
-  if (!userProfile.onboarding_completed) {
-    return (
-      <div className="min-h-screen bg-gray-50 py-8">
-        <div className="max-w-4xl mx-auto px-6">
-          <div className="bg-white rounded-lg shadow-lg p-8">
-            <h1 className="text-2xl font-bold text-gray-900 mb-4">
-              Welcome, {userProfile.user_type_display}!
-            </h1>
-            <p className="text-gray-600 mb-6">
-              Lets complete your setup to unlock all features.
-            </p>
-            <OnboardingCompleteForm userProfile={userProfile} />
+  // Render appropriate dashboard based on user type
+  const renderDashboard = () => {
+    if (!dashboardConfig) {
+      return (
+        <div className="min-h-screen flex items-center justify-center bg-gray-50">
+          <div className="text-center">
+            <h2 className="text-xl font-semibold text-gray-900 mb-2">
+              Loading dashboard configuration...
+            </h2>
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
           </div>
         </div>
-      </div>
-    );
-  }
-
-  // Route to appropriate dashboard based on user type
-  const renderDashboard = () => {
-    if (!dashboardConfig) return null;
+      );
+    }
 
     switch (userProfile.user_type) {
       case "affiliate_marketer":
@@ -226,10 +295,13 @@ const UserTypeRouter: React.FC = () => {
       default:
         return (
           <div className="min-h-screen flex items-center justify-center bg-gray-50">
-            <div className="text-center">
+            <div className="text-center bg-white p-8 rounded-lg shadow-lg">
               <h2 className="text-xl font-semibold text-gray-900 mb-2">
                 Unknown user type: {userProfile.user_type}
               </h2>
+              <p className="text-gray-600 mb-4">
+                Please select a valid user type to continue.
+              </p>
               <button
                 onClick={() => router.push("/user-selection")}
                 className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
@@ -250,156 +322,6 @@ const UserTypeRouter: React.FC = () => {
     >
       {renderDashboard()}
     </motion.div>
-  );
-};
-
-// Onboarding completion component
-interface OnboardingCompleteFormProps {
-  userProfile: UserProfile;
-}
-
-const OnboardingCompleteForm: React.FC<OnboardingCompleteFormProps> = ({
-  userProfile,
-}) => {
-  const router = useRouter();
-  const [goals, setGoals] = useState<string[]>([]);
-  const [experienceLevel, setExperienceLevel] = useState("beginner");
-  const [isLoading, setIsLoading] = useState(false);
-
-  const availableGoals = {
-    affiliate_marketer: [
-      "Increase commission rates",
-      "Track top competitors",
-      "Improve conversion rates",
-      "Find new profitable offers",
-      "Automate campaign optimization",
-      "Scale traffic sources",
-    ],
-    content_creator: [
-      "Go viral more often",
-      "Grow follower count",
-      "Increase engagement rates",
-      "Secure brand partnerships",
-      "Create better content",
-      "Cross-platform growth",
-    ],
-    business_owner: [
-      "Generate more leads",
-      "Increase sales revenue",
-      "Understand market trends",
-      "Outpace competitors",
-      "Improve marketing ROI",
-      "Expand market share",
-    ],
-  };
-
-  const userGoals =
-    availableGoals[userProfile.user_type as keyof typeof availableGoals] || [];
-
-  const toggleGoal = (goal: string) => {
-    setGoals((prev) =>
-      prev.includes(goal) ? prev.filter((g) => g !== goal) : [...prev, goal]
-    );
-  };
-
-  const handleComplete = async () => {
-    if (goals.length === 0) {
-      alert("Please select at least one goal");
-      return;
-    }
-
-    setIsLoading(true);
-
-    try {
-      const response = await fetch("/api/user-types/complete-onboarding", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({
-          goals,
-          experience_level: experienceLevel,
-        }),
-      });
-
-      const data = await response.json();
-
-      if (data.success) {
-        router.push(data.dashboard_route);
-      } else {
-        alert("Failed to complete onboarding. Please try again.");
-      }
-    } catch (error) {
-      console.error("Onboarding completion failed:", error);
-      alert("Failed to complete onboarding. Please try again.");
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  return (
-    <div className="space-y-6">
-      {/* Goals Selection */}
-      <div>
-        <h3 className="text-lg font-semibold text-gray-900 mb-3">
-          What are your main goals?
-        </h3>
-        <div className="grid grid-cols-2 gap-3">
-          {userGoals.map((goal) => (
-            <button
-              key={goal}
-              onClick={() => toggleGoal(goal)}
-              className={`p-3 text-sm rounded-lg border text-left transition-colors ${
-                goals.includes(goal)
-                  ? "bg-blue-100 border-blue-300 text-blue-800"
-                  : "bg-white border-gray-300 text-gray-700 hover:bg-gray-50"
-              }`}
-            >
-              <span className="flex items-center">
-                <span
-                  className={`mr-2 ${
-                    goals.includes(goal) ? "text-blue-600" : "text-gray-400"
-                  }`}
-                >
-                  {goals.includes(goal) ? "☑️" : "☐"}
-                </span>
-                {goal}
-              </span>
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Experience Level */}
-      <div>
-        <h3 className="text-lg font-semibold text-gray-900 mb-3">
-          What is your experience level?
-        </h3>
-        <div className="flex space-x-4">
-          {["beginner", "intermediate", "advanced"].map((level) => (
-            <button
-              key={level}
-              onClick={() => setExperienceLevel(level)}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                experienceLevel === level
-                  ? "bg-blue-600 text-white"
-                  : "bg-gray-200 text-gray-700 hover:bg-gray-300"
-              }`}
-            >
-              {level.charAt(0).toUpperCase() + level.slice(1)}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Complete Button */}
-      <button
-        onClick={handleComplete}
-        disabled={isLoading || goals.length === 0}
-        className="w-full px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:from-blue-700 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 font-semibold"
-      >
-        {isLoading ? "Setting up your dashboard..." : "Complete Setup →"}
-      </button>
-    </div>
   );
 };
 

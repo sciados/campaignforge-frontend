@@ -77,6 +77,7 @@ C:\Users\shaun\OneDrive\Documents\GitHub\campaignforge-frontend\src\components\u
 C:\Users\shaun\OneDrive\Documents\GitHub\campaignforge-frontend\src\components\WaitlistForm.tsx
 C:\Users\shaun\OneDrive\Documents\GitHub\campaignforge-frontend\src\lib\ai-discovery-service.ts
 C:\Users\shaun\OneDrive\Documents\GitHub\campaignforge-frontend\src\lib\api.ts
+C:\Users\shaun\OneDrive\Documents\GitHub\campaignforge-frontend\src\lib\config.ts
 C:\Users\shaun\OneDrive\Documents\GitHub\campaignforge-frontend\src\lib\hooks\useUserNavigation.ts
 C:\Users\shaun\OneDrive\Documents\GitHub\campaignforge-frontend\src\lib\hooks\useUserType.ts
 C:\Users\shaun\OneDrive\Documents\GitHub\campaignforge-frontend\src\lib\services\intelligenceWorkflowService.ts
