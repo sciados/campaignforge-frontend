@@ -70,43 +70,47 @@ export default function LoginPage() {
 
           // Route based on user profile
           if (profile.role === "admin") {
-            router.push("/admin");
+            router.replace("/admin");
             return;
           }
 
           // Check if user has completed user type selection
           if (!profile.user_type) {
-            router.push("/user-selection");
+            router.replace("/user-selection");
             return;
           }
 
           // Route to appropriate dashboard based on user type
           const dashboardRoutes = {
             affiliate_marketer: "/dashboard/affiliate",
-            content_creator: "/dashboard/creator",
+            affiliate: "/dashboard/affiliate", // Support both formats
+            content_creator: "/dashboard/creator", 
+            creator: "/dashboard/creator", // Support both formats
             business_owner: "/dashboard/business",
+            business: "/dashboard/business", // Support both formats
           };
 
           const dashboardRoute =
             dashboardRoutes[profile.user_type as keyof typeof dashboardRoutes];
 
           if (dashboardRoute) {
-            router.push(dashboardRoute);
+            console.log(`Login: Directing user type ${profile.user_type} to ${dashboardRoute}`);
+            router.replace(dashboardRoute);
           } else {
-            // Fallback to generic dashboard
-            router.push("/dashboard/router");
+            console.warn(`Login: Unknown user type ${profile.user_type}, routing to user selection`);
+            router.replace("/user-selection");
           }
         } else {
           // Profile fetch failed, route to user selection
           console.warn(
             "Could not fetch user profile, routing to user selection"
           );
-          router.push("/user-selection");
+          router.replace("/user-selection");
         }
       } catch (profileError) {
         console.error("Profile fetch error:", profileError);
         // Fallback to user selection on any profile error
-        router.push("/user-selection");
+        router.replace("/user-selection");
       }
     } catch (error) {
       console.error("Login error:", error);

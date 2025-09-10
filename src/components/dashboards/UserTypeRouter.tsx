@@ -137,9 +137,10 @@ const UserTypeRouter: React.FC = () => {
 
       // Step 4: Route to correct dashboard if not already there
       const expectedPath = getDashboardPath(profile.user_type);
-      if (pathname !== expectedPath && pathname.startsWith("/dashboard")) {
-        console.log(`Routing from ${pathname} to ${expectedPath}`);
-        router.push(expectedPath);
+      if (pathname !== expectedPath) {
+        console.log(`Routing from ${pathname} to ${expectedPath} for user type: ${profile.user_type}`);
+        router.replace(expectedPath); // Use replace instead of push to avoid back button issues
+        return; // Exit early to prevent rendering wrong dashboard
       }
     } catch (error) {
       console.error("Auth check failed:", error);
@@ -153,10 +154,19 @@ const UserTypeRouter: React.FC = () => {
   const getDashboardPath = (userType: string): string => {
     const routes = {
       affiliate_marketer: "/dashboard/affiliate",
+      affiliate: "/dashboard/affiliate", // Support both formats
       content_creator: "/dashboard/creator",
+      creator: "/dashboard/creator", // Support both formats
       business_owner: "/dashboard/business",
+      business: "/dashboard/business", // Support both formats
     };
-    return routes[userType as keyof typeof routes] || "/dashboard/router";
+    
+    const path = routes[userType as keyof typeof routes];
+    if (!path) {
+      console.warn(`Unknown user type: ${userType}, routing to user selection`);
+      return "/user-selection";
+    }
+    return path;
   };
 
   // Helper function to create fallback config
