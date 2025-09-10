@@ -19,6 +19,8 @@ export interface Campaign {
   updated_at: string
   user_id: string
   company_id: string
+  product_name?: string
+  affiliate_link?: string
 
   // Missing properties from original api.ts (restored)
   is_demo?: boolean

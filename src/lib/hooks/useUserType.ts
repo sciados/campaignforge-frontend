@@ -1,13 +1,14 @@
-// src/lib/hooks/useUserType.ts - FIXED VERSION
+// src/lib/hooks/useUserType.ts - FIXED VERSION WITH CENTRALIZED CONFIG
 /**
  * Custom hook for user type management
- * Fixed for proper async backend communication and infinite loop prevention
+ * Fixed to use centralized config and prevent infinite loops
  */
 
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+import { getApiUrl } from '@/lib/config';
 import type { UserProfile, UserType } from '@/lib/user-type-utils';
 
 interface UseUserTypeReturn {
@@ -29,18 +30,13 @@ export const useUserType = (): UseUserTypeReturn => {
     const hasInitialized = useRef(false);
     const isRefreshing = useRef(false);
 
-    // Get backend URL
-    const API_BASE_URL =
-        process.env.NEXT_PUBLIC_API_URL ||
-        "https://campaign-backend-production-e2db.up.railway.app";
-
     // Get auth token
-    const getAuthToken = () => {
+    const getAuthToken = useCallback(() => {
         if (typeof window !== 'undefined') {
             return localStorage.getItem('authToken') || localStorage.getItem('access_token');
         }
         return null;
-    };
+    }, []);
 
     // Create request headers with proper auth
     const getHeaders = useCallback((includeAuth = true) => {
@@ -58,7 +54,7 @@ export const useUserType = (): UseUserTypeReturn => {
         }
 
         return headers;
-    }, []);
+    }, [getAuthToken]);
 
     const refreshUserProfile = useCallback(async () => {
         // Prevent multiple simultaneous calls
@@ -82,7 +78,7 @@ export const useUserType = (): UseUserTypeReturn => {
         try {
             console.log("Fetching user profile from /api/user-types/current");
 
-            const response = await fetch(`${API_BASE_URL}/api/user-types/current`, {
+            const response = await fetch(getApiUrl("/api/user-types/current"), {
                 method: 'GET',
                 headers: getHeaders(true),
                 credentials: 'omit',
@@ -114,7 +110,7 @@ export const useUserType = (): UseUserTypeReturn => {
 
                     // Fallback to dashboard-config
                     try {
-                        const dashboardResponse = await fetch(`${API_BASE_URL}/api/user-types/dashboard-config`, {
+                        const dashboardResponse = await fetch(getApiUrl("/api/user-types/dashboard-config"), {
                             method: 'GET',
                             headers: getHeaders(true),
                             credentials: 'omit',
@@ -182,7 +178,7 @@ export const useUserType = (): UseUserTypeReturn => {
             setIsLoading(false);
             isRefreshing.current = false;
         }
-    }, [getHeaders]);
+    }, [getHeaders, getAuthToken]);
 
     const setUserType = useCallback(async (userType: UserType, typeData?: any): Promise<boolean> => {
         const token = getAuthToken();
@@ -206,7 +202,7 @@ export const useUserType = (): UseUserTypeReturn => {
 
             console.log("Request body:", requestBody);
 
-            const response = await fetch(`${API_BASE_URL}/api/user-types/select`, {
+            const response = await fetch(getApiUrl("/api/user-types/select"), {
                 method: 'POST',
                 headers: getHeaders(true),
                 credentials: 'omit',
@@ -252,7 +248,7 @@ export const useUserType = (): UseUserTypeReturn => {
             setError("Network error. Please check your connection and try again.");
             return false;
         }
-    }, [getHeaders]);
+    }, [getHeaders, getAuthToken]);
 
     const completeOnboarding = useCallback(async (goals: string[], experienceLevel: string): Promise<boolean> => {
         const token = getAuthToken();
@@ -265,7 +261,7 @@ export const useUserType = (): UseUserTypeReturn => {
             setError(null);
             console.log("Completing onboarding...");
 
-            const response = await fetch(`${API_BASE_URL}/api/user-types/complete-onboarding`, {
+            const response = await fetch(getApiUrl("/api/user-types/complete-onboarding"), {
                 method: 'POST',
                 headers: getHeaders(true),
                 credentials: 'omit',
@@ -305,7 +301,7 @@ export const useUserType = (): UseUserTypeReturn => {
             setError("Network error. Please try again.");
             return false;
         }
-    }, [getHeaders, router]);
+    }, [getHeaders, getAuthToken, router]);
 
     // Initialize only once
     useEffect(() => {
@@ -313,7 +309,7 @@ export const useUserType = (): UseUserTypeReturn => {
             hasInitialized.current = true;
             refreshUserProfile();
         }
-    }, [refreshUserProfile]); // FIXED: Empty dependency array prevents infinite loops
+    }, [refreshUserProfile]);
 
     return {
         userProfile,
