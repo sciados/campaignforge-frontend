@@ -76,9 +76,9 @@ export const useUserType = (): UseUserTypeReturn => {
         }
 
         try {
-            console.log("Fetching user profile from /api/user-types/current");
+            console.log("Fetching user profile from /api/auth/profile");
 
-            const response = await fetch(getApiUrl("/api/user-types/current"), {
+            const response = await fetch(getApiUrl("/api/auth/profile"), {
                 method: 'GET',
                 headers: getHeaders(true),
                 credentials: 'omit',
@@ -202,30 +202,32 @@ export const useUserType = (): UseUserTypeReturn => {
 
             console.log("Request body:", requestBody);
 
+            // Use the proper backend endpoint that we just created
+            console.log("🔄 Using /api/user-types/select endpoint...");
             const response = await fetch(getApiUrl("/api/user-types/select"), {
                 method: 'POST',
                 headers: getHeaders(true),
                 credentials: 'omit',
                 body: JSON.stringify(requestBody)
             });
-
+            
             console.log("Set user type response status:", response.status);
 
             if (!response.ok) {
                 const responseText = await response.text();
                 console.error("API Error Response:", responseText);
 
-                if (response.status === 405) {
-                    setError("API endpoint configuration issue. Please contact support.");
-                    return false;
-                } else if (response.status === 401) {
+                if (response.status === 401) {
                     setError("Authentication failed. Please log in again.");
+                    return false;
+                } else if (response.status === 400) {
+                    setError("Invalid user type selection. Please try again.");
                     return false;
                 } else if (response.status === 422) {
                     setError("Invalid data format. Please try again.");
                     return false;
                 } else {
-                    setError(`Server error: ${response.status}. Please try again.`);
+                    setError(`Failed to save user type selection. Status: ${response.status}`);
                     return false;
                 }
             }
@@ -233,11 +235,20 @@ export const useUserType = (): UseUserTypeReturn => {
             const data = await response.json();
             console.log("Set user type response data:", data);
 
-            // Handle successful response
-            if (data.success) {
+            // Handle successful response from either endpoint
+            if (data.success !== false) { // Accept any response that doesn't explicitly say success=false
+                console.log("✅ User type set successfully");
+                
+                // Update user profile if provided
                 if (data.user_profile) {
                     setUserProfile(data.user_profile);
+                } else if (data.user) {
+                    setUserProfile(data.user);
                 }
+                
+                // Refresh user profile to get latest data
+                await refreshUserProfile();
+                
                 return true;
             }
 
@@ -248,7 +259,7 @@ export const useUserType = (): UseUserTypeReturn => {
             setError("Network error. Please check your connection and try again.");
             return false;
         }
-    }, [getHeaders, getAuthToken]);
+    }, [getHeaders, getAuthToken, refreshUserProfile]);
 
     const completeOnboarding = useCallback(async (goals: string[], experienceLevel: string): Promise<boolean> => {
         const token = getAuthToken();
@@ -288,9 +299,20 @@ export const useUserType = (): UseUserTypeReturn => {
                     setUserProfile(data.user_profile);
                 }
 
-                // Navigate to dashboard
-                const dashboardRoute = data.dashboard_route || '/dashboard';
-                router.push(dashboardRoute);
+                // Navigate to user-specific dashboard based on user type
+                const userType = data.user_profile?.user_type || userProfile?.user_type;
+                const dashboardRoutes = {
+                    affiliate_marketer: "/dashboard/affiliate",
+                    affiliate: "/dashboard/affiliate",
+                    content_creator: "/dashboard/creator", 
+                    creator: "/dashboard/creator",
+                    business_owner: "/dashboard/business",
+                    business: "/dashboard/business",
+                };
+                
+                const dashboardRoute = dashboardRoutes[userType as keyof typeof dashboardRoutes] || '/dashboard';
+                console.log(`✅ Onboarding complete, routing to: ${dashboardRoute} for user type: ${userType}`);
+                router.replace(dashboardRoute);
                 return true;
             }
 
@@ -301,7 +323,7 @@ export const useUserType = (): UseUserTypeReturn => {
             setError("Network error. Please try again.");
             return false;
         }
-    }, [getHeaders, getAuthToken, router]);
+    }, [getHeaders, getAuthToken, router, userProfile?.user_type]);
 
     // Initialize only once
     useEffect(() => {

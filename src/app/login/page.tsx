@@ -67,6 +67,11 @@ export default function LoginPage() {
 
         if (profileResponse.ok) {
           const profile = await profileResponse.json();
+          
+          // DEBUG: Log the entire profile to see what we're getting
+          console.log("🔍 LOGIN DEBUG - Full profile received:", JSON.stringify(profile, null, 2));
+          console.log("🔍 LOGIN DEBUG - User type value:", profile.user_type);
+          console.log("🔍 LOGIN DEBUG - User type type:", typeof profile.user_type);
 
           // Route based on user profile
           if (profile.role === "admin") {
@@ -74,38 +79,84 @@ export default function LoginPage() {
             return;
           }
 
+          // Check if user is admin first (role takes precedence)
+          if (profile.role === "ADMIN" || profile.role === "admin") {
+            console.log(`✅ LOGIN: Admin user detected (role: ${profile.role}), routing to admin dashboard`);
+            router.replace("/admin");
+            return;
+          }
+
           // Check if user has completed user type selection
           if (!profile.user_type) {
+            console.warn(`❌ LOGIN DEBUG - No user_type found, routing to user selection. Profile.user_type:`, profile.user_type);
             router.replace("/user-selection");
             return;
           }
 
           // Route to appropriate dashboard based on user type
           const dashboardRoutes = {
+            // Admin routing
+            admin: "/admin",
+            administrator: "/admin",
+            
+            // User type routing
             affiliate_marketer: "/dashboard/affiliate",
             affiliate: "/dashboard/affiliate", // Support both formats
             content_creator: "/dashboard/creator", 
             creator: "/dashboard/creator", // Support both formats
             business_owner: "/dashboard/business",
             business: "/dashboard/business", // Support both formats
+            
+            // Also support backend format in case deployment hasn't updated yet
+            AFFILIATE_MARKETER: "/dashboard/affiliate",
+            CONTENT_CREATOR: "/dashboard/creator",
+            BUSINESS_OWNER: "/dashboard/business",
           };
 
           const dashboardRoute =
             dashboardRoutes[profile.user_type as keyof typeof dashboardRoutes];
 
           if (dashboardRoute) {
-            console.log(`Login: Directing user type ${profile.user_type} to ${dashboardRoute}`);
+            console.log(`✅ LOGIN: Directing user type "${profile.user_type}" to ${dashboardRoute}`);
             router.replace(dashboardRoute);
           } else {
-            console.warn(`Login: Unknown user type ${profile.user_type}, routing to user selection`);
+            console.warn(`❌ LOGIN: Unknown user type "${profile.user_type}", routing to user selection`);
+            console.warn(`Available routes:`, Object.keys(dashboardRoutes));
             router.replace("/user-selection");
           }
         } else {
-          // Profile fetch failed, route to user selection
-          console.warn(
-            "Could not fetch user profile, routing to user selection"
-          );
-          router.replace("/user-selection");
+          // Profile fetch failed, check if it's a server error vs auth error
+          const statusCode = profileResponse.status;
+          console.warn(`Profile fetch failed with status ${statusCode}`);
+          
+          if (statusCode === 500) {
+            // Log the 500 error for debugging
+            console.error("🔧 Profile API returned 500 error - this should be fixed now");
+            try {
+              const errorBody = await profileResponse.text();
+              console.log("🔍 500 Error response body:", errorBody);
+            } catch (parseError) {
+              console.log("🔍 Could not parse 500 error response");
+            }
+            
+            // Route to user selection as fallback for 500 errors
+            console.warn("Profile API error - routing to user selection for user to set up profile");
+            router.replace("/user-selection");
+            return;
+          } else if (statusCode === 401) {
+            // Auth error - token invalid
+            if (typeof window !== "undefined") {
+              localStorage.removeItem("authToken");
+              localStorage.removeItem("access_token");
+            }
+            setError("Session expired. Please log in again.");
+            setIsLoading(false);
+            return;
+          } else {
+            // Other error - route to user selection as fallback
+            console.warn("Could not fetch user profile, routing to user selection");
+            router.replace("/user-selection");
+          }
         }
       } catch (profileError) {
         console.error("Profile fetch error:", profileError);

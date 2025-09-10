@@ -1109,7 +1109,170 @@ class ApiClient {
 
   // Add these methods to your ApiClient class, after the existing 3 user type methods:
 
-  async getUserTypeConfig(): Promise<any> {
+  async getUserTypeConfig(userType?: string): Promise<any> {
+    console.log(`📊 API: getUserTypeConfig called with userType: "${userType}"`);
+
+    // Get user type from profile if not provided
+    if (!userType) {
+      try {
+        const profileResponse = await fetch(`${this.baseURL}/api/auth/profile`, {
+          headers: this.getHeaders()
+        });
+
+        if (profileResponse.ok) {
+          const profile = await profileResponse.json();
+          
+          // Check if user is admin first (role takes precedence)
+          if (profile.role === "ADMIN" || profile.role === "admin") {
+            userType = "admin";
+            console.log(`📊 API: Admin user detected (role: ${profile.role}), using admin config`);
+          } else {
+            userType = profile.user_type;
+            console.log(`📊 API: Got user type from profile: "${userType}"`);
+          }
+        } else {
+          console.warn("🔍 API: Could not get profile, will use fallback config");
+          console.warn(`Profile API status: ${profileResponse.status}`);
+          // Don't throw - continue with fallback
+        }
+      } catch (error) {
+        console.warn("🔍 Error getting profile, will use fallback config:", error);
+        // Don't throw - continue with fallback
+      }
+    }
+
+    // Use fallback if we still don't have a user type
+    if (!userType) {
+      console.warn("📊 API: No user type available, using affiliate_marketer fallback");
+      userType = "affiliate_marketer"; // Safe fallback
+    }
+
+    // Special handling for admin users - check if user has admin role
+    if (userType === "admin" || userType === "administrator") {
+      console.log("📊 API: Admin user detected, using admin config");
+      userType = "admin";
+    }
+    
+    // Create user type-specific mock configs
+    const mockConfigs = {
+      admin: {
+        user_profile: {
+          user_type_display: "Administrator",
+          user_type: "admin",
+          dashboard_route: "/admin",
+          usage_summary: {
+            campaigns: { used: 0, limit: 999999, percentage: 0 },
+            analysis: { used: 0, limit: 999999, percentage: 0 },
+            intelligence: { used: 0, limit: 999999, percentage: 0 },
+            content: { used: 0, limit: 999999, percentage: 0 }
+          },
+          subscription_info: {
+            plan: "Admin",
+            tier: "ADMIN",
+            credits_remaining: 999999,
+            next_reset: "Never"
+          }
+        },
+        primary_widgets: ["users", "companies", "revenue", "settings"],
+        dashboard_title: "RodgersDigital Admin",
+        main_cta: "Manage Platform",
+        theme_color: "red"
+      },
+      affiliate_marketer: {
+        user_profile: {
+          user_type_display: "Affiliate Marketer",
+          user_type: "affiliate_marketer",
+          dashboard_route: "/dashboard/affiliate",
+          usage_summary: {
+            campaigns: { used: 2, limit: 10, percentage: 20 },
+            analysis: { used: 5, limit: 25, percentage: 20 },
+            intelligence: { used: 3, limit: 15, percentage: 20 },
+            content: { used: 8, limit: 50, percentage: 16 }
+          },
+          subscription_info: {
+            plan: "Free",
+            tier: "FREE",
+            credits_remaining: 95,
+            next_reset: "2024-02-01"
+          }
+        },
+        primary_widgets: ["campaigns", "analytics", "intelligence", "content"],
+        dashboard_title: "Affiliate Command Center",
+        main_cta: "Track Competitors",
+        theme_color: "blue"
+      },
+      content_creator: {
+        user_profile: {
+          user_type_display: "Content Creator",
+          user_type: "content_creator",
+          dashboard_route: "/dashboard/creator",
+          usage_summary: {
+            campaigns: { used: 4, limit: 15, percentage: 27 },
+            analysis: { used: 8, limit: 30, percentage: 27 },
+            intelligence: { used: 6, limit: 20, percentage: 30 },
+            content: { used: 15, limit: 75, percentage: 20 }
+          },
+          subscription_info: {
+            plan: "Free",
+            tier: "FREE",
+            credits_remaining: 85,
+            next_reset: "2024-02-01"
+          }
+        },
+        primary_widgets: ["content", "campaigns", "analytics", "intelligence"],
+        dashboard_title: "Creator Studio Pro",
+        main_cta: "Analyze Viral Content",
+        theme_color: "purple"
+      },
+      business_owner: {
+        user_profile: {
+          user_type_display: "Business Owner",
+          user_type: "business_owner",
+          dashboard_route: "/dashboard/business",
+          usage_summary: {
+            campaigns: { used: 6, limit: 20, percentage: 30 },
+            analysis: { used: 10, limit: 35, percentage: 29 },
+            intelligence: { used: 8, limit: 25, percentage: 32 },
+            content: { used: 12, limit: 60, percentage: 20 }
+          },
+          subscription_info: {
+            plan: "Free",
+            tier: "FREE",
+            credits_remaining: 75,
+            next_reset: "2024-02-01"
+          }
+        },
+        primary_widgets: ["campaigns", "intelligence", "analytics", "content"],
+        dashboard_title: "Business Growth Hub",
+        main_cta: "Generate Leads",
+        theme_color: "green"
+      }
+    };
+
+    // Determine which config to use - should be based on actual user type
+    const configKey = userType || 'affiliate_marketer'; // Only fallback if no user type found
+    const baseConfig = mockConfigs[configKey as keyof typeof mockConfigs] || mockConfigs.affiliate_marketer;
+
+    // Add common properties to all configs
+    const mockConfig = {
+      ...baseConfig,
+      dashboard_features: [
+        "Campaign Creation",
+        "Performance Analytics", 
+        "Content Generation",
+        "Affiliate Links"
+      ],
+      quick_actions: [
+        { id: "create-campaign", title: "Create Campaign", icon: "plus" },
+        { id: "analyze-performance", title: "View Analytics", icon: "chart" },
+        { id: "generate-content", title: "Generate Content", icon: "edit" }
+      ]
+    };
+    
+    return mockConfig;
+
+    // ORIGINAL CODE (commented out for temporary bypass):
+    /*
     const response = await fetch(`${this.baseURL}/api/user-types/dashboard-config`, {
       headers: this.getHeaders()
     })
@@ -1127,6 +1290,7 @@ class ApiClient {
 
     // Fallback to standard handling
     return this.handleResponse(response)
+    */
   }
 
   async getCurrentUserType(): Promise<any> {

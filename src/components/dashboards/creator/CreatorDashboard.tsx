@@ -173,14 +173,47 @@ const CreatorDashboard: React.FC<CreatorDashboardProps> = ({ config }) => {
     setError(null);
 
     try {
-      // Replace mock data with real API calls
-      const [campaignStats, contentStats, socialProfiles, recentCampaigns] =
-        await Promise.all([
-          fetchCampaignStats().catch(() => ({})),
-          fetchContentStats().catch(() => ({})),
-          fetchUserSocialProfiles().catch(() => ({ profiles: [] })),
-          fetchRecentCampaigns(3).catch(() => []),
-        ]);
+      // TEMPORARY: Use mock data while backend APIs are being developed
+      console.log("🔧 CREATOR DASHBOARD: Using mock data for dashboard");
+      
+      // Create realistic mock data for creator dashboard
+      const campaignStats = {};
+      const contentStats = {};
+      const socialProfiles = {
+        profiles: [
+          {
+            platform: "TikTok",
+            username: "@creative_user",
+            followers: 85400,
+            engagement_rate: 7.8,
+            recent_growth: 12.5
+          },
+          {
+            platform: "Instagram", 
+            username: "@creative_user",
+            followers: 32600,
+            engagement_rate: 5.2,
+            recent_growth: 8.3
+          },
+          {
+            platform: "YouTube",
+            username: "CreativeChannel",
+            followers: 18900,
+            engagement_rate: 4.6,
+            recent_growth: 15.2
+          }
+        ]
+      };
+      const recentCampaigns = [];
+      
+      // Original code (commented out while backend is being developed):
+      // const [campaignStats, contentStats, socialProfiles, recentCampaigns] =
+      //   await Promise.all([
+      //     fetchCampaignStats().catch(() => ({})),
+      //     fetchContentStats().catch(() => ({})),
+      //     fetchUserSocialProfiles().catch(() => ({ profiles: [] })),
+      //     fetchRecentCampaigns(3).catch(() => []),
+      //   ]);
 
       // Calculate real metrics from API data
       const totalFollowers =

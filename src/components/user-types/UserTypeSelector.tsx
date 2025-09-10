@@ -94,25 +94,15 @@ const UserTypeSelector: React.FC<UserTypeSelectorProps> = ({
     setError("");
 
     try {
-      console.log("🔄 Submitting user type selection:", selectedType);
+      console.log("🔄 Navigating to registration with user type:", selectedType);
 
-      // Use the correct method name from your existing hook
-      const success = await setUserType(selectedType as any, {
-        goals: [],
-        experience_level: "beginner",
-        current_activities: [],
-        interests: [],
-        description: "",
-      });
-
-      if (success) {
-        console.log(
-          "✅ User type selected successfully, navigating to onboarding"
-        );
-        router.push("/onboarding");
-      } else {
-        setError("Failed to save user type. Please try again.");
+      // Store selected user type in localStorage temporarily
+      if (typeof window !== "undefined") {
+        localStorage.setItem("selectedUserType", selectedType);
       }
+
+      // Navigate to registration with user type
+      router.push(`/register?userType=${selectedType}`);
     } catch (error) {
       console.error("❌ Error in handleSubmit:", error);
       setError("An error occurred. Please try again.");
@@ -264,7 +254,7 @@ const UserTypeSelector: React.FC<UserTypeSelectorProps> = ({
                 Setting up your experience...
               </span>
             ) : (
-              `Continue as ${userTypes[selectedType]?.title}`
+              `Continue as ${userTypes[selectedType]?.title} →`
             )}
           </button>
 

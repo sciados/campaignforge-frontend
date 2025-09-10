@@ -90,6 +90,11 @@ const UserTypeRouter: React.FC = () => {
       const profile = await profileResponse.json();
       setUserProfile(profile);
 
+      // DEBUG: Log profile information
+      console.log("🔍 USERTYPEROUTER: Full profile received:", JSON.stringify(profile, null, 2));
+      console.log("🔍 USERTYPEROUTER: User type detected:", profile.user_type);
+      console.log("🔍 USERTYPEROUTER: Current pathname:", pathname);
+
       // Step 2: Handle routing based on profile
       if (profile.role === "admin") {
         router.push("/admin");
@@ -117,14 +122,18 @@ const UserTypeRouter: React.FC = () => {
 
         if (configResponse.ok) {
           const configData = await configResponse.json();
+          console.log("🔍 USERTYPEROUTER: Config response received:", JSON.stringify(configData, null, 2));
           if (configData.success && configData.config) {
+            console.log("🔍 USERTYPEROUTER: Using backend config");
             setDashboardConfig(configData.config);
           } else {
             // Create fallback config
+            console.log("🔍 USERTYPEROUTER: Backend config invalid, using fallback for user type:", profile.user_type);
             setDashboardConfig(createFallbackConfig(profile));
           }
         } else {
           // Create fallback config if endpoint not available
+          console.log("🔍 USERTYPEROUTER: Config endpoint failed, using fallback for user type:", profile.user_type);
           setDashboardConfig(createFallbackConfig(profile));
         }
       } catch (configError) {
@@ -169,44 +178,60 @@ const UserTypeRouter: React.FC = () => {
     return path;
   };
 
-  // Helper function to create fallback config
+  // Helper function to create fallback config with enhanced user-type-specific data
   const createFallbackConfig = (profile: UserProfile): DashboardConfig => {
-    const userTypeDisplays = {
-      affiliate_marketer: "Affiliate Marketer",
-      content_creator: "Content Creator",
-      business_owner: "Business Owner",
+    const userTypeConfigs = {
+      affiliate_marketer: {
+        user_type_display: "Affiliate Marketer",
+        dashboard_title: "Affiliate Command Center",
+        main_cta: "Track Competitors",
+        theme_color: "blue",
+        usage_summary: {
+          campaigns: { used: 2, limit: 10, percentage: 20 },
+          analysis: { used: 5, limit: 25, percentage: 20 },
+        },
+        primary_widgets: ["campaigns", "analytics", "intelligence", "content"],
+      },
+      content_creator: {
+        user_type_display: "Content Creator",
+        dashboard_title: "Creator Studio Pro",
+        main_cta: "Analyze Viral Content",
+        theme_color: "purple",
+        usage_summary: {
+          campaigns: { used: 4, limit: 15, percentage: 27 },
+          analysis: { used: 8, limit: 30, percentage: 27 },
+        },
+        primary_widgets: ["content", "campaigns", "analytics", "intelligence"],
+      },
+      business_owner: {
+        user_type_display: "Business Owner",
+        dashboard_title: "Business Growth Hub",
+        main_cta: "Generate Leads",
+        theme_color: "green",
+        usage_summary: {
+          campaigns: { used: 6, limit: 20, percentage: 30 },
+          analysis: { used: 10, limit: 35, percentage: 29 },
+        },
+        primary_widgets: ["campaigns", "intelligence", "analytics", "content"],
+      },
     };
 
-    const dashboardTitles = {
-      affiliate_marketer: "Affiliate Command Center",
-      content_creator: "Creator Studio Pro",
-      business_owner: "Business Growth Hub",
-    };
+    // Get config for user type, fallback to affiliate_marketer
+    const userTypeKey = profile.user_type as keyof typeof userTypeConfigs;
+    const config = userTypeConfigs[userTypeKey] || userTypeConfigs.affiliate_marketer;
 
-    const mainCTAs = {
-      affiliate_marketer: "Track Competitors",
-      content_creator: "Analyze Viral Content",
-      business_owner: "Generate Leads",
-    };
+    console.log(`🎨 Creating enhanced fallback config for user type: ${profile.user_type}`);
+    console.log(`📊 Config selected:`, config);
 
     return {
       user_profile: {
-        user_type_display:
-          userTypeDisplays[
-            profile.user_type as keyof typeof userTypeDisplays
-          ] || "User",
-        usage_summary: {
-          campaigns: { used: 0, limit: 10, percentage: 0 },
-          analysis: { used: 0, limit: 5, percentage: 0 },
-        },
+        user_type_display: config.user_type_display,
+        usage_summary: config.usage_summary,
       },
-      primary_widgets: ["dashboard", "campaigns", "analytics"],
-      dashboard_title:
-        dashboardTitles[profile.user_type as keyof typeof dashboardTitles] ||
-        "Dashboard",
-      main_cta:
-        mainCTAs[profile.user_type as keyof typeof mainCTAs] || "Get Started",
-      theme_color: "blue",
+      primary_widgets: config.primary_widgets,
+      dashboard_title: config.dashboard_title,
+      main_cta: config.main_cta,
+      theme_color: config.theme_color,
     };
   };
 

@@ -3,7 +3,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Eye, EyeOff, ArrowRight, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -30,12 +30,26 @@ export default function RegisterPage() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [selectedUserType, setSelectedUserType] = useState<string | null>(null);
 
   const router = useRouter();
+  const searchParams = useSearchParams();
 
   useEffect(() => {
     setMounted(true);
-  }, []);
+    
+    // Get user type from URL params or localStorage
+    const userTypeFromUrl = searchParams.get('userType');
+    const userTypeFromStorage = typeof window !== "undefined" 
+      ? localStorage.getItem('selectedUserType') 
+      : null;
+    
+    const userType = userTypeFromUrl || userTypeFromStorage;
+    if (userType) {
+      setSelectedUserType(userType);
+      console.log("📋 Registration form loaded with user type:", userType);
+    }
+  }, [searchParams]);
 
   if (!mounted) {
     return (
@@ -68,12 +82,13 @@ export default function RegisterPage() {
     setIsLoading(true);
 
     try {
-      // Step 1: Register user
+      // Step 1: Register user with selected user type
       const userData = {
         email: formData.email,
         password: formData.password,
         full_name: `${formData.firstName} ${formData.lastName}`,
         company_name: formData.company || `${formData.firstName}'s Company`,
+        user_type: selectedUserType, // Include the selected user type
       };
 
       const response = await fetch(getApiUrl("/api/auth/register"), {
@@ -99,10 +114,44 @@ export default function RegisterPage() {
         }
       }
 
-      // Step 3: Route to user selection
-      // Always route to user selection after successful registration
-      // This ensures new users go through the proper onboarding flow
-      router.push("/user-selection");
+      // Step 3: Clean up and route appropriately
+      // Clear the temporary user type from storage
+      if (typeof window !== "undefined") {
+        localStorage.removeItem("selectedUserType");
+      }
+
+      // Route directly to appropriate dashboard if user type was selected
+      if (selectedUserType) {
+        console.log("🎯 Registration complete with user type, routing to dashboard");
+        
+        // Route based on user type
+        const dashboardRoutes = {
+          // Admin routing
+          admin: "/admin",
+          administrator: "/admin",
+          
+          // User type routing
+          affiliate_marketer: "/dashboard/affiliate",
+          affiliate: "/dashboard/affiliate",
+          content_creator: "/dashboard/creator", 
+          creator: "/dashboard/creator",
+          business_owner: "/dashboard/business",
+          business: "/dashboard/business",
+        };
+
+        const dashboardRoute = dashboardRoutes[selectedUserType as keyof typeof dashboardRoutes];
+
+        if (dashboardRoute) {
+          console.log(`✅ REGISTRATION: Directing user type "${selectedUserType}" to ${dashboardRoute}`);
+          router.push(dashboardRoute);
+        } else {
+          console.warn(`❌ REGISTRATION: Unknown user type "${selectedUserType}", routing to user selection`);
+          router.push("/user-selection");
+        }
+      } else {
+        console.log("📋 Registration complete without user type, routing to user selection");
+        router.push("/user-selection");
+      }
     } catch (error) {
       console.error("Registration error:", error);
       setError("Network error - please try again");
@@ -171,6 +220,18 @@ export default function RegisterPage() {
             <p className="text-gray-600">
               Get started with your specialized dashboard
             </p>
+            {selectedUserType && (
+              <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                <p className="text-sm text-blue-800">
+                  <span className="font-medium">Selected type:</span> {
+                    selectedUserType === 'affiliate_marketer' ? 'Affiliate Marketer' :
+                    selectedUserType === 'content_creator' ? 'Content Creator' :
+                    selectedUserType === 'business_owner' ? 'Business Owner' : 
+                    selectedUserType
+                  }
+                </p>
+              </div>
+            )}
           </div>
 
           {error && (

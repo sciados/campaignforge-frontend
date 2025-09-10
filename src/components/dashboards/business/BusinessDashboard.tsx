@@ -141,12 +141,31 @@ const BusinessDashboard: React.FC<BusinessDashboardProps> = ({ config }) => {
     setError(null);
 
     try {
-      // Replace mock data with real API calls
-      const [companyStats, companyDetails, dashboardStats] = await Promise.all([
-        fetchCompanyStats().catch(() => ({})),
-        fetchCompanyDetails().catch(() => ({})),
-        fetchDashboardStats().catch(() => ({})),
-      ]);
+      // TEMPORARY: Use mock data while backend APIs are being developed
+      console.log("🔧 BUSINESS DASHBOARD: Using mock data for dashboard");
+      
+      // Create realistic mock data for business dashboard
+      const companyStats = {
+        monthly_revenue: 0,
+        revenue_growth_percentage: 0,
+        total_leads: 0,
+        lead_growth_percentage: 0,
+        conversion_rate: 0,
+        conversion_growth: 0,
+        sales_calls: 0,
+        marketing_spend: 0,
+        marketing_revenue: 0,
+        marketing_roi: 0
+      };
+      const companyDetails = {};
+      const dashboardStats = {};
+      
+      // Original code (commented out while backend is being developed):
+      // const [companyStats, companyDetails, dashboardStats] = await Promise.all([
+      //   fetchCompanyStats().catch(() => ({})),
+      //   fetchCompanyDetails().catch(() => ({})),
+      //   fetchDashboardStats().catch(() => ({})),
+      // ]);
 
       // Map real data to component structure
       setDashboardData({

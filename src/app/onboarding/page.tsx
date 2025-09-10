@@ -19,15 +19,14 @@ export default function OnboardingPage() {
   const [fallbackUserType, setFallbackUserType] = useState<string>("");
   const router = useRouter();
 
-  // If no user profile after 3 seconds, redirect to user selection
+  // Route to dashboard if profile is not available after loading
   useEffect(() => {
     if (!isLoading && !userProfile) {
-      const timeout = setTimeout(() => {
-        console.log("No user profile found, redirecting to user selection");
-        router.push("/user-selection?return=onboarding");
-      }, 3000);
-
-      return () => clearTimeout(timeout);
+      console.log("🔧 ONBOARDING: No profile loaded after authentication");
+      console.log("🔧 ONBOARDING: Profile API should be working now, so routing to user selection for profile setup");
+      
+      // Since we fixed the profile API, if we can't load a profile, the user needs to set up their profile
+      router.push("/user-selection");
     }
   }, [isLoading, userProfile, router]);
 
