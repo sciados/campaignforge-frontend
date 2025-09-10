@@ -1,7 +1,7 @@
 // lib/waitlist-api.ts
 // TypeScript API client for waitlist functionality
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://your-railway-app.railway.app'
+import { getApiUrl } from './config'
 
 // ============================================================================
 // ✅ TYPE DEFINITIONS
@@ -87,7 +87,7 @@ interface ApiCallOptions extends RequestInit {
 }
 
 async function waitlistApiCall<T>(endpoint: string, options: ApiCallOptions = {}): Promise<T> {
-  const url = `${API_BASE_URL}/api/waitlist${endpoint}`
+  const url = getApiUrl(`/api/waitlist${endpoint}`)
   
   const config: RequestInit = {
     headers: {
