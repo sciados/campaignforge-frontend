@@ -21,82 +21,86 @@ export async function POST(request: NextRequest) {
     const backendUrl = process.env.BACKEND_URL || 'http://localhost:8000';
     const apiUrl = `${backendUrl}/intelligence/generate-content`;
     
-    // For demo purposes, let's simulate the 3-step process
-    // In production, this would call your actual FastAPI backend
-    if (process.env.NODE_ENV === 'development') {
-      // Simulate processing delay
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      // Get campaign-specific data for more realistic simulation
-      const campaignData = getCampaignIntelligenceData(body.campaign_id);
-      
-      // Mock successful response with campaign-specific intelligence
-      const mockResponse = {
-        success: true,
-        data: {
-          success: true,
-          content_type: body.content_type,
-          content: generateMockContent(body.content_type, campaignData),
-          intelligence_driven: true,
-          three_step_process: {
-            step1_intelligence_sources: campaignData.intelligence_count,
-            step2_prompt_optimization: campaignData.optimization_score,
-            step3_generation_provider: campaignData.ai_provider
-          },
-          metadata: {
-            generated_by: '3_step_intelligence_driven_service',
-            intelligence_utilization: campaignData.intelligence_utilization,
-            prompt_optimization_score: campaignData.optimization_score,
-            generation_cost: campaignData.generation_cost,
-            total_generation_time: 2.5 + Math.random() * 1.5,
-            intelligence_sources_used: campaignData.intelligence_count,
-            product_name: campaignData.product_name,
-            campaign_id: body.campaign_id,
-            campaign_name: campaignData.campaign_name,
-            generated_at: new Date().toISOString(),
-            campaign_intelligence: {
-              market_positioning: campaignData.market_positioning,
-              target_audience: campaignData.target_audience,
-              competitive_advantages: campaignData.competitive_advantages,
-              brand_voice: campaignData.brand_voice
-            },
-            ai_optimization: {
-              provider_used: campaignData.ai_provider.toLowerCase(),
-              generation_cost: campaignData.generation_cost,
-              quality_score: campaignData.quality_score,
-              generation_time: 2.8,
-              enhanced_routing_enabled: true,
-              optimization_metadata: {
-                intelligence_driven: true,
-                prompt_optimization_used: true,
-                campaign_specific: true
-              },
-              fallback_used: false
-            }
-          }
+    // Try to call the actual FastAPI backend first
+    try {
+      const backendResponse = await fetch(apiUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(authorization && { 'Authorization': authorization }),
         },
-        message: `Intelligence-driven content generated successfully using ${campaignData.campaign_name} intelligence data`
-      };
+        body: JSON.stringify(body),
+      });
+
+      if (backendResponse.ok) {
+        const backendData = await backendResponse.json();
+        return NextResponse.json(backendData);
+      }
       
-      return NextResponse.json(mockResponse);
+      // If backend call fails, log and fall back to mock data
+      console.warn(`Backend not available for content generation (${backendResponse.status}), using mock data`);
+      
+    } catch (backendError) {
+      console.warn('Backend connection failed for content generation, using mock data:', backendError);
     }
+
+    // Fallback to mock data when backend is not available
+    // Simulate processing delay
+    await new Promise(resolve => setTimeout(resolve, 2000));
     
-    // Production: Forward to FastAPI backend
-    const response = await fetch(apiUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        ...(authorization && { 'Authorization': authorization }),
+    // Get campaign-specific data for more realistic simulation
+    const campaignData = getCampaignIntelligenceData(body.campaign_id);
+    
+    // Mock successful response with campaign-specific intelligence
+    const mockResponse = {
+      success: true,
+      data: {
+        success: true,
+        content_type: body.content_type,
+        content: generateMockContent(body.content_type, campaignData),
+        intelligence_driven: true,
+        three_step_process: {
+          step1_intelligence_sources: campaignData.intelligence_count,
+          step2_prompt_optimization: campaignData.optimization_score,
+          step3_generation_provider: campaignData.ai_provider
+        },
+        metadata: {
+          generated_by: '3_step_intelligence_driven_service',
+          intelligence_utilization: campaignData.intelligence_utilization,
+          prompt_optimization_score: campaignData.optimization_score,
+          generation_cost: campaignData.generation_cost,
+          total_generation_time: 2.5 + Math.random() * 1.5,
+          intelligence_sources_used: campaignData.intelligence_count,
+          product_name: campaignData.product_name,
+          campaign_id: body.campaign_id,
+          campaign_name: campaignData.campaign_name,
+          generated_at: new Date().toISOString(),
+          campaign_intelligence: {
+            market_positioning: campaignData.market_positioning,
+            target_audience: campaignData.target_audience,
+            competitive_advantages: campaignData.competitive_advantages,
+            brand_voice: campaignData.brand_voice
+          },
+          ai_optimization: {
+            provider_used: campaignData.ai_provider.toLowerCase(),
+            generation_cost: campaignData.generation_cost,
+            quality_score: campaignData.quality_score,
+            generation_time: 2.8,
+            enhanced_routing_enabled: true,
+            optimization_metadata: {
+              intelligence_driven: true,
+              prompt_optimization_used: true,
+              campaign_specific: true,
+              fallback_used: true
+            },
+            fallback_used: true
+          }
+        }
       },
-      body: JSON.stringify(body),
-    });
+      message: `Mock intelligence-driven content generated using ${campaignData.campaign_name} intelligence data`
+    };
     
-    if (!response.ok) {
-      throw new Error(`Backend API returned ${response.status}: ${response.statusText}`);
-    }
-    
-    const data = await response.json();
-    return NextResponse.json(data);
+    return NextResponse.json(mockResponse);
     
   } catch (error) {
     console.error('Intelligence content generation API error:', error);
