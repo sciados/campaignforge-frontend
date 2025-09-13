@@ -9,9 +9,6 @@ interface Step1SetupProps {
     description: string
     keywords: string[]
     target_audience: string
-    product_name: string
-    salespage_url: string
-    affiliate_link: string
   }) => Promise<void>
   isLoading: boolean
   initialData: {
@@ -19,9 +16,6 @@ interface Step1SetupProps {
     description: string
     keywords: string[]
     target_audience: string
-    product_name?: string
-    salespage_url?: string
-    affiliate_link?: string
   }
   isLocked: boolean
 }
@@ -33,53 +27,17 @@ export default function Step1Setup({
   isLocked 
 }: Step1SetupProps) {
   const [formData, setFormData] = useState({
-    ...initialData,
-    product_name: initialData.product_name || '',
-    salespage_url: initialData.salespage_url || '',
-    affiliate_link: initialData.affiliate_link || ''
+    ...initialData
   })
   const [keywordInput, setKeywordInput] = useState('')
   const [error, setError] = useState<string | null>(null)
-  const [urlValidation, setUrlValidation] = useState({
-    salespage_url: { isValidating: false, isValid: false },
-    affiliate_link: { isValidating: false, isValid: false }
-  })
 
-  // URL validation function
-  const isValidUrl = (string: string): boolean => {
-    try {
-      new URL(string)
-      return true
-    } catch (_) {
-      return false
-    }
-  }
-
-  // Handle URL validation with debouncing
-  const handleUrlValidation = (field: 'salespage_url' | 'affiliate_link', value: string) => {
-    if (!value) {
-      setUrlValidation(prev => ({ ...prev, [field]: { isValidating: false, isValid: false } }))
-      return
-    }
-
-    setUrlValidation(prev => ({ ...prev, [field]: { isValidating: true, isValid: false } }))
-    
-    setTimeout(() => {
-      const isValid = isValidUrl(value)
-      setUrlValidation(prev => ({ ...prev, [field]: { isValidating: false, isValid } }))
-    }, 500)
-  }
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }))
     
     // Clear errors when user starts typing
     if (error) setError(null)
-    
-    // Handle URL validation
-    if (field === 'salespage_url' || field === 'affiliate_link') {
-      handleUrlValidation(field as 'salespage_url' | 'affiliate_link', value)
-    }
   }
 
   const handleAddKeyword = () => {
@@ -110,7 +68,7 @@ export default function Step1Setup({
     e.preventDefault()
     setError(null)
 
-    // Enhanced validation
+    // Simplified validation - just basic fields
     if (!formData.title.trim()) {
       setError('Campaign title is required')
       return
@@ -121,28 +79,8 @@ export default function Step1Setup({
       return
     }
 
-    if (!formData.product_name.trim()) {
-      setError('Product name is required')
-      return
-    }
-
-    if (!formData.salespage_url.trim()) {
-      setError('Salespage URL is required')
-      return
-    }
-
-    if (!isValidUrl(formData.salespage_url)) {
-      setError('Please enter a valid salespage URL (including https://)')
-      return
-    }
-
-    if (!formData.affiliate_link.trim()) {
-      setError('Affiliate link is required')
-      return
-    }
-
-    if (!isValidUrl(formData.affiliate_link)) {
-      setError('Please enter a valid affiliate link (including https://)')
+    if (!formData.target_audience.trim()) {
+      setError('Target audience is required')
       return
     }
 
@@ -151,10 +89,7 @@ export default function Step1Setup({
         title: formData.title,
         description: formData.description,
         keywords: formData.keywords,
-        target_audience: formData.target_audience,
-        product_name: formData.product_name,
-        salespage_url: formData.salespage_url,
-        affiliate_link: formData.affiliate_link
+        target_audience: formData.target_audience
       })
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to create campaign')

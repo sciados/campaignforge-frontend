@@ -253,7 +253,7 @@ export default function AdminPage() {
       const API_BASE_URL =
         process.env.NEXT_PUBLIC_API_URL ||
         "https://campaign-backend-production-e2db.up.railway.app";
-      const response = await fetch(`${API_BASE_URL}/api/admin/stats`, {
+      const response = await fetch(`${API_BASE_URL}/api/dashboard/admin`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (response.ok) {
@@ -695,7 +695,7 @@ export default function AdminPage() {
               const token = localStorage.getItem('authToken') || localStorage.getItem('access_token');
               
               try {
-                const response = await fetch('https://campaign-backend-production-e2db.up.railway.app/api/admin/stats', {
+                const response = await fetch('https://campaign-backend-production-e2db.up.railway.app/api/dashboard/admin', {
                   method: 'GET',
                   headers: {
                     'Authorization': `Bearer ${token}`,

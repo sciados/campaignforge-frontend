@@ -27,9 +27,6 @@ interface WorkflowState {
     description: string;
     keywords: string[];
     target_audience: string;
-    product_name: string;
-    salespage_url: string;
-    affiliate_link: string;
   };
   isStep1Locked: boolean;
   isAnalyzing: boolean;
@@ -58,10 +55,7 @@ export default function CreateWorkflowPage() {
       title: "",
       description: "",
       keywords: [],
-      target_audience: "",
-      product_name: "",
-      salespage_url: "",
-      affiliate_link: "",
+      target_audience: ""
     },
     isStep1Locked: false,
     isAnalyzing: false,
@@ -92,44 +86,24 @@ export default function CreateWorkflowPage() {
     description: string;
     keywords: string[];
     target_audience: string;
-    product_name: string;
-    salespage_url: string;
-    affiliate_link: string;
   }) => {
     setIsCreating(true);
     setError(null);
 
     try {
-      console.log("Creating campaign with enhanced data:", campaignData);
+      console.log("Creating campaign with basic data:", campaignData);
 
-      // Create campaign with new fields
+      // Create campaign with simplified data
       const campaign = await createCampaign({
         ...campaignData,
-        campaign_type: "universal",
-        settings: {
-          workflow_type: "streamlined_auto_analysis",
-          step_1_completed: true,
-          locked_after_step_1: true,
-          product_name: campaignData.product_name,
-          salespage_url: campaignData.salespage_url,
-          affiliate_link: campaignData.affiliate_link,
-          auto_analysis_enabled: true,
-        },
+        campaign_type: "universal"
       });
 
       console.log("Campaign created successfully:", campaign.id);
 
-      // Lock Step 1 and advance to Step 2 (Analysis)
-      setWorkflow((prev) => ({
-        ...prev,
-        currentStep: 2,
-        campaignData: { ...campaignData, id: campaign.id },
-        isStep1Locked: true,
-        isAnalyzing: true,
-      }));
-
-      // UPDATED: Start complete analysis workflow (Steps 2, 3, 4)
-      await startCompleteAnalysisWorkflow(campaign.id, campaignData);
+      // Navigate to campaign inputs management page
+      router.push(`/campaigns/${campaign.id}/inputs`);
+      
     } catch (error) {
       console.error("Failed to create campaign:", error);
       setError(

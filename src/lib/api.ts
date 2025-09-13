@@ -851,6 +851,23 @@ class ApiClient {
     }
   }
 
+  private getCompanyIdFromToken(): string | null {
+    try {
+      const token = this.getAuthToken()
+      if (!token) return null
+      
+      // Decode JWT payload (base64 decode the middle section)
+      const payload = token.split('.')[1]
+      if (!payload) return null
+      
+      const decoded = JSON.parse(atob(payload))
+      return decoded.company_id || null
+    } catch (error) {
+      console.error('Error decoding token for company_id:', error)
+      return null
+    }
+  }
+
   // ðŸŽ¯ ROBUST RESPONSE HANDLER - Handles Multiple Backend Response Formats
   private async handleResponse<T>(response: Response): Promise<T> {
     if (response.ok) {
@@ -1809,8 +1826,14 @@ class ApiClient {
   // ============================================================================
 
   async createCampaign(campaignData: CampaignCreateData): Promise<Campaign> {
+    const company_id = this.getCompanyIdFromToken()
+    if (!company_id) {
+      throw new Error('Authentication required: company_id not found in token')
+    }
+    
     const dataWithDefaults = {
       campaign_type: 'universal',
+      company_id: company_id, // Required by backend
       // ðŸ†• NEW: Auto-analysis defaults for streamlined workflow
       auto_analysis_enabled: campaignData.auto_analysis_enabled ?? true,
       content_types: campaignData.content_types || ["email", "social_post", "ad_copy"],
@@ -2333,6 +2356,82 @@ class ApiClient {
     })
 
     return this.handleResponse(response)
+  }
+
+  // ============================================================================
+  // 🔥 CONTENT GENERATION API METHODS
+  // ============================================================================
+
+  async runIntelligenceAnalysis(campaignId: string, analysisData: any): Promise<any> {
+    console.log('🧠 API: Running intelligence analysis for campaign:', campaignId);
+    
+    const response = await fetch(`${this.baseURL}/api/intelligence/analyze/${campaignId}`, {
+      method: 'POST',
+      headers: this.getHeaders(),
+      body: JSON.stringify(analysisData)
+    });
+
+    return this.handleResponse(response);
+  }
+
+  async triggerContentGeneration(campaignId: string): Promise<any> {
+    console.log('🎨 API: Triggering content generation for campaign:', campaignId);
+    
+    const response = await fetch(`${this.baseURL}/api/content/generate/${campaignId}`, {
+      method: 'POST',
+      headers: this.getHeaders()
+    });
+
+    return this.handleResponse(response);
+  }
+
+  async getContentGenerationStatus(campaignId: string): Promise<any> {
+    console.log('📊 API: Getting content generation status for campaign:', campaignId);
+    
+    const response = await fetch(`${this.baseURL}/api/content/status/${campaignId}`, {
+      headers: this.getHeaders()
+    });
+
+    return this.handleResponse(response);
+  }
+
+  async getGeneratedContent(campaignId: string, contentType?: string): Promise<any> {
+    console.log('📄 API: Getting generated content for campaign:', campaignId);
+    
+    const url = contentType 
+      ? `${this.baseURL}/api/content/results/${campaignId}?content_type=${contentType}`
+      : `${this.baseURL}/api/content/results/${campaignId}`;
+    
+    const response = await fetch(url, {
+      headers: this.getHeaders()
+    });
+
+    return this.handleResponse(response);
+  }
+
+  async regenerateContent(campaignId: string, contentType: string, modifications: any): Promise<any> {
+    console.log('🔄 API: Regenerating content for campaign:', campaignId, 'type:', contentType);
+    
+    const response = await fetch(`${this.baseURL}/api/content/regenerate/${campaignId}`, {
+      method: 'POST',
+      headers: this.getHeaders(),
+      body: JSON.stringify({
+        content_type: contentType,
+        modifications
+      })
+    });
+
+    return this.handleResponse(response);
+  }
+
+  async getUserContentLimits(): Promise<any> {
+    console.log('📈 API: Getting user content limits');
+    
+    const response = await fetch(`${this.baseURL}/api/content/user-limits`, {
+      headers: this.getHeaders()
+    });
+
+    return this.handleResponse(response);
   }
 }
 
