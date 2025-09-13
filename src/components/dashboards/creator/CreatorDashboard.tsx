@@ -242,13 +242,13 @@ const CreatorDashboard: React.FC<CreatorDashboardProps> = ({ config }) => {
             10,
             (avgEngagement / 100) * 10 + Math.random() * 2
           ), // Calculated score
-          monthlyEarnings: campaignStats.monthly_recurring_revenue || 0,
+          monthlyEarnings: (campaignStats as any).monthly_recurring_revenue || 0,
         },
         contentPipeline: {
-          published: campaignStats.active_campaigns || 0,
-          draft: campaignStats.draft_campaigns || 0,
+          published: (campaignStats as any).active_campaigns || 0,
+          draft: (campaignStats as any).draft_campaigns || 0,
           scheduled: 0, // Not available from current API
-          ideas: campaignStats.total_campaigns_created || 0,
+          ideas: (campaignStats as any).total_campaigns_created || 0,
         },
         viralOpportunities: [
           // These would ideally come from a trends API

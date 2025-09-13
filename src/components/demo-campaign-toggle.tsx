@@ -8,7 +8,7 @@
 
 import React, { useState } from 'react'
 import { useCampaign, campaignUtils } from '@/lib/campaign-api'
-import { EyeIcon, EyeSlashIcon } from '@heroicons/react/24/outline'
+import { Eye, EyeOff } from 'lucide-react'
 
 interface DemoCampaignToggleProps {
   campaign: any // Campaign object
@@ -68,9 +68,9 @@ export function DemoCampaignToggle({
         ) : (
           <>
             {isHidden ? (
-              <EyeIcon className="w-4 h-4" />
+              <Eye className="w-4 h-4" />
             ) : (
-              <EyeSlashIcon className="w-4 h-4" />
+              <EyeOff className="w-4 h-4" />
             )}
           </>
         )}
@@ -131,9 +131,9 @@ export function DemoCampaignInlineToggle({
       ) : (
         <>
           {isHidden ? (
-            <EyeIcon className="w-4 h-4" />
+            <Eye className="w-4 h-4" />
           ) : (
-            <EyeSlashIcon className="w-4 h-4" />
+            <EyeOff className="w-4 h-4" />
           )}
         </>
       )}
