@@ -44,6 +44,7 @@ export default function CampaignsPage() {
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [filteredCampaigns, setFilteredCampaigns] = useState<Campaign[]>([]);
   const [user, setUser] = useState<any>(null);
+  const [showDemoToggle, setShowDemoToggle] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [connectionStatus, setConnectionStatus] = useState<
@@ -256,22 +257,46 @@ export default function CampaignsPage() {
 
       // Load campaigns
       console.log("Loading campaigns...");
-      const campaignsData = await api.getCampaigns({ limit: 50 });
-      console.log("Campaigns loaded:", campaignsData);
+      const campaignsResponse = await api.getCampaigns({ limit: 50 });
+      console.log("Campaigns loaded:", campaignsResponse);
 
-      if (Array.isArray(campaignsData)) {
-        setCampaigns(campaignsData);
-        console.log(`Set ${campaignsData.length} campaigns`);
-
-        // Check if we need demo campaign for first-time users
-        if (campaignsData.length === 0) {
-          console.log("New user detected, creating demo campaign...");
-          await createDemoForNewUser();
-        }
+      // Handle both array and object response formats
+      let campaignsData = [];
+      if (Array.isArray(campaignsResponse)) {
+        campaignsData = campaignsResponse;
+      } else if (campaignsResponse && Array.isArray(campaignsResponse.campaigns)) {
+        campaignsData = campaignsResponse.campaigns;
       } else {
-        console.warn("Invalid campaigns data, setting empty array");
-        setCampaigns([]);
+        console.warn("Invalid campaigns response format:", campaignsResponse);
+        campaignsData = [];
       }
+
+      // Check for global demo campaigns and user preference
+      const userDemoPreference = getStorageItem('show_demo_campaign');
+      const shouldShowDemo = userDemoPreference === null ? true : userDemoPreference !== 'false'; // Default to true for new users
+      
+      let allCampaigns = campaignsData;
+      
+      // Check if there are any global demo campaigns in the response
+      const globalDemoCampaigns = campaignsData.filter(campaign => 
+        campaign.settings?.is_demo === true && campaign.settings?.is_global === true
+      );
+      
+      if (globalDemoCampaigns.length > 0) {
+        setShowDemoToggle(true);
+        
+        if (!shouldShowDemo) {
+          // Filter out global demo campaigns if user has disabled them
+          allCampaigns = campaignsData.filter(campaign => 
+            !(campaign.settings?.is_demo === true && campaign.settings?.is_global === true)
+          );
+        }
+      }
+      
+      setCampaigns(allCampaigns);
+      console.log(`Set ${campaignsData.length} campaigns`);
+
+      // Note: Global demo system handles demo campaigns automatically
     } catch (err) {
       console.error("loadInitialData error:", err);
       const errorMessage = handleApiError(err);
@@ -483,6 +508,15 @@ export default function CampaignsPage() {
     setStatusFilter("all");
   }, []);
 
+  const toggleDemoVisibility = useCallback(async () => {
+    const currentPreference = getStorageItem('show_demo_campaign');
+    const newPreference = currentPreference === 'false' ? 'true' : 'false';
+    setStorageItem('show_demo_campaign', newPreference);
+    
+    // Reload campaigns with new demo preference
+    await loadInitialData();
+  }, [getStorageItem, setStorageItem, loadInitialData]);
+
   // SSR SAFE: Don't render until mounted
   if (!mounted) {
     return null;
@@ -690,32 +724,26 @@ export default function CampaignsPage() {
               </button>
             ))}
 
-            <div className="pt-4 border-t border-gray-200 mt-4">
-              <button
-                onClick={debugStoragePerformance}
-                className="w-full flex items-center space-x-3 px-3 py-2 text-left rounded-lg transition-colors text-orange-600 hover:bg-orange-50"
-              >
-                <Database className="w-5 h-5" />
-                <span className="font-medium">Debug Storage</span>
-              </button>
+            {/* Admin-only section - Only show for admin users */}
+            {user?.role === 'ADMIN' && (
+              <div className="pt-4 border-t border-gray-200 mt-4">
+                <button
+                  onClick={debugStoragePerformance}
+                  className="w-full flex items-center space-x-3 px-3 py-2 text-left rounded-lg transition-colors text-orange-600 hover:bg-orange-50"
+                >
+                  <Database className="w-5 h-5" />
+                  <span className="font-medium">Debug Storage</span>
+                </button>
 
-              <button
-                onClick={() => router.push("/admin")}
-                className="w-full flex items-center space-x-3 px-3 py-2 text-left rounded-lg transition-colors text-gray-600 hover:bg-red-50 hover:text-red-700"
-              >
-                <Shield className="w-5 h-5" />
-                <span className="font-medium">Admin Panel</span>
-              </button>
-            </div>
-            <div className="pt-4 border-t border-gray-200 mt-4">
-              <button
-                onClick={() => router.push("/admin")}
-                className="w-full flex items-center space-x-3 px-3 py-2 text-left rounded-lg transition-colors text-gray-600 hover:bg-red-50 hover:text-red-700"
-              >
-                <Shield className="w-5 h-5" />
-                <span className="font-medium">Admin Panel</span>
-              </button>
-            </div>
+                <button
+                  onClick={() => router.push("/admin")}
+                  className="w-full flex items-center space-x-3 px-3 py-2 text-left rounded-lg transition-colors text-gray-600 hover:bg-red-50 hover:text-red-700"
+                >
+                  <Shield className="w-5 h-5" />
+                  <span className="font-medium">Admin Panel</span>
+                </button>
+              </div>
+            )}
           </nav>
         </aside>
 
@@ -874,6 +902,23 @@ export default function CampaignsPage() {
                     </button>
                   </div>
 
+                  {showDemoToggle && (
+                    <div className="flex justify-center mt-4">
+                      <div className="flex items-center space-x-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                        <Target className="w-5 h-5 text-blue-600" />
+                        <span className="text-sm font-medium text-blue-900">
+                          Demo Campaign Available
+                        </span>
+                        <button
+                          onClick={toggleDemoVisibility}
+                          className="px-3 py-1 text-xs bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+                        >
+                          {getStorageItem('show_demo_campaign') === 'false' ? 'Show Demo' : 'Hide Demo'}
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
                   <div className="mt-6 pt-6 border-t border-gray-200">
                     <div className="flex items-center justify-center space-x-2 text-sm">
                       <div
@@ -931,6 +976,15 @@ export default function CampaignsPage() {
                       >
                         Clear Filters
                       </button>
+
+                      {showDemoToggle && (
+                        <button
+                          onClick={toggleDemoVisibility}
+                          className="px-3 py-2 text-xs bg-blue-100 text-blue-700 rounded-md hover:bg-blue-200 transition-colors border border-blue-300"
+                        >
+                          {getStorageItem('show_demo_campaign') === 'false' ? 'Show Demo' : 'Hide Demo'}
+                        </button>
+                      )}
 
                       <span className="text-sm text-gray-500">
                         {filteredCampaigns.length} campaigns

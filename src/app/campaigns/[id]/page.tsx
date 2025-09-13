@@ -137,7 +137,7 @@ export default function CampaignDetailPage({
           current_step: 1,
           total_steps: 2,
           auto_analysis: {
-            enabled: campaignData.auto_analysis_enabled || false,
+            enabled: false,
             status: "pending",
             confidence_score: 0,
           },

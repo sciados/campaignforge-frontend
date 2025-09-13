@@ -1866,20 +1866,22 @@ class ApiClient {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`)
       }
 
-      const data = await this.handleResponse<Campaign[]>(response)
-      console.log('âœ… getCampaigns success, got', Array.isArray(data) ? data.length : 'unknown', 'campaigns')
+      const responseData = await this.handleResponse<{campaigns: Campaign[], total: number, page?: number, per_page?: number}>(response)
+      
+      // Extract campaigns array from response object
+      const campaigns = responseData.campaigns || []
+      console.log('âœ… getCampaigns success, got', campaigns.length, 'campaigns')
 
       // Add helpful logging for demo campaigns and new workflow
-      if (Array.isArray(data)) {
-        const demoCampaigns = data.filter((c: any) => c.is_demo)
-        const realCampaigns = data.filter((c: any) => !c.is_demo)
-        const autoAnalysisEnabled = data.filter((c: any) => c.auto_analysis_enabled).length
-
-        console.log(`ðŸ“Š Campaigns loaded: ${realCampaigns.length} real, ${demoCampaigns.length} demo`)
-        console.log(`ðŸ”¬ Auto-analysis enabled: ${autoAnalysisEnabled}/${data.length} campaigns`)
+      if (Array.isArray(campaigns)) {
+        const demoCampaigns = campaigns.filter((c: any) => c.is_demo || (c.settings?.is_demo))
+        const realCampaigns = campaigns.filter((c: any) => !c.is_demo && !c.settings?.is_demo)
+        const globalDemo = campaigns.filter((c: any) => c.settings?.is_global_demo)
+        
+        console.log(`ðŸ"Š Campaigns loaded: ${realCampaigns.length} real, ${demoCampaigns.length} demo, ${globalDemo.length} global demo`)
       }
 
-      return data
+      return campaigns
 
     } catch (error) {
       console.error('âŒ getCampaigns error:', error)

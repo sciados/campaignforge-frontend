@@ -51,6 +51,7 @@ C:\Users\shaun\OneDrive\Documents\GitHub\campaignforge-frontend\src\components\d
 C:\Users\shaun\OneDrive\Documents\GitHub\campaignforge-frontend\src\components\dashboards\enhanced\UserDashboardStat...
 C:\Users\shaun\OneDrive\Documents\GitHub\campaignforge-frontend\src\components\dashboards\QuickActions.tsx
 C:\Users\shaun\OneDrive\Documents\GitHub\campaignforge-frontend\src\components\dashboards\UserTypeRouter.tsx
+C:\Users\shaun\OneDrive\Documents\GitHub\campaignforge-frontend\src\components\demo-campaign-toggle.tsx
 C:\Users\shaun\OneDrive\Documents\GitHub\campaignforge-frontend\src\components\DemoPreferenceControl.tsx
 C:\Users\shaun\OneDrive\Documents\GitHub\campaignforge-frontend\src\components\ErrorBoundary.tsx
 C:\Users\shaun\OneDrive\Documents\GitHub\campaignforge-frontend\src\components\input-sources\FileUploader.tsx
@@ -77,6 +78,7 @@ C:\Users\shaun\OneDrive\Documents\GitHub\campaignforge-frontend\src\components\u
 C:\Users\shaun\OneDrive\Documents\GitHub\campaignforge-frontend\src\components\WaitlistForm.tsx
 C:\Users\shaun\OneDrive\Documents\GitHub\campaignforge-frontend\src\lib\ai-discovery-service.ts
 C:\Users\shaun\OneDrive\Documents\GitHub\campaignforge-frontend\src\lib\api.ts
+C:\Users\shaun\OneDrive\Documents\GitHub\campaignforge-frontend\src\lib\campaign-api.ts
 C:\Users\shaun\OneDrive\Documents\GitHub\campaignforge-frontend\src\lib\config.ts
 C:\Users\shaun\OneDrive\Documents\GitHub\campaignforge-frontend\src\lib\hooks\useUserNavigation.ts
 C:\Users\shaun\OneDrive\Documents\GitHub\campaignforge-frontend\src\lib\hooks\useUserType.ts

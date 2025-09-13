@@ -89,9 +89,13 @@ interface ApiCallOptions extends RequestInit {
 async function waitlistApiCall<T>(endpoint: string, options: ApiCallOptions = {}): Promise<T> {
   const url = getApiUrl(`/api/waitlist${endpoint}`)
   
+  // Get auth token for admin endpoints
+  const token = typeof window !== 'undefined' ? localStorage.getItem('authToken') : null
+  
   const config: RequestInit = {
     headers: {
       'Content-Type': 'application/json',
+      ...(token && { 'Authorization': `Bearer ${token}` }),
       ...options.headers,
     },
     ...options,

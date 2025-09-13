@@ -336,6 +336,14 @@ class AiDiscoveryServiceClient {
             'https://campaign-backend-production-e2db.up.railway.app';
     }
 
+    private getAuthHeaders(): Record<string, string> {
+        const token = typeof window !== 'undefined' ? localStorage.getItem('authToken') : null;
+        return {
+            'Content-Type': 'application/json',
+            ...(token && { 'Authorization': `Bearer ${token}` }),
+        };
+    }
+
     private async handleResponse<T>(response: Response): Promise<T> {
         if (!response.ok) {
             const errorText = await response.text();
@@ -356,7 +364,7 @@ class AiDiscoveryServiceClient {
         try {
             const response = await fetch(`${this.backendUrl}/api/admin/ai-discovery/active-providers?top_3_only=false`, {
                 method: 'GET',
-                headers: { 'Content-Type': 'application/json' },
+                headers: this.getAuthHeaders(),
             });
 
             const data = await this.handleResponse<ActiveProvidersApiResponse>(response);
@@ -385,7 +393,7 @@ class AiDiscoveryServiceClient {
         try {
             const response = await fetch(`${this.backendUrl}/api/admin/ai-discovery/discovered-suggestions`, {
                 method: 'GET',
-                headers: { 'Content-Type': 'application/json' },
+                headers: this.getAuthHeaders(),
             });
 
             const data = await this.handleResponse<DiscoveredSuggestionsApiResponse>(response);
@@ -414,7 +422,7 @@ class AiDiscoveryServiceClient {
         try {
             const response = await fetch(`${this.backendUrl}/api/admin/ai-discovery/category-rankings`, {
                 method: 'GET',
-                headers: { 'Content-Type': 'application/json' },
+                headers: this.getAuthHeaders(),
             });
 
             const data = await this.handleResponse<CategoryRankingsApiResponse>(response);
@@ -465,7 +473,7 @@ class AiDiscoveryServiceClient {
         try {
             const response = await fetch(`${this.backendUrl}/api/admin/ai-discovery/dashboard`, {
                 method: 'GET',
-                headers: { 'Content-Type': 'application/json' },
+                headers: this.getAuthHeaders(),
             });
 
             const data = await this.handleResponse<DashboardApiResponse>(response);
@@ -534,16 +542,16 @@ class AiDiscoveryServiceClient {
             // Fetch all data in parallel for better performance
             const [providersRes, suggestionsRes, categoryRes, dashboardRes] = await Promise.all([
                 fetch(`${this.backendUrl}/api/admin/ai-discovery/active-providers?top_3_only=false`, {
-                    headers: { 'Content-Type': 'application/json' }
+                    headers: this.getAuthHeaders()
                 }),
                 fetch(`${this.backendUrl}/api/admin/ai-discovery/discovered-suggestions`, {
-                    headers: { 'Content-Type': 'application/json' }
+                    headers: this.getAuthHeaders()
                 }),
                 fetch(`${this.backendUrl}/api/admin/ai-discovery/category-rankings`, {
-                    headers: { 'Content-Type': 'application/json' }
+                    headers: this.getAuthHeaders()
                 }),
                 fetch(`${this.backendUrl}/api/admin/ai-discovery/dashboard`, {
-                    headers: { 'Content-Type': 'application/json' }
+                    headers: this.getAuthHeaders()
                 })
             ]);
 
@@ -626,7 +634,7 @@ class AiDiscoveryServiceClient {
         try {
             const response = await fetch(`${this.backendUrl}/api/admin/ai-discovery/toggle-provider/${providerId}`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: this.getAuthHeaders(),
                 body: JSON.stringify({ enabled }),
             });
 
@@ -657,7 +665,7 @@ class AiDiscoveryServiceClient {
         try {
             const response = await fetch(`${this.backendUrl}/api/admin/ai-discovery/bulk-toggle-providers`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: this.getAuthHeaders(),
                 body: JSON.stringify({
                     provider_ids: providerIds,
                     enabled
@@ -685,7 +693,7 @@ class AiDiscoveryServiceClient {
         try {
             const response = await fetch(`${this.backendUrl}/api/admin/ai-discovery/review-suggestion/${suggestionId}`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: this.getAuthHeaders(),
                 body: JSON.stringify(request),
             });
 
@@ -711,7 +719,7 @@ class AiDiscoveryServiceClient {
         try {
             const response = await fetch(`${this.backendUrl}/api/admin/ai-discovery/promote-suggestion/${suggestionId}`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: this.getAuthHeaders(),
                 body: JSON.stringify(request),
             });
 
@@ -729,7 +737,7 @@ class AiDiscoveryServiceClient {
         try {
             const response = await fetch(`${this.backendUrl}/api/admin/ai-discovery/run-discovery`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: this.getAuthHeaders(),
             });
 
             return this.handleResponse(response);
@@ -750,7 +758,7 @@ class AiDiscoveryServiceClient {
         try {
             const response = await fetch(`${this.backendUrl}/api/admin/ai-discovery/update-rankings`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: this.getAuthHeaders(),
             });
 
             return this.handleResponse(response);
@@ -780,7 +788,7 @@ class AiDiscoveryServiceClient {
         try {
             const response = await fetch(`${this.backendUrl}/api/admin/ai-discovery/bulk-promote`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: this.getAuthHeaders(),
                 body: JSON.stringify({
                     suggestion_ids: suggestionIds,
                     ...options
@@ -1059,17 +1067,18 @@ export function useEnhancedAiDiscoveryService() {
         }
     }, [client, loadDashboardData]);
 
-    // Auto-load data on mount
-    useEffect(() => {
-        const timer = setTimeout(() => {
-            console.log('🔄 Auto-loading dashboard data on mount...');
-            loadDashboardData().catch((err: any) => {
-                console.warn('Auto-load failed (non-critical):', err);
-            });
-        }, 500);
+    // Auto-load data on mount - DISABLED to prevent 500 error spam
+    // Use manual "Test AI API" and "Force Reload AI" buttons in admin panel instead
+    // useEffect(() => {
+    //     const timer = setTimeout(() => {
+    //         console.log('🔄 Auto-loading dashboard data on mount...');
+    //         loadDashboardData().catch((err: any) => {
+    //             console.warn('Auto-load failed (non-critical):', err);
+    //         });
+    //     }, 500);
 
-        return () => clearTimeout(timer);
-    }, [loadDashboardData]);
+    //     return () => clearTimeout(timer);
+    // }, [loadDashboardData]);
 
     return {
         // State
