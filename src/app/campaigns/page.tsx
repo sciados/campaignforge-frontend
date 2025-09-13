@@ -264,8 +264,8 @@ export default function CampaignsPage() {
       let campaignsData = [];
       if (Array.isArray(campaignsResponse)) {
         campaignsData = campaignsResponse;
-      } else if (campaignsResponse && Array.isArray(campaignsResponse.campaigns)) {
-        campaignsData = campaignsResponse.campaigns;
+      } else if (campaignsResponse && typeof campaignsResponse === 'object' && 'campaigns' in campaignsResponse && Array.isArray((campaignsResponse as any).campaigns)) {
+        campaignsData = (campaignsResponse as any).campaigns;
       } else {
         console.warn("Invalid campaigns response format:", campaignsResponse);
         campaignsData = [];
@@ -278,7 +278,7 @@ export default function CampaignsPage() {
       let allCampaigns = campaignsData;
       
       // Check if there are any global demo campaigns in the response
-      const globalDemoCampaigns = campaignsData.filter(campaign => 
+      const globalDemoCampaigns = campaignsData.filter((campaign: any) => 
         campaign.settings?.is_demo === true && campaign.settings?.is_global === true
       );
       
@@ -287,7 +287,7 @@ export default function CampaignsPage() {
         
         if (!shouldShowDemo) {
           // Filter out global demo campaigns if user has disabled them
-          allCampaigns = campaignsData.filter(campaign => 
+          allCampaigns = campaignsData.filter((campaign: any) => 
             !(campaign.settings?.is_demo === true && campaign.settings?.is_global === true)
           );
         }
@@ -316,7 +316,6 @@ export default function CampaignsPage() {
     handleApiError,
     getStorageItem,
     mounted,
-    createDemoForNewUser,
   ]);
 
   // Initialization effect - SSR SAFE

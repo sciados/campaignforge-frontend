@@ -571,7 +571,7 @@ const IntelligenceDrivenContentGenerator: React.FC = () => {
         <div className="space-y-4">
           <div>
             <label htmlFor="campaign-select" className="block text-sm font-medium text-gray-700 mb-2">
-              Choose which campaign's intelligence to use for content generation
+              Choose which campaign&apos;s intelligence to use for content generation
             </label>
             <select
               id="campaign-select"

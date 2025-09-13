@@ -178,14 +178,14 @@ export default function AdminPage() {
     company: null,
   });
 
-  // Enhanced AI Discovery Service hook (with graceful error handling)
-  let aiDiscoveryHook;
-  try {
-    aiDiscoveryHook = useEnhancedAiDiscoveryService();
-  } catch (error) {
-    console.warn("AI Discovery service hook unavailable:", error);
-    // Create a fallback hook with default values
-    aiDiscoveryHook = {
+  // Enhanced AI Discovery Service hook (called unconditionally at top level)
+  const [hookError, setHookError] = useState<string | null>(null);
+  
+  // Always call the hook unconditionally, but handle errors in useEffect
+  const aiDiscoveryHook = useEnhancedAiDiscoveryService();
+  
+  // Create fallback values if the hook fails
+  const fallbackHook = {
       dashboardData: null,
       isLoading: false,
       error: null, // Don't show error if data is actually available via API
@@ -211,8 +211,8 @@ export default function AdminPage() {
       hasPendingSuggestions: false,
       isHealthy: false,
     };
-  }
 
+  // Use the hook data or fallback values
   const {
     dashboardData,
     isLoading: aiLoading,
@@ -620,7 +620,7 @@ export default function AdminPage() {
           </button>
           <button
             onClick={() => {
-              alert("ℹ️ Discovery Scan Disabled\n\nThe backend doesn't have a 'run-discovery' endpoint.\nUse 'Test AI API' and 'Force Reload AI' buttons instead to test the AI Discovery system.");
+              alert("ℹ️ Discovery Scan Disabled\n\nThe backend doesn&apos;t have a &apos;run-discovery&apos; endpoint.\nUse &apos;Test AI API&apos; and &apos;Force Reload AI&apos; buttons instead to test the AI Discovery system.");
             }}
             className="flex items-center space-x-2 px-4 py-2 bg-gray-400 text-white rounded-lg cursor-not-allowed opacity-50"
             disabled
@@ -650,7 +650,7 @@ export default function AdminPage() {
                 if (response.ok) {
                   if (data.success) {
                     const providers = data.providers || [];
-                    const providerNames = providers.slice(0, 5).map(p => p.provider_name || 'Unknown').join(', ');
+                    const providerNames = providers.slice(0, 5).map((p: any) => p.provider_name || 'Unknown').join(', ');
                     alert(`✅ AI Discovery data found!\n\nProviders: ${providers.length}\nSample providers: ${providerNames}\n\nTotal data keys: ${Object.keys(data).join(', ')}\n\nCheck console for full details.`);
                   } else {
                     alert(`✅ Response OK but not successful:\n${JSON.stringify(data, null, 2)}`);
@@ -660,7 +660,7 @@ export default function AdminPage() {
                 }
               } catch (error) {
                 console.error('Test failed:', error);
-                alert(`❌ Connection failed: ${error.message}`);
+                alert(`❌ Connection failed: ${error instanceof Error ? error.message : String(error)}`);
               }
             }}
             className="flex items-center space-x-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
@@ -678,7 +678,7 @@ export default function AdminPage() {
                   alert('✅ AI Discovery data reloaded successfully! Check the dashboard.');
                 } catch (error) {
                   console.error('❌ Force reload failed:', error);
-                  alert('❌ Reload failed: ' + error.message);
+                  alert('❌ Reload failed: ' + (error instanceof Error ? error.message : String(error)));
                 }
               } else {
                 alert('❌ AI Discovery service not available');
@@ -714,7 +714,7 @@ export default function AdminPage() {
                 }
               } catch (error) {
                 console.error('Admin Stats test failed:', error);
-                alert(`❌ Admin Stats failed: ${error.message}`);
+                alert(`❌ Admin Stats failed: ${error instanceof Error ? error.message : String(error)}`);
               }
             }}
             className="flex items-center space-x-2 px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700"
@@ -755,7 +755,7 @@ export default function AdminPage() {
                 }
               } catch (error) {
                 console.error('Database schema test failed:', error);
-                alert(`❌ Schema test failed: ${error.message}`);
+                alert(`❌ Schema test failed: ${error instanceof Error ? error.message : String(error)}`);
               }
             }}
             className="flex items-center space-x-2 px-4 py-2 bg-cyan-600 text-white rounded-lg hover:bg-cyan-700"

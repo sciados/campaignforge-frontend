@@ -204,7 +204,7 @@ const CreatorDashboard: React.FC<CreatorDashboardProps> = ({ config }) => {
           }
         ]
       };
-      const recentCampaigns = [];
+      const recentCampaigns: any[] = [];
       
       // Original code (commented out while backend is being developed):
       // const [campaignStats, contentStats, socialProfiles, recentCampaigns] =
@@ -235,7 +235,7 @@ const CreatorDashboard: React.FC<CreatorDashboardProps> = ({ config }) => {
       setDashboardData({
         creatorMetrics: {
           followers: totalFollowers,
-          followerGrowth: campaignStats.growth_percentage || 0,
+          followerGrowth: (campaignStats as any).growth_percentage || 0,
           engagement: avgEngagement,
           engagementGrowth: 0.3, // Could be calculated from historical data
           viralScore: Math.min(

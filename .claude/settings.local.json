@@ -10,7 +10,8 @@
       "Bash(railway logs:*)",
       "Bash(find:*)",
       "Bash(git commit:*)",
-      "Bash(tree:*)"
+      "Bash(tree:*)",
+      "Bash(npm run build:*)"
     ],
     "deny": [],
     "ask": []

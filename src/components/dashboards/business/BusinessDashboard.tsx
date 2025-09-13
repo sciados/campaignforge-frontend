@@ -172,13 +172,13 @@ const BusinessDashboard: React.FC<BusinessDashboardProps> = ({ config }) => {
         businessMetrics: {
           revenue:
             companyStats.monthly_revenue ||
-            dashboardStats.monthly_recurring_revenue ||
+            (dashboardStats as any).monthly_recurring_revenue ||
             0,
           revenueGrowth:
             companyStats.revenue_growth_percentage ||
-            dashboardStats.growth_percentage ||
+            (dashboardStats as any).growth_percentage ||
             0,
-          leads: companyStats.total_leads || dashboardStats.total_leads || 0,
+          leads: companyStats.total_leads || (dashboardStats as any).total_leads || 0,
           leadGrowth: companyStats.lead_growth_percentage || 0,
           conversion: companyStats.conversion_rate || 0,
           conversionGrowth: companyStats.conversion_growth || 0,
@@ -189,7 +189,7 @@ const BusinessDashboard: React.FC<BusinessDashboardProps> = ({ config }) => {
           revenue: companyStats.marketing_revenue || 0,
           roi: companyStats.marketing_roi || 0,
         },
-        marketIntelligence: companyStats.market_intelligence || [
+        marketIntelligence: (companyStats as any).market_intelligence || [
           {
             id: 1,
             type: "opportunity",
@@ -200,14 +200,14 @@ const BusinessDashboard: React.FC<BusinessDashboardProps> = ({ config }) => {
             timestamp: "Updated recently",
           },
         ],
-        leadPipeline: companyStats.lead_pipeline || [
+        leadPipeline: (companyStats as any).lead_pipeline || [
           {
             id: 1,
             source: "Campaign Performance",
-            leads: dashboardStats.total_campaigns || 0,
+            leads: (dashboardStats as any).total_campaigns || 0,
             revenue: companyStats.monthly_revenue || 0,
             conversion: companyStats.conversion_rate || 0,
-            growth: companyStats.growth_percentage || 0,
+            growth: (companyStats as any).growth_percentage || 0,
           },
         ],
       });
