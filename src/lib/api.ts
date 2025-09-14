@@ -1948,34 +1948,6 @@ class ApiClient {
     return this.handleResponse<Campaign>(response)
   }
 
-  async getGeneratedContent(campaignId: string): Promise<any[]> {
-    console.log('ðŸ” getGeneratedContent called for campaign:', campaignId)
-
-    try {
-      const response = await fetch(`${this.baseURL}/api/intelligence/content/${campaignId}`, {
-        headers: this.getHeaders()
-      })
-
-      console.log('âœ… getGeneratedContent response status:', response.status)
-
-      if (!response.ok) {
-        if (response.status === 404) {
-          console.warn('âš ï¸ Content endpoint not found, returning empty array')
-          return []
-        }
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`)
-      }
-
-      const data = await this.handleResponse<any[]>(response)
-      console.log('âœ… getGeneratedContent success, got', Array.isArray(data) ? data.length : 'unknown', 'content items')
-
-      return data
-
-    } catch (error) {
-      console.error('âŒ getGeneratedContent error:', error)
-      return []
-    }
-  }
 
   // ============================================================================
   // CONTENT MANAGEMENT METHODS
