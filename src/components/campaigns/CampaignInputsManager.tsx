@@ -1,7 +1,7 @@
 // src/components/campaigns/CampaignInputsManager.tsx
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { 
   Plus, 
   Link2, 
@@ -117,13 +117,13 @@ export default function CampaignInputsManager({
   const [validatingInput, setValidatingInput] = useState<string | null>(null);
 
   // Get suggested input types based on user type
-  const getSuggestedInputs = () => {
+  const getSuggestedInputs = useCallback(() => {
     if (!userType) return INPUT_TYPES;
     
     return INPUT_TYPES
       .filter(inputType => inputType.suggestedFor.includes(userType))
       .sort((a, b) => a.priority - b.priority);
-  };
+  }, [userType]);
 
   // Get available input types (not yet added)
   const getAvailableInputs = () => {
@@ -134,7 +134,7 @@ export default function CampaignInputsManager({
   };
 
   // Add new input
-  const addInput = (inputType: InputType) => {
+  const addInput = useCallback((inputType: InputType) => {
     const newInput: CampaignInput = {
       id: `${inputType.id}_${Date.now()}`,
       type: inputType.id,
@@ -147,7 +147,7 @@ export default function CampaignInputsManager({
     setInputs(updatedInputs);
     onInputsChange(updatedInputs);
     setShowAddMenu(false);
-  };
+  }, [inputs, onInputsChange]);
 
   // Update input value
   const updateInput = async (inputId: string, value: string) => {
@@ -220,7 +220,7 @@ export default function CampaignInputsManager({
         addInput(suggestedInputs[0]);
       }
     }
-  }, [userType]);
+  }, [userType, inputs.length, getSuggestedInputs, addInput]);
 
   const hasValidInputs = inputs.some(input => input.status === 'valid');
   const hasInvalidInputs = inputs.some(input => input.status === 'invalid');

@@ -1,7 +1,7 @@
 // src/app/campaigns/[id]/inputs/page.tsx
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, Sparkles } from 'lucide-react';
 import { useApi } from '@/lib/api';
@@ -32,11 +32,7 @@ export default function CampaignInputsPage({ params }: CampaignInputsPageProps) 
   const [analyzing, setAnalyzing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    loadCampaignAndProfile();
-  }, [params.id]);
-
-  const loadCampaignAndProfile = async () => {
+  const loadCampaignAndProfile = useCallback(async () => {
     try {
       setLoading(true);
       
@@ -55,7 +51,11 @@ export default function CampaignInputsPage({ params }: CampaignInputsPageProps) 
     } finally {
       setLoading(false);
     }
-  };
+  }, [api, params.id]);
+
+  useEffect(() => {
+    loadCampaignAndProfile();
+  }, [loadCampaignAndProfile]);
 
   const handleInputsChange = (newInputs: CampaignInput[]) => {
     setInputs(newInputs);

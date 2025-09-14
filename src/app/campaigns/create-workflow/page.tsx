@@ -370,33 +370,22 @@ export default function CreateWorkflowPage() {
                 </div>
               </div>
 
-              {workflow.campaignData.salespage_url && (
+              {workflow.campaignData.title && (
                 <div className="bg-white rounded-lg p-4 border border-blue-200">
                   <h4 className="font-medium text-blue-900 mb-2">
-                    Processing:
+                    Campaign: {workflow.campaignData.title}
                   </h4>
-                  <div className="space-y-2 text-sm">
-                    <div className="flex items-center justify-between">
-                      <span className="text-blue-700">Product:</span>
+                  <p className="text-sm text-blue-700">
+                    {workflow.campaignData.description}
+                  </p>
+                  {workflow.confidenceScore > 0 && (
+                    <div className="flex items-center justify-between mt-2">
+                      <span className="text-blue-700">Confidence:</span>
                       <span className="font-medium text-blue-900">
-                        {workflow.campaignData.product_name}
+                        {Math.round(workflow.confidenceScore * 100)}%
                       </span>
                     </div>
-                    <div className="flex items-start justify-between">
-                      <span className="text-blue-700">Salespage:</span>
-                      <span className="font-medium text-blue-900 text-right max-w-xs truncate">
-                        {workflow.campaignData.salespage_url}
-                      </span>
-                    </div>
-                    {workflow.confidenceScore > 0 && (
-                      <div className="flex items-center justify-between">
-                        <span className="text-blue-700">Confidence:</span>
-                        <span className="font-medium text-blue-900">
-                          {Math.round(workflow.confidenceScore * 100)}%
-                        </span>
-                      </div>
-                    )}
-                  </div>
+                  )}
                 </div>
               )}
 
@@ -452,8 +441,6 @@ export default function CreateWorkflowPage() {
             <Step1Setup
               onComplete={handleStep1Complete}
               isLoading={isCreating}
-              initialData={workflow.campaignData}
-              isLocked={workflow.isStep1Locked}
             />
           )}
 

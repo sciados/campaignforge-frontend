@@ -2697,8 +2697,10 @@ function useApi() {
     uploadDocument: apiClient.uploadDocument.bind(apiClient),
     generateContent: apiClient.generateContent.bind(apiClient),
     getCampaignIntelligence: apiClient.getCampaignIntelligence.bind(apiClient),
+    runIntelligenceAnalysis: apiClient.runIntelligenceAnalysis.bind(apiClient),
+    triggerContentGeneration: apiClient.triggerContentGeneration.bind(apiClient),
 
-    // ðŸ”§ Dashboard (enhanced with demo info & 2-step workflow)
+    // ðŸ"§ Dashboard (enhanced with demo info & 2-step workflow)
     getDashboardStats: apiClient.getDashboardStats.bind(apiClient),
     getCampaignStats: apiClient.getCampaignStats.bind(apiClient),
     getCompanyStats: apiClient.getCompanyStats.bind(apiClient),
