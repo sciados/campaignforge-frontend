@@ -12,7 +12,10 @@
       "Bash(git commit:*)",
       "Bash(tree:*)",
       "Bash(npm run build:*)",
-      "Bash(sed:*)"
+      "Bash(sed:*)",
+      "Bash(railway --version)",
+      "Bash(railway status:*)",
+      "Bash(npm run dev:*)"
     ],
     "deny": [],
     "ask": []

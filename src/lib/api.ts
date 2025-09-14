@@ -1826,9 +1826,11 @@ class ApiClient {
   // ============================================================================
 
   async createCampaign(campaignData: CampaignCreateData): Promise<Campaign> {
-    const company_id = this.getCompanyIdFromToken()
+    // Get company_id from user profile instead of JWT token
+    const userProfile = await this.getUserProfile()
+    const company_id = userProfile.company?.id
     if (!company_id) {
-      throw new Error('Authentication required: company_id not found in token')
+      throw new Error('Authentication required: user profile does not contain company information')
     }
     
     const dataWithDefaults = {
