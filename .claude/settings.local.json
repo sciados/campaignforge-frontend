@@ -18,7 +18,8 @@
       "Bash(npm run dev:*)",
       "Bash(alembic revision:*)",
       "Bash(railway run:*)",
-      "Bash(railway up:*)"
+      "Bash(railway up:*)",
+      "WebFetch(domain:campaign-backend-production-e2db.up.railway.app)"
     ],
     "deny": [],
     "ask": []

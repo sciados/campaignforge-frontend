@@ -164,7 +164,7 @@ export default function CampaignDetailPage({
     } finally {
       setIsLoading(false);
     }
-  }, [api, params.id]);
+  }, [params.id]); // Removed api from dependencies to prevent infinite loop
 
   useEffect(() => {
     if (params.id) {
