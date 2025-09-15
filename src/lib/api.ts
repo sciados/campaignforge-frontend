@@ -1834,7 +1834,8 @@ class ApiClient {
     }
     
     const dataWithDefaults = {
-      campaign_type: 'universal',
+      ...campaignData,
+      campaign_type: 'content_marketing', // Using valid enum value - force override
       company_id: company_id, // Required by backend
       // ðŸ†• NEW: Auto-analysis defaults for streamlined workflow
       auto_analysis_enabled: campaignData.auto_analysis_enabled ?? true,
@@ -1842,7 +1843,6 @@ class ApiClient {
       content_tone: campaignData.content_tone || "conversational",
       content_style: campaignData.content_style || "modern",
       generate_content_after_analysis: campaignData.generate_content_after_analysis ?? false,
-      ...campaignData
     }
 
     console.log('ðŸš€ Creating campaign with streamlined workflow data:', dataWithDefaults)
