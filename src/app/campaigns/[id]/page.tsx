@@ -133,18 +133,18 @@ export default function CampaignDetailPage({
         setWorkflowState({
           campaign_id: params.id,
           workflow_state: "setup_complete",
-          completion_percentage: 50,
+          completion_percentage: 25, // Step 1 of 4 completed
           current_step: 1,
-          total_steps: 2,
+          total_steps: 4,
           auto_analysis: {
             enabled: false,
             status: "pending",
             confidence_score: 0,
           },
-          can_generate_content: true,
+          can_generate_content: false, // Need input sources first
           metrics: {
             content_count: 0,
-            sources_count: 1,
+            sources_count: 0, // No sources added yet
             intelligence_count: 0,
           },
         });
@@ -244,6 +244,9 @@ export default function CampaignDetailPage({
       case 1:
         return "completed"; // Setup is always completed if we're viewing the campaign
       case 2:
+        // Input Sources step - check if we have sources
+        return workflowState.metrics.sources_count > 0 ? "completed" : "pending";
+      case 3:
         if (!workflowState.auto_analysis.enabled) return "skipped";
         switch (workflowState.auto_analysis.status) {
           case "completed":
@@ -255,7 +258,7 @@ export default function CampaignDetailPage({
           default:
             return "pending";
         }
-      case 3:
+      case 4:
         return workflowState.metrics.content_count > 0
           ? "completed"
           : workflowState.can_generate_content
@@ -422,11 +425,42 @@ export default function CampaignDetailPage({
                   </div>
                 </div>
 
-                {/* Step 2: Auto-Analysis (if enabled) */}
+                {/* Step 2: Input Sources */}
+                <div className="flex items-start space-x-4">
+                  <div className="flex-shrink-0">
+                    {getStepIcon(2, getWorkflowStepStatus(2))}
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="font-medium text-gray-900">
+                      Input Sources
+                    </h3>
+                    <p className="text-sm text-gray-600 mt-1">
+                      Add sales pages, documents, or other source materials
+                    </p>
+
+                    {getWorkflowStepStatus(2) === "pending" && (
+                      <button
+                        onClick={() => router.push(`/campaigns/${params.id}/inputs`)}
+                        className="mt-3 px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 flex items-center space-x-2"
+                      >
+                        <Plus className="h-4 w-4" />
+                        <span>Add Input Sources</span>
+                      </button>
+                    )}
+
+                    {getWorkflowStepStatus(2) === "completed" && (
+                      <div className="mt-2 text-sm text-green-600">
+                        {workflowState?.metrics.sources_count || 0} source(s) added
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Step 3: Auto-Analysis (if enabled) */}
                 {workflowState?.auto_analysis.enabled && (
                   <div className="flex items-start space-x-4">
                     <div className="flex-shrink-0">
-                      {getStepIcon(2, getWorkflowStepStatus(2))}
+                      {getStepIcon(3, getWorkflowStepStatus(3))}
                     </div>
                     <div className="flex-1">
                       <h3 className="font-medium text-gray-900">
@@ -479,10 +513,10 @@ export default function CampaignDetailPage({
                   </div>
                 )}
 
-                {/* Step 3: Content Generation */}
+                {/* Step 4: Content Generation */}
                 <div className="flex items-start space-x-4">
                   <div className="flex-shrink-0">
-                    {getStepIcon(3, getWorkflowStepStatus(3))}
+                    {getStepIcon(4, getWorkflowStepStatus(4))}
                   </div>
                   <div className="flex-1">
                     <h3 className="font-medium text-gray-900">
@@ -496,7 +530,7 @@ export default function CampaignDetailPage({
                       workflowState.metrics.content_count === 0 && (
                         <button
                           onClick={handleGenerateContent}
-                          disabled={isGeneratingContent}
+                          disabled={isGeneratingContent || getWorkflowStepStatus(2) === "pending"}
                           className="mt-3 px-4 py-2 bg-purple-600 text-white text-sm rounded-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
                         >
                           {isGeneratingContent ? (
@@ -512,6 +546,12 @@ export default function CampaignDetailPage({
                           )}
                         </button>
                       )}
+
+                    {getWorkflowStepStatus(2) === "pending" && (
+                      <div className="mt-2 text-sm text-amber-600">
+                        Add input sources first to enable content generation
+                      </div>
+                    )}
 
                     {workflowState?.metrics &&
                       workflowState.metrics.content_count > 0 && (
