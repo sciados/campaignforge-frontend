@@ -1833,9 +1833,29 @@ class ApiClient {
       throw new Error('Authentication required: user profile does not contain company information')
     }
     
+    // Map user type to appropriate campaign type (matching backend workflow keys)
+    const getUserCampaignType = (userType: string): string => {
+      switch (userType) {
+        case 'affiliate_marketer':
+          return 'affiliate_promotion'
+        case 'content_creator':
+          return 'content_marketing'
+        case 'social_media_manager':
+          return 'social_media'
+        case 'email_marketer':
+          return 'email_sequence'
+        case 'product_manager':
+          return 'product_launch'
+        default:
+          return 'content_marketing' // fallback
+      }
+    }
+    
+    const appropriateCampaignType = getUserCampaignType(userProfile.user_type || 'content_creator')
+    
     const dataWithDefaults = {
       ...campaignData,
-      campaign_type: 'content_marketing', // Using valid enum value - force override
+      campaign_type: appropriateCampaignType, // Use user-type-appropriate workflow
       company_id: company_id, // Required by backend
       // ðŸ†• NEW: Auto-analysis defaults for streamlined workflow
       auto_analysis_enabled: campaignData.auto_analysis_enabled ?? true,
@@ -1846,7 +1866,7 @@ class ApiClient {
     }
 
     console.log('ðŸš€ Creating campaign with streamlined workflow data:', dataWithDefaults)
-    console.log('✅ Forced campaign_type to content_marketing (Vercel cache buster):', dataWithDefaults.campaign_type)
+    console.log(`✅ Mapped user_type '${userProfile.user_type}' to campaign_type '${appropriateCampaignType}':`, dataWithDefaults.campaign_type)
 
     const response = await fetch(`${this.baseURL}/api/campaigns/`, {
       method: 'POST',

@@ -16,7 +16,9 @@
       "Bash(railway --version)",
       "Bash(railway status:*)",
       "Bash(npm run dev:*)",
-      "Bash(alembic revision:*)"
+      "Bash(alembic revision:*)",
+      "Bash(railway run:*)",
+      "Bash(railway up:*)"
     ],
     "deny": [],
     "ask": []
