@@ -369,13 +369,13 @@ export default function ContentLibraryRedesign() {
           full_name: userProfile.full_name,
           role: userProfile.role,
           company: {
-            id: userProfile.company.id,
-            company_name: userProfile.company.company_name,
-            company_slug: userProfile.company.company_slug,
-            subscription_tier: userProfile.company.subscription_tier,
-            monthly_credits_used: userProfile.company.monthly_credits_used,
-            monthly_credits_limit: userProfile.company.monthly_credits_limit,
-            company_size: userProfile.company.company_size,
+            id: userProfile.company?.id || '',
+            company_name: userProfile.company?.company_name || '',
+            company_slug: userProfile.company?.company_slug || '',
+            subscription_tier: userProfile.company?.subscription_tier || 'free',
+            monthly_credits_used: userProfile.company?.monthly_credits_used || 0,
+            monthly_credits_limit: userProfile.company?.monthly_credits_limit || 0,
+            company_size: userProfile.company?.company_size || 'solo',
           },
         };
         setUser(transformedUser);

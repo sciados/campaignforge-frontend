@@ -15,11 +15,13 @@ export interface User {
   avatar_url?: string;
   company_id: string;
   role: 'admin' | 'owner' | 'member' | 'viewer';
+  user_type?: string;
   is_active: boolean;
   is_verified: boolean;
   preferences: Record<string, any>;
   created_at: string;
   updated_at: string;
+  company?: Company;
 }
 
 export interface AuthResponse {
