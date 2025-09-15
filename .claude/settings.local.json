@@ -15,7 +15,8 @@
       "Bash(sed:*)",
       "Bash(railway --version)",
       "Bash(railway status:*)",
-      "Bash(npm run dev:*)"
+      "Bash(npm run dev:*)",
+      "Bash(alembic revision:*)"
     ],
     "deny": [],
     "ask": []

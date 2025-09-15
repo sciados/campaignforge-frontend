@@ -1846,6 +1846,7 @@ class ApiClient {
     }
 
     console.log('ðŸš€ Creating campaign with streamlined workflow data:', dataWithDefaults)
+    console.log('✅ Forced campaign_type to content_marketing (Vercel cache buster):', dataWithDefaults.campaign_type)
 
     const response = await fetch(`${this.baseURL}/api/campaigns/`, {
       method: 'POST',
