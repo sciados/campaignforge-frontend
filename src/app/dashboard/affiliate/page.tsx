@@ -17,7 +17,8 @@ export default function AffiliateDashboardPage() {
       setError(null);
       console.log("Loading dashboard config...");
 
-      const configData = await api.getUserTypeConfig();
+      // Explicitly pass the user_type to prevent undefined calls
+      const configData = await api.getUserTypeConfig("affiliate_marketer");
       console.log("Dashboard config loaded:", configData);
 
       setConfig(configData);
@@ -35,7 +36,10 @@ export default function AffiliateDashboardPage() {
 
   // Fix: Use empty dependency array to run only once on mount
   useEffect(() => {
-    fetchDashboardConfig();
+    // Only run if not already loaded to prevent loops
+    if (!config && isLoading) {
+      fetchDashboardConfig();
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Empty dependency array - runs only once
 
@@ -46,7 +50,8 @@ export default function AffiliateDashboardPage() {
       setError(null);
       console.log("Retrying dashboard config...");
 
-      const configData = await api.getUserTypeConfig();
+      // Explicitly pass the user_type to prevent undefined calls
+      const configData = await api.getUserTypeConfig("affiliate_marketer");
       console.log("Dashboard config loaded:", configData);
 
       setConfig(configData);
