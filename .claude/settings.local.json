@@ -23,7 +23,12 @@
       "Bash(netstat:*)",
       "Bash(taskkill:*)",
       "Bash(cmd /c:*)",
-      "Bash(npx next dev:*)"
+      "Bash(npx next dev:*)",
+      "Bash(curl:*)",
+      "Bash(npm test)",
+      "Bash(npm install:*)",
+      "Bash(npm uninstall:*)",
+      "Bash(npm test:*)"
     ],
     "deny": [],
     "ask": []
