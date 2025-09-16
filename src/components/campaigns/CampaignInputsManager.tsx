@@ -213,11 +213,15 @@ export default function CampaignInputsManager({
 
   // Auto-suggest first input based on user type
   useEffect(() => {
+    console.log('🔄 Auto-suggest effect:', { userType, inputsLength: inputs.length });
+
     if (userType && inputs.length === 0) {
       const suggestedInputs = INPUT_TYPES
         .filter(inputType => inputType.suggestedFor.includes(userType))
         .sort((a, b) => a.priority - b.priority);
-      
+
+      console.log('📝 Suggested inputs for', userType, ':', suggestedInputs.map(i => i.label));
+
       if (suggestedInputs.length > 0) {
         const inputType = suggestedInputs[0];
         const newInput: CampaignInput = {
@@ -227,6 +231,8 @@ export default function CampaignInputsManager({
           value: '',
           status: 'pending'
         };
+
+        console.log('➕ Adding suggested input:', newInput);
 
         const updatedInputs = [newInput];
         setInputs(updatedInputs);
@@ -240,6 +246,13 @@ export default function CampaignInputsManager({
 
   return (
     <div className="space-y-6">
+      {/* Debug Info (temporary) */}
+      <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 text-sm">
+        <strong>Debug Info:</strong> UserType: {userType || 'null'},
+        Inputs: {inputs.length},
+        Available inputs: {getAvailableInputs().length}
+      </div>
+
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -263,6 +276,24 @@ export default function CampaignInputsManager({
           Add Input
         </button>
       </div>
+
+      {/* Empty state */}
+      {inputs.length === 0 && (
+        <div className="text-center py-8 border-2 border-dashed border-gray-300 rounded-lg">
+          <Globe className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+          <h4 className="text-lg font-semibold text-gray-900 mb-2">No inputs added yet</h4>
+          <p className="text-gray-600 mb-4">
+            Add your first input source to begin AI analysis
+          </p>
+          <button
+            onClick={() => setShowAddMenu(true)}
+            className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            <Plus className="w-4 h-4" />
+            Add Your First Input
+          </button>
+        </div>
+      )}
 
       {/* Existing Inputs */}
       <div className="space-y-4">
@@ -309,10 +340,30 @@ export default function CampaignInputsManager({
                 />
               ) : inputType?.type === 'file' ? (
                 <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
-                  <Upload className="w-8 h-8 text-gray-400 mx-auto mb-2" />
-                  <p className="text-sm text-gray-600">
-                    Click to upload or drag and drop files here
-                  </p>
+                  <input
+                    type="file"
+                    id={`file-${input.id}`}
+                    className="hidden"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        updateInput(input.id, file.name);
+                      }
+                    }}
+                    accept=".pdf,.doc,.docx,.txt,.png,.jpg,.jpeg"
+                  />
+                  <label
+                    htmlFor={`file-${input.id}`}
+                    className="cursor-pointer block"
+                  >
+                    <Upload className="w-8 h-8 text-gray-400 mx-auto mb-2" />
+                    <p className="text-sm text-gray-600">
+                      {input.value || "Click to upload or drag and drop files here"}
+                    </p>
+                    <p className="text-xs text-gray-500 mt-1">
+                      PDF, DOC, TXT, or image files
+                    </p>
+                  </label>
                 </div>
               ) : (
                 <input
