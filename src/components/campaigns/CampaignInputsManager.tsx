@@ -214,13 +214,26 @@ export default function CampaignInputsManager({
   // Auto-suggest first input based on user type
   useEffect(() => {
     if (userType && inputs.length === 0) {
-      const suggestedInputs = getSuggestedInputs();
+      const suggestedInputs = INPUT_TYPES
+        .filter(inputType => inputType.suggestedFor.includes(userType))
+        .sort((a, b) => a.priority - b.priority);
+      
       if (suggestedInputs.length > 0) {
-        // Auto-add the highest priority suggestion
-        addInput(suggestedInputs[0]);
+        const inputType = suggestedInputs[0];
+        const newInput: CampaignInput = {
+          id: `${inputType.id}_${Date.now()}`,
+          type: inputType.id,
+          label: inputType.label,
+          value: '',
+          status: 'pending'
+        };
+
+        const updatedInputs = [newInput];
+        setInputs(updatedInputs);
+        onInputsChange(updatedInputs);
       }
     }
-  }, [userType, inputs.length, getSuggestedInputs, addInput]);
+  }, [userType, inputs.length, onInputsChange]);
 
   const hasValidInputs = inputs.some(input => input.status === 'valid');
   const hasInvalidInputs = inputs.some(input => input.status === 'invalid');

@@ -92,85 +92,85 @@ export default function CampaignDetailPage({
   const [isGeneratingContent, setIsGeneratingContent] = useState(false);
 
   // Load campaign data and workflow state
-  const loadCampaignData = React.useCallback(async () => {
-    try {
-      setError(null);
-      setIsLoading(true);
-
-      // Load campaign details
-      const campaignData = await api.getCampaign(params.id);
-      setCampaign(campaignData);
-
-      // Load workflow state
-      try {
-        const workflowData = await api.getWorkflowState(params.id);
-        // Map status to allowed union type
-        const allowedStatuses = [
-          "pending",
-          "processing",
-          "completed",
-          "failed",
-        ] as const;
-        const mappedStatus = allowedStatuses.includes(
-          workflowData.auto_analysis.status as any
-        )
-          ? (workflowData.auto_analysis.status as
-              | "pending"
-              | "processing"
-              | "completed"
-              | "failed")
-          : "pending";
-        setWorkflowState({
-          ...workflowData,
-          auto_analysis: {
-            ...workflowData.auto_analysis,
-            status: mappedStatus,
-          },
-        });
-      } catch (workflowError) {
-        console.warn("Workflow state not available:", workflowError);
-        // Create default workflow state if endpoint doesn't exist
-        setWorkflowState({
-          campaign_id: params.id,
-          workflow_state: "setup_complete",
-          completion_percentage: 25, // Step 1 of 4 completed
-          current_step: 1,
-          total_steps: 4,
-          auto_analysis: {
-            enabled: false,
-            status: "pending",
-            confidence_score: 0,
-          },
-          can_generate_content: false, // Need input sources first
-          metrics: {
-            content_count: 0,
-            sources_count: 0, // No sources added yet
-            intelligence_count: 0,
-          },
-        });
-      }
-
-      // Load generated content if available
-      try {
-        const contentData = await api.getGeneratedContent(params.id);
-        setGeneratedContent(Array.isArray(contentData) ? contentData : []);
-      } catch (contentError) {
-        console.warn("Generated content not available:", contentError);
-        setGeneratedContent([]);
-      }
-    } catch (err) {
-      console.error("Error loading campaign data:", err);
-      setError(err instanceof Error ? err.message : "Failed to load campaign");
-    } finally {
-      setIsLoading(false);
-    }
-  }, [params.id]); // Removed api from dependencies to prevent infinite loop
-
   useEffect(() => {
-    if (params.id) {
-      loadCampaignData();
-    }
-  }, [params.id, loadCampaignData]);
+    if (!params.id) return;
+
+    const loadCampaignData = async () => {
+      try {
+        setError(null);
+        setIsLoading(true);
+
+        // Load campaign details
+        const campaignData = await api.getCampaign(params.id);
+        setCampaign(campaignData);
+
+        // Load workflow state
+        try {
+          const workflowData = await api.getWorkflowState(params.id);
+          // Map status to allowed union type
+          const allowedStatuses = [
+            "pending",
+            "processing",
+            "completed",
+            "failed",
+          ] as const;
+          const mappedStatus = allowedStatuses.includes(
+            workflowData.auto_analysis.status as any
+          )
+            ? (workflowData.auto_analysis.status as
+                | "pending"
+                | "processing"
+                | "completed"
+                | "failed")
+            : "pending";
+          setWorkflowState({
+            ...workflowData,
+            auto_analysis: {
+              ...workflowData.auto_analysis,
+              status: mappedStatus,
+            },
+          });
+        } catch (workflowError) {
+          console.warn("Workflow state not available:", workflowError);
+          // Create default workflow state if endpoint doesn't exist
+          setWorkflowState({
+            campaign_id: params.id,
+            workflow_state: "setup_complete",
+            completion_percentage: 25, // Step 1 of 4 completed
+            current_step: 1,
+            total_steps: 4,
+            auto_analysis: {
+              enabled: false,
+              status: "pending",
+              confidence_score: 0,
+            },
+            can_generate_content: false, // Need input sources first
+            metrics: {
+              content_count: 0,
+              sources_count: 0, // No sources added yet
+              intelligence_count: 0,
+            },
+          });
+        }
+
+        // Load generated content if available
+        try {
+          const contentData = await api.getGeneratedContent(params.id);
+          setGeneratedContent(Array.isArray(contentData) ? contentData : []);
+        } catch (contentError) {
+          console.warn("Generated content not available:", contentError);
+          setGeneratedContent([]);
+        }
+      } catch (err) {
+        console.error("Error loading campaign data:", err);
+        setError(err instanceof Error ? err.message : "Failed to load campaign");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadCampaignData();
+  }, [params.id]); // Only depend on params.id
 
   // Generate content (Step 2 of workflow)
   const handleGenerateContent = async () => {
@@ -223,9 +223,9 @@ export default function CampaignDetailPage({
         analysis_type: "comprehensive",
       });
 
-      // Refresh workflow state after a delay
+      // Refresh data after a delay by reloading the page or triggering a re-render
       setTimeout(() => {
-        loadCampaignData();
+        window.location.reload();
       }, 2000);
     } catch (err) {
       console.error("Analysis retry error:", err);

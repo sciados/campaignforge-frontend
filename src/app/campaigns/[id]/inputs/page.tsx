@@ -32,34 +32,34 @@ export default function CampaignInputsPage({ params }: CampaignInputsPageProps) 
   const [analyzing, setAnalyzing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const loadCampaignAndProfile = useCallback(async () => {
-    try {
-      setLoading(true);
-      
-      // Load campaign and user profile in parallel
-      const [campaignResponse, profileResponse] = await Promise.all([
-        api.getCampaign(params.id),
-        api.getUserProfile()
-      ]);
-
-      setCampaign(campaignResponse);
-      setUserProfile(profileResponse);
-      
-    } catch (err) {
-      console.error('Failed to load campaign or profile:', err);
-      setError('Failed to load campaign information');
-    } finally {
-      setLoading(false);
-    }
-  }, [api, params.id]);
-
   useEffect(() => {
-    loadCampaignAndProfile();
-  }, [loadCampaignAndProfile]);
+    const loadCampaignAndProfile = async () => {
+      try {
+        setLoading(true);
+        
+        // Load campaign and user profile in parallel
+        const [campaignResponse, profileResponse] = await Promise.all([
+          api.getCampaign(params.id),
+          api.getUserProfile()
+        ]);
 
-  const handleInputsChange = (newInputs: CampaignInput[]) => {
+        setCampaign(campaignResponse);
+        setUserProfile(profileResponse);
+        
+      } catch (err) {
+        console.error('Failed to load campaign or profile:', err);
+        setError('Failed to load campaign information');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadCampaignAndProfile();
+  }, [params.id]); // Only depend on params.id, no api dependency
+
+  const handleInputsChange = useCallback((newInputs: CampaignInput[]) => {
     setInputs(newInputs);
-  };
+  }, []);
 
   const handleAnalyze = async () => {
     try {
