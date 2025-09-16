@@ -5,6 +5,10 @@ C:\Users\shaun\OneDrive\Documents\GitHub\campaignforge-frontend\src\app\admin\co
 C:\Users\shaun\OneDrive\Documents\GitHub\campaignforge-frontend\src\app\admin\components\UserManagement.tsx
 C:\Users\shaun\OneDrive\Documents\GitHub\campaignforge-frontend\src\app\admin\components\WaitlistManagement.tsx
 C:\Users\shaun\OneDrive\Documents\GitHub\campaignforge-frontend\src\app\admin\page.tsx
+C:\Users\shaun\OneDrive\Documents\GitHub\campaignforge-frontend\src\app\api\campaigns\route.ts
+C:\Users\shaun\OneDrive\Documents\GitHub\campaignforge-frontend\src\app\api\intelligence\generate-content\route.ts
+C:\Users\shaun\OneDrive\Documents\GitHub\campaignforge-frontend\src\app\campaigns\[id]\__tests__\page.test.tsx
+C:\Users\shaun\OneDrive\Documents\GitHub\campaignforge-frontend\src\app\campaigns\[id]\inputs\page.tsx
 C:\Users\shaun\OneDrive\Documents\GitHub\campaignforge-frontend\src\app\campaigns\[id]\page.tsx
 C:\Users\shaun\OneDrive\Documents\GitHub\campaignforge-frontend\src\app\campaigns\[id]\settings\page.tsx
 C:\Users\shaun\OneDrive\Documents\GitHub\campaignforge-frontend\src\app\campaigns\create-workflow\components\platfor...
@@ -23,6 +27,7 @@ C:\Users\shaun\OneDrive\Documents\GitHub\campaignforge-frontend\src\app\dashboar
 C:\Users\shaun\OneDrive\Documents\GitHub\campaignforge-frontend\src\app\dashboard\page.tsx
 C:\Users\shaun\OneDrive\Documents\GitHub\campaignforge-frontend\src\app\dashboard\router\page.tsx
 C:\Users\shaun\OneDrive\Documents\GitHub\campaignforge-frontend\src\app\dashboard\settings\page.tsx
+C:\Users\shaun\OneDrive\Documents\GitHub\campaignforge-frontend\src\app\intelligence-content\page.tsx
 C:\Users\shaun\OneDrive\Documents\GitHub\campaignforge-frontend\src\app\layout.tsx
 C:\Users\shaun\OneDrive\Documents\GitHub\campaignforge-frontend\src\app\login\page.tsx
 C:\Users\shaun\OneDrive\Documents\GitHub\campaignforge-frontend\src\app\onboarding\page.tsx
@@ -35,6 +40,7 @@ C:\Users\shaun\OneDrive\Documents\GitHub\campaignforge-frontend\src\components\a
 C:\Users\shaun\OneDrive\Documents\GitHub\campaignforge-frontend\src\components\campaigns\CampaignCard.tsx
 C:\Users\shaun\OneDrive\Documents\GitHub\campaignforge-frontend\src\components\campaigns\CampaignFilters.tsx
 C:\Users\shaun\OneDrive\Documents\GitHub\campaignforge-frontend\src\components\campaigns\CampaignGrid.tsx
+C:\Users\shaun\OneDrive\Documents\GitHub\campaignforge-frontend\src\components\campaigns\CampaignInputsManager.tsx
 C:\Users\shaun\OneDrive\Documents\GitHub\campaignforge-frontend\src\components\campaigns\CampaignStats.tsx
 C:\Users\shaun\OneDrive\Documents\GitHub\campaignforge-frontend\src\components\campaigns\ContentViewEditModal.tsx
 C:\Users\shaun\OneDrive\Documents\GitHub\campaignforge-frontend\src\components\campaigns\CreateCampaignModal.tsx
@@ -58,6 +64,7 @@ C:\Users\shaun\OneDrive\Documents\GitHub\campaignforge-frontend\src\components\i
 C:\Users\shaun\OneDrive\Documents\GitHub\campaignforge-frontend\src\components\input-sources\UniversalInputCollector...
 C:\Users\shaun\OneDrive\Documents\GitHub\campaignforge-frontend\src\components\intelligence\ContentGenerator.tsx
 C:\Users\shaun\OneDrive\Documents\GitHub\campaignforge-frontend\src\components\intelligence\IntelligenceAnalyzer.tsx
+C:\Users\shaun\OneDrive\Documents\GitHub\campaignforge-frontend\src\components\intelligence\IntelligenceDrivenConten...
 C:\Users\shaun\OneDrive\Documents\GitHub\campaignforge-frontend\src\components\intelligence\SalesPageIntelligenceEng...
 C:\Users\shaun\OneDrive\Documents\GitHub\campaignforge-frontend\src\components\layout\UserTypeSidebar.tsx
 C:\Users\shaun\OneDrive\Documents\GitHub\campaignforge-frontend\src\components\LoadingStates.tsx
@@ -76,6 +83,7 @@ C:\Users\shaun\OneDrive\Documents\GitHub\campaignforge-frontend\src\components\u
 C:\Users\shaun\OneDrive\Documents\GitHub\campaignforge-frontend\src\components\user-types\PlatformSetup.tsx
 C:\Users\shaun\OneDrive\Documents\GitHub\campaignforge-frontend\src\components\user-types\UserTypeSelector.tsx
 C:\Users\shaun\OneDrive\Documents\GitHub\campaignforge-frontend\src\components\WaitlistForm.tsx
+C:\Users\shaun\OneDrive\Documents\GitHub\campaignforge-frontend\src\lib\__tests__\api.test.ts
 C:\Users\shaun\OneDrive\Documents\GitHub\campaignforge-frontend\src\lib\ai-discovery-service.ts
 C:\Users\shaun\OneDrive\Documents\GitHub\campaignforge-frontend\src\lib\api.ts
 C:\Users\shaun\OneDrive\Documents\GitHub\campaignforge-frontend\src\lib\campaign-api.ts
@@ -83,6 +91,7 @@ C:\Users\shaun\OneDrive\Documents\GitHub\campaignforge-frontend\src\lib\config.t
 C:\Users\shaun\OneDrive\Documents\GitHub\campaignforge-frontend\src\lib\hooks\useUserNavigation.ts
 C:\Users\shaun\OneDrive\Documents\GitHub\campaignforge-frontend\src\lib\hooks\useUserType.ts
 C:\Users\shaun\OneDrive\Documents\GitHub\campaignforge-frontend\src\lib\services\intelligenceWorkflowService.ts
+C:\Users\shaun\OneDrive\Documents\GitHub\campaignforge-frontend\src\lib\stores\__tests__\campaignStore.test.ts
 C:\Users\shaun\OneDrive\Documents\GitHub\campaignforge-frontend\src\lib\stores\campaignStore.ts
 C:\Users\shaun\OneDrive\Documents\GitHub\campaignforge-frontend\src\lib\stores\inputSourceStore.ts
 C:\Users\shaun\OneDrive\Documents\GitHub\campaignforge-frontend\src\lib\stores\intelligenceStore.ts
@@ -94,6 +103,7 @@ C:\Users\shaun\OneDrive\Documents\GitHub\campaignforge-frontend\src\lib\types\em
 C:\Users\shaun\OneDrive\Documents\GitHub\campaignforge-frontend\src\lib\types\inputSource.ts
 C:\Users\shaun\OneDrive\Documents\GitHub\campaignforge-frontend\src\lib\types\intelligence.ts
 C:\Users\shaun\OneDrive\Documents\GitHub\campaignforge-frontend\src\lib\types\intelligence-api.ts
+C:\Users\shaun\OneDrive\Documents\GitHub\campaignforge-frontend\src\lib\types\intelligence-content.ts
 C:\Users\shaun\OneDrive\Documents\GitHub\campaignforge-frontend\src\lib\types\output.ts
 C:\Users\shaun\OneDrive\Documents\GitHub\campaignforge-frontend\src\lib\user-type-utils.ts
 C:\Users\shaun\OneDrive\Documents\GitHub\campaignforge-frontend\src\lib\utils.ts

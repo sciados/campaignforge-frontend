@@ -2355,27 +2355,95 @@ class ApiClient {
   }
 
   // ============================================================================
-  // 🔥 CONTENT GENERATION API METHODS
+  // 🔥 MODULAR 3-STEP ARCHITECTURE API METHODS
   // ============================================================================
+
+  /**
+   * Step 1: Intelligence Analysis & Extraction
+   * Uses the modular intelligence system with 3-stage processing:
+   * - Stage 1: Base Intelligence Extraction (analyzers.py)
+   * - Stage 2: AI Enhancement Pipeline (6 enhancement modules)
+   * - Stage 3: RAG & Advanced Processing (enhanced_rag_system.py)
+   */
 
   async runIntelligenceAnalysis(campaignId: string, analysisData: any): Promise<any> {
     console.log('🧠 API: Running intelligence analysis for campaign:', campaignId);
-    
-    const response = await fetch(`${this.baseURL}/api/intelligence/analyze/${campaignId}`, {
+    console.log('🧠 Analysis data received:', analysisData);
+
+    // Extract URL from inputs - look for salespage_url or any URL input
+    let sourceUrl = null;
+    if (analysisData.inputs) {
+      // Check for salespage_url first, then other URL types
+      sourceUrl = analysisData.inputs.salespage_url ||
+                  analysisData.inputs.competitor_url ||
+                  // Find any URL from inputs
+                  Object.values(analysisData.inputs).find((value: any) =>
+                    typeof value === 'string' && (value.startsWith('http://') || value.startsWith('https://'))
+                  );
+    }
+
+    if (!sourceUrl) {
+      throw new Error('No valid URL found in inputs. Please add a salespage URL or competitor URL.');
+    }
+
+    console.log('🎯 Extracted source URL for analysis:', sourceUrl);
+
+    // Create the request format expected by the existing backend endpoint
+    const requestData = {
+      source_url: sourceUrl,
+      analysis_method: 'fast', // Default to fast analysis
+      force_refresh: false
+    };
+
+    const response = await fetch(`${this.baseURL}/api/intelligence/analyze`, {
       method: 'POST',
       headers: this.getHeaders(),
-      body: JSON.stringify(analysisData)
+      body: JSON.stringify(requestData)
     });
 
     return this.handleResponse(response);
   }
 
-  async triggerContentGeneration(campaignId: string): Promise<any> {
-    console.log('🎨 API: Triggering content generation for campaign:', campaignId);
-    
-    const response = await fetch(`${this.baseURL}/api/content/generate/${campaignId}`, {
+  /**
+   * Step 2: 3-Step Intelligence-Driven Content Generation
+   * Leverages the modular backend architecture:
+   * - Uses stored intelligence from Step 1 (runIntelligenceAnalysis)
+   * - Applies 6 AI enhancement modules for optimization
+   * - Routes to tier-appropriate providers for cost efficiency
+   *
+   * @param campaignId - Campaign with stored intelligence data
+   * @param contentType - Type of content to generate (email, social_post, blog_post, ad_copy, etc.)
+   * @param preferences - Generation preferences and options
+   */
+  async triggerContentGeneration(campaignId: string, contentType: string = 'email', preferences: any = {}): Promise<any> {
+    console.log('🎨 API: Triggering 3-step intelligence-driven content generation');
+    console.log('📋 Campaign:', campaignId, 'Content Type:', contentType);
+
+    // Use the modular 3-step intelligence-driven content generation
+    // Step 1: Intelligence extraction (automatic from stored campaign intelligence)
+    // Step 2: AI prompt optimization (automatic based on intelligence)
+    // Step 3: Content generation with tier-appropriate providers
+    const requestData = {
+      content_type: contentType,
+      campaign_id: campaignId,
+      preferences: {
+        // Enhanced 3-step process preferences
+        use_3_step_process: true,
+        intelligence_extraction: true,
+        prompt_optimization: true,
+        tier_routing: true,
+        // Legacy compatibility
+        generate_multiple_types: preferences.generate_multiple_types || false,
+        ...preferences
+      }
+    };
+
+    console.log('🚀 3-Step Content Generation Request:', requestData);
+
+    const response = await fetch(`${this.baseURL}/api/intelligence/generate-content`, {
       method: 'POST',
-      headers: this.getHeaders()
+      headers: this.getHeaders(),
+      body: JSON.stringify(requestData)
     });
 
     return this.handleResponse(response);
@@ -2428,6 +2496,66 @@ class ApiClient {
     });
 
     return this.handleResponse(response);
+  }
+
+  // ============================================================================
+  // 🚫 DEPRECATED METHODS (For Legacy Compatibility - Will be Removed)
+  // ============================================================================
+
+  /**
+   * @deprecated Use runIntelligenceAnalysis() with new 3-step architecture
+   * Legacy method for backward compatibility only
+   */
+  async legacyAnalyzeURL(url: string): Promise<any> {
+    console.warn('⚠️ DEPRECATED: legacyAnalyzeURL() is deprecated. Use runIntelligenceAnalysis() instead.');
+
+    // Convert to new 3-step format
+    const analysisData = {
+      inputs: { salespage_url: url }
+    };
+
+    return this.runIntelligenceAnalysis('legacy', analysisData);
+  }
+
+  /**
+   * @deprecated Use triggerContentGeneration() with enhanced 3-step process
+   * Legacy direct generation without intelligence extraction
+   */
+  async legacyGenerateContent(contentType: string, prompt: string): Promise<any> {
+    console.warn('⚠️ DEPRECATED: legacyGenerateContent() is deprecated. Use triggerContentGeneration() with campaign context instead.');
+
+    // This should not be used - content generation needs intelligence context
+    throw new Error('Legacy content generation is deprecated. Please use campaign-based content generation with intelligence context.');
+  }
+
+  /**
+   * @deprecated Individual generator methods are deprecated
+   * Use triggerContentGeneration() with specific content_type parameter instead
+   */
+  async generateEmailSequence(intelligence: any): Promise<any> {
+    console.warn('⚠️ DEPRECATED: generateEmailSequence() is deprecated. Use triggerContentGeneration(campaignId, "email") instead.');
+
+    throw new Error('Direct email generation is deprecated. Please create a campaign and use triggerContentGeneration().');
+  }
+
+  /**
+   * @deprecated Individual generator methods are deprecated
+   * Use triggerContentGeneration() with specific content_type parameter instead
+   */
+  async generateSocialMediaContent(intelligence: any): Promise<any> {
+    console.warn('⚠️ DEPRECATED: generateSocialMediaContent() is deprecated. Use triggerContentGeneration(campaignId, "social_post") instead.');
+
+    throw new Error('Direct social media generation is deprecated. Please create a campaign and use triggerContentGeneration().');
+  }
+
+  /**
+   * @deprecated Individual generator methods are deprecated
+   * Use triggerContentGeneration() with specific content_type parameter instead
+   */
+  async generateBlogPost(intelligence: any): Promise<any> {
+    console.warn('⚠️ DEPRECATED: generateBlogPost() is deprecated. Use triggerContentGeneration(campaignId, "blog_post") instead.');
+
+    throw new Error('Direct blog generation is deprecated. Please create a campaign and use triggerContentGeneration().');
   }
 }
 

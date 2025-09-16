@@ -82,23 +82,49 @@ export default function CampaignInputsPage({ params }: CampaignInputsPageProps) 
   }, [params.id]); // Only depend on params.id, no api dependency
 
   const handleInputsChange = useCallback((newInputs: CampaignInput[]) => {
+    console.log('📝 handleInputsChange called with:', newInputs);
+    console.log('📝 Previous inputs:', inputs);
     setInputs(newInputs);
-  }, []);
+  }, [inputs]);
 
   const handleAnalyze = async () => {
     try {
       setAnalyzing(true);
-      
+
+      console.log('🔍 handleAnalyze called with inputs:', inputs);
+      console.log('🔍 Input count:', inputs.length);
+      inputs.forEach((input, index) => {
+        console.log(`🔍 Input ${index}:`, {
+          id: input.id,
+          type: input.type,
+          value: input.value,
+          status: input.status
+        });
+      });
+
+      // Validation: Check if we have any inputs
+      if (inputs.length === 0) {
+        throw new Error('No inputs provided. Please add at least one input source.');
+      }
+
+      // Validation: Check if we have any valid inputs
+      const validInputs = inputs.filter(input => input.status === 'valid' && input.value.trim());
+      if (validInputs.length === 0) {
+        throw new Error('No valid inputs found. Please enter valid input data before analyzing.');
+      }
+
       // Step 1: Convert inputs to format expected by analysis API
       const analysisData = {
         campaign_id: params.id,
         inputs: inputs.reduce((acc, input) => {
-          acc[input.type] = input.value;
+          if (input.value.trim()) {  // Only include inputs with values
+            acc[input.type] = input.value;
+          }
           return acc;
         }, {} as Record<string, string>)
       };
 
-      console.log('Starting intelligence analysis with inputs:', analysisData);
+      console.log('🚀 Starting intelligence analysis with inputs:', analysisData);
       
       // Step 2: Run intelligence analysis
       const analysisResponse = await api.runIntelligenceAnalysis(params.id, analysisData);
@@ -107,26 +133,18 @@ export default function CampaignInputsPage({ params }: CampaignInputsPageProps) 
         throw new Error(analysisResponse.error || 'Intelligence analysis failed');
       }
 
-      console.log('Intelligence analysis completed, triggering content generation...');
-      
-      // Step 3: Trigger content generation based on intelligence results
-      const contentResponse = await api.triggerContentGeneration(params.id);
-      
-      if (!contentResponse.success) {
-        throw new Error(contentResponse.error || 'Content generation failed to start');
-      }
+      console.log('✅ Intelligence analysis completed successfully!');
 
-      console.log('Content generation started:', contentResponse);
-      
-      // Step 4: Navigate to content generation status page
-      router.push(`/campaigns/${params.id}/content/generating`);
+      // Navigate to campaign detail page to show analysis results
+      // Content generation will be a separate step initiated by user
+      router.push(`/campaigns/${params.id}?tab=intelligence&analysis=completed`);
       
     } catch (err) {
-      console.error('Analysis and content generation failed:', err);
+      console.error('Intelligence analysis failed:', err);
       setError(
-        err instanceof Error 
-          ? err.message 
-          : 'Failed to start analysis and content generation. Please try again.'
+        err instanceof Error
+          ? err.message
+          : 'Failed to complete intelligence analysis. Please try again.'
       );
     } finally {
       setAnalyzing(false);
@@ -231,10 +249,13 @@ export default function CampaignInputsPage({ params }: CampaignInputsPageProps) 
             <div className="text-center py-12">
               <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
               <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                Starting AI Analysis
+                Analyzing Intelligence Sources
               </h3>
               <p className="text-gray-600">
-                Processing your inputs and generating campaign intelligence...
+                Processing your input sources and extracting marketing intelligence...
+              </p>
+              <p className="text-sm text-gray-500 mt-2">
+                This analysis will power your content generation later.
               </p>
             </div>
           ) : (

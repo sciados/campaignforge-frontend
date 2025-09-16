@@ -177,13 +177,20 @@ export default function CampaignInputsManager({
     // Validate input after a short delay
     setTimeout(() => {
       validateInput(inputId, value);
-    }, 500);
+    }, 1000); // Increased delay to 1 second to prevent rapid validation
   };
 
   // Validate individual input
   const validateInput = (inputId: string, value: string) => {
+    console.log('🔍 validateInput called:', { inputId, value, inputsCount: inputs.length });
+
     const input = inputs.find(i => i.id === inputId);
-    if (!input) return;
+    if (!input) {
+      console.warn('⚠️ validateInput: Input not found:', inputId);
+      return;
+    }
+
+    console.log('🔍 Found input for validation:', input);
 
     const inputType = INPUT_TYPES.find(t => t.id === input.type);
     let isValid = true;
@@ -192,13 +199,18 @@ export default function CampaignInputsManager({
     if (!value.trim()) {
       isValid = false;
       error = 'This field is required';
+      console.log('❌ Validation failed: Empty value');
     } else if (inputType?.type === 'url') {
       try {
         new URL(value);
+        console.log('✅ URL validation passed:', value);
       } catch {
         isValid = false;
         error = 'Please enter a valid URL (including https://)';
+        console.log('❌ URL validation failed:', value);
       }
+    } else {
+      console.log('✅ Non-URL validation passed:', value);
     }
 
     const updatedInputs = inputs.map(input => 
@@ -495,11 +507,11 @@ export default function CampaignInputsManager({
             className={`flex items-center gap-2 px-6 py-3 rounded-lg font-medium transition-colors ${
               hasInvalidInputs
                 ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                : 'bg-green-600 text-white hover:bg-green-700'
+                : 'bg-blue-600 text-white hover:bg-blue-700'
             }`}
           >
             <Sparkles className="w-4 h-4" />
-            Run AI Analysis
+            Extract Intelligence
           </button>
         </div>
       )}
