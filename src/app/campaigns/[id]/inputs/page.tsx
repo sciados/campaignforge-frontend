@@ -31,10 +31,33 @@ export default function CampaignInputsPage({ params }: CampaignInputsPageProps) 
   const [loading, setLoading] = useState(true);
   const [analyzing, setAnalyzing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  
+  // EMERGENCY FIX: Prevent infinite loops with circuit breaker
+  const isLoadingRef = useRef(false);
+  const loadCountRef = useRef(0);
 
   useEffect(() => {
+    // EMERGENCY CIRCUIT BREAKER: Prevent infinite loops
+    loadCountRef.current += 1;
+    console.log('🔄 INPUTS useEffect running for ID:', params.id, 'Count:', loadCountRef.current);
+    
+    // If we've tried more than 3 times, stop
+    if (loadCountRef.current > 3) {
+      console.error('🚨 CIRCUIT BREAKER: Too many load attempts, stopping to prevent infinite loop');
+      setError('Too many load attempts. Please refresh the page.');
+      setLoading(false);
+      return;
+    }
+    
+    // If already loading, don't start another request
+    if (isLoadingRef.current) {
+      console.warn('⚠️ Already loading, skipping duplicate request');
+      return;
+    }
+    
     const loadCampaignAndProfile = async () => {
       try {
+        isLoadingRef.current = true;
         setLoading(true);
         
         // Load campaign and user profile in parallel
@@ -50,6 +73,7 @@ export default function CampaignInputsPage({ params }: CampaignInputsPageProps) 
         console.error('Failed to load campaign or profile:', err);
         setError('Failed to load campaign information');
       } finally {
+        isLoadingRef.current = false;
         setLoading(false);
       }
     };
