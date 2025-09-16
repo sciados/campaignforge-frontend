@@ -5,7 +5,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, Sparkles } from 'lucide-react';
 import { useApi } from '@/lib/api';
-import CampaignInputsManager from '@/components/campaigns/CampaignInputsManager';
+import SimplifiedInputsManager from '@/components/campaigns/SimplifiedInputsManager';
 
 interface CampaignInput {
   id: string;
@@ -259,7 +259,7 @@ export default function CampaignInputsPage({ params }: CampaignInputsPageProps) 
               </p>
             </div>
           ) : (
-            <CampaignInputsManager
+            <SimplifiedInputsManager
               campaignId={params.id}
               userType={getUserType()}
               onInputsChange={handleInputsChange}

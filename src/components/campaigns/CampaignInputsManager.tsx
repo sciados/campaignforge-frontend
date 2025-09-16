@@ -113,7 +113,6 @@ export default function CampaignInputsManager({
   onAnalyze 
 }: CampaignInputsManagerProps) {
   const [inputs, setInputs] = useState<CampaignInput[]>([]);
-  const [showAddMenu, setShowAddMenu] = useState(false);
   const [validatingInput, setValidatingInput] = useState<string | null>(null);
 
   // Get suggested input types based on user type
