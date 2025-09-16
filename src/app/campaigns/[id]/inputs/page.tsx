@@ -1,7 +1,7 @@
 // src/app/campaigns/[id]/inputs/page.tsx
 "use client";
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, Sparkles } from 'lucide-react';
 import { useApi } from '@/lib/api';
