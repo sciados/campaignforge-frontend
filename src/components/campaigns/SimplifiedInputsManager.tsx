@@ -147,7 +147,8 @@ export default function SimplifiedInputsManager({
   }, [userType, onInputsChange, getRelevantInputTypes]);
 
   // Update input value with validation
-  const updateInput = async (inputId: string, value: string) => {
+  const updateInput = useCallback((inputId: string, value: string) => {
+    console.log('updateInput called:', inputId, value);
     setValidatingInput(inputId);
 
     // Find the input type for validation
@@ -162,11 +163,20 @@ export default function SimplifiedInputsManager({
       // Empty is OK - not required
       isValid = true;
     } else if (inputType?.type === "url") {
-      try {
-        new URL(value);
-      } catch {
-        isValid = false;
-        error = "Please enter a valid URL (including https://)";
+      // Allow partial URLs during typing, only validate if it looks like a complete URL
+      if (value.includes('.') && value.length > 4) {
+        try {
+          // Add protocol if missing for validation
+          const urlToValidate = value.startsWith('http') ? value : `https://${value}`;
+          new URL(urlToValidate);
+          isValid = true;
+        } catch {
+          isValid = false;
+          error = "Please enter a valid URL (e.g., https://example.com)";
+        }
+      } else {
+        // Allow partial URLs during typing
+        isValid = true;
       }
     }
 
@@ -184,7 +194,7 @@ export default function SimplifiedInputsManager({
     setInputs(updatedInputs);
     onInputsChange(updatedInputs);
     setValidatingInput(null);
-  };
+  }, [inputs, onInputsChange]);
 
   const hasValidInputs = inputs.some(
     (input) => input.status === "valid" && input.value.trim() !== ""
@@ -222,10 +232,11 @@ export default function SimplifiedInputsManager({
           return (
             <div
               key={input.id}
-              className="border border-gray-200 rounded-lg p-4 space-y-3 hover:border-gray-300 transition-colors"
+              className="border border-gray-200 rounded-lg p-4 hover:border-gray-300 transition-colors"
             >
-              <div className="flex items-center gap-3">
-                <Icon className="w-5 h-5 text-gray-500" />
+              {/* Header with icon, label and status */}
+              <div className="flex items-center gap-3 mb-3">
+                <Icon className="w-5 h-5 text-gray-500 flex-shrink-0" />
                 <div className="flex-1">
                   <div className="flex items-center gap-2">
                     <span className="font-medium text-gray-900">
@@ -234,12 +245,12 @@ export default function SimplifiedInputsManager({
 
                     {/* Status indicator */}
                     {validatingInput === input.id ? (
-                      <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+                      <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin flex-shrink-0" />
                     ) : input.status === "valid" &&
                       input.value.trim() !== "" ? (
-                      <Check className="w-4 h-4 text-green-500" />
+                      <Check className="w-4 h-4 text-green-500 flex-shrink-0" />
                     ) : input.status === "invalid" ? (
-                      <X className="w-4 h-4 text-red-500" />
+                      <X className="w-4 h-4 text-red-500 flex-shrink-0" />
                     ) : null}
                   </div>
 
@@ -250,51 +261,59 @@ export default function SimplifiedInputsManager({
                 </div>
               </div>
 
-              {/* Input field */}
-              {inputType?.type === "text" || inputType?.type === "analytics" ? (
-                <textarea
-                  value={input.value}
-                  onChange={(e) => updateInput(input.id, e.target.value)}
-                  placeholder={inputType?.placeholder}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
-                  rows={3}
-                />
-              ) : inputType?.type === "file" ? (
-                <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center">
-                  <input
-                    type="file"
-                    id={`file-${input.id}`}
-                    className="hidden"
-                    onChange={(e) => {
-                      const file = e.target.files?.[0];
-                      if (file) {
-                        updateInput(input.id, file.name);
-                      }
-                    }}
-                    accept=".pdf,.doc,.docx,.txt,.png,.jpg,.jpeg"
+              {/* Input field - separated with clear spacing */}
+              <div className="w-full">
+                {inputType?.type === "text" || inputType?.type === "analytics" ? (
+                  <textarea
+                    value={input.value}
+                    onChange={(e) => updateInput(input.id, e.target.value)}
+                    placeholder={inputType?.placeholder}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                    rows={3}
                   />
-                  <label
-                    htmlFor={`file-${input.id}`}
-                    className="cursor-pointer block"
-                  >
-                    <Upload className="w-6 h-6 text-gray-400 mx-auto mb-2" />
-                    <p className="text-sm text-gray-600">
-                      {input.value || "Click to upload file"}
-                    </p>
-                    <p className="text-xs text-gray-500 mt-1">
-                      PDF, DOC, TXT, or image files
-                    </p>
-                  </label>
-                </div>
-              ) : (
-                <input
-                  type="url"
-                  value={input.value}
-                  onChange={(e) => updateInput(input.id, e.target.value)}
-                  placeholder={inputType?.placeholder}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
-              )}
+                ) : inputType?.type === "file" ? (
+                  <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center">
+                    <input
+                      type="file"
+                      id={`file-${input.id}`}
+                      className="hidden"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          updateInput(input.id, file.name);
+                        }
+                      }}
+                      accept=".pdf,.doc,.docx,.txt,.png,.jpg,.jpeg"
+                    />
+                    <label
+                      htmlFor={`file-${input.id}`}
+                      className="cursor-pointer block"
+                    >
+                      <Upload className="w-6 h-6 text-gray-400 mx-auto mb-2" />
+                      <p className="text-sm text-gray-600">
+                        {input.value || "Click to upload file"}
+                      </p>
+                      <p className="text-xs text-gray-500 mt-1">
+                        PDF, DOC, TXT, or image files
+                      </p>
+                    </label>
+                  </div>
+                ) : (
+                  <input
+                    type="text"
+                    value={input.value}
+                    onChange={(e) => {
+                      console.log('Input change:', e.target.value);
+                      updateInput(input.id, e.target.value);
+                    }}
+                    onFocus={() => console.log('Input focused:', input.id)}
+                    onClick={() => console.log('Input clicked:', input.id)}
+                    placeholder={inputType?.placeholder}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white relative z-10"
+                    style={{ minHeight: '40px' }}
+                  />
+                )}
+              </div>
 
               {/* Error message */}
               {input.error && (
