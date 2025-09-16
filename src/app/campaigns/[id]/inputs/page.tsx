@@ -136,14 +136,35 @@ export default function CampaignInputsPage({ params }: CampaignInputsPageProps) 
   // Determine user type from profile
   const getUserType = (): 'affiliate' | 'business' | 'creator' | 'agency' | null => {
     if (!userProfile) return null;
-    
-    // This would typically come from user profile/preferences
-    // For now, we'll use some heuristics or default
+
+    // Map profile user types to input manager types
     if (userProfile.user_type) {
-      return userProfile.user_type;
+      const userType = userProfile.user_type;
+      console.log('🔍 Mapping user type:', userType, 'from profile:', userProfile);
+
+      // Handle different user type naming conventions
+      if (userType === 'affiliate_marketer' || userType === 'affiliate') {
+        console.log('✅ Mapped to affiliate');
+        return 'affiliate';
+      }
+      if (userType === 'business_owner' || userType === 'business') {
+        return 'business';
+      }
+      if (userType === 'content_creator' || userType === 'creator') {
+        return 'creator';
+      }
+      if (userType === 'agency') {
+        return 'agency';
+      }
+
+      // Return as-is if it matches expected types
+      if (['affiliate', 'business', 'creator', 'agency'].includes(userType)) {
+        return userType as 'affiliate' | 'business' | 'creator' | 'agency';
+      }
     }
-    
-    // Default to affiliate for now - could be smarter
+
+    // Default to affiliate for now
+    console.log('🔍 getUserType() defaulting to affiliate, userProfile:', userProfile);
     return 'affiliate';
   };
 

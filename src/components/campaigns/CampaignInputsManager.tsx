@@ -119,18 +119,30 @@ export default function CampaignInputsManager({
   // Get suggested input types based on user type
   const getSuggestedInputs = useCallback(() => {
     if (!userType) return INPUT_TYPES;
-    
-    return INPUT_TYPES
+
+    const filtered = INPUT_TYPES
       .filter(inputType => inputType.suggestedFor.includes(userType))
       .sort((a, b) => a.priority - b.priority);
+
+    // Fallback to all inputs if filtered result is empty
+    return filtered.length > 0 ? filtered : INPUT_TYPES;
   }, [userType]);
 
   // Get available input types (not yet added)
   const getAvailableInputs = () => {
     const existingTypes = inputs.map(input => input.type);
-    return getSuggestedInputs().filter(inputType => 
+    const suggested = getSuggestedInputs();
+    const available = suggested.filter(inputType =>
       !existingTypes.includes(inputType.id)
     );
+
+    console.log('🔍 Available inputs calculation:', {
+      existingTypes,
+      suggestedInputs: suggested.map(s => s.id),
+      availableInputs: available.map(a => a.id)
+    });
+
+    return available;
   };
 
   // Add new input
@@ -211,34 +223,34 @@ export default function CampaignInputsManager({
     onInputsChange(updatedInputs);
   };
 
-  // Auto-suggest first input based on user type
+  // Auto-suggest first input based on user type (temporarily disabled)
   useEffect(() => {
-    console.log('🔄 Auto-suggest effect:', { userType, inputsLength: inputs.length });
+    console.log('🔄 Auto-suggest effect (DISABLED):', { userType, inputsLength: inputs.length });
+    // Temporarily disabled to avoid conflicts with modal
+    // if (userType && inputs.length === 0) {
+    //   const suggestedInputs = INPUT_TYPES
+    //     .filter(inputType => inputType.suggestedFor.includes(userType))
+    //     .sort((a, b) => a.priority - b.priority);
 
-    if (userType && inputs.length === 0) {
-      const suggestedInputs = INPUT_TYPES
-        .filter(inputType => inputType.suggestedFor.includes(userType))
-        .sort((a, b) => a.priority - b.priority);
+    //   console.log('📝 Suggested inputs for', userType, ':', suggestedInputs.map(i => i.label));
 
-      console.log('📝 Suggested inputs for', userType, ':', suggestedInputs.map(i => i.label));
+    //   if (suggestedInputs.length > 0) {
+    //     const inputType = suggestedInputs[0];
+    //     const newInput: CampaignInput = {
+    //       id: `${inputType.id}_${Date.now()}`,
+    //       type: inputType.id,
+    //       label: inputType.label,
+    //       value: '',
+    //       status: 'pending'
+    //     };
 
-      if (suggestedInputs.length > 0) {
-        const inputType = suggestedInputs[0];
-        const newInput: CampaignInput = {
-          id: `${inputType.id}_${Date.now()}`,
-          type: inputType.id,
-          label: inputType.label,
-          value: '',
-          status: 'pending'
-        };
+    //     console.log('➕ Adding suggested input:', newInput);
 
-        console.log('➕ Adding suggested input:', newInput);
-
-        const updatedInputs = [newInput];
-        setInputs(updatedInputs);
-        onInputsChange(updatedInputs);
-      }
-    }
+    //     const updatedInputs = [newInput];
+    //     setInputs(updatedInputs);
+    //     onInputsChange(updatedInputs);
+    //   }
+    // }
   }, [userType, inputs.length, onInputsChange]);
 
   const hasValidInputs = inputs.some(input => input.status === 'valid');
@@ -246,11 +258,15 @@ export default function CampaignInputsManager({
 
   return (
     <div className="space-y-6">
-      {/* Debug Info (temporary) */}
+      {/* Debug Info (temporary - remove after testing) */}
       <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 text-sm">
         <strong>Debug Info:</strong> UserType: {userType || 'null'},
         Inputs: {inputs.length},
         Available inputs: {getAvailableInputs().length}
+        <br />
+        <small className="text-gray-600">
+          This debug info will be removed after testing.
+        </small>
       </div>
 
       {/* Header */}
@@ -426,9 +442,43 @@ export default function CampaignInputsManager({
                 );
               })}
               
-              {getAvailableInputs().length === 0 && (
+              {/* Fallback: If filtered inputs are empty, show all available inputs */}
+              {getAvailableInputs().length === 0 && INPUT_TYPES.filter(inputType =>
+                !inputs.map(i => i.type).includes(inputType.id)
+              ).length > 0 && (
+                <>
+                  <div className="border-t border-gray-200 pt-3 mb-3">
+                    <p className="text-xs text-gray-500 text-center">All input types:</p>
+                  </div>
+                  {INPUT_TYPES.filter(inputType =>
+                    !inputs.map(i => i.type).includes(inputType.id)
+                  ).map((inputType) => {
+                    const Icon = inputType.icon;
+                    return (
+                      <button
+                        key={inputType.id}
+                        onClick={() => addInput(inputType)}
+                        className="w-full text-left p-3 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors"
+                      >
+                        <div className="flex items-center gap-3">
+                          <Icon className="w-5 h-5 text-gray-500" />
+                          <div>
+                            <div className="font-medium text-gray-900">{inputType.label}</div>
+                            <div className="text-sm text-gray-500">{inputType.description}</div>
+                          </div>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </>
+              )}
+
+              {/* Show message only when truly no inputs are available */}
+              {INPUT_TYPES.filter(inputType =>
+                !inputs.map(i => i.type).includes(inputType.id)
+              ).length === 0 && (
                 <div className="text-center py-4 text-gray-500">
-                  All recommended input types have been added
+                  All input types have been added
                 </div>
               )}
             </div>
