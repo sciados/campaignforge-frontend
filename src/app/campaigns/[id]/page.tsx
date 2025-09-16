@@ -95,6 +95,7 @@ export default function CampaignDetailPage({
   useEffect(() => {
     if (!params.id) return;
 
+    console.log('🔄 Campaign useEffect running for ID:', params.id);
     const loadCampaignData = async () => {
       try {
         setError(null);
