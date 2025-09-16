@@ -232,7 +232,7 @@ export default function SimplifiedInputsManager({
           return (
             <div
               key={input.id}
-              className="border border-gray-200 rounded-lg p-4 hover:border-gray-300 transition-colors"
+              className="border border-gray-200 rounded-lg p-4"
             >
               {/* Header with icon, label and status */}
               <div className="flex items-center gap-3 mb-3">
@@ -262,7 +262,7 @@ export default function SimplifiedInputsManager({
               </div>
 
               {/* Input field - separated with clear spacing */}
-              <div className="w-full">
+              <div className="w-full relative">
                 {inputType?.type === "text" || inputType?.type === "analytics" ? (
                   <textarea
                     value={input.value}
@@ -303,14 +303,12 @@ export default function SimplifiedInputsManager({
                     type="text"
                     value={input.value}
                     onChange={(e) => {
-                      console.log('Input change:', e.target.value);
                       updateInput(input.id, e.target.value);
                     }}
-                    onFocus={() => console.log('Input focused:', input.id)}
-                    onClick={() => console.log('Input clicked:', input.id)}
                     placeholder={inputType?.placeholder}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white relative z-10"
-                    style={{ minHeight: '40px' }}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
+                    autoComplete="off"
+                    spellCheck="false"
                   />
                 )}
               </div>

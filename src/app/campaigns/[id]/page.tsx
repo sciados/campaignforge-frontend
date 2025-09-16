@@ -1,7 +1,7 @@
 // src/app/campaigns/[id]/page.tsx - FIXED VERSION
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import {
   ArrowLeft,
@@ -92,7 +92,7 @@ export default function CampaignDetailPage({
   const [isGeneratingContent, setIsGeneratingContent] = useState(false);
 
   // Load campaign data function - extracted for reuse
-  const loadCampaignData = async () => {
+  const loadCampaignData = useCallback(async () => {
     try {
       setError(null);
       setIsLoading(true);
@@ -164,7 +164,7 @@ export default function CampaignDetailPage({
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [api, params.id]);
 
   // Load campaign data on component mount
   useEffect(() => {
@@ -172,7 +172,7 @@ export default function CampaignDetailPage({
 
     console.log('🔄 Campaign useEffect running for ID:', params.id);
     loadCampaignData();
-  }, [params.id]); // Only depend on params.id
+  }, [params.id, loadCampaignData]); // Include loadCampaignData in dependencies
 
   // Generate content (Step 2 of workflow)
   const handleGenerateContent = async () => {

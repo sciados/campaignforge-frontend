@@ -40,7 +40,7 @@ export default function CampaignInputsPage({ params }: CampaignInputsPageProps) 
     // EMERGENCY CIRCUIT BREAKER: Prevent infinite loops
     loadCountRef.current += 1;
     console.log('🔄 INPUTS useEffect running for ID:', params.id, 'Count:', loadCountRef.current);
-    
+
     // If we've tried more than 3 times, stop
     if (loadCountRef.current > 3) {
       console.error('🚨 CIRCUIT BREAKER: Too many load attempts, stopping to prevent infinite loop');
@@ -48,18 +48,18 @@ export default function CampaignInputsPage({ params }: CampaignInputsPageProps) 
       setLoading(false);
       return;
     }
-    
+
     // If already loading, don't start another request
     if (isLoadingRef.current) {
       console.warn('⚠️ Already loading, skipping duplicate request');
       return;
     }
-    
+
     const loadCampaignAndProfile = async () => {
       try {
         isLoadingRef.current = true;
         setLoading(true);
-        
+
         // Load campaign and user profile in parallel
         const [campaignResponse, profileResponse] = await Promise.all([
           api.getCampaign(params.id),
@@ -68,7 +68,7 @@ export default function CampaignInputsPage({ params }: CampaignInputsPageProps) 
 
         setCampaign(campaignResponse);
         setUserProfile(profileResponse);
-        
+
       } catch (err) {
         console.error('Failed to load campaign or profile:', err);
         setError('Failed to load campaign information');
@@ -79,7 +79,7 @@ export default function CampaignInputsPage({ params }: CampaignInputsPageProps) 
     };
 
     loadCampaignAndProfile();
-  }, [params.id]); // Only depend on params.id, no api dependency
+  }, [params.id, api]); // Include api in dependencies
 
   const handleInputsChange = useCallback((newInputs: CampaignInput[]) => {
     console.log('📝 handleInputsChange called with:', newInputs);

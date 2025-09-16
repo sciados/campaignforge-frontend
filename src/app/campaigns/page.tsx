@@ -219,7 +219,7 @@ export default function CampaignsPage() {
     } catch (error) {
       console.error("Demo campaign creation failed:", error);
     }
-  }, [setStorageItem]);
+  }, [setStorageItem, api]);
 
   // Robust data loading
   const loadInitialData = useCallback(async (): Promise<void> => {
@@ -315,6 +315,7 @@ export default function CampaignsPage() {
     handleApiError,
     getStorageItem,
     mounted,
+    api,
   ]);
 
   // Initialization effect - SSR SAFE
@@ -410,7 +411,7 @@ export default function CampaignsPage() {
         throw new Error(errorMessage);
       }
     },
-    [router, handleApiError]
+    [router, handleApiError, api]
   );
 
   const handleCampaignView = useCallback(
@@ -432,7 +433,7 @@ export default function CampaignsPage() {
         setError(handleApiError(err));
       }
     },
-    [handleApiError]
+    [handleApiError, api]
   );
 
   const handleCampaignDelete = useCallback(
@@ -447,7 +448,7 @@ export default function CampaignsPage() {
         setError(handleApiError(err));
       }
     },
-    [handleApiError]
+    [handleApiError, api]
   );
 
   const debugStoragePerformance = useCallback(async () => {
