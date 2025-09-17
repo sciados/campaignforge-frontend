@@ -103,6 +103,7 @@ export default function CampaignDetailPage({
 
       // Load workflow state
       try {
+        console.log('🔄 Attempting to load workflow state for campaign:', params.id);
         const workflowData = await api.getWorkflowState(params.id);
         // Map status to allowed union type
         const allowedStatuses = [

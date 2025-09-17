@@ -937,9 +937,22 @@ class ApiClient {
     }
 
     if (response.status === 401) {
+      // Enhanced debugging for authentication issues
+      const currentToken = this.getAuthToken()
+      console.error('🚨 401 Authentication Error Details:', {
+        url: response.url,
+        method: response.headers.get('x-method') || 'Unknown',
+        hasToken: !!currentToken,
+        tokenLength: currentToken?.length || 0,
+        tokenPreview: currentToken ? `${currentToken.substring(0, 20)}...` : 'No token',
+        timestamp: new Date().toISOString(),
+        errorData
+      })
+
       // Clear tokens and redirect to login
       this.clearAuthToken()
       if (typeof window !== 'undefined') {
+        console.log('🔄 Redirecting to login page due to 401 error')
         window.location.href = '/login'
       }
       throw new ApiError('Authentication required', 401, errorData)
@@ -1937,8 +1950,22 @@ class ApiClient {
   }
 
   async getCampaign(campaignId: string): Promise<Campaign> {
+    const headers = this.getHeaders()
+    console.log('🔍 getCampaign called:', {
+      campaignId,
+      url: `${this.baseURL}/api/campaigns/${campaignId}`,
+      hasAuthHeader: !!headers.Authorization,
+      authHeaderPreview: headers.Authorization ? `${headers.Authorization.substring(0, 20)}...` : 'No auth header'
+    })
+
     const response = await fetch(`${this.baseURL}/api/campaigns/${campaignId}`, {
-      headers: this.getHeaders()
+      headers
+    })
+
+    console.log('📡 getCampaign response:', {
+      status: response.status,
+      statusText: response.statusText,
+      ok: response.ok
     })
 
     return this.handleResponse<Campaign>(response)
@@ -2087,8 +2114,22 @@ class ApiClient {
   // ============================================================================
 
   async getWorkflowState(campaignId: string): Promise<WorkflowStateResponse> {
+    const headers = this.getHeaders()
+    console.log('🔍 getWorkflowState called:', {
+      campaignId,
+      url: `${this.baseURL}/api/campaigns/${campaignId}/workflow-state`,
+      hasAuthHeader: !!headers.Authorization,
+      authHeaderPreview: headers.Authorization ? `${headers.Authorization.substring(0, 20)}...` : 'No auth header'
+    })
+
     const response = await fetch(`${this.baseURL}/api/campaigns/${campaignId}/workflow-state`, {
-      headers: this.getHeaders()
+      headers
+    })
+
+    console.log('📡 getWorkflowState response:', {
+      status: response.status,
+      statusText: response.statusText,
+      ok: response.ok
     })
 
     return this.handleResponse<WorkflowStateResponse>(response)
