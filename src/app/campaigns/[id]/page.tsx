@@ -90,9 +90,35 @@ export default function CampaignDetailPage({
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isGeneratingContent, setIsGeneratingContent] = useState(false);
+  const [retryCount, setRetryCount] = useState(0);
+  const [lastLoadTime, setLastLoadTime] = useState(0);
+
+  // Rate limiting helper - prevent rapid retries
+  const shouldAllowRequest = () => {
+    const now = Date.now();
+    const timeSinceLastLoad = now - lastLoadTime;
+    const minDelay = Math.pow(2, retryCount) * 1000; // Exponential backoff: 1s, 2s, 4s, 8s...
+
+    console.log('🔍 Rate limiting check:', {
+      timeSinceLastLoad,
+      minDelay,
+      retryCount,
+      shouldAllow: timeSinceLastLoad >= minDelay
+    });
+
+    return timeSinceLastLoad >= minDelay;
+  };
 
   // Load campaign data function - extracted for reuse
   const loadCampaignData = useCallback(async () => {
+    // Rate limiting check - prevent infinite loops
+    if (!shouldAllowRequest()) {
+      console.log('🚫 Request blocked by rate limiting - waiting for backoff period');
+      return;
+    }
+
+    setLastLoadTime(Date.now());
+
     try {
       setError(null);
       setIsLoading(true);
@@ -160,14 +186,25 @@ export default function CampaignDetailPage({
         console.log('🔄 Attempting to load generated content for campaign:', params.id);
         const contentData = await api.getGeneratedContent(params.id);
         setGeneratedContent(Array.isArray(contentData) ? contentData : []);
+        setRetryCount(0); // Reset retry count on success
       } catch (contentError) {
         console.warn("Generated content not available:", contentError);
-        console.warn("This could be the source of the login redirect. Error details:", {
-          message: contentError instanceof Error ? contentError.message : 'Unknown error',
-          error: contentError
-        });
-        setGeneratedContent([]);
+
+        // Check if it's a rate limit error (500 status)
+        if (contentError instanceof Error && contentError.message.includes('500')) {
+          console.error('🚨 500 Server Error - likely rate limiting. Increasing retry count.');
+          setRetryCount(prev => Math.min(prev + 1, 5)); // Max 5 retries (32 second max delay)
+          setError(`Server temporarily overloaded. Retrying in ${Math.pow(2, retryCount + 1)} seconds...`);
+        } else {
+          console.warn("Content error details:", {
+            message: contentError instanceof Error ? contentError.message : 'Unknown error',
+            error: contentError
+          });
+          setGeneratedContent([]);
+        }
       }
+
+      setRetryCount(0); // Reset retry count for successful campaign/workflow loads
     } catch (err) {
       console.error("Error loading campaign data:", err);
       setError(err instanceof Error ? err.message : "Failed to load campaign");
@@ -182,7 +219,9 @@ export default function CampaignDetailPage({
 
     console.log('🔄 Campaign useEffect running for ID:', params.id);
     loadCampaignData();
-  }, [params.id, loadCampaignData]); // Include loadCampaignData in dependencies
+    // Note: Deliberately NOT including loadCampaignData in dependencies to prevent infinite loop
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [params.id]); // Only re-run when campaign ID changes
 
   // Generate content (Step 2 of workflow)
   const handleGenerateContent = async () => {
