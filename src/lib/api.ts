@@ -840,16 +840,49 @@ class ApiClient {
   }
 
   private getAuthToken(): string | null {
-    if (typeof window === 'undefined') return null
-    return localStorage.getItem('access_token') || localStorage.getItem('authToken')
+    if (typeof window === 'undefined') {
+      console.log('🔍 getAuthToken: Running in SSR (window undefined)')
+      return null
+    }
+
+    const accessToken = localStorage.getItem('access_token')
+    const authToken = localStorage.getItem('authToken')
+
+    console.log('🔍 getAuthToken debug:', {
+      hasAccessToken: !!accessToken,
+      hasAuthToken: !!authToken,
+      accessTokenLength: accessToken?.length || 0,
+      authTokenLength: authToken?.length || 0,
+      accessTokenPreview: accessToken ? `${accessToken.substring(0, 30)}...` : 'null',
+      authTokenPreview: authToken ? `${authToken.substring(0, 30)}...` : 'null',
+      tokensMatch: accessToken === authToken
+    })
+
+    const finalToken = accessToken || authToken
+    console.log('🔍 getAuthToken result:', {
+      hasFinalToken: !!finalToken,
+      finalTokenLength: finalToken?.length || 0,
+      finalTokenPreview: finalToken ? `${finalToken.substring(0, 30)}...` : 'null'
+    })
+
+    return finalToken
   }
 
   private getHeaders(): Record<string, string> {
     const token = this.getAuthToken()
-    return {
+    const headers = {
       ...this.defaultHeaders,
       ...(token && { Authorization: `Bearer ${token}` })
     }
+
+    console.log('🔍 getHeaders result:', {
+      hasToken: !!token,
+      hasAuthHeader: !!headers.Authorization,
+      authHeaderPreview: headers.Authorization ? `${headers.Authorization.substring(0, 30)}...` : 'No auth header',
+      allHeaders: Object.keys(headers)
+    })
+
+    return headers
   }
 
   private getCompanyIdFromToken(): string | null {
