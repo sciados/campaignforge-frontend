@@ -2465,8 +2465,8 @@ class ApiClient {
     // Create the request format expected by the existing backend endpoint
     const requestData = {
       source_url: sourceUrl,
-      analysis_method: 'fast', // Default to fast analysis
-      force_refresh: false
+      analysis_method: 'enhanced', // Use enhanced for full 3-stage pipeline
+      force_refresh: true // Force refresh to run full pipeline instead of cached results
     };
 
     const response = await fetch(`${this.baseURL}/api/intelligence/analyze`, {
