@@ -81,13 +81,14 @@ export default function CampaignInputsPage({ params }: CampaignInputsPageProps) 
     };
 
     loadCampaignAndProfile();
-  }, [params.id, api]); // Include api in dependencies
+    // Note: Deliberately NOT including api in dependencies to prevent re-renders
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [params.id]); // Only re-run when campaign ID changes
 
   const handleInputsChange = useCallback((newInputs: CampaignInput[]) => {
     console.log('📝 handleInputsChange called with:', newInputs);
-    console.log('📝 Previous inputs:', inputs);
     setInputs(newInputs);
-  }, [inputs]);
+  }, []); // Remove inputs dependency to prevent re-renders
 
   const handleAnalyze = async () => {
     try {
