@@ -32,22 +32,24 @@ export default function CampaignInputsPage({ params }: CampaignInputsPageProps) 
   const [analyzing, setAnalyzing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   
-  // EMERGENCY FIX: Prevent infinite loops with circuit breaker
+  // Rate limiting for page loads
   const isLoadingRef = useRef(false);
-  const loadCountRef = useRef(0);
+  const lastLoadTime = useRef(0);
 
   useEffect(() => {
-    // EMERGENCY CIRCUIT BREAKER: Prevent infinite loops
-    loadCountRef.current += 1;
-    console.log('🔄 INPUTS useEffect running for ID:', params.id, 'Count:', loadCountRef.current);
+    // Prevent rapid reloads but allow normal page navigation
+    const now = Date.now();
+    const timeSinceLastLoad = now - lastLoadTime.current;
 
-    // If we've tried more than 3 times, stop
-    if (loadCountRef.current > 3) {
-      console.error('🚨 CIRCUIT BREAKER: Too many load attempts, stopping to prevent infinite loop');
-      setError('Too many load attempts. Please refresh the page.');
-      setLoading(false);
+    console.log('🔄 INPUTS useEffect running for ID:', params.id);
+
+    // Allow immediate first load, then require 1 second between reloads
+    if (lastLoadTime.current > 0 && timeSinceLastLoad < 1000) {
+      console.log('🔄 Rate limiting: Waiting before reload...');
       return;
     }
+
+    lastLoadTime.current = now;
 
     // If already loading, don't start another request
     if (isLoadingRef.current) {
