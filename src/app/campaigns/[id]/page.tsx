@@ -155,16 +155,11 @@ export default function CampaignDetailPage({
         });
       }
 
-      // TEMPORARILY DISABLED: Load generated content if available
-      // This API call was causing login redirects due to backend error: 'list' object has no attribute 'get'
+      // Load generated content if available
       try {
-        console.log('⏸️ getGeneratedContent temporarily disabled due to backend error');
-        setGeneratedContent([]);
-
-        // Uncomment when backend is fixed:
-        // console.log('🔄 Attempting to load generated content for campaign:', params.id);
-        // const contentData = await api.getGeneratedContent(params.id);
-        // setGeneratedContent(Array.isArray(contentData) ? contentData : []);
+        console.log('🔄 Attempting to load generated content for campaign:', params.id);
+        const contentData = await api.getGeneratedContent(params.id);
+        setGeneratedContent(Array.isArray(contentData) ? contentData : []);
       } catch (contentError) {
         console.warn("Generated content not available:", contentError);
         console.warn("This could be the source of the login redirect. Error details:", {
