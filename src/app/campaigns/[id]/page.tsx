@@ -130,6 +130,10 @@ export default function CampaignDetailPage({
         });
       } catch (workflowError) {
         console.warn("Workflow state not available:", workflowError);
+        console.warn("This is likely the source of the login redirect. Error details:", {
+          message: workflowError instanceof Error ? workflowError.message : 'Unknown error',
+          error: workflowError
+        });
         // Create default workflow state if endpoint doesn't exist
         setWorkflowState({
           campaign_id: params.id,
@@ -151,12 +155,22 @@ export default function CampaignDetailPage({
         });
       }
 
-      // Load generated content if available
+      // TEMPORARILY DISABLED: Load generated content if available
+      // This API call was causing login redirects due to backend error: 'list' object has no attribute 'get'
       try {
-        const contentData = await api.getGeneratedContent(params.id);
-        setGeneratedContent(Array.isArray(contentData) ? contentData : []);
+        console.log('⏸️ getGeneratedContent temporarily disabled due to backend error');
+        setGeneratedContent([]);
+
+        // Uncomment when backend is fixed:
+        // console.log('🔄 Attempting to load generated content for campaign:', params.id);
+        // const contentData = await api.getGeneratedContent(params.id);
+        // setGeneratedContent(Array.isArray(contentData) ? contentData : []);
       } catch (contentError) {
         console.warn("Generated content not available:", contentError);
+        console.warn("This could be the source of the login redirect. Error details:", {
+          message: contentError instanceof Error ? contentError.message : 'Unknown error',
+          error: contentError
+        });
         setGeneratedContent([]);
       }
     } catch (err) {

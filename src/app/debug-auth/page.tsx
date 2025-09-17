@@ -114,6 +114,27 @@ export default function DebugAuthPage() {
     }
   };
 
+  const testGetGeneratedContent = async () => {
+    try {
+      console.log('🧪 Testing getGeneratedContent with ID: 02145b25-3573-4d56-a3ad-36c74e1a1198');
+      const generatedContent = await api.getGeneratedContent('02145b25-3573-4d56-a3ad-36c74e1a1198');
+      setTestResults(prev => [...prev, {
+        test: 'getGeneratedContent',
+        success: true,
+        data: generatedContent,
+        timestamp: new Date().toISOString()
+      }]);
+    } catch (error) {
+      console.error('❌ getGeneratedContent failed:', error);
+      setTestResults(prev => [...prev, {
+        test: 'getGeneratedContent',
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error',
+        timestamp: new Date().toISOString()
+      }]);
+    }
+  };
+
   const clearResults = () => {
     setTestResults([]);
   };
@@ -168,6 +189,12 @@ export default function DebugAuthPage() {
               className="px-4 py-2 bg-orange-600 text-white rounded hover:bg-orange-700"
             >
               Test Get Workflow State
+            </button>
+            <button
+              onClick={testGetGeneratedContent}
+              className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+            >
+              Test Get Generated Content
             </button>
             <button
               onClick={clearResults}

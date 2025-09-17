@@ -2501,14 +2501,27 @@ class ApiClient {
   }
 
   async getGeneratedContent(campaignId: string, contentType?: string): Promise<any> {
-    console.log('📄 API: Getting generated content for campaign:', campaignId);
-    
-    const url = contentType 
+    const headers = this.getHeaders()
+    const url = contentType
       ? `${this.baseURL}/api/content/results/${campaignId}?content_type=${contentType}`
       : `${this.baseURL}/api/content/results/${campaignId}`;
-    
+
+    console.log('🔍 getGeneratedContent called:', {
+      campaignId,
+      contentType,
+      url,
+      hasAuthHeader: !!headers.Authorization,
+      authHeaderPreview: headers.Authorization ? `${headers.Authorization.substring(0, 20)}...` : 'No auth header'
+    });
+
     const response = await fetch(url, {
-      headers: this.getHeaders()
+      headers
+    });
+
+    console.log('📡 getGeneratedContent response:', {
+      status: response.status,
+      statusText: response.statusText,
+      ok: response.ok
     });
 
     return this.handleResponse(response);
