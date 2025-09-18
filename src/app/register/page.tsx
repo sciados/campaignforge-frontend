@@ -31,30 +31,94 @@ export default function RegisterPage() {
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [selectedUserType, setSelectedUserType] = useState<string | null>(null);
+  const [inviteToken, setInviteToken] = useState<string | null>(null);
+  const [inviteData, setInviteData] = useState<any>(null);
+  const [isValidatingInvite, setIsValidatingInvite] = useState(false);
 
   const router = useRouter();
   const searchParams = useSearchParams();
 
   useEffect(() => {
     setMounted(true);
-    
+
     // Get user type from URL params or localStorage
     const userTypeFromUrl = searchParams.get('userType');
-    const userTypeFromStorage = typeof window !== "undefined" 
-      ? localStorage.getItem('selectedUserType') 
+    const userTypeFromStorage = typeof window !== "undefined"
+      ? localStorage.getItem('selectedUserType')
       : null;
-    
+
     const userType = userTypeFromUrl || userTypeFromStorage;
     if (userType) {
       setSelectedUserType(userType);
       console.log("📋 Registration form loaded with user type:", userType);
     }
+
+    // Check for invite token
+    const inviteTokenFromUrl = searchParams.get('invite_token');
+    if (inviteTokenFromUrl) {
+      setInviteToken(inviteTokenFromUrl);
+      validateInviteToken(inviteTokenFromUrl);
+    }
   }, [searchParams]);
 
-  if (!mounted) {
+  const validateInviteToken = async (token: string) => {
+    setIsValidatingInvite(true);
+    setError("");
+
+    try {
+      const response = await fetch(getApiUrl("/api/admin/intelligence/admin/product-creator-invites/validate"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ invite_token: token }),
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        if (result.success && result.data.valid) {
+          setInviteData(result.data.invite);
+          setSelectedUserType("CONTENT_CREATOR"); // Product creators are registered as content creators
+
+          // Pre-fill form data from invite
+          if (result.data.invite.invitee_name) {
+            const nameParts = result.data.invite.invitee_name.split(' ');
+            setFormData(prev => ({
+              ...prev,
+              firstName: nameParts[0] || "",
+              lastName: nameParts.slice(1).join(' ') || "",
+              email: result.data.invite.invitee_email,
+              company: result.data.invite.company_name || "",
+            }));
+          } else {
+            setFormData(prev => ({
+              ...prev,
+              email: result.data.invite.invitee_email,
+              company: result.data.invite.company_name || "",
+            }));
+          }
+
+          console.log("✅ Valid product creator invite token");
+        } else {
+          setError(`Invalid invite: ${result.data.reason || "Token is not valid"}`);
+        }
+      } else {
+        const errorData = await response.json();
+        setError(`Invalid invite: ${errorData.detail || "Token validation failed"}`);
+      }
+    } catch (error) {
+      console.error("Invite validation error:", error);
+      setError("Failed to validate invite token. Please check your connection.");
+    } finally {
+      setIsValidatingInvite(false);
+    }
+  };
+
+  if (!mounted || isValidatingInvite) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-white">
-        <div className="w-6 h-6 border-2 border-black border-t-transparent rounded-full animate-spin"></div>
+        <div className="text-center">
+          <div className="w-6 h-6 border-2 border-black border-t-transparent rounded-full animate-spin mx-auto mb-2"></div>
+          {isValidatingInvite && <p className="text-gray-600">Validating invitation...</p>}
+        </div>
       </div>
     );
   }
@@ -89,6 +153,7 @@ export default function RegisterPage() {
         full_name: `${formData.firstName} ${formData.lastName}`,
         company_name: formData.company || `${formData.firstName}'s Company`,
         user_type: selectedUserType, // Include the selected user type
+        ...(inviteToken && { invite_token: inviteToken }), // Include invite token if present
       };
 
       const response = await fetch(getApiUrl("/api/auth/register"), {
@@ -129,12 +194,13 @@ export default function RegisterPage() {
           // Admin routing
           admin: "/admin",
           administrator: "/admin",
-          
+
           // User type routing
           affiliate_marketer: "/dashboard/affiliate",
           affiliate: "/dashboard/affiliate",
-          content_creator: "/dashboard/creator", 
-          creator: "/dashboard/creator",
+          content_creator: inviteToken ? "/dashboard/product-creator" : "/dashboard/creator",
+          creator: inviteToken ? "/dashboard/product-creator" : "/dashboard/creator",
+          CONTENT_CREATOR: inviteToken ? "/dashboard/product-creator" : "/dashboard/creator",
           business_owner: "/dashboard/business",
           business: "/dashboard/business",
         };
@@ -225,11 +291,31 @@ export default function RegisterPage() {
                 <p className="text-sm text-blue-800">
                   <span className="font-medium">Selected type:</span> {
                     selectedUserType === 'affiliate_marketer' ? 'Affiliate Marketer' :
-                    selectedUserType === 'content_creator' ? 'Content Creator' :
-                    selectedUserType === 'business_owner' ? 'Business Owner' : 
+                    selectedUserType === 'content_creator' || selectedUserType === 'CONTENT_CREATOR' ?
+                      (inviteToken ? 'Product Creator (Invited)' : 'Content Creator') :
+                    selectedUserType === 'business_owner' ? 'Business Owner' :
                     selectedUserType
                   }
                 </p>
+              </div>
+            )}
+            {inviteData && (
+              <div className="mt-4 p-4 bg-green-50 border border-green-200 rounded-lg">
+                <div className="flex items-center space-x-2 mb-2">
+                  <span className="text-xl">⭐</span>
+                  <h3 className="font-medium text-green-800">Product Creator Invitation</h3>
+                </div>
+                <div className="space-y-1 text-sm text-green-700">
+                  <p><span className="font-medium">Email:</span> {inviteData.invitee_email}</p>
+                  {inviteData.company_name && (
+                    <p><span className="font-medium">Company:</span> {inviteData.company_name}</p>
+                  )}
+                  <p><span className="font-medium">URL Quota:</span> {inviteData.max_url_submissions} URLs</p>
+                  <p><span className="font-medium">Valid until:</span> {new Date(inviteData.expires_at).toLocaleDateString()}</p>
+                </div>
+                <div className="mt-2 text-xs text-green-600">
+                  This special free account allows you to submit your product sales page URLs for pre-analysis before launch.
+                </div>
               </div>
             )}
           </div>
@@ -280,7 +366,14 @@ export default function RegisterPage() {
                 value={formData.email}
                 onChange={handleChange}
                 placeholder="john@company.com"
+                readOnly={!!inviteData}
+                className={inviteData ? "bg-gray-100" : ""}
               />
+              {inviteData && (
+                <p className="text-xs text-gray-500 mt-1">
+                  Email is pre-filled from your invitation and cannot be changed
+                </p>
+              )}
             </div>
 
             {/* Company */}

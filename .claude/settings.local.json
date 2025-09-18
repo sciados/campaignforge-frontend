@@ -31,7 +31,8 @@
       "Bash(npm test:*)",
       "Bash(move \"CampaignForge-SAAS-Overview.md\" \"docs/\")",
       "Bash(xargs ls:*)",
-      "Bash(cat:*)"
+      "Bash(cat:*)",
+      "Bash(git reset:*)"
     ],
     "deny": [],
     "ask": []

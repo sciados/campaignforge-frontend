@@ -124,6 +124,13 @@ const tabs: Record<string, TabConfig> = {
     icon: ListChecks,
     description: "Manage waitlist entries and approvals",
   },
+  "product-creator-invites": {
+    label: "Product Creator Invites",
+    icon: Star,
+    description: "Manage admin-controlled product creator invitations",
+    highlight: true,
+    badge: "NEW",
+  },
   "ai-discovery": {
     label: "AI Platform Discovery",
     icon: Bot,
@@ -586,6 +593,8 @@ export default function AdminPage() {
             exporting={exporting}
           />
         );
+      case "product-creator-invites":
+        return renderProductCreatorInvitesTab();
       case "revenue":
         return renderRevenueTab();
       case "settings":
@@ -594,6 +603,188 @@ export default function AdminPage() {
         return <div>Tab not found</div>;
     }
   };
+
+  // Product Creator Invites tab
+  const renderProductCreatorInvitesTab = () => (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-bold text-gray-900">
+            Product Creator Invites
+          </h2>
+          <p className="text-gray-600">
+            Manage admin-controlled invitations for product creators to access special free accounts.
+          </p>
+        </div>
+        <button
+          onClick={async () => {
+            const email = prompt("Enter email address for product creator invite:");
+            if (!email) return;
+
+            const name = prompt("Enter product creator name (optional):");
+            const company = prompt("Enter company name (optional):");
+            const maxUrls = prompt("Max URL submissions (default 20):", "20");
+            const daysValid = prompt("Days valid (default 30):", "30");
+
+            try {
+              const token = localStorage.getItem("authToken");
+              const response = await fetch(
+                "https://campaign-backend-production-e2db.up.railway.app/api/admin/intelligence/admin/product-creator-invites/create",
+                {
+                  method: "POST",
+                  headers: {
+                    "Authorization": `Bearer ${token}`,
+                    "Content-Type": "application/json",
+                  },
+                  body: JSON.stringify({
+                    invitee_email: email,
+                    invitee_name: name || null,
+                    company_name: company || null,
+                    max_url_submissions: parseInt(maxUrls) || 20,
+                    days_valid: parseInt(daysValid) || 30,
+                    admin_notes: "Created via admin dashboard"
+                  }),
+                }
+              );
+
+              if (response.ok) {
+                const data = await response.json();
+                alert(`✅ Invite created successfully!\n\nInvite Token: ${data.data.invite_token}\nRegistration URL: ${window.location.origin}/register?invite_token=${data.data.invite_token}\n\nShare this URL with the product creator.`);
+                // Refresh the invites list
+                window.location.reload();
+              } else {
+                const error = await response.json();
+                alert(`❌ Failed to create invite: ${error.detail || error.message || "Unknown error"}`);
+              }
+            } catch (error) {
+              console.error("Error creating invite:", error);
+              alert("❌ Error creating invite. Check console for details.");
+            }
+          }}
+          className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+        >
+          <Star className="w-4 h-4" />
+          <span>Create Invite</span>
+        </button>
+      </div>
+
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200">
+        <div className="p-6 border-b border-gray-200">
+          <h3 className="text-lg font-semibold text-gray-900">
+            Recent Invites
+          </h3>
+          <p className="text-sm text-gray-600 mt-1">
+            Manage product creator invitations and track their status
+          </p>
+        </div>
+        <div className="p-6">
+          <div className="text-center py-12">
+            <Star className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+            <h3 className="text-lg font-medium text-gray-900 mb-2">
+              Product Creator Invite Management
+            </h3>
+            <p className="text-gray-500 mb-4">
+              Create and manage private invitations for product creators to submit their sales page URLs for pre-analysis.
+            </p>
+            <div className="space-y-3 text-sm text-gray-600">
+              <div className="flex items-center justify-center space-x-2">
+                <CheckCircle className="w-4 h-4 text-green-500" />
+                <span>Admin-controlled invitation system</span>
+              </div>
+              <div className="flex items-center justify-center space-x-2">
+                <CheckCircle className="w-4 h-4 text-green-500" />
+                <span>Configurable quotas and restrictions</span>
+              </div>
+              <div className="flex items-center justify-center space-x-2">
+                <CheckCircle className="w-4 h-4 text-green-500" />
+                <span>Secure token-based registration</span>
+              </div>
+              <div className="flex items-center justify-center space-x-2">
+                <CheckCircle className="w-4 h-4 text-green-500" />
+                <span>Pre-launch URL analysis for affiliate marketers</span>
+              </div>
+            </div>
+            <button
+              onClick={async () => {
+                try {
+                  const token = localStorage.getItem("authToken");
+                  const response = await fetch(
+                    "https://campaign-backend-production-e2db.up.railway.app/api/admin/intelligence/admin/product-creator-invites/list",
+                    {
+                      headers: { "Authorization": `Bearer ${token}` },
+                    }
+                  );
+
+                  if (response.ok) {
+                    const data = await response.json();
+                    const invites = data.data || [];
+                    if (invites.length > 0) {
+                      const invitesList = invites.map((invite: any) =>
+                        `• ${invite.invitee_email} (${invite.status}) - ${invite.company_name || 'No company'}`
+                      ).join('\n');
+                      alert(`📋 Found ${invites.length} invites:\n\n${invitesList}`);
+                    } else {
+                      alert("📋 No invites found. Create your first invite using the 'Create Invite' button above.");
+                    }
+                  } else {
+                    const error = await response.json();
+                    alert(`❌ Failed to load invites: ${error.detail || "Unknown error"}`);
+                  }
+                } catch (error) {
+                  console.error("Error loading invites:", error);
+                  alert("❌ Error loading invites. Check console for details.");
+                }
+              }}
+              className="mt-4 inline-flex items-center space-x-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
+            >
+              <Eye className="w-4 h-4" />
+              <span>View All Invites</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Invite Instructions */}
+      <div className="bg-blue-50 border border-blue-200 rounded-xl p-6">
+        <div className="flex items-center space-x-3 mb-4">
+          <Lightbulb className="w-6 h-6 text-blue-600" />
+          <h3 className="text-lg font-semibold text-blue-800">
+            How Product Creator Invites Work
+          </h3>
+        </div>
+        <div className="space-y-3 text-blue-700">
+          <div className="flex items-start space-x-3">
+            <span className="w-6 h-6 bg-blue-600 text-white rounded-full flex items-center justify-center text-sm font-bold mt-0.5">1</span>
+            <div>
+              <p className="font-medium">Admin Creates Invite</p>
+              <p className="text-sm text-blue-600">Generate secure invitation with custom quotas and restrictions</p>
+            </div>
+          </div>
+          <div className="flex items-start space-x-3">
+            <span className="w-6 h-6 bg-blue-600 text-white rounded-full flex items-center justify-center text-sm font-bold mt-0.5">2</span>
+            <div>
+              <p className="font-medium">Product Creator Registers</p>
+              <p className="text-sm text-blue-600">Creator uses invite token to register for special free account</p>
+            </div>
+          </div>
+          <div className="flex items-start space-x-3">
+            <span className="w-6 h-6 bg-blue-600 text-white rounded-full flex items-center justify-center text-sm font-bold mt-0.5">3</span>
+            <div>
+              <p className="font-medium">URL Submission & Analysis</p>
+              <p className="text-sm text-blue-600">Creator submits sales page URLs which are pre-analyzed for affiliate marketers</p>
+            </div>
+          </div>
+          <div className="flex items-start space-x-3">
+            <span className="w-6 h-6 bg-blue-600 text-white rounded-full flex items-center justify-center text-sm font-bold mt-0.5">4</span>
+            <div>
+              <p className="font-medium">Global Cache Population</p>
+              <p className="text-sm text-blue-600">Analyzed URLs become available in global cache for instant affiliate access</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 
   // Enhanced overview tab with AI Discovery status
   const renderOverviewTab = () => (
