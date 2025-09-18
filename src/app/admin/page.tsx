@@ -169,6 +169,19 @@ export default function AdminPage() {
   const [waitlistLoading, setWaitlistLoading] = useState(false);
   const [exporting, setExporting] = useState(false);
 
+  // Product Creator Invites state
+  const [invites, setInvites] = useState<any[]>([]);
+  const [loadingInvites, setLoadingInvites] = useState(false);
+  const [showCreateForm, setShowCreateForm] = useState(false);
+  const [inviteForm, setInviteForm] = useState({
+    invitee_email: "",
+    invitee_name: "",
+    company_name: "",
+    max_url_submissions: 20,
+    days_valid: 30,
+    admin_notes: ""
+  });
+
   // Modal states
   const [userEditModal, setUserEditModal] = useState<{
     isOpen: boolean;
@@ -260,7 +273,7 @@ export default function AdminPage() {
       const API_BASE_URL =
         process.env.NEXT_PUBLIC_API_URL ||
         "https://campaign-backend-production-e2db.up.railway.app";
-      const response = await fetch(`${API_BASE_URL}/api/admin`, {
+      const response = await fetch(`${API_BASE_URL}/api/dashboard/admin`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (response.ok) {
@@ -299,6 +312,78 @@ export default function AdminPage() {
       console.error("Failed to fetch waitlist stats:", error);
     }
   }, []);
+
+  // Load invites
+  const loadInvites = useCallback(async () => {
+    setLoadingInvites(true);
+    try {
+      const token = localStorage.getItem("authToken");
+      const response = await fetch(
+        "https://campaign-backend-production-e2db.up.railway.app/api/admin/intelligence/product-creator-invites/list",
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+
+      if (response.ok) {
+        const data = await response.json();
+        setInvites(data.data || []);
+      } else {
+        console.error("Failed to load invites");
+      }
+    } catch (error) {
+      console.error("Error loading invites:", error);
+    }
+    setLoadingInvites(false);
+  }, []);
+
+  // Create invite
+  const createInvite = async () => {
+    try {
+      const token = localStorage.getItem("authToken");
+      const response = await fetch(
+        "https://campaign-backend-production-e2db.up.railway.app/api/admin/intelligence/product-creator-invites/create",
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            ...inviteForm,
+            admin_notes: inviteForm.admin_notes || "Created via admin dashboard",
+          }),
+        }
+      );
+
+      if (response.ok) {
+        const data = await response.json();
+        alert(
+          `✅ Invite created successfully!\n\nInvite Token: ${data.data.invite_token}\nRegistration URL: ${window.location.origin}/register?invite_token=${data.data.invite_token}\n\nShare this URL with the product creator.`
+        );
+        setShowCreateForm(false);
+        setInviteForm({
+          invitee_email: "",
+          invitee_name: "",
+          company_name: "",
+          max_url_submissions: 20,
+          days_valid: 30,
+          admin_notes: ""
+        });
+        loadInvites(); // Refresh list
+      } else {
+        const error = await response.json();
+        alert(
+          `❌ Failed to create invite: ${
+            error.detail || error.message || "Unknown error"
+          }`
+        );
+      }
+    } catch (error) {
+      console.error("Error creating invite:", error);
+      alert("❌ Error creating invite. Check console for details.");
+    }
+  };
 
   const fetchWaitlistEntries = useCallback(async (page: number = 1) => {
     try {
@@ -417,6 +502,8 @@ export default function AdminPage() {
         fetchCompanies();
       } else if (activeTab === "waitlist") {
         fetchWaitlistEntries();
+      } else if (activeTab === "product-creator-invites") {
+        loadInvites();
       } else if (activeTab === "ai-discovery") {
         // Note: AI Discovery data loading disabled due to 500 errors
         // Use manual "Test AI API" and "Force Reload AI" buttons instead
@@ -433,6 +520,7 @@ export default function AdminPage() {
     fetchCompanies,
     fetchWaitlistStats,
     fetchWaitlistEntries,
+    loadInvites,
     loadDashboardData,
   ]);
 
@@ -622,152 +710,210 @@ export default function AdminPage() {
           </p>
         </div>
         <button
-          onClick={async () => {
-            const email = prompt(
-              "Enter email address for product creator invite:"
-            );
-            if (!email) return;
-
-            const name = prompt("Enter product creator name (optional):");
-            const company = prompt("Enter company name (optional):");
-            const maxUrls = prompt("Max URL submissions (default 20):", "20");
-            const daysValid = prompt("Days valid (default 30):", "30");
-
-            try {
-              const token = localStorage.getItem("authToken");
-              const response = await fetch(
-                "https://campaign-backend-production-e2db.up.railway.app/api/admin/intelligence/product-creator-invites/create",
-                {
-                  method: "POST",
-                  headers: {
-                    Authorization: `Bearer ${token}`,
-                    "Content-Type": "application/json",
-                  },
-                  body: JSON.stringify({
-                    invitee_email: email,
-                    invitee_name: name || null,
-                    company_name: company || null,
-                    max_url_submissions: parseInt(maxUrls || "20") || 20,
-                    days_valid: parseInt(daysValid || "30") || 30,
-                    admin_notes: "Created via admin dashboard",
-                  }),
-                }
-              );
-
-              if (response.ok) {
-                const data = await response.json();
-                alert(
-                  `✅ Invite created successfully!\n\nInvite Token: ${data.data.invite_token}\nRegistration URL: ${window.location.origin}/register?invite_token=${data.data.invite_token}\n\nShare this URL with the product creator.`
-                );
-                // Refresh the invites list
-                window.location.reload();
-              } else {
-                const error = await response.json();
-                alert(
-                  `❌ Failed to create invite: ${
-                    error.detail || error.message || "Unknown error"
-                  }`
-                );
-              }
-            } catch (error) {
-              console.error("Error creating invite:", error);
-              alert("❌ Error creating invite. Check console for details.");
-            }
-          }}
+          onClick={() => setShowCreateForm(!showCreateForm)}
           className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
         >
           <Star className="w-4 h-4" />
-          <span>Create Invite</span>
+          <span>{showCreateForm ? "Cancel" : "Create Invite"}</span>
         </button>
       </div>
 
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200">
-        <div className="p-6 border-b border-gray-200">
-          <h3 className="text-lg font-semibold text-gray-900">
-            Recent Invites
+      {/* Create Invite Form */}
+      {showCreateForm && (
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">
+            Create New Product Creator Invite
           </h3>
-          <p className="text-sm text-gray-600 mt-1">
-            Manage product creator invitations and track their status
-          </p>
-        </div>
-        <div className="p-6">
-          <div className="text-center py-12">
-            <Star className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">
-              Product Creator Invite Management
-            </h3>
-            <p className="text-gray-500 mb-4">
-              Create and manage private invitations for product creators to
-              submit their sales page URLs for pre-analysis.
-            </p>
-            <div className="space-y-3 text-sm text-gray-600">
-              <div className="flex items-center justify-center space-x-2">
-                <CheckCircle className="w-4 h-4 text-green-500" />
-                <span>Admin-controlled invitation system</span>
-              </div>
-              <div className="flex items-center justify-center space-x-2">
-                <CheckCircle className="w-4 h-4 text-green-500" />
-                <span>Configurable quotas and restrictions</span>
-              </div>
-              <div className="flex items-center justify-center space-x-2">
-                <CheckCircle className="w-4 h-4 text-green-500" />
-                <span>Secure token-based registration</span>
-              </div>
-              <div className="flex items-center justify-center space-x-2">
-                <CheckCircle className="w-4 h-4 text-green-500" />
-                <span>Pre-launch URL analysis for affiliate marketers</span>
-              </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Email Address *
+              </label>
+              <input
+                type="email"
+                value={inviteForm.invitee_email}
+                onChange={(e) => setInviteForm({...inviteForm, invitee_email: e.target.value})}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
+                placeholder="creator@example.com"
+                required
+              />
             </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Creator Name
+              </label>
+              <input
+                type="text"
+                value={inviteForm.invitee_name}
+                onChange={(e) => setInviteForm({...inviteForm, invitee_name: e.target.value})}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
+                placeholder="John Doe"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Company Name
+              </label>
+              <input
+                type="text"
+                value={inviteForm.company_name}
+                onChange={(e) => setInviteForm({...inviteForm, company_name: e.target.value})}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
+                placeholder="Company Inc."
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Max URL Submissions
+              </label>
+              <input
+                type="number"
+                value={inviteForm.max_url_submissions}
+                onChange={(e) => setInviteForm({...inviteForm, max_url_submissions: parseInt(e.target.value) || 20})}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
+                min="1"
+                max="100"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Days Valid
+              </label>
+              <input
+                type="number"
+                value={inviteForm.days_valid}
+                onChange={(e) => setInviteForm({...inviteForm, days_valid: parseInt(e.target.value) || 30})}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
+                min="1"
+                max="365"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Admin Notes
+              </label>
+              <input
+                type="text"
+                value={inviteForm.admin_notes}
+                onChange={(e) => setInviteForm({...inviteForm, admin_notes: e.target.value})}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
+                placeholder="Internal notes about this invite"
+              />
+            </div>
+          </div>
+          <div className="flex justify-end space-x-3 mt-6">
             <button
-              onClick={async () => {
-                try {
-                  const token = localStorage.getItem("authToken");
-                  const response = await fetch(
-                    "https://campaign-backend-production-e2db.up.railway.app/api/admin/intelligence/product-creator-invites/list",
-                    {
-                      headers: { Authorization: `Bearer ${token}` },
-                    }
-                  );
-
-                  if (response.ok) {
-                    const data = await response.json();
-                    const invites = data.data || [];
-                    if (invites.length > 0) {
-                      const invitesList = invites
-                        .map(
-                          (invite: any) =>
-                            `• ${invite.invitee_email} (${invite.status}) - ${
-                              invite.company_name || "No company"
-                            }`
-                        )
-                        .join("\n");
-                      alert(
-                        `📋 Found ${invites.length} invites:\n\n${invitesList}`
-                      );
-                    } else {
-                      alert(
-                        "📋 No invites found. Create your first invite using the 'Create Invite' button above."
-                      );
-                    }
-                  } else {
-                    const error = await response.json();
-                    alert(
-                      `❌ Failed to load invites: ${
-                        error.detail || "Unknown error"
-                      }`
-                    );
-                  }
-                } catch (error) {
-                  console.error("Error loading invites:", error);
-                  alert("❌ Error loading invites. Check console for details.");
-                }
-              }}
-              className="mt-4 inline-flex items-center space-x-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
+              onClick={() => setShowCreateForm(false)}
+              className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
             >
-              <Eye className="w-4 h-4" />
-              <span>View All Invites</span>
+              Cancel
+            </button>
+            <button
+              onClick={createInvite}
+              disabled={!inviteForm.invitee_email}
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Create Invite
             </button>
           </div>
+        </div>
+      )}
+
+      {/* Invites List */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200">
+        <div className="p-6 border-b border-gray-200">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900">
+                Product Creator Invites
+              </h3>
+              <p className="text-sm text-gray-600 mt-1">
+                {invites.length} total invites • {invites.filter(i => i.status === 'pending').length} pending
+              </p>
+            </div>
+            <button
+              onClick={loadInvites}
+              disabled={loadingInvites}
+              className="flex items-center space-x-2 px-3 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50"
+            >
+              <RefreshCw className={`w-4 h-4 ${loadingInvites ? 'animate-spin' : ''}`} />
+              <span>Refresh</span>
+            </button>
+          </div>
+        </div>
+        <div className="p-6">
+          {loadingInvites ? (
+            <div className="text-center py-8">
+              <RefreshCw className="w-6 h-6 animate-spin mx-auto mb-2 text-gray-400" />
+              <p className="text-gray-500">Loading invites...</p>
+            </div>
+          ) : invites.length === 0 ? (
+            <div className="text-center py-12">
+              <Star className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+              <h3 className="text-lg font-medium text-gray-900 mb-2">
+                No invites yet
+              </h3>
+              <p className="text-gray-500 mb-4">
+                Create your first product creator invitation to get started.
+              </p>
+              <button
+                onClick={() => setShowCreateForm(true)}
+                className="inline-flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+              >
+                <Star className="w-4 h-4" />
+                <span>Create First Invite</span>
+              </button>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {invites.map((invite) => (
+                <div key={invite.id} className="border border-gray-200 rounded-lg p-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-center space-x-3">
+                        <h4 className="text-sm font-medium text-gray-900">
+                          {invite.invitee_email}
+                        </h4>
+                        <span className={`px-2 py-1 text-xs font-medium rounded-full ${
+                          invite.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                          invite.status === 'accepted' ? 'bg-green-100 text-green-800' :
+                          invite.status === 'expired' ? 'bg-red-100 text-red-800' :
+                          'bg-gray-100 text-gray-800'
+                        }`}>
+                          {invite.status}
+                        </span>
+                      </div>
+                      <div className="mt-1 text-sm text-gray-600">
+                        {invite.invitee_name && <span>{invite.invitee_name} • </span>}
+                        {invite.company_name && <span>{invite.company_name} • </span>}
+                        Max URLs: {invite.max_url_submissions} •
+                        Expires: {new Date(invite.expires_at).toLocaleDateString()}
+                      </div>
+                      {invite.admin_notes && (
+                        <div className="mt-1 text-sm text-gray-500">
+                          Notes: {invite.admin_notes}
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      {invite.status === 'pending' && (
+                        <button
+                          onClick={() => {
+                            const url = `${window.location.origin}/register?invite_token=${invite.invite_token}`;
+                            navigator.clipboard.writeText(url);
+                            alert("Registration URL copied to clipboard!");
+                          }}
+                          className="text-sm text-blue-600 hover:text-blue-800"
+                        >
+                          Copy URL
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 
@@ -969,7 +1115,7 @@ export default function AdminPage() {
 
               try {
                 const response = await fetch(
-                  "https://campaign-backend-production-e2db.up.railway.app/api/admin",
+                  "https://campaign-backend-production-e2db.up.railway.app/api/dashboard/admin",
                   {
                     method: "GET",
                     headers: {
