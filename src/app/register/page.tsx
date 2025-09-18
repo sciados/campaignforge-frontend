@@ -66,7 +66,7 @@ export default function RegisterPage() {
     setError("");
 
     try {
-      const response = await fetch(getApiUrl("/api/admin/intelligence/admin/product-creator-invites/validate"), {
+      const response = await fetch(getApiUrl("/api/admin/intelligence/product-creator-invites/validate"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ invite_token: token }),

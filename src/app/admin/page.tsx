@@ -629,7 +629,7 @@ export default function AdminPage() {
             try {
               const token = localStorage.getItem("authToken");
               const response = await fetch(
-                "https://campaign-backend-production-e2db.up.railway.app/api/admin/intelligence/admin/product-creator-invites/create",
+                "https://campaign-backend-production-e2db.up.railway.app/api/admin/intelligence/product-creator-invites/create",
                 {
                   method: "POST",
                   headers: {
@@ -709,7 +709,7 @@ export default function AdminPage() {
                 try {
                   const token = localStorage.getItem("authToken");
                   const response = await fetch(
-                    "https://campaign-backend-production-e2db.up.railway.app/api/admin/intelligence/admin/product-creator-invites/list",
+                    "https://campaign-backend-production-e2db.up.railway.app/api/admin/intelligence/product-creator-invites/list",
                     {
                       headers: { "Authorization": `Bearer ${token}` },
                     }
