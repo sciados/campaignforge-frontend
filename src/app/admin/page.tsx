@@ -187,37 +187,37 @@ export default function AdminPage() {
 
   // Enhanced AI Discovery Service hook (called unconditionally at top level)
   const [hookError, setHookError] = useState<string | null>(null);
-  
+
   // Always call the hook unconditionally, but handle errors in useEffect
   const aiDiscoveryHook = useEnhancedAiDiscoveryService();
-  
+
   // Create fallback values if the hook fails
   const fallbackHook = {
-      dashboardData: null,
-      isLoading: false,
-      error: null, // Don't show error if data is actually available via API
-      lastUpdated: null,
-      loadDashboardData: null,
-      runDiscoveryScan: null,
-      activeProviders: [],
-      discoveredSuggestions: [],
-      categoryStats: [],
-      summaryStats: {
-        total_active: 0,
-        pending_suggestions: 0,
-        high_priority_suggestions: 0,
-        monthly_cost: 0,
-        avg_quality_score: 0
-      },
-      pendingSuggestions: [],
-      approvedSuggestions: [],
-      highPrioritySuggestions: [],
-      topProviders: [],
-      hasData: false,
-      hasActiveProviders: false,
-      hasPendingSuggestions: false,
-      isHealthy: false,
-    };
+    dashboardData: null,
+    isLoading: false,
+    error: null, // Don't show error if data is actually available via API
+    lastUpdated: null,
+    loadDashboardData: null,
+    runDiscoveryScan: null,
+    activeProviders: [],
+    discoveredSuggestions: [],
+    categoryStats: [],
+    summaryStats: {
+      total_active: 0,
+      pending_suggestions: 0,
+      high_priority_suggestions: 0,
+      monthly_cost: 0,
+      avg_quality_score: 0,
+    },
+    pendingSuggestions: [],
+    approvedSuggestions: [],
+    highPrioritySuggestions: [],
+    topProviders: [],
+    hasData: false,
+    hasActiveProviders: false,
+    hasPendingSuggestions: false,
+    isHealthy: false,
+  };
 
   // Use the hook data or fallback values
   const {
@@ -260,7 +260,7 @@ export default function AdminPage() {
       const API_BASE_URL =
         process.env.NEXT_PUBLIC_API_URL ||
         "https://campaign-backend-production-e2db.up.railway.app";
-      const response = await fetch(`${API_BASE_URL}/api/dashboard/admin`, {
+      const response = await fetch(`${API_BASE_URL}/api/admin`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (response.ok) {
@@ -274,7 +274,7 @@ export default function AdminPage() {
           total_companies: 0,
           total_campaigns_created: 0,
           monthly_recurring_revenue: 0,
-          subscription_breakdown: {}
+          subscription_breakdown: {},
         });
       }
     } catch (error) {
@@ -285,7 +285,7 @@ export default function AdminPage() {
         total_companies: 0,
         total_campaigns_created: 0,
         monthly_recurring_revenue: 0,
-        subscription_breakdown: {}
+        subscription_breakdown: {},
       });
     }
     setLoading(false);
@@ -509,10 +509,12 @@ export default function AdminPage() {
   // AI Discovery handlers for quick actions (with graceful error handling)
   const handleDiscoveryScan = async () => {
     if (!runDiscoveryScan) {
-      alert("❌ AI Discovery service unavailable. This feature requires backend deployment.");
+      alert(
+        "❌ AI Discovery service unavailable. This feature requires backend deployment."
+      );
       return;
     }
-    
+
     try {
       await runDiscoveryScan();
       alert("✅ AI Discovery scan completed successfully!");
@@ -527,10 +529,12 @@ export default function AdminPage() {
 
   const handleRefreshAI = async () => {
     if (!loadDashboardData) {
-      alert("❌ AI Discovery service unavailable. This feature requires backend deployment.");
+      alert(
+        "❌ AI Discovery service unavailable. This feature requires backend deployment."
+      );
       return;
     }
-    
+
     try {
       await loadDashboardData();
       alert("✅ AI Discovery data refreshed successfully!");
@@ -613,12 +617,15 @@ export default function AdminPage() {
             Product Creator Invites
           </h2>
           <p className="text-gray-600">
-            Manage admin-controlled invitations for product creators to access special free accounts.
+            Manage admin-controlled invitations for product creators to access
+            special free accounts.
           </p>
         </div>
         <button
           onClick={async () => {
-            const email = prompt("Enter email address for product creator invite:");
+            const email = prompt(
+              "Enter email address for product creator invite:"
+            );
             if (!email) return;
 
             const name = prompt("Enter product creator name (optional):");
@@ -633,7 +640,7 @@ export default function AdminPage() {
                 {
                   method: "POST",
                   headers: {
-                    "Authorization": `Bearer ${token}`,
+                    Authorization: `Bearer ${token}`,
                     "Content-Type": "application/json",
                   },
                   body: JSON.stringify({
@@ -642,19 +649,25 @@ export default function AdminPage() {
                     company_name: company || null,
                     max_url_submissions: parseInt(maxUrls || "20") || 20,
                     days_valid: parseInt(daysValid || "30") || 30,
-                    admin_notes: "Created via admin dashboard"
+                    admin_notes: "Created via admin dashboard",
                   }),
                 }
               );
 
               if (response.ok) {
                 const data = await response.json();
-                alert(`✅ Invite created successfully!\n\nInvite Token: ${data.data.invite_token}\nRegistration URL: ${window.location.origin}/register?invite_token=${data.data.invite_token}\n\nShare this URL with the product creator.`);
+                alert(
+                  `✅ Invite created successfully!\n\nInvite Token: ${data.data.invite_token}\nRegistration URL: ${window.location.origin}/register?invite_token=${data.data.invite_token}\n\nShare this URL with the product creator.`
+                );
                 // Refresh the invites list
                 window.location.reload();
               } else {
                 const error = await response.json();
-                alert(`❌ Failed to create invite: ${error.detail || error.message || "Unknown error"}`);
+                alert(
+                  `❌ Failed to create invite: ${
+                    error.detail || error.message || "Unknown error"
+                  }`
+                );
               }
             } catch (error) {
               console.error("Error creating invite:", error);
@@ -684,7 +697,8 @@ export default function AdminPage() {
               Product Creator Invite Management
             </h3>
             <p className="text-gray-500 mb-4">
-              Create and manage private invitations for product creators to submit their sales page URLs for pre-analysis.
+              Create and manage private invitations for product creators to
+              submit their sales page URLs for pre-analysis.
             </p>
             <div className="space-y-3 text-sm text-gray-600">
               <div className="flex items-center justify-center space-x-2">
@@ -711,7 +725,7 @@ export default function AdminPage() {
                   const response = await fetch(
                     "https://campaign-backend-production-e2db.up.railway.app/api/admin/intelligence/product-creator-invites/list",
                     {
-                      headers: { "Authorization": `Bearer ${token}` },
+                      headers: { Authorization: `Bearer ${token}` },
                     }
                   );
 
@@ -719,16 +733,29 @@ export default function AdminPage() {
                     const data = await response.json();
                     const invites = data.data || [];
                     if (invites.length > 0) {
-                      const invitesList = invites.map((invite: any) =>
-                        `• ${invite.invitee_email} (${invite.status}) - ${invite.company_name || 'No company'}`
-                      ).join('\n');
-                      alert(`📋 Found ${invites.length} invites:\n\n${invitesList}`);
+                      const invitesList = invites
+                        .map(
+                          (invite: any) =>
+                            `• ${invite.invitee_email} (${invite.status}) - ${
+                              invite.company_name || "No company"
+                            }`
+                        )
+                        .join("\n");
+                      alert(
+                        `📋 Found ${invites.length} invites:\n\n${invitesList}`
+                      );
                     } else {
-                      alert("📋 No invites found. Create your first invite using the 'Create Invite' button above.");
+                      alert(
+                        "📋 No invites found. Create your first invite using the 'Create Invite' button above."
+                      );
                     }
                   } else {
                     const error = await response.json();
-                    alert(`❌ Failed to load invites: ${error.detail || "Unknown error"}`);
+                    alert(
+                      `❌ Failed to load invites: ${
+                        error.detail || "Unknown error"
+                      }`
+                    );
                   }
                 } catch (error) {
                   console.error("Error loading invites:", error);
@@ -754,31 +781,49 @@ export default function AdminPage() {
         </div>
         <div className="space-y-3 text-blue-700">
           <div className="flex items-start space-x-3">
-            <span className="w-6 h-6 bg-blue-600 text-white rounded-full flex items-center justify-center text-sm font-bold mt-0.5">1</span>
+            <span className="w-6 h-6 bg-blue-600 text-white rounded-full flex items-center justify-center text-sm font-bold mt-0.5">
+              1
+            </span>
             <div>
               <p className="font-medium">Admin Creates Invite</p>
-              <p className="text-sm text-blue-600">Generate secure invitation with custom quotas and restrictions</p>
+              <p className="text-sm text-blue-600">
+                Generate secure invitation with custom quotas and restrictions
+              </p>
             </div>
           </div>
           <div className="flex items-start space-x-3">
-            <span className="w-6 h-6 bg-blue-600 text-white rounded-full flex items-center justify-center text-sm font-bold mt-0.5">2</span>
+            <span className="w-6 h-6 bg-blue-600 text-white rounded-full flex items-center justify-center text-sm font-bold mt-0.5">
+              2
+            </span>
             <div>
               <p className="font-medium">Product Creator Registers</p>
-              <p className="text-sm text-blue-600">Creator uses invite token to register for special free account</p>
+              <p className="text-sm text-blue-600">
+                Creator uses invite token to register for special free account
+              </p>
             </div>
           </div>
           <div className="flex items-start space-x-3">
-            <span className="w-6 h-6 bg-blue-600 text-white rounded-full flex items-center justify-center text-sm font-bold mt-0.5">3</span>
+            <span className="w-6 h-6 bg-blue-600 text-white rounded-full flex items-center justify-center text-sm font-bold mt-0.5">
+              3
+            </span>
             <div>
               <p className="font-medium">URL Submission & Analysis</p>
-              <p className="text-sm text-blue-600">Creator submits sales page URLs which are pre-analyzed for affiliate marketers</p>
+              <p className="text-sm text-blue-600">
+                Creator submits sales page URLs which are pre-analyzed for
+                affiliate marketers
+              </p>
             </div>
           </div>
           <div className="flex items-start space-x-3">
-            <span className="w-6 h-6 bg-blue-600 text-white rounded-full flex items-center justify-center text-sm font-bold mt-0.5">4</span>
+            <span className="w-6 h-6 bg-blue-600 text-white rounded-full flex items-center justify-center text-sm font-bold mt-0.5">
+              4
+            </span>
             <div>
               <p className="font-medium">Global Cache Population</p>
-              <p className="text-sm text-blue-600">Analyzed URLs become available in global cache for instant affiliate access</p>
+              <p className="text-sm text-blue-600">
+                Analyzed URLs become available in global cache for instant
+                affiliate access
+              </p>
             </div>
           </div>
         </div>
@@ -811,7 +856,9 @@ export default function AdminPage() {
           </button>
           <button
             onClick={() => {
-              alert("ℹ️ Discovery Scan Disabled\n\nThe backend doesn&apos;t have a &apos;run-discovery&apos; endpoint.\nUse &apos;Test AI API&apos; and &apos;Force Reload AI&apos; buttons instead to test the AI Discovery system.");
+              alert(
+                "ℹ️ Discovery Scan Disabled\n\nThe backend doesn&apos;t have a &apos;run-discovery&apos; endpoint.\nUse &apos;Test AI API&apos; and &apos;Force Reload AI&apos; buttons instead to test the AI Discovery system."
+              );
             }}
             className="flex items-center space-x-2 px-4 py-2 bg-gray-400 text-white rounded-lg cursor-not-allowed opacity-50"
             disabled
@@ -821,37 +868,65 @@ export default function AdminPage() {
           </button>
           <button
             onClick={async () => {
-              console.log('🔍 Testing AI Discovery endpoints...');
-              const token = localStorage.getItem('authToken') || localStorage.getItem('access_token');
-              console.log('Token found:', !!token);
-              
+              console.log("🔍 Testing AI Discovery endpoints...");
+              const token =
+                localStorage.getItem("authToken") ||
+                localStorage.getItem("access_token");
+              console.log("Token found:", !!token);
+
               try {
-                const response = await fetch('https://campaign-backend-production-e2db.up.railway.app/api/admin/ai-discovery/active-providers', {
-                  method: 'GET',
-                  headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json'
+                const response = await fetch(
+                  "https://campaign-backend-production-e2db.up.railway.app/api/admin/ai-discovery/active-providers",
+                  {
+                    method: "GET",
+                    headers: {
+                      Authorization: `Bearer ${token}`,
+                      "Content-Type": "application/json",
+                    },
                   }
-                });
-                
-                console.log('Response status:', response.status);
+                );
+
+                console.log("Response status:", response.status);
                 const data = await response.json();
-                console.log('Response data:', data);
-                
+                console.log("Response data:", data);
+
                 if (response.ok) {
                   if (data.success) {
                     const providers = data.providers || [];
-                    const providerNames = providers.slice(0, 5).map((p: any) => p.provider_name || 'Unknown').join(', ');
-                    alert(`✅ AI Discovery data found!\n\nProviders: ${providers.length}\nSample providers: ${providerNames}\n\nTotal data keys: ${Object.keys(data).join(', ')}\n\nCheck console for full details.`);
+                    const providerNames = providers
+                      .slice(0, 5)
+                      .map((p: any) => p.provider_name || "Unknown")
+                      .join(", ");
+                    alert(
+                      `✅ AI Discovery data found!\n\nProviders: ${
+                        providers.length
+                      }\nSample providers: ${providerNames}\n\nTotal data keys: ${Object.keys(
+                        data
+                      ).join(", ")}\n\nCheck console for full details.`
+                    );
                   } else {
-                    alert(`✅ Response OK but not successful:\n${JSON.stringify(data, null, 2)}`);
+                    alert(
+                      `✅ Response OK but not successful:\n${JSON.stringify(
+                        data,
+                        null,
+                        2
+                      )}`
+                    );
                   }
                 } else {
-                  alert(`❌ API Error: ${response.status}\n${data.error || data.detail || JSON.stringify(data, null, 2)}`);
+                  alert(
+                    `❌ API Error: ${response.status}\n${
+                      data.error || data.detail || JSON.stringify(data, null, 2)
+                    }`
+                  );
                 }
               } catch (error) {
-                console.error('Test failed:', error);
-                alert(`❌ Connection failed: ${error instanceof Error ? error.message : String(error)}`);
+                console.error("Test failed:", error);
+                alert(
+                  `❌ Connection failed: ${
+                    error instanceof Error ? error.message : String(error)
+                  }`
+                );
               }
             }}
             className="flex items-center space-x-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
@@ -861,18 +936,23 @@ export default function AdminPage() {
           </button>
           <button
             onClick={async () => {
-              console.log('🔄 Force reloading AI Discovery data...');
+              console.log("🔄 Force reloading AI Discovery data...");
               if (loadDashboardData) {
                 try {
                   await loadDashboardData();
-                  console.log('✅ AI Discovery data reloaded');
-                  alert('✅ AI Discovery data reloaded successfully! Check the dashboard.');
+                  console.log("✅ AI Discovery data reloaded");
+                  alert(
+                    "✅ AI Discovery data reloaded successfully! Check the dashboard."
+                  );
                 } catch (error) {
-                  console.error('❌ Force reload failed:', error);
-                  alert('❌ Reload failed: ' + (error instanceof Error ? error.message : String(error)));
+                  console.error("❌ Force reload failed:", error);
+                  alert(
+                    "❌ Reload failed: " +
+                      (error instanceof Error ? error.message : String(error))
+                  );
                 }
               } else {
-                alert('❌ AI Discovery service not available');
+                alert("❌ AI Discovery service not available");
               }
             }}
             className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
@@ -882,30 +962,51 @@ export default function AdminPage() {
           </button>
           <button
             onClick={async () => {
-              console.log('🔍 Testing Admin Stats API...');
-              const token = localStorage.getItem('authToken') || localStorage.getItem('access_token');
-              
+              console.log("🔍 Testing Admin Stats API...");
+              const token =
+                localStorage.getItem("authToken") ||
+                localStorage.getItem("access_token");
+
               try {
-                const response = await fetch('https://campaign-backend-production-e2db.up.railway.app/api/dashboard/admin', {
-                  method: 'GET',
-                  headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json'
+                const response = await fetch(
+                  "https://campaign-backend-production-e2db.up.railway.app/api/admin",
+                  {
+                    method: "GET",
+                    headers: {
+                      Authorization: `Bearer ${token}`,
+                      "Content-Type": "application/json",
+                    },
                   }
-                });
-                
-                console.log('Admin Stats Response status:', response.status);
+                );
+
+                console.log("Admin Stats Response status:", response.status);
                 const data = await response.json();
-                console.log('Admin Stats Response data:', data);
-                
+                console.log("Admin Stats Response data:", data);
+
                 if (response.ok) {
-                  alert(`✅ Admin Stats API working!\n\nUsers: ${data.total_users || 0}\nCompanies: ${data.total_companies || 0}\nRevenue: $${data.monthly_recurring_revenue || 0}\n\nCheck console for full details.`);
+                  alert(
+                    `✅ Admin Stats API working!\n\nUsers: ${
+                      data.total_users || 0
+                    }\nCompanies: ${data.total_companies || 0}\nRevenue: $${
+                      data.monthly_recurring_revenue || 0
+                    }\n\nCheck console for full details.`
+                  );
                 } else {
-                  alert(`❌ Admin Stats Error: ${response.status}\n${JSON.stringify(data, null, 2)}`);
+                  alert(
+                    `❌ Admin Stats Error: ${response.status}\n${JSON.stringify(
+                      data,
+                      null,
+                      2
+                    )}`
+                  );
                 }
               } catch (error) {
-                console.error('Admin Stats test failed:', error);
-                alert(`❌ Admin Stats failed: ${error instanceof Error ? error.message : String(error)}`);
+                console.error("Admin Stats test failed:", error);
+                alert(
+                  `❌ Admin Stats failed: ${
+                    error instanceof Error ? error.message : String(error)
+                  }`
+                );
               }
             }}
             className="flex items-center space-x-2 px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700"
@@ -915,38 +1016,59 @@ export default function AdminPage() {
           </button>
           <button
             onClick={async () => {
-              console.log('🔍 Testing database schema...');
-              const token = localStorage.getItem('authToken') || localStorage.getItem('access_token');
-              
+              console.log("🔍 Testing database schema...");
+              const token =
+                localStorage.getItem("authToken") ||
+                localStorage.getItem("access_token");
+
               try {
                 // Test a simpler endpoint to avoid schema issues
-                const response = await fetch('https://campaign-backend-production-e2db.up.railway.app/api/campaigns/', {
-                  method: 'GET',
-                  headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json'
+                const response = await fetch(
+                  "https://campaign-backend-production-e2db.up.railway.app/api/campaigns/",
+                  {
+                    method: "GET",
+                    headers: {
+                      Authorization: `Bearer ${token}`,
+                      "Content-Type": "application/json",
+                    },
                   }
-                });
-                
-                console.log('Campaigns API Response status:', response.status);
+                );
+
+                console.log("Campaigns API Response status:", response.status);
                 const data = await response.json();
-                console.log('Campaigns API Response data:', data);
-                
+                console.log("Campaigns API Response data:", data);
+
                 if (response.ok) {
                   const campaigns = data.campaigns || data || [];
                   if (campaigns.length > 0) {
                     const firstCampaign = campaigns[0];
                     const availableFields = Object.keys(firstCampaign);
-                    alert(`✅ Database Connection Working!\n\nCampaigns found: ${campaigns.length}\n\nAvailable fields in campaign:\n${availableFields.join(', ')}\n\nCheck console for full details.`);
+                    alert(
+                      `✅ Database Connection Working!\n\nCampaigns found: ${
+                        campaigns.length
+                      }\n\nAvailable fields in campaign:\n${availableFields.join(
+                        ", "
+                      )}\n\nCheck console for full details.`
+                    );
                   } else {
-                    alert(`✅ Database connection works but no campaigns found.\n\nThis suggests the schema issue is in the admin stats endpoint, not the campaigns table itself.`);
+                    alert(
+                      `✅ Database connection works but no campaigns found.\n\nThis suggests the schema issue is in the admin stats endpoint, not the campaigns table itself.`
+                    );
                   }
                 } else {
-                  alert(`❌ Campaigns API Error: ${response.status}\n${JSON.stringify(data, null, 2)}`);
+                  alert(
+                    `❌ Campaigns API Error: ${
+                      response.status
+                    }\n${JSON.stringify(data, null, 2)}`
+                  );
                 }
               } catch (error) {
-                console.error('Database schema test failed:', error);
-                alert(`❌ Schema test failed: ${error instanceof Error ? error.message : String(error)}`);
+                console.error("Database schema test failed:", error);
+                alert(
+                  `❌ Schema test failed: ${
+                    error instanceof Error ? error.message : String(error)
+                  }`
+                );
               }
             }}
             className="flex items-center space-x-2 px-4 py-2 bg-cyan-600 text-white rounded-lg hover:bg-cyan-700"
@@ -1163,9 +1285,9 @@ export default function AdminPage() {
               Unable to connect to AI Platform Discovery System:
             </p>
             <p className="text-sm bg-red-100 p-3 rounded">
-              {aiError?.includes("unavailable") ? 
-                "Service temporarily unavailable - this is normal during development" : 
-                "Failed to fetch critical data"}
+              {aiError?.includes("unavailable")
+                ? "Service temporarily unavailable - this is normal during development"
+                : "Failed to fetch critical data"}
             </p>
             <div className="flex gap-2">
               <button
@@ -1381,69 +1503,100 @@ export default function AdminPage() {
           Manage platform-wide settings and configurations.
         </p>
       </div>
-      
+
       {/* Global Demo Campaign Management */}
       <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
         <div className="flex items-center space-x-3 mb-4">
           <Target className="w-6 h-6 text-purple-600" />
-          <h3 className="text-lg font-semibold text-gray-900">Demo Campaign Management</h3>
+          <h3 className="text-lg font-semibold text-gray-900">
+            Demo Campaign Management
+          </h3>
         </div>
         <p className="text-gray-600 mb-6">
-          Create a global demo campaign that will be available to all users. 
+          Create a global demo campaign that will be available to all users.
           Users can toggle this demo campaign on/off in their campaigns list.
         </p>
-        
+
         <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
           <div>
             <h4 className="font-medium text-gray-900">Global Demo Campaign</h4>
             <p className="text-sm text-gray-600">
-              Create a comprehensive demo campaign with realistic data and performance metrics
+              Create a comprehensive demo campaign with realistic data and
+              performance metrics
             </p>
           </div>
           <button
             onClick={async () => {
               try {
-                console.log('Admin: Creating global demo campaign...');
-                const token = typeof window !== 'undefined' ? localStorage.getItem('authToken') || localStorage.getItem('access_token') : null;
-                
+                console.log("Admin: Creating global demo campaign...");
+                const token =
+                  typeof window !== "undefined"
+                    ? localStorage.getItem("authToken") ||
+                      localStorage.getItem("access_token")
+                    : null;
+
                 // Create demo campaign payload
                 const demoPayload = {
                   title: "🌟 CampaignForge Demo - AI Marketing Excellence",
-                  description: "Experience the power of AI-driven marketing automation with this comprehensive demo campaign showcasing intelligent product analysis, automated content generation, and multi-channel orchestration.",
+                  description:
+                    "Experience the power of AI-driven marketing automation with this comprehensive demo campaign showcasing intelligent product analysis, automated content generation, and multi-channel orchestration.",
                   campaign_type: "product_launch",
                   status: "active",
-                  target_audience: "Digital marketers and business owners seeking AI-powered marketing solutions",
-                  keywords: ["AI marketing", "automation", "content generation", "multi-channel", "analytics"],
-                  goals: ["Demonstrate AI product intelligence", "Showcase multi-channel content generation", "Highlight campaign optimization features"],
+                  target_audience:
+                    "Digital marketers and business owners seeking AI-powered marketing solutions",
+                  keywords: [
+                    "AI marketing",
+                    "automation",
+                    "content generation",
+                    "multi-channel",
+                    "analytics",
+                  ],
+                  goals: [
+                    "Demonstrate AI product intelligence",
+                    "Showcase multi-channel content generation",
+                    "Highlight campaign optimization features",
+                  ],
                   settings: {
                     is_demo: true,
                     is_global: true,
                     demo_type: "global_demo",
-                    created_by: "admin"
-                  }
-                };
-                
-                const result = await fetch('https://campaign-backend-production-e2db.up.railway.app/api/campaigns/', {
-                  method: 'POST',
-                  headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json'
+                    created_by: "admin",
                   },
-                  body: JSON.stringify(demoPayload)
-                });
-                
+                };
+
+                const result = await fetch(
+                  "https://campaign-backend-production-e2db.up.railway.app/api/campaigns/",
+                  {
+                    method: "POST",
+                    headers: {
+                      Authorization: `Bearer ${token}`,
+                      "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify(demoPayload),
+                  }
+                );
+
                 if (result.ok) {
                   const campaign = await result.json();
-                  console.log('Global demo campaign created:', campaign);
-                  alert('✅ Global demo campaign created successfully!\n\nThis demo campaign is now available to all users and can be toggled on/off from their campaigns page.');
+                  console.log("Global demo campaign created:", campaign);
+                  alert(
+                    "✅ Global demo campaign created successfully!\n\nThis demo campaign is now available to all users and can be toggled on/off from their campaigns page."
+                  );
                 } else {
                   const error = await result.text();
-                  console.error('Failed to create global demo campaign:', error);
-                  alert('❌ Failed to create global demo campaign. Check console for details.');
+                  console.error(
+                    "Failed to create global demo campaign:",
+                    error
+                  );
+                  alert(
+                    "❌ Failed to create global demo campaign. Check console for details."
+                  );
                 }
               } catch (error) {
-                console.error('Error creating global demo campaign:', error);
-                alert('❌ Error creating global demo campaign. Check console for details.');
+                console.error("Error creating global demo campaign:", error);
+                alert(
+                  "❌ Error creating global demo campaign. Check console for details."
+                );
               }
             }}
             className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors inline-flex items-center"
