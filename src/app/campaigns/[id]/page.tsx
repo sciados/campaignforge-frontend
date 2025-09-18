@@ -211,7 +211,7 @@ export default function CampaignDetailPage({
     } finally {
       setIsLoading(false);
     }
-  }, [api, params.id]);
+  }, [api, params.id, retryCount, shouldAllowRequest]);
 
   // Load campaign data on component mount
   useEffect(() => {

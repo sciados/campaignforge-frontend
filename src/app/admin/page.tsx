@@ -640,8 +640,8 @@ export default function AdminPage() {
                     invitee_email: email,
                     invitee_name: name || null,
                     company_name: company || null,
-                    max_url_submissions: parseInt(maxUrls) || 20,
-                    days_valid: parseInt(daysValid) || 30,
+                    max_url_submissions: parseInt(maxUrls || "20") || 20,
+                    days_valid: parseInt(daysValid || "30") || 30,
                     admin_notes: "Created via admin dashboard"
                   }),
                 }
