@@ -385,6 +385,40 @@ export default function AdminPage() {
     }
   };
 
+  // Resend invite email
+  const resendInvite = async (inviteId: string, inviteeEmail: string) => {
+    try {
+      const token = localStorage.getItem("authToken");
+      const response = await fetch(
+        `https://campaign-backend-production-e2db.up.railway.app/api/admin/intelligence/product-creator-invites/resend/${inviteId}`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      if (response.ok) {
+        alert(`✅ Invitation email resent to ${inviteeEmail}`);
+      } else {
+        const error = await response.json();
+        alert(
+          `❌ Failed to resend invite: ${
+            error.detail || error.message || "Unknown error"
+          }`
+        );
+      }
+    } catch (error) {
+      alert(
+        `❌ Failed to resend invite: ${
+          error instanceof Error ? error.message : "Unknown error"
+        }`
+      );
+    }
+  };
+
   const fetchWaitlistEntries = useCallback(async (page: number = 1) => {
     try {
       setWaitlistLoading(true);
@@ -897,16 +931,24 @@ export default function AdminPage() {
                     </div>
                     <div className="flex items-center space-x-2">
                       {invite.status === 'pending' && (
-                        <button
-                          onClick={() => {
-                            const url = `${window.location.origin}/register?invite_token=${invite.invite_token}`;
-                            navigator.clipboard.writeText(url);
-                            alert("Registration URL copied to clipboard!");
-                          }}
-                          className="text-sm text-blue-600 hover:text-blue-800"
-                        >
-                          Copy URL
-                        </button>
+                        <>
+                          <button
+                            onClick={() => {
+                              const url = `${window.location.origin}/register?invite_token=${invite.invite_token}`;
+                              navigator.clipboard.writeText(url);
+                              alert("Registration URL copied to clipboard!");
+                            }}
+                            className="text-sm text-blue-600 hover:text-blue-800"
+                          >
+                            Copy URL
+                          </button>
+                          <button
+                            onClick={() => resendInvite(invite.id, invite.invitee_email)}
+                            className="text-sm text-green-600 hover:text-green-800"
+                          >
+                            Resend
+                          </button>
+                        </>
                       )}
                     </div>
                   </div>
