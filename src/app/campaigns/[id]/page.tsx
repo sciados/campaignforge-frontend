@@ -94,7 +94,7 @@ export default function CampaignDetailPage({
   const [lastLoadTime, setLastLoadTime] = useState(0);
 
   // Rate limiting helper - prevent rapid retries
-  const shouldAllowRequest = () => {
+  const shouldAllowRequest = useCallback(() => {
     const now = Date.now();
     const timeSinceLastLoad = now - lastLoadTime;
     const minDelay = Math.pow(2, retryCount) * 1000; // Exponential backoff: 1s, 2s, 4s, 8s...
@@ -107,7 +107,7 @@ export default function CampaignDetailPage({
     });
 
     return timeSinceLastLoad >= minDelay;
-  };
+  }, [lastLoadTime, retryCount]);
 
   // Load campaign data function - extracted for reuse
   const loadCampaignData = useCallback(async () => {

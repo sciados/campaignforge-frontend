@@ -5,9 +5,23 @@ import { useCallback, useEffect, useState } from "react";
 import { useApi } from "@/lib/api";
 import ProductCreatorDashboard from "@/components/dashboards/product-creator/ProductCreatorDashboard";
 
+interface DashboardConfig {
+  user_profile: {
+    user_type_display: string;
+    usage_summary: {
+      campaigns: { used: number; limit: number; percentage: number };
+      analysis: { used: number; limit: number; percentage: number };
+    };
+  };
+  primary_widgets: string[];
+  dashboard_title: string;
+  main_cta: string;
+  theme_color: string;
+}
+
 export default function ProductCreatorDashboardPage() {
   const api = useApi();
-  const [config, setConfig] = useState(null);
+  const [config, setConfig] = useState<DashboardConfig | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
