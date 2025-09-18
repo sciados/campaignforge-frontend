@@ -32,7 +32,8 @@
       "Bash(move \"CampaignForge-SAAS-Overview.md\" \"docs/\")",
       "Bash(xargs ls:*)",
       "Bash(cat:*)",
-      "Bash(git reset:*)"
+      "Bash(git reset:*)",
+      "WebFetch(domain:resend.com)"
     ],
     "deny": [],
     "ask": []

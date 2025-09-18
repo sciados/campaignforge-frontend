@@ -327,9 +327,12 @@ export default function AdminPage() {
 
       if (response.ok) {
         const data = await response.json();
+        console.log("📧 Invite API Response:", data);
         setInvites(data.data || []);
       } else {
-        console.error("Failed to load invites");
+        console.error("Failed to load invites, status:", response.status);
+        const errorText = await response.text();
+        console.error("Error response:", errorText);
       }
     } catch (error) {
       console.error("Error loading invites:", error);
