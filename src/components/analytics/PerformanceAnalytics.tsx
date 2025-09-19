@@ -1,7 +1,7 @@
 // src/components/analytics/PerformanceAnalytics.tsx
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useApi } from '@/lib/api';
 import type { UsageAnalytics } from '@/lib/types/modular';
 
@@ -46,11 +46,7 @@ const PerformanceAnalytics: React.FC<PerformanceAnalyticsProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState('overview');
 
-  useEffect(() => {
-    loadAnalytics();
-  }, [campaignId, timeRange]);
-
-  const loadAnalytics = async () => {
+  const loadAnalytics = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -99,7 +95,11 @@ const PerformanceAnalytics: React.FC<PerformanceAnalyticsProps> = ({
     } finally {
       setLoading(false);
     }
-  };
+  }, [api]);
+
+  useEffect(() => {
+    loadAnalytics();
+  }, [loadAnalytics]);
 
   const getOverviewMetrics = (): PerformanceMetric[] => {
     if (!analytics || campaigns.length === 0) return [];

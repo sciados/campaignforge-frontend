@@ -447,7 +447,7 @@ export class ApiClient {
       const campaign = await this.createCampaign({
         title: request.title,
         description: request.description,
-        campaign_type: request.campaign_type,
+        campaign_type: (request.campaign_type as any) || 'universal',
         target_audience: request.target_audience,
         keywords: request.key_messages
       })
@@ -628,8 +628,8 @@ export class ApiClient {
         fetch(`${this.baseURL}/api/intelligence/content-service/metrics`, { headers: this.getHeaders() })
       ])
 
-      const limits = await this.handleResponse(limitsResponse)
-      const metrics = await this.handleResponse(metricsResponse)
+      const limits = await this.handleResponse<any>(limitsResponse)
+      const metrics = await this.handleResponse<any>(metricsResponse)
 
       // Transform to expected format
       return {
@@ -672,7 +672,7 @@ export class ApiClient {
       const response = await fetch(url, {
         headers: this.getHeaders()
       })
-      const data = await this.handleResponse(response)
+      const data = await this.handleResponse<any>(response)
 
       // Transform to expected format
       return Array.isArray(data) ? data : (data.history || [])
