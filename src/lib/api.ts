@@ -258,11 +258,9 @@ export class ApiClient {
           headers: this.getHeaders()
         })
       } else {
-        // For other user types, use the general dashboard config endpoint
-        console.log(`📊 API: Calling general dashboard config endpoint`)
-        response = await fetch(`${this.baseURL}/api/user-types/dashboard-config`, {
-          headers: this.getHeaders()
-        })
+        // For other user types, use fallback config directly (no backend endpoint exists)
+        console.log(`📊 API: Using fallback config for user type: ${userType}`)
+        return this.getFallbackConfig(userType || 'affiliate_marketer')
       }
 
       if (!response.ok) {
