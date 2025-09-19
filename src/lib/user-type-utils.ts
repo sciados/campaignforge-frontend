@@ -4,7 +4,7 @@
  * 🛠️ Helper functions for user type operations
  */
 
-export type UserType = 'affiliate_marketer' | 'content_creator' | 'business_owner';
+export type UserType = 'affiliate_marketer' | 'content_creator' | 'business_owner' | 'product_creator';
 
 export interface UserProfile {
     id: string;
@@ -41,7 +41,8 @@ export const getUserDashboardRoute = (userType: UserType | null): string => {
     const routes = {
         affiliate_marketer: '/dashboard/affiliate',
         content_creator: '/dashboard/creator',
-        business_owner: '/dashboard/business'
+        business_owner: '/dashboard/business',
+        product_creator: '/dashboard/product-creator'
     };
 
     return routes[userType] || '/dashboard';
@@ -53,7 +54,8 @@ export const getUserTypeDisplayName = (userType: UserType | null): string => {
     const displayNames = {
         affiliate_marketer: '💰 Affiliate Marketer',
         content_creator: '🎬 Content Creator',
-        business_owner: '🏢 Business Owner'
+        business_owner: '🏢 Business Owner',
+        product_creator: '🎯 Product Creator'
     };
 
     return displayNames[userType] || 'User';
@@ -65,7 +67,8 @@ export const getUserTypeThemeColor = (userType: UserType | null): string => {
     const themeColors = {
         affiliate_marketer: 'green',
         content_creator: 'purple',
-        business_owner: 'blue'
+        business_owner: 'blue',
+        product_creator: 'emerald'
     };
 
     return themeColors[userType] || 'blue';
@@ -90,6 +93,10 @@ export const getUserTypeFeatures = (userType: UserType | null): string[] => {
         business_owner: [
             'market_research', 'lead_generation', 'competitor_analysis',
             'customer_insights', 'sales_optimization', 'roi_tracking'
+        ],
+        product_creator: [
+            'url_submission', 'content_library', 'marketing_intelligence',
+            'affiliate_distribution', 'submission_tracking', 'quota_management'
         ]
     };
 
@@ -100,7 +107,8 @@ export const getUserTypeLimits = (userType: UserType | null, tier: string = 'fre
     const baseLimits = {
         affiliate_marketer: { campaigns: 10, analysis: 25 },
         content_creator: { campaigns: 15, analysis: 20 },
-        business_owner: { campaigns: 8, analysis: 15 }
+        business_owner: { campaigns: 8, analysis: 15 },
+        product_creator: { campaigns: 50, analysis: 5000 }
     };
 
     const base = baseLimits[userType || 'business_owner'];

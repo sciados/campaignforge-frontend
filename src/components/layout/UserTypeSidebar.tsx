@@ -158,6 +158,22 @@ const UserTypeSidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
           },
         ];
 
+      case "product_creator":
+        return [
+          {
+            href: "/dashboard/product-creator/submissions",
+            label: "URL Submissions",
+            icon: "📝",
+            isActive: pathname.startsWith("/dashboard/product-creator/submissions"),
+          },
+          {
+            href: "/dashboard/product-creator/quota",
+            label: "Quota & Usage",
+            icon: "📈",
+            isActive: pathname.startsWith("/dashboard/product-creator/quota"),
+          },
+        ];
+
       default:
         return [];
     }

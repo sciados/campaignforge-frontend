@@ -168,6 +168,7 @@ const UserTypeRouter: React.FC = () => {
       creator: "/dashboard/creator", // Support both formats
       business_owner: "/dashboard/business",
       business: "/dashboard/business", // Support both formats
+      product_creator: "/dashboard/product-creator", // Product creator dashboard
     };
     
     const path = routes[userType as keyof typeof routes];
@@ -213,6 +214,17 @@ const UserTypeRouter: React.FC = () => {
           analysis: { used: 10, limit: 35, percentage: 29 },
         },
         primary_widgets: ["campaigns", "intelligence", "analytics", "content"],
+      },
+      product_creator: {
+        user_type_display: "Product Creator",
+        dashboard_title: "Product Creator Hub",
+        main_cta: "Submit Sales Page",
+        theme_color: "emerald",
+        usage_summary: {
+          campaigns: { used: 0, limit: 50, percentage: 0 },
+          analysis: { used: 0, limit: 5000, percentage: 0 },
+        },
+        primary_widgets: ["url_submission", "content_library", "analytics", "submissions"],
       },
     };
 
@@ -327,6 +339,8 @@ const UserTypeRouter: React.FC = () => {
         return <CreatorDashboard config={dashboardConfig} />;
       case "business_owner":
         return <BusinessDashboard config={dashboardConfig} />;
+      case "product_creator":
+        return <AffiliateDashboard config={dashboardConfig} />; // Use affiliate dashboard for now
       default:
         return (
           <div className="min-h-screen flex items-center justify-center bg-gray-50">
