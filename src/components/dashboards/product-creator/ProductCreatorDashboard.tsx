@@ -34,6 +34,18 @@ const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_URL ||
   "https://campaign-backend-production-e2db.up.railway.app";
 
+// ---------- Product Categories Configuration ----------
+const PRODUCT_CATEGORIES = {
+  make_money: "Make Money Online",
+  health_fitness: "Health & Fitness",
+  relationships: "Relationships & Dating",
+  personal_development: "Personal Development",
+  business_marketing: "Business & Marketing",
+  technology: "Technology & Software",
+  education: "Education & Training",
+  hobbies_crafts: "Hobbies & Crafts",
+};
+
 interface DashboardConfig {
   user_profile: {
     user_type_display: string;
@@ -120,7 +132,8 @@ const ProductCreatorDashboard: React.FC<ProductCreatorDashboardProps> = ({ confi
   const [formData, setFormData] = useState({
     productName: '',
     category: '',
-    urls: '',
+    salesPageUrl: '',
+    affiliateSignupUrl: '',
     launchDate: '',
     notes: ''
   });
@@ -152,14 +165,12 @@ const ProductCreatorDashboard: React.FC<ProductCreatorDashboardProps> = ({ confi
   const handleFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!formData.productName.trim() || !formData.category.trim() || !formData.urls.trim()) {
-      alert("Please fill in all required fields (Product Name, Category, and URLs)");
+    if (!formData.productName.trim() || !formData.category.trim() || !formData.salesPageUrl.trim()) {
+      alert("Please fill in all required fields (Product Name, Category, and Sales Page URL)");
       return;
     }
 
     setSubmissionLoading(true);
-
-    const urls = formData.urls.split(',').map(url => url.trim()).filter(url => url);
 
     try {
       const token = localStorage.getItem("authToken");
@@ -174,7 +185,8 @@ const ProductCreatorDashboard: React.FC<ProductCreatorDashboardProps> = ({ confi
           body: JSON.stringify({
             product_name: formData.productName.trim(),
             category: formData.category.trim(),
-            urls: urls,
+            sales_page_url: formData.salesPageUrl.trim(),
+            affiliate_signup_url: formData.affiliateSignupUrl.trim() || null,
             launch_date: formData.launchDate.trim() || null,
             notes: formData.notes.trim() || null,
           }),
@@ -188,7 +200,8 @@ const ProductCreatorDashboard: React.FC<ProductCreatorDashboardProps> = ({ confi
         setFormData({
           productName: '',
           category: '',
-          urls: '',
+          salesPageUrl: '',
+          affiliateSignupUrl: '',
           launchDate: '',
           notes: ''
         });
@@ -210,7 +223,8 @@ const ProductCreatorDashboard: React.FC<ProductCreatorDashboardProps> = ({ confi
     setFormData({
       productName: '',
       category: '',
-      urls: '',
+      salesPageUrl: '',
+      affiliateSignupUrl: '',
       launchDate: '',
       notes: ''
     });
@@ -365,32 +379,54 @@ const ProductCreatorDashboard: React.FC<ProductCreatorDashboardProps> = ({ confi
                   <label htmlFor="category" className="block text-sm font-medium text-gray-700 mb-2">
                     Category <span className="text-red-500">*</span>
                   </label>
-                  <input
-                    type="text"
+                  <select
                     id="category"
                     value={formData.category}
                     onChange={(e) => handleInputChange('category', e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors"
-                    placeholder="e.g., Health & Wellness, Technology"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors bg-white"
                     required
-                  />
+                  >
+                    <option value="">Select a category...</option>
+                    {Object.entries(PRODUCT_CATEGORIES).map(([key, label]) => (
+                      <option key={key} value={key}>
+                        {label}
+                      </option>
+                    ))}
+                  </select>
                 </div>
               </div>
 
               <div>
-                <label htmlFor="urls" className="block text-sm font-medium text-gray-700 mb-2">
-                  Sales Page URLs <span className="text-red-500">*</span>
+                <label htmlFor="salesPageUrl" className="block text-sm font-medium text-gray-700 mb-2">
+                  Sales Page URL <span className="text-red-500">*</span>
                 </label>
-                <textarea
-                  id="urls"
-                  value={formData.urls}
-                  onChange={(e) => handleInputChange('urls', e.target.value)}
-                  rows={3}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors resize-none"
-                  placeholder="Enter URLs separated by commas (e.g., https://example.com/product1, https://example.com/product2)"
+                <input
+                  type="url"
+                  id="salesPageUrl"
+                  value={formData.salesPageUrl}
+                  onChange={(e) => handleInputChange('salesPageUrl', e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors"
+                  placeholder="https://example.com/sales-page"
                   required
                 />
-                <p className="text-sm text-gray-500 mt-1">Separate multiple URLs with commas</p>
+              </div>
+
+              <div>
+                <label htmlFor="affiliateSignupUrl" className="block text-sm font-medium text-gray-700 mb-2">
+                  Affiliate Signup URL <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="url"
+                  id="affiliateSignupUrl"
+                  value={formData.affiliateSignupUrl}
+                  onChange={(e) => handleInputChange('affiliateSignupUrl', e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors"
+                  placeholder="https://clickbank.com/affiliate-signup or https://jvzoo.com/product/..."
+                  required
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  Platform URL where affiliates can sign up (ClickBank, JVZoo, Warrior Forum, etc.)
+                </p>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
