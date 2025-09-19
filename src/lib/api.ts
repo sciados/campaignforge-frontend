@@ -402,13 +402,35 @@ export class ApiClient {
           }
         }
       },
+      usage_stats: {
+        urls_submitted: apiData.submission_stats?.total_submitted || 0,
+        max_urls_allowed: apiData.restrictions?.max_url_submissions || 50,
+        remaining_urls: (apiData.restrictions?.max_url_submissions || 50) - (apiData.submission_stats?.total_submitted || 0),
+        usage_percentage: Math.round(((apiData.submission_stats?.total_submitted || 0) / (apiData.restrictions?.max_url_submissions || 50)) * 100)
+      },
+      recent_activity: apiData.recent_activity || [],
+      available_tools: apiData.available_tools || [],
+      dashboard_config: {
+        dashboard_type: "product_creator",
+        show_billing: true,
+        show_analytics: true,
+        show_campaigns: false,
+        show_content_generation: true,
+        show_intelligence_analysis: true,
+        primary_actions: ["url_submission", "content_generation"],
+        restricted_features: [],
+        welcome_message: `Welcome back, ${apiData.user_email || 'Product Creator'}! Ready to optimize your sales pages?`,
+        help_links: [
+          { title: "Getting Started", url: "/help/getting-started" },
+          { title: "URL Submission Guide", url: "/help/url-submission" }
+        ]
+      },
       primary_widgets: ["url_submission", "content_library", "analytics", "submissions"],
       dashboard_title: "Product Creator Hub",
       main_cta: "Submit Sales Page",
       theme_color: "emerald",
       restrictions: apiData.restrictions,
-      submission_stats: apiData.submission_stats,
-      available_tools: apiData.available_tools
+      submission_stats: apiData.submission_stats
     }
   }
 
