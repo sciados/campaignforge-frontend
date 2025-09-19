@@ -19,13 +19,8 @@ export default function UserTypeOnboarding({ userType, userId }: UserTypeOnboard
   const handleOnboardingComplete = async () => {
     setIsCompleting(true);
     try {
-      // Mark onboarding as completed in the backend
-      await api.post("/api/user-types/complete-onboarding", {
-        user_type: userType,
-        goals: getDefaultGoals(userType),
-        experience_level: "beginner",
-        onboarding_completed: true
-      });
+      // Mark onboarding as completed in the backend using the existing API method
+      await api.completeOnboarding(getDefaultGoals(userType), "beginner");
 
       // Route to appropriate dashboard
       const dashboardRoute = getDashboardRoute(userType);
@@ -42,14 +37,8 @@ export default function UserTypeOnboarding({ userType, userId }: UserTypeOnboard
 
   const handleSkipOnboarding = async () => {
     try {
-      // Mark as completed but skipped
-      await api.post("/api/user-types/complete-onboarding", {
-        user_type: userType,
-        goals: [],
-        experience_level: "experienced",
-        onboarding_completed: true,
-        skipped: true
-      });
+      // Mark as completed but skipped using the existing API method
+      await api.completeOnboarding([], "experienced");
 
       const dashboardRoute = getDashboardRoute(userType);
       router.push(dashboardRoute);
