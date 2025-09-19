@@ -298,6 +298,7 @@ export class ApiClient {
           user_type_display: "Administrator",
           user_type: "admin",
           dashboard_route: "/admin",
+          welcome_message: "Welcome to the Admin Dashboard. Manage your platform effectively.",
           usage_summary: {
             campaigns: { used: 0, limit: 999999, percentage: 0 },
             analysis: { used: 0, limit: 999999, percentage: 0 }
@@ -313,6 +314,7 @@ export class ApiClient {
           user_type_display: "Affiliate Marketer",
           user_type: "affiliate_marketer",
           dashboard_route: "/dashboard/affiliate",
+          welcome_message: "Welcome to your Affiliate Command Center. Find and promote winning products!",
           usage_summary: {
             campaigns: { used: 2, limit: 10, percentage: 20 },
             analysis: { used: 5, limit: 25, percentage: 20 }
@@ -328,6 +330,7 @@ export class ApiClient {
           user_type_display: "Content Creator",
           user_type: "content_creator",
           dashboard_route: "/dashboard/creator",
+          welcome_message: "Welcome to Creator Studio Pro. Create viral content that converts!",
           usage_summary: {
             campaigns: { used: 4, limit: 15, percentage: 27 },
             analysis: { used: 8, limit: 30, percentage: 27 }
@@ -343,6 +346,7 @@ export class ApiClient {
           user_type_display: "Business Owner",
           user_type: "business_owner",
           dashboard_route: "/dashboard/business",
+          welcome_message: "Welcome to your Business Growth Hub. Scale your business with AI insights!",
           usage_summary: {
             campaigns: { used: 6, limit: 20, percentage: 30 },
             analysis: { used: 10, limit: 35, percentage: 29 }
@@ -358,6 +362,7 @@ export class ApiClient {
           user_type_display: "Product Creator",
           user_type: "product_creator",
           dashboard_route: "/dashboard/product-creator",
+          welcome_message: "Welcome to your Product Creator Hub! Submit your sales pages for analysis and generate high-converting content.",
           usage_summary: {
             campaigns: { used: 0, limit: 50, percentage: 0 },
             analysis: { used: 0, limit: 5000, percentage: 0 }
@@ -383,6 +388,7 @@ export class ApiClient {
         user_type_display: "Product Creator",
         user_type: "product_creator",
         dashboard_route: "/dashboard/product-creator",
+        welcome_message: `Welcome back, ${apiData.user_email || 'Product Creator'}! Ready to optimize your sales pages?`,
         usage_summary: {
           campaigns: {
             used: apiData.submission_stats?.total_submitted || 0,
