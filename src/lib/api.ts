@@ -1310,6 +1310,29 @@ class ApiClient {
         dashboard_title: "Business Growth Hub",
         main_cta: "Generate Leads",
         theme_color: "green"
+      },
+      product_creator: {
+        user_profile: {
+          user_type_display: "Product Creator",
+          user_type: "product_creator",
+          dashboard_route: "/dashboard/product-creator",
+          usage_summary: {
+            campaigns: { used: 0, limit: 50, percentage: 0 },
+            analysis: { used: 0, limit: 5000, percentage: 0 },
+            intelligence: { used: 0, limit: 1000, percentage: 0 },
+            content: { used: 0, limit: 200, percentage: 0 }
+          },
+          subscription_info: {
+            plan: "Product Creator",
+            tier: "INVITED",
+            credits_remaining: 5000,
+            next_reset: "2024-12-31"
+          }
+        },
+        primary_widgets: ["url_submission", "content_library", "analytics", "submissions"],
+        dashboard_title: "Product Creator Hub",
+        main_cta: "Submit Sales Page",
+        theme_color: "emerald"
       }
     };
 
@@ -1325,6 +1348,186 @@ class ApiClient {
         "Performance Analytics", 
         "Content Generation",
         "Affiliate Links"
+    // Use live API calls instead of mock system
+    try {
+      let response;
+
+      // For product creators, use the specific product creator dashboard endpoint
+      if (userType === 'product_creator') {
+        console.log(`📊 API: Calling product creator dashboard endpoint for user type: "${userType}"`);
+        response = await fetch(`${this.baseURL}/api/admin/intelligence/product-creator/dashboard`, {
+          headers: this.getHeaders()
+        });
+      } else {
+        // For other user types, use the general dashboard config endpoint
+        console.log(`📊 API: Calling general dashboard config endpoint for user type: "${userType}"`);
+        response = await fetch(`${this.baseURL}/api/user-types/dashboard-config`, {
+          headers: this.getHeaders()
+        });
+      }
+
+      if (!response.ok) {
+        console.warn(`📊 API: Dashboard config API failed (${response.status}), using fallback for user type: "${userType}"`);
+        // Return fallback config instead of throwing
+        return this.getFallbackConfig(userType);
+      }
+
+      const responseData = await response.json();
+      console.log(`📊 API: Dashboard config response for "${userType}":`, responseData);
+
+      // Handle different response formats
+      if (responseData.success && responseData.data) {
+        // Product creator endpoint format
+        return this.transformProductCreatorConfig(responseData.data);
+      } else if (responseData.success && responseData.config) {
+        // Standard dashboard config format
+        return responseData.config;
+      } else if (responseData.data) {
+        // Direct data format
+        return responseData.data;
+      } else {
+        // Fallback to mock config
+        console.warn(`📊 API: Unexpected response format, using fallback for user type: "${userType}"`);
+        return this.getFallbackConfig(userType);
+      }
+    } catch (error) {
+      console.warn(`📊 API: Dashboard config request failed for user type: "${userType}"`, error);
+      return this.getFallbackConfig(userType);
+    }
+  }
+
+  // Helper method to get fallback config when API calls fail
+  private getFallbackConfig(userType: string) {
+    const mockConfigs = {
+      admin: {
+        user_profile: {
+          user_type_display: "Administrator",
+          user_type: "admin",
+          dashboard_route: "/admin",
+          usage_summary: {
+            campaigns: { used: 0, limit: 999999, percentage: 0 },
+            analysis: { used: 0, limit: 999999, percentage: 0 },
+            intelligence: { used: 0, limit: 999999, percentage: 0 },
+            content: { used: 0, limit: 999999, percentage: 0 }
+          },
+          subscription_info: {
+            plan: "Admin",
+            tier: "ADMIN",
+            credits_remaining: 999999,
+            next_reset: "Never"
+          }
+        },
+        primary_widgets: ["users", "companies", "revenue", "settings"],
+        dashboard_title: "RodgersDigital Admin",
+        main_cta: "Manage Platform",
+        theme_color: "red"
+      },
+      affiliate_marketer: {
+        user_profile: {
+          user_type_display: "Affiliate Marketer",
+          user_type: "affiliate_marketer",
+          dashboard_route: "/dashboard/affiliate",
+          usage_summary: {
+            campaigns: { used: 2, limit: 10, percentage: 20 },
+            analysis: { used: 5, limit: 25, percentage: 20 },
+            intelligence: { used: 3, limit: 15, percentage: 20 },
+            content: { used: 8, limit: 50, percentage: 16 }
+          },
+          subscription_info: {
+            plan: "Free",
+            tier: "FREE",
+            credits_remaining: 95,
+            next_reset: "2024-02-01"
+          }
+        },
+        primary_widgets: ["campaigns", "analytics", "intelligence", "content"],
+        dashboard_title: "Affiliate Command Center",
+        main_cta: "Track Competitors",
+        theme_color: "blue"
+      },
+      content_creator: {
+        user_profile: {
+          user_type_display: "Content Creator",
+          user_type: "content_creator",
+          dashboard_route: "/dashboard/creator",
+          usage_summary: {
+            campaigns: { used: 4, limit: 15, percentage: 27 },
+            analysis: { used: 8, limit: 30, percentage: 27 },
+            intelligence: { used: 6, limit: 20, percentage: 30 },
+            content: { used: 15, limit: 75, percentage: 20 }
+          },
+          subscription_info: {
+            plan: "Free",
+            tier: "FREE",
+            credits_remaining: 65,
+            next_reset: "2024-02-01"
+          }
+        },
+        primary_widgets: ["content", "campaigns", "analytics", "intelligence"],
+        dashboard_title: "Creator Studio Pro",
+        main_cta: "Analyze Viral Content",
+        theme_color: "purple"
+      },
+      business_owner: {
+        user_profile: {
+          user_type_display: "Business Owner",
+          user_type: "business_owner",
+          dashboard_route: "/dashboard/business",
+          usage_summary: {
+            campaigns: { used: 6, limit: 20, percentage: 30 },
+            analysis: { used: 10, limit: 35, percentage: 29 },
+            intelligence: { used: 8, limit: 25, percentage: 32 },
+            content: { used: 12, limit: 60, percentage: 20 }
+          },
+          subscription_info: {
+            plan: "Free",
+            tier: "FREE",
+            credits_remaining: 75,
+            next_reset: "2024-02-01"
+          }
+        },
+        primary_widgets: ["campaigns", "intelligence", "analytics", "content"],
+        dashboard_title: "Business Growth Hub",
+        main_cta: "Generate Leads",
+        theme_color: "green"
+      },
+      product_creator: {
+        user_profile: {
+          user_type_display: "Product Creator",
+          user_type: "product_creator",
+          dashboard_route: "/dashboard/product-creator",
+          usage_summary: {
+            campaigns: { used: 0, limit: 50, percentage: 0 },
+            analysis: { used: 0, limit: 5000, percentage: 0 },
+            intelligence: { used: 0, limit: 1000, percentage: 0 },
+            content: { used: 0, limit: 200, percentage: 0 }
+          },
+          subscription_info: {
+            plan: "Product Creator",
+            tier: "INVITED",
+            credits_remaining: 5000,
+            next_reset: "2024-12-31"
+          }
+        },
+        primary_widgets: ["url_submission", "content_library", "analytics", "submissions"],
+        dashboard_title: "Product Creator Hub",
+        main_cta: "Submit Sales Page",
+        theme_color: "emerald"
+      }
+    };
+
+    const configKey = userType || 'affiliate_marketer';
+    const baseConfig = mockConfigs[configKey as keyof typeof mockConfigs] || mockConfigs.affiliate_marketer;
+
+    console.log(`📊 API: Using fallback config for user type: "${userType}"`);
+
+    return {
+      ...baseConfig,
+      dashboard_features: [
+        "Campaign Creation",
+        "Performance Analytics",
+        "Content Generation",
+        "Affiliate Links"
       ],
       quick_actions: [
         { id: "create-campaign", title: "Create Campaign", icon: "plus" },
@@ -1332,29 +1535,49 @@ class ApiClient {
         { id: "generate-content", title: "Generate Content", icon: "edit" }
       ]
     };
-    
-    return mockConfig;
+  }
 
-    // ORIGINAL CODE (commented out for temporary bypass):
-    /*
-    const response = await fetch(`${this.baseURL}/api/user-types/dashboard-config`, {
-      headers: this.getHeaders()
-    })
+  // Helper method to transform product creator API response to expected format
+  private transformProductCreatorConfig(apiData: any) {
+    console.log(`📊 API: Transforming product creator API data:`, apiData);
 
-    if (!response.ok) {
-      throw new Error(`Failed to get dashboard config: ${response.statusText}`)
-    }
-
-    const responseData = await response.json()
-
-    // Handle the specific response format for dashboard config
-    if (responseData.success && responseData.config) {
-      return responseData.config  // Return the config directly
-    }
-
-    // Fallback to standard handling
-    return this.handleResponse(response)
-    */
+    return {
+      user_profile: {
+        user_type_display: "Product Creator",
+        user_type: "product_creator",
+        dashboard_route: "/dashboard/product-creator",
+        usage_summary: {
+          campaigns: {
+            used: apiData.submission_stats?.total_submitted || 0,
+            limit: apiData.restrictions?.max_url_submissions || 50,
+            percentage: 0
+          },
+          analysis: {
+            used: apiData.submission_stats?.total_submitted || 0,
+            limit: 5000,
+            percentage: 0
+          }
+        },
+        subscription_info: {
+          plan: "Product Creator",
+          tier: "INVITED",
+          credits_remaining: apiData.submission_stats?.remaining_quota || 5000,
+          next_reset: "2024-12-31"
+        }
+      },
+      primary_widgets: ["url_submission", "content_library", "analytics", "submissions"],
+      dashboard_title: "Product Creator Hub",
+      main_cta: "Submit Sales Page",
+      theme_color: "emerald",
+      dashboard_features: apiData.available_tools?.map((tool: any) => tool.name) || [
+        "URL Submission",
+        "Content Library",
+        "Submission Tracking"
+      ],
+      restrictions: apiData.restrictions,
+      submission_stats: apiData.submission_stats,
+      available_tools: apiData.available_tools
+    };
   }
 
   async getCurrentUserType(): Promise<any> {
