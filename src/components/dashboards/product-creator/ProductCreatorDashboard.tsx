@@ -114,6 +114,17 @@ const ProductCreatorDashboard: React.FC<ProductCreatorDashboardProps> = ({ confi
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // URL Submission Form State
+  const [showSubmissionForm, setShowSubmissionForm] = useState(false);
+  const [submissionLoading, setSubmissionLoading] = useState(false);
+  const [formData, setFormData] = useState({
+    productName: '',
+    category: '',
+    urls: '',
+    launchDate: '',
+    notes: ''
+  });
+
   const loadDashboardData = useCallback(async () => {
     setIsLoading(true);
     setError(null);
@@ -134,19 +145,21 @@ const ProductCreatorDashboard: React.FC<ProductCreatorDashboardProps> = ({ confi
     loadDashboardData();
   }, [loadDashboardData]);
 
-  const handleURLSubmission = async () => {
-    const productName = prompt("Enter your product name:");
-    if (!productName) return;
+  const handleURLSubmission = () => {
+    setShowSubmissionForm(true);
+  };
 
-    const category = prompt("Enter product category:");
-    if (!category) return;
+  const handleFormSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
 
-    const urlsInput = prompt("Enter sales page URLs (separated by commas):");
-    if (!urlsInput) return;
+    if (!formData.productName.trim() || !formData.category.trim() || !formData.urls.trim()) {
+      alert("Please fill in all required fields (Product Name, Category, and URLs)");
+      return;
+    }
 
-    const urls = urlsInput.split(',').map(url => url.trim()).filter(url => url);
-    const launchDate = prompt("Expected launch date (optional):");
-    const notes = prompt("Additional notes about your product (optional):");
+    setSubmissionLoading(true);
+
+    const urls = formData.urls.split(',').map(url => url.trim()).filter(url => url);
 
     try {
       const token = localStorage.getItem("authToken");
@@ -159,11 +172,11 @@ const ProductCreatorDashboard: React.FC<ProductCreatorDashboardProps> = ({ confi
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            product_name: productName,
-            category: category,
+            product_name: formData.productName.trim(),
+            category: formData.category.trim(),
             urls: urls,
-            launch_date: launchDate || null,
-            notes: notes || null,
+            launch_date: formData.launchDate.trim() || null,
+            notes: formData.notes.trim() || null,
           }),
         }
       );
@@ -171,6 +184,14 @@ const ProductCreatorDashboard: React.FC<ProductCreatorDashboardProps> = ({ confi
       if (response.ok) {
         const result = await response.json();
         alert(`✅ URLs submitted successfully!\n\nSubmission ID: ${result.data.submission_id}\nProduct: ${result.data.product_name}\nURLs: ${result.data.url_count}\nRemaining quota: ${result.data.remaining_quota}`);
+        setShowSubmissionForm(false);
+        setFormData({
+          productName: '',
+          category: '',
+          urls: '',
+          launchDate: '',
+          notes: ''
+        });
         loadDashboardData(); // Refresh dashboard
       } else {
         const error = await response.json();
@@ -179,7 +200,27 @@ const ProductCreatorDashboard: React.FC<ProductCreatorDashboardProps> = ({ confi
     } catch (error) {
       console.error("Error submitting URLs:", error);
       alert("❌ Error submitting URLs. Check console for details.");
+    } finally {
+      setSubmissionLoading(false);
     }
+  };
+
+  const handleFormCancel = () => {
+    setShowSubmissionForm(false);
+    setFormData({
+      productName: '',
+      category: '',
+      urls: '',
+      launchDate: '',
+      notes: ''
+    });
+  };
+
+  const handleInputChange = (field: keyof typeof formData, value: string) => {
+    setFormData(prev => ({
+      ...prev,
+      [field]: value
+    }));
   };
 
   const getStatusColor = (status: string) => {
@@ -283,6 +324,134 @@ const ProductCreatorDashboard: React.FC<ProductCreatorDashboardProps> = ({ confi
           </div>
         </div>
       </div>
+
+      {/* Inline URL Submission Form */}
+      {showSubmissionForm && (
+        <div className="max-w-6xl px-6 py-4">
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            className="bg-white rounded-xl shadow-lg border border-gray-200 p-6"
+          >
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-xl font-semibold text-gray-900">Submit Product URLs</h3>
+              <button
+                onClick={handleFormCancel}
+                className="text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleFormSubmit} className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label htmlFor="productName" className="block text-sm font-medium text-gray-700 mb-2">
+                    Product Name <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    id="productName"
+                    value={formData.productName}
+                    onChange={(e) => handleInputChange('productName', e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors"
+                    placeholder="Enter your product name"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label htmlFor="category" className="block text-sm font-medium text-gray-700 mb-2">
+                    Category <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    id="category"
+                    value={formData.category}
+                    onChange={(e) => handleInputChange('category', e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors"
+                    placeholder="e.g., Health & Wellness, Technology"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label htmlFor="urls" className="block text-sm font-medium text-gray-700 mb-2">
+                  Sales Page URLs <span className="text-red-500">*</span>
+                </label>
+                <textarea
+                  id="urls"
+                  value={formData.urls}
+                  onChange={(e) => handleInputChange('urls', e.target.value)}
+                  rows={3}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors resize-none"
+                  placeholder="Enter URLs separated by commas (e.g., https://example.com/product1, https://example.com/product2)"
+                  required
+                />
+                <p className="text-sm text-gray-500 mt-1">Separate multiple URLs with commas</p>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label htmlFor="launchDate" className="block text-sm font-medium text-gray-700 mb-2">
+                    Expected Launch Date
+                  </label>
+                  <input
+                    type="date"
+                    id="launchDate"
+                    value={formData.launchDate}
+                    onChange={(e) => handleInputChange('launchDate', e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors"
+                  />
+                </div>
+
+                <div>
+                  <label htmlFor="notes" className="block text-sm font-medium text-gray-700 mb-2">
+                    Additional Notes
+                  </label>
+                  <input
+                    type="text"
+                    id="notes"
+                    value={formData.notes}
+                    onChange={(e) => handleInputChange('notes', e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors"
+                    placeholder="Any additional information"
+                  />
+                </div>
+              </div>
+
+              <div className="flex items-center justify-end space-x-4 pt-4 border-t border-gray-200">
+                <button
+                  type="button"
+                  onClick={handleFormCancel}
+                  className="px-4 py-2 text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors font-medium"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={submissionLoading}
+                  className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium flex items-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {submissionLoading ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                      <span>Submitting...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Upload className="w-4 h-4" />
+                      <span>Submit URLs</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
+          </motion.div>
+        </div>
+      )}
 
       <div className="max-w-6xl px-6 py-8">
         {/* Account Status */}
