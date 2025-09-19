@@ -7,8 +7,9 @@
 
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
+import { useApi } from "@/lib/api";
 import Link from "next/link";
 import {
   Star,
@@ -108,45 +109,30 @@ interface DashboardData {
 }
 
 const ProductCreatorDashboard: React.FC<ProductCreatorDashboardProps> = ({ config }) => {
+  const api = useApi();
   const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     loadDashboardData();
-  }, []);
+  }, [loadDashboardData]);
 
-  const loadDashboardData = async () => {
+  const loadDashboardData = useCallback(async () => {
     setIsLoading(true);
     setError(null);
 
     try {
-      const token = localStorage.getItem("authToken");
-      if (!token) throw new Error("No auth token");
-
-      const response = await fetch(
-        `${API_BASE_URL}/api/intelligence/product-creator/dashboard`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error(`Failed to fetch dashboard data: ${response.status}`);
-      }
-
-      const result = await response.json();
-      setDashboardData(result.data);
+      // Use the centralized API client which handles the correct endpoint
+      const data = await api.getUserTypeConfig('product_creator');
+      setDashboardData(data);
     } catch (error) {
       console.error("Failed to load product creator dashboard data:", error);
       setError(error instanceof Error ? error.message : "Failed to load dashboard data");
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [api]);
 
   const handleURLSubmission = async () => {
     const productName = prompt("Enter your product name:");
@@ -165,7 +151,7 @@ const ProductCreatorDashboard: React.FC<ProductCreatorDashboardProps> = ({ confi
     try {
       const token = localStorage.getItem("authToken");
       const response = await fetch(
-        `${API_BASE_URL}/api/intelligence/product-creator/submit-urls`,
+        `${API_BASE_URL}/api/admin/intelligence/product-creator/submit-urls`,
         {
           method: "POST",
           headers: {

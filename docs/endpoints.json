@@ -1,0 +1,538 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "CampaignForge AI Backend",
+    "description": "Complete modular AI-powered marketing campaign platform - Session 6 Complete",
+    "version": "3.0.0"
+  },
+  "paths": {
+    "/api/admin/intelligence/product-creator-submission": {
+      "post": {
+        "tags": ["Admin Intelligence"],
+        "summary": "Submit Product Creator Urls",
+        "description": "🎯 Product Creator URL Submission (Public endpoint for special accounts).\n\n**For Product Creators**: Submit your sales page URLs for pre-analysis\nbefore launch. This ensures affiliate marketers get instant results\nwhen analyzing your products.\n\n**Benefits:**\n- Faster affiliate onboarding\n- Higher quality intelligence\n- Better market penetration\n- Free pre-launch optimization",
+        "operationId": "submit_product_creator_urls_api_admin_intelligence_product_creator_submission_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProductCreatorURLSubmission"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StandardResponse_Dict_str__Any__"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        },
+        "security": [{ "HTTPBearer": [] }]
+      }
+    },
+    "/api/admin/intelligence/process-creator-submission/{submission_id}": {
+      "post": {
+        "tags": ["Admin Intelligence"],
+        "summary": "Process Product Creator Submission",
+        "description": "✅ Process a product creator URL submission.\n\n**Admin Only**: Approve and process URLs submitted by product creators\nthrough the special free account system.\n\n**Approval Process:**\n- Reviews submitted URLs for quality and relevance\n- Runs enhanced analysis on approved URLs\n- Adds results to global affiliate cache\n- Notifies product creator of completion",
+        "operationId": "process_product_creator_submission_api_admin_intelligence_process_creator_submission__submission_id__post",
+        "security": [{ "HTTPBearer": [] }],
+        "parameters": [
+          {
+            "name": "submission_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "title": "Submission Id" }
+          },
+          {
+            "name": "approve",
+            "in": "query",
+            "required": false,
+            "schema": { "type": "boolean", "default": true, "title": "Approve" }
+          },
+          {
+            "name": "admin_notes",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [{ "type": "string" }, { "type": "null" }],
+              "title": "Admin Notes"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StandardResponse_Dict_str__Any__"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/intelligence/creator-submissions": {
+      "get": {
+        "tags": ["Admin Intelligence"],
+        "summary": "List Product Creator Submissions",
+        "description": "📋 List product creator submissions.\n\n**Admin Only**: View and manage product creator URL submissions.",
+        "operationId": "list_product_creator_submissions_api_admin_intelligence_creator_submissions_get",
+        "security": [{ "HTTPBearer": [] }],
+        "parameters": [
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [{ "type": "string" }, { "type": "null" }],
+              "title": "Status"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": { "type": "integer", "default": 50, "title": "Limit" }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": { "type": "integer", "default": 0, "title": "Offset" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StandardResponse_List_Dict_str__Any___"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/intelligence/product-creator-invites/create": {
+      "post": {
+        "tags": ["Admin Intelligence", "Admin Product Creator Invites"],
+        "summary": "Create Product Creator Invite",
+        "description": "🎯 Create a new product creator invite (Admin Only).\n\n**Private Invite System**: Generate secure invitations for select product creators\nto access special free accounts for URL pre-analysis submissions.",
+        "operationId": "create_product_creator_invite_api_admin_intelligence_product_creator_invites_create_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/CreateInviteRequest" }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StandardResponse_Dict_str__Any__"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        },
+        "security": [{ "HTTPBearer": [] }]
+      }
+    },
+    "/api/admin/intelligence/product-creator-invites/list": {
+      "get": {
+        "tags": ["Admin Intelligence", "Admin Product Creator Invites"],
+        "summary": "List Product Creator Invites",
+        "description": "📋 List product creator invites (Admin Only).\n\n**Admin Dashboard**: View and manage all product creator invitations with\nfiltering and pagination capabilities.",
+        "operationId": "list_product_creator_invites_api_admin_intelligence_product_creator_invites_list_get",
+        "security": [{ "HTTPBearer": [] }],
+        "parameters": [
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [{ "type": "string" }, { "type": "null" }],
+              "description": "Filter by invite status",
+              "title": "Status"
+            },
+            "description": "Filter by invite status"
+          },
+          {
+            "name": "admin_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [{ "type": "string" }, { "type": "null" }],
+              "description": "Filter by inviting admin",
+              "title": "Admin Id"
+            },
+            "description": "Filter by inviting admin"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 1,
+              "description": "Maximum results to return",
+              "default": 50,
+              "title": "Limit"
+            },
+            "description": "Maximum results to return"
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Number of results to skip",
+              "default": 0,
+              "title": "Offset"
+            },
+            "description": "Number of results to skip"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StandardResponse_List_Dict_str__Any___"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/intelligence/product-creator-invites/revoke/{invite_id}": {
+      "post": {
+        "tags": ["Admin Intelligence", "Admin Product Creator Invites"],
+        "summary": "Revoke Product Creator Invite",
+        "description": "🚫 Revoke a product creator invite (Admin Only).\n\n**Admin Control**: Revoke unused invitations to prevent registration.\nCannot revoke invites that have already been accepted.",
+        "operationId": "revoke_product_creator_invite_api_admin_intelligence_product_creator_invites_revoke__invite_id__post",
+        "security": [{ "HTTPBearer": [] }],
+        "parameters": [
+          {
+            "name": "invite_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "title": "Invite Id" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StandardResponse_Dict_str__Any__"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/intelligence/product-creator-invites/resend/{invite_id}": {
+      "post": {
+        "tags": ["Admin Intelligence", "Admin Product Creator Invites"],
+        "summary": "Resend Product Creator Invite",
+        "description": "📧 Resend a product creator invite email (Admin Only).\n\n**Admin Control**: Resend invitation email for pending invites.\nCan only resend invites that are still pending and not expired.",
+        "operationId": "resend_product_creator_invite_api_admin_intelligence_product_creator_invites_resend__invite_id__post",
+        "security": [{ "HTTPBearer": [] }],
+        "parameters": [
+          {
+            "name": "invite_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "title": "Invite Id" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StandardResponse_Dict_str__Any__"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/intelligence/product-creator-invites/validate": {
+      "post": {
+        "tags": ["Admin Intelligence", "Product Creator Invites Public"],
+        "summary": "Validate Invite Token",
+        "description": "✅ Validate a product creator invite token.\n\n**Public Endpoint**: Used during registration to validate invite tokens.\nReturns invite details if valid for account creation.",
+        "operationId": "validate_invite_token_api_admin_intelligence_product_creator_invites_validate_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/ValidateInviteRequest" }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StandardResponse_Dict_str__Any__"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/intelligence/product-creator/dashboard": {
+      "get": {
+        "tags": ["Admin Intelligence", "Product Creator Dashboard"],
+        "summary": "Get Product Creator Dashboard",
+        "description": "🎯 Get Product Creator Dashboard Overview.\n\n**Product Creator Interface**: Specialized dashboard with limited tools\nfocused on URL submission and analysis tracking.\n\n**Features:**\n- URL submission quota tracking\n- Submission status monitoring\n- Analysis results viewing\n- Account restrictions display",
+        "operationId": "get_product_creator_dashboard_api_admin_intelligence_product_creator_dashboard_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StandardResponse_Dict_str__Any__"
+                }
+              }
+            }
+          }
+        },
+        "security": [{ "HTTPBearer": [] }]
+      }
+    },
+    "/api/admin/intelligence/product-creator/submit-urls": {
+      "post": {
+        "tags": ["Admin Intelligence", "Product Creator Dashboard"],
+        "summary": "Submit Urls For Analysis",
+        "description": "🔗 Submit URLs for Pre-Launch Analysis.\n\n**Product Creator Tool**: Submit your sales page URLs for comprehensive\nanalysis before launch. Results will be cached for affiliate marketers.\n\n**Quota Management**: Submissions are tracked against your invite limits.",
+        "operationId": "submit_urls_for_analysis_api_admin_intelligence_product_creator_submit_urls_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/SubmitURLsRequest" }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StandardResponse_Dict_str__Any__"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        },
+        "security": [{ "HTTPBearer": [] }]
+      }
+    },
+    "/api/admin/intelligence/product-creator/submissions": {
+      "get": {
+        "tags": ["Admin Intelligence", "Product Creator Dashboard"],
+        "summary": "Get My Submissions",
+        "description": "📋 Get My URL Submissions.\n\n**Submission Tracking**: View all your submitted URLs and their analysis status.",
+        "operationId": "get_my_submissions_api_admin_intelligence_product_creator_submissions_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StandardResponse_List_Dict_str__Any___"
+                }
+              }
+            }
+          }
+        },
+        "security": [{ "HTTPBearer": [] }]
+      }
+    },
+    "/api/admin/intelligence/product-creator/submission/{submission_id}": {
+      "get": {
+        "tags": ["Admin Intelligence", "Product Creator Dashboard"],
+        "summary": "Get Submission Details",
+        "description": "🔍 Get Submission Details.\n\n**Result Viewing**: View detailed information about a specific submission\nincluding analysis results if completed.",
+        "operationId": "get_submission_details_api_admin_intelligence_product_creator_submission__submission_id__get",
+        "security": [{ "HTTPBearer": [] }],
+        "parameters": [
+          {
+            "name": "submission_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "title": "Submission Id" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StandardResponse_Dict_str__Any__"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/intelligence/product-creator/quota": {
+      "get": {
+        "tags": ["Admin Intelligence", "Product Creator Dashboard"],
+        "summary": "Get Url Quota",
+        "description": "📊 Get URL Submission Quota.\n\n**Quota Tracking**: Check your remaining URL submission allowance.",
+        "operationId": "get_url_quota_api_admin_intelligence_product_creator_quota_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StandardResponse_Dict_str__Any__"
+                }
+              }
+            }
+          }
+        },
+        "security": [{ "HTTPBearer": [] }]
+      }
+    },
+    "/api/admin/intelligence/product-creator/tools": {
+      "get": {
+        "tags": ["Admin Intelligence", "Product Creator Dashboard"],
+        "summary": "Get Available Tools",
+        "description": "🛠️ Get Available Tools.\n\n**Tool Discovery**: Get list of tools available in the product creator dashboard.",
+        "operationId": "get_available_tools_api_admin_intelligence_product_creator_tools_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StandardResponse_List_Dict_str__Any___"
+                }
+              }
+            }
+          }
+        },
+        "security": [{ "HTTPBearer": [] }]
+      }
+    }
+  }
+}
