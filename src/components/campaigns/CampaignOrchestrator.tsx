@@ -463,15 +463,15 @@ const CampaignOrchestrator: React.FC<CampaignOrchestratorProps> = ({
             setStep(1);
             setGeneratedCampaign(null);
             setCampaignData({
-              title: '',
-              description: '',
-              campaign_type: 'product_launch',
+              title: "",
+              description: "",
+              campaign_type: "product_launch" as CampaignType,
               duration_days: 30,
               platforms: [],
-              automation_level: 'manual',
-              target_audience: '',
+              automation_level: "manual" as AutomationLevel,
+              target_audience: "",
               key_messages: [],
-              company_id: ''
+              company_id: "",
             });
           }}
           className="flex-1 px-6 py-3 bg-gray-600 text-white rounded-lg hover:bg-gray-700"
