@@ -447,7 +447,7 @@ export class ApiClient {
       const campaign = await this.createCampaign({
         title: request.title,
         description: request.description,
-        campaign_type: (request.campaign_type as any) || 'universal',
+        campaign_type: request.campaign_type || 'universal',
         target_audience: request.target_audience,
         keywords: request.key_messages
       })

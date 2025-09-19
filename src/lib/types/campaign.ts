@@ -239,8 +239,12 @@ export interface CampaignCloneRequest {
 }
 
 // Enums and Type Unions
+// Unified CampaignType definition - consolidates all previous definitions
 export type CampaignType =
+  // Core/Universal types
   | 'universal'
+
+  // Channel-specific types (from original campaign.ts)
   | 'social_media'
   | 'email_marketing'
   | 'content_marketing'
@@ -252,6 +256,18 @@ export type CampaignType =
   | 'sales_enablement'
   | 'brand_awareness'
   | 'competitive_analysis'
+
+  // Additional content types (from types/index.ts)
+  | 'video_content'
+  | 'blog_post'
+  | 'advertisement'
+  | 'multimedia'
+
+  // Strategy-based types (from modular.ts)
+  | 'product_launch'
+  | 'nurture_sequence'
+  | 're_engagement'
+  | 'sales_conversion'
 
 export type CampaignStatus =
   | 'draft'

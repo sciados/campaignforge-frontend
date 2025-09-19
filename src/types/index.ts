@@ -4,6 +4,8 @@
  * Matches backend models and API responses
  */
 
+import type { CampaignType } from '@/lib/types/campaign';
+
 // =============================================================================
 // USER & AUTH TYPES
 // =============================================================================
@@ -67,16 +69,9 @@ export interface Company {
 // CAMPAIGN TYPES
 // =============================================================================
 
-export type CampaignType = 
-  | 'social_media' 
-  | 'email_marketing' 
-  | 'video_content' 
-  | 'blog_post' 
-  | 'advertisement' 
-  | 'product_launch' 
-  | 'brand_awareness' 
-  | 'multimedia'
-    'universal';
+// CampaignType is now defined in @/lib/types/campaign
+// Import from there instead of duplicating
+export type { CampaignType } from '@/lib/types/campaign';
 
 export type CampaignStatus = 
   | 'draft' 

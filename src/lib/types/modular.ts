@@ -1,6 +1,8 @@
 // src/lib/types/modular.ts
 // Type definitions for the modular structure components
 
+import type { CampaignType } from './campaign';
+
 export interface CampaignGenerationRequest {
   title: string
   description: string
@@ -251,13 +253,9 @@ export interface GenerationHistory {
 }
 
 // Enum Types
-export enum CampaignType {
-  PRODUCT_LAUNCH = 'product_launch',
-  NURTURE_SEQUENCE = 'nurture_sequence',
-  RE_ENGAGEMENT = 're_engagement',
-  BRAND_AWARENESS = 'brand_awareness',
-  SALES_CONVERSION = 'sales_conversion'
-}
+// CampaignType is now unified in ./campaign.ts
+// Import it instead of defining as enum
+export type { CampaignType } from './campaign';
 
 export enum AutomationLevel {
   MANUAL = 'manual',
