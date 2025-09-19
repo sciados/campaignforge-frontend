@@ -4,7 +4,15 @@ import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, Brain, Target, Zap, CheckCircle, AlertCircle } from 'lucide-react';
+import { Loader2, Brain, Target, Zap, CheckCircle, AlertCircle, Image, Video, FileText } from 'lucide-react';
+import { useApi } from '@/lib/api';
+import type {
+  TextGenerationRequest,
+  ImageGenerationRequest,
+  VideoGenerationRequest,
+  GeneratedContent,
+  UsageAnalytics
+} from '@/lib/types/modular';
 
 interface IntelligenceContentRequest {
   content_type: string;
@@ -83,10 +91,16 @@ const IntelligenceDrivenContentGenerator: React.FC = () => {
   ]);
 
   const contentTypes = [
-    { value: 'email_sequence', label: 'Email Sequence', description: '5-email strategic sequence' },
-    { value: 'social_posts', label: 'Social Media Posts', description: 'Multi-platform social content' },
-    { value: 'ad_copy', label: 'Ad Copy', description: 'High-converting advertisement copy' },
-    { value: 'blog_post', label: 'Blog Post', description: 'Authority-building blog content' }
+    { value: 'email_sequence', label: 'Email Sequence', description: '5-email strategic sequence', icon: FileText, type: 'text' },
+    { value: 'social_posts', label: 'Social Media Posts', description: 'Multi-platform social content', icon: FileText, type: 'text' },
+    { value: 'ad_copy', label: 'Ad Copy', description: 'High-converting advertisement copy', icon: FileText, type: 'text' },
+    { value: 'blog_post', label: 'Blog Post', description: 'Authority-building blog content', icon: FileText, type: 'text' },
+    { value: 'social_images', label: 'Social Media Images', description: 'Custom graphics and visuals', icon: Image, type: 'image' },
+    { value: 'banner_ads', label: 'Banner Advertisements', description: 'Marketing banner images', icon: Image, type: 'image' },
+    { value: 'product_images', label: 'Product Images', description: 'Product showcase visuals', icon: Image, type: 'image' },
+    { value: 'short_videos', label: 'Short Videos', description: 'Social media video content', icon: Video, type: 'video' },
+    { value: 'product_demos', label: 'Product Demos', description: 'Product demonstration videos', icon: Video, type: 'video' },
+    { value: 'animated_ads', label: 'Animated Ads', description: 'Animated advertisement content', icon: Video, type: 'video' }
   ];
 
   // Load campaigns on component mount
