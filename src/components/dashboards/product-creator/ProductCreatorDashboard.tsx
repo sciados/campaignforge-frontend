@@ -114,10 +114,6 @@ const ProductCreatorDashboard: React.FC<ProductCreatorDashboardProps> = ({ confi
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    loadDashboardData();
-  }, [loadDashboardData]);
-
   const loadDashboardData = useCallback(async () => {
     setIsLoading(true);
     setError(null);
@@ -133,6 +129,10 @@ const ProductCreatorDashboard: React.FC<ProductCreatorDashboardProps> = ({ confi
       setIsLoading(false);
     }
   }, [api]);
+
+  useEffect(() => {
+    loadDashboardData();
+  }, [loadDashboardData]);
 
   const handleURLSubmission = async () => {
     const productName = prompt("Enter your product name:");
