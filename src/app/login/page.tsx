@@ -103,18 +103,20 @@ export default function LoginPage() {
             // Admin routing
             admin: "/admin",
             administrator: "/admin",
-            
+
             // User type routing
             affiliate_marketer: "/dashboard/affiliate",
             affiliate: "/dashboard/affiliate", // Support both formats
-            content_creator: "/dashboard/creator", 
+            content_creator: "/dashboard/creator",
             creator: "/dashboard/creator", // Support both formats
+            product_creator: "/dashboard/product-creator",
             business_owner: "/dashboard/business",
             business: "/dashboard/business", // Support both formats
-            
+
             // Also support backend format in case deployment hasn't updated yet
             AFFILIATE_MARKETER: "/dashboard/affiliate",
             CONTENT_CREATOR: "/dashboard/creator",
+            PRODUCT_CREATOR: "/dashboard/product-creator",
             BUSINESS_OWNER: "/dashboard/business",
           };
 

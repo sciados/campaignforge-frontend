@@ -201,6 +201,8 @@ export default function RegisterPage() {
           content_creator: inviteToken ? "/dashboard/product-creator" : "/dashboard/creator",
           creator: inviteToken ? "/dashboard/product-creator" : "/dashboard/creator",
           CONTENT_CREATOR: inviteToken ? "/dashboard/product-creator" : "/dashboard/creator",
+          product_creator: "/dashboard/product-creator",
+          PRODUCT_CREATOR: "/dashboard/product-creator",
           business_owner: "/dashboard/business",
           business: "/dashboard/business",
         };
