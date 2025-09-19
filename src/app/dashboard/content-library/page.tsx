@@ -330,24 +330,33 @@ export default function AffiliateProductLibrary() {
           const submissions = data.data || [];
 
           // Transform approved submissions to ProductData format
-          approvedProducts = submissions.map((submission: any) => ({
-            id: submission.id,
-            product_name: submission.product_name,
-            sales_page_url: submission.sales_page_url,
-            product_category: submission.category,
-            launch_date: submission.launch_date,
-            commission_rate: 50, // Default commission rate - could be enhanced
-            price: null, // Will be analyzed from sales page
-            vendor_name: submission.submitter_name || submission.company_name || "Product Creator",
-            product_description: submission.notes || `${submission.product_name} - Submitted via Product Creator program`,
-            conversion_rate: null, // Will be populated after analysis
-            earnings_per_click: null, // Will be populated after analysis
-            gravity_score: null, // Will be populated after analysis
-            status: "active" as const,
-            created_at: submission.submitted_at,
-            updated_at: submission.processed_at,
-            affiliate_signup_url: submission.affiliate_signup_url // Add affiliate signup URL
-          }));
+          approvedProducts = submissions.map((submission: any) => {
+            // Calculate earnings per click based on commission and conversion rates
+            const commissionRate = submission.commission_rate || 50;
+            const price = submission.product_price || 0;
+            const conversionRate = submission.estimated_conversion_rate || 0;
+            const earningsPerClick = price && conversionRate ?
+              (price * (commissionRate / 100) * (conversionRate / 100)) : null;
+
+            return {
+              id: submission.id,
+              product_name: submission.product_name,
+              sales_page_url: submission.sales_page_url,
+              product_category: submission.category,
+              launch_date: submission.launch_date,
+              commission_rate: submission.commission_rate || 50,
+              price: submission.product_price || null,
+              vendor_name: submission.submitter_name || submission.company_name || "Product Creator",
+              product_description: submission.notes || `${submission.product_name} - Submitted via Product Creator program`,
+              conversion_rate: submission.estimated_conversion_rate ? submission.estimated_conversion_rate / 100 : null,
+              earnings_per_click: earningsPerClick,
+              gravity_score: submission.gravity_score || null,
+              status: "active" as const,
+              created_at: submission.submitted_at,
+              updated_at: submission.processed_at,
+              affiliate_signup_url: submission.affiliate_signup_url
+            };
+          });
         }
 
         // If no approved products yet, show a few mock examples

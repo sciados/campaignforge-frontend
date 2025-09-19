@@ -135,7 +135,13 @@ const ProductCreatorDashboard: React.FC<ProductCreatorDashboardProps> = ({ confi
     salesPageUrl: '',
     affiliateSignupUrl: '',
     launchDate: '',
-    notes: ''
+    notes: '',
+    // Affiliate Metrics
+    commissionRate: '',
+    productPrice: '',
+    estimatedConversionRate: '',
+    platform: '', // ClickBank, JVZoo, WarriorPlus, etc.
+    gravityScore: ''
   });
 
   const loadDashboardData = useCallback(async () => {
@@ -165,8 +171,10 @@ const ProductCreatorDashboard: React.FC<ProductCreatorDashboardProps> = ({ confi
   const handleFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!formData.productName.trim() || !formData.category.trim() || !formData.salesPageUrl.trim()) {
-      alert("Please fill in all required fields (Product Name, Category, and Sales Page URL)");
+    if (!formData.productName.trim() || !formData.category.trim() || !formData.salesPageUrl.trim() ||
+        !formData.affiliateSignupUrl.trim() || !formData.commissionRate.trim() ||
+        !formData.productPrice.trim() || !formData.platform.trim()) {
+      alert("Please fill in all required fields:\n• Product Name\n• Category\n• Sales Page URL\n• Affiliate Signup URL\n• Commission Rate\n• Product Price\n• Affiliate Platform");
       return;
     }
 
@@ -189,6 +197,12 @@ const ProductCreatorDashboard: React.FC<ProductCreatorDashboardProps> = ({ confi
             affiliate_signup_url: formData.affiliateSignupUrl.trim() || null,
             launch_date: formData.launchDate.trim() || null,
             notes: formData.notes.trim() || null,
+            // Affiliate Metrics
+            commission_rate: parseFloat(formData.commissionRate) || null,
+            product_price: parseFloat(formData.productPrice) || null,
+            estimated_conversion_rate: parseFloat(formData.estimatedConversionRate) || null,
+            affiliate_platform: formData.platform.trim() || null,
+            gravity_score: parseInt(formData.gravityScore) || null,
           }),
         }
       );
@@ -203,7 +217,13 @@ const ProductCreatorDashboard: React.FC<ProductCreatorDashboardProps> = ({ confi
           salesPageUrl: '',
           affiliateSignupUrl: '',
           launchDate: '',
-          notes: ''
+          notes: '',
+          // Affiliate Metrics
+          commissionRate: '',
+          productPrice: '',
+          estimatedConversionRate: '',
+          platform: '',
+          gravityScore: ''
         });
         loadDashboardData(); // Refresh dashboard
       } else {
@@ -226,7 +246,13 @@ const ProductCreatorDashboard: React.FC<ProductCreatorDashboardProps> = ({ confi
       salesPageUrl: '',
       affiliateSignupUrl: '',
       launchDate: '',
-      notes: ''
+      notes: '',
+      // Affiliate Metrics
+      commissionRate: '',
+      productPrice: '',
+      estimatedConversionRate: '',
+      platform: '',
+      gravityScore: ''
     });
   };
 
@@ -458,6 +484,143 @@ const ProductCreatorDashboard: React.FC<ProductCreatorDashboardProps> = ({ confi
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors"
                     placeholder="Any additional information"
                   />
+                </div>
+              </div>
+
+              {/* Affiliate Metrics Section */}
+              <div className="border-t border-gray-200 pt-6 mt-6">
+                <div className="mb-4">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2">Affiliate Metrics</h3>
+                  <p className="text-sm text-gray-600">
+                    Provide key metrics that affiliates need to make informed promotion decisions
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  <div>
+                    <label htmlFor="commissionRate" className="block text-sm font-medium text-gray-700 mb-2">
+                      Commission Rate (%) <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="number"
+                      id="commissionRate"
+                      value={formData.commissionRate}
+                      onChange={(e) => handleInputChange('commissionRate', e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors"
+                      placeholder="50"
+                      min="0"
+                      max="100"
+                      step="0.1"
+                      required
+                    />
+                    <p className="text-xs text-blue-600 mt-1">
+                      Percentage of sale paid to affiliates
+                    </p>
+                  </div>
+
+                  <div>
+                    <label htmlFor="productPrice" className="block text-sm font-medium text-gray-700 mb-2">
+                      Product Price ($) <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="number"
+                      id="productPrice"
+                      value={formData.productPrice}
+                      onChange={(e) => handleInputChange('productPrice', e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors"
+                      placeholder="97"
+                      min="0"
+                      step="0.01"
+                      required
+                    />
+                    <p className="text-xs text-blue-600 mt-1">
+                      Main product selling price
+                    </p>
+                  </div>
+
+                  <div>
+                    <label htmlFor="platform" className="block text-sm font-medium text-gray-700 mb-2">
+                      Affiliate Platform <span className="text-red-500">*</span>
+                    </label>
+                    <select
+                      id="platform"
+                      value={formData.platform}
+                      onChange={(e) => handleInputChange('platform', e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors"
+                      required
+                    >
+                      <option value="">Select Platform</option>
+                      <option value="ClickBank">ClickBank</option>
+                      <option value="JVZoo">JVZoo</option>
+                      <option value="WarriorPlus">WarriorPlus</option>
+                      <option value="ShareASale">ShareASale</option>
+                      <option value="CJ Affiliate">CJ Affiliate</option>
+                      <option value="DigiStore24">DigiStore24</option>
+                      <option value="Direct/Internal">Direct/Internal</option>
+                      <option value="Other">Other</option>
+                    </select>
+                    <p className="text-xs text-blue-600 mt-1">
+                      Where affiliates will promote from
+                    </p>
+                  </div>
+
+                  <div>
+                    <label htmlFor="estimatedConversionRate" className="block text-sm font-medium text-gray-700 mb-2">
+                      Est. Conversion Rate (%)
+                    </label>
+                    <input
+                      type="number"
+                      id="estimatedConversionRate"
+                      value={formData.estimatedConversionRate}
+                      onChange={(e) => handleInputChange('estimatedConversionRate', e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors"
+                      placeholder="3.5"
+                      min="0"
+                      max="100"
+                      step="0.1"
+                    />
+                    <p className="text-xs text-gray-600 mt-1">
+                      Expected visitor-to-sale conversion rate
+                    </p>
+                  </div>
+
+                  <div>
+                    <label htmlFor="gravityScore" className="block text-sm font-medium text-gray-700 mb-2">
+                      Gravity/Popularity Score
+                    </label>
+                    <input
+                      type="number"
+                      id="gravityScore"
+                      value={formData.gravityScore}
+                      onChange={(e) => handleInputChange('gravityScore', e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors"
+                      placeholder="150"
+                      min="0"
+                      step="1"
+                    />
+                    <p className="text-xs text-gray-600 mt-1">
+                      Platform-specific popularity metric
+                    </p>
+                  </div>
+                </div>
+
+                <div className="mt-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                  <div className="flex items-start">
+                    <div className="flex-shrink-0">
+                      <svg className="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
+                        <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                      </svg>
+                    </div>
+                    <div className="ml-3">
+                      <h4 className="text-sm font-medium text-yellow-800">
+                        Why These Metrics Matter
+                      </h4>
+                      <p className="text-sm text-yellow-700 mt-1">
+                        Affiliates use commission rate, product price, and conversion rates to calculate potential earnings per click (EPC).
+                        Accurate metrics help attract quality affiliates and build trust in your product.
+                      </p>
+                    </div>
+                  </div>
                 </div>
               </div>
 

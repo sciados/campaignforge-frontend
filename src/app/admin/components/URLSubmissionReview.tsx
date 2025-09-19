@@ -37,6 +37,12 @@ interface URLSubmission {
   admin_notes?: string;
   processed_at?: string;
   processed_by?: string;
+  // Affiliate Metrics
+  commission_rate?: number;
+  product_price?: number;
+  estimated_conversion_rate?: number;
+  affiliate_platform?: string;
+  gravity_score?: number;
 }
 
 const URLSubmissionReview: React.FC = () => {
@@ -348,6 +354,56 @@ const URLSubmissionReview: React.FC = () => {
                       <p className="text-sm text-gray-700">
                         <strong>Creator Notes:</strong> {submission.notes}
                       </p>
+                    </div>
+                  )}
+
+                  {/* Affiliate Metrics Display */}
+                  {(submission.commission_rate || submission.product_price || submission.affiliate_platform) && (
+                    <div className="mb-4 p-4 bg-green-50 rounded-lg border border-green-200">
+                      <h4 className="text-sm font-semibold text-green-800 mb-3 flex items-center gap-2">
+                        <TrendingUp className="w-4 h-4" />
+                        Affiliate Metrics
+                      </h4>
+                      <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
+                        {submission.commission_rate && (
+                          <div>
+                            <span className="font-medium text-green-700">Commission:</span>
+                            <div className="text-green-600">{submission.commission_rate}%</div>
+                          </div>
+                        )}
+                        {submission.product_price && (
+                          <div>
+                            <span className="font-medium text-green-700">Price:</span>
+                            <div className="text-green-600">${submission.product_price}</div>
+                          </div>
+                        )}
+                        {submission.affiliate_platform && (
+                          <div>
+                            <span className="font-medium text-green-700">Platform:</span>
+                            <div className="text-green-600">{submission.affiliate_platform}</div>
+                          </div>
+                        )}
+                        {submission.estimated_conversion_rate && (
+                          <div>
+                            <span className="font-medium text-green-700">Est. Conversion:</span>
+                            <div className="text-green-600">{submission.estimated_conversion_rate}%</div>
+                          </div>
+                        )}
+                        {submission.gravity_score && (
+                          <div>
+                            <span className="font-medium text-green-700">Gravity Score:</span>
+                            <div className="text-green-600">{submission.gravity_score}</div>
+                          </div>
+                        )}
+                        {submission.commission_rate && submission.product_price && submission.estimated_conversion_rate && (
+                          <div className="col-span-2 md:col-span-1">
+                            <span className="font-medium text-green-700">Est. EPC:</span>
+                            <div className="text-green-600 font-semibold">
+                              ${((submission.product_price * (submission.commission_rate / 100) * (submission.estimated_conversion_rate / 100))).toFixed(2)}
+                            </div>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   )}
 
