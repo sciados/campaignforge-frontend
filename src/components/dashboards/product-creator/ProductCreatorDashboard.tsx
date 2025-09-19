@@ -409,6 +409,9 @@ const ProductCreatorDashboard: React.FC<ProductCreatorDashboardProps> = ({ confi
                   placeholder="https://example.com/sales-page"
                   required
                 />
+                <p className="text-xs text-blue-600 mt-1">
+                  Used to gather intelligence data
+                </p>
               </div>
 
               <div>
@@ -424,8 +427,8 @@ const ProductCreatorDashboard: React.FC<ProductCreatorDashboardProps> = ({ confi
                   placeholder="https://clickbank.com/affiliate-signup or https://jvzoo.com/product/..."
                   required
                 />
-                <p className="text-xs text-gray-500 mt-1">
-                  Platform URL where affiliates can sign up (ClickBank, JVZoo, Warrior Forum, etc.)
+                <p className="text-xs text-green-600 mt-1">
+                  Where affiliates can register
                 </p>
               </div>
 
