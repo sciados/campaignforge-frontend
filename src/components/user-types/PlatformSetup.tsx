@@ -102,6 +102,7 @@ const PlatformSetup: React.FC<PlatformSetupProps> = ({
         affiliate_marketer: ["youtube", "instagram", "tiktok", "pinterest"],
         content_creator: ["instagram", "tiktok", "youtube", "twitter"],
         business_owner: ["linkedin", "facebook", "instagram", "youtube"],
+        product_creator: ["youtube", "linkedin", "facebook", "twitter"],
       };
       setRecommendedPlatforms(fallback[userType] || []);
     } finally {
@@ -141,12 +142,11 @@ const PlatformSetup: React.FC<PlatformSetupProps> = ({
 
       // Save each profile
       for (const profile of profilesArray) {
-        await api.addSocialProfile(
-          profile.platform,
-          profile.username,
-          profile.followers,
-          profile.engagement_rate
-        );
+        await api.addSocialProfile(profile.platform, {
+          username: profile.username,
+          followers: profile.followers,
+          engagement_rate: profile.engagement_rate
+        });
       }
 
       onComplete(profilesArray);
@@ -171,6 +171,7 @@ const PlatformSetup: React.FC<PlatformSetupProps> = ({
       affiliate_marketer: "Connect Your Marketing Platforms",
       content_creator: "Connect Your Content Platforms",
       business_owner: "Connect Your Business Platforms",
+      product_creator: "Connect Your Product Distribution Platforms",
     };
     return titles[userType] || "Connect Your Social Media";
   };
@@ -183,6 +184,8 @@ const PlatformSetup: React.FC<PlatformSetupProps> = ({
         "Connect your content platforms to analyze performance and discover viral opportunities.",
       business_owner:
         "Link your business presence platforms to track leads and customer engagement.",
+      product_creator:
+        "Connect your platforms to expand distribution reach and recruit affiliate partners.",
     };
     return (
       descriptions[userType] || "Connect your platforms for better insights."

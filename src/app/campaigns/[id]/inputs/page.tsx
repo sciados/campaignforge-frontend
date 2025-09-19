@@ -130,7 +130,7 @@ export default function CampaignInputsPage({ params }: CampaignInputsPageProps) 
       console.log('🚀 Starting intelligence analysis with inputs:', analysisData);
       
       // Step 2: Run intelligence analysis
-      const analysisResponse = await api.runIntelligenceAnalysis(params.id, analysisData);
+      const analysisResponse = await api.runIntelligenceAnalysis(analysisData);
       
       if (!analysisResponse.success) {
         throw new Error(analysisResponse.error || 'Intelligence analysis failed');

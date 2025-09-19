@@ -43,6 +43,15 @@ export interface User {
   role: string
   user_type_display?: string
   onboarding_completed?: boolean
+  company?: {
+    id: string
+    company_name: string
+    company_slug: string
+    subscription_tier: string
+    monthly_credits_used?: number
+    monthly_credits_limit?: number
+    company_size?: string
+  }
 }
 
 // ============================================================================
@@ -215,7 +224,7 @@ export class ApiClient {
     if (!userType) {
       try {
         const profile = await this.getProfile()
-        userType = profile.role === 'admin' ? 'admin' : profile.user_type
+        userType = profile.role === 'admin' ? 'admin' : (profile.user_type || undefined)
         console.log(`📊 API: Got user type from profile: "${userType}"`)
       } catch (error) {
         console.warn('🔍 Error getting profile, using fallback config:', error)
@@ -242,7 +251,7 @@ export class ApiClient {
 
       if (!response.ok) {
         console.warn(`📊 API: Dashboard config API failed (${response.status}), using fallback`)
-        return this.getFallbackConfig(userType)
+        return this.getFallbackConfig(userType || 'affiliate_marketer')
       }
 
       const responseData = await response.json()
@@ -260,11 +269,11 @@ export class ApiClient {
         return responseData.data
       } else {
         console.warn(`📊 API: Unexpected response format, using fallback`)
-        return this.getFallbackConfig(userType)
+        return this.getFallbackConfig(userType || 'affiliate_marketer')
       }
     } catch (error) {
       console.warn(`📊 API: Dashboard config request failed:`, error)
-      return this.getFallbackConfig(userType)
+      return this.getFallbackConfig(userType || 'affiliate_marketer')
     }
   }
 
@@ -445,6 +454,16 @@ export class ApiClient {
     return this.handleResponse(response)
   }
 
+  async updateCampaign(id: string, data: Partial<Campaign>): Promise<Campaign> {
+    const response = await fetch(`${this.baseURL}/api/campaigns/${id}`, {
+      method: 'PUT',
+      headers: this.getHeaders(),
+      body: JSON.stringify(data)
+    })
+
+    return this.handleResponse(response)
+  }
+
   async deleteCampaign(id: string): Promise<void> {
     const response = await fetch(`${this.baseURL}/api/campaigns/${id}`, {
       method: 'DELETE',
@@ -480,9 +499,26 @@ export class ApiClient {
     return this.handleResponse(response)
   }
 
-  async analyzeURL(url: string, analysisMethod: string = 'ENHANCED'): Promise<any> {
-    // Alias for analyzeUrl to match existing codebase usage
-    return this.analyzeUrl(url, analysisMethod)
+  async analyzeURL(data: any): Promise<any> {
+    // Handle both object and string parameters for backwards compatibility
+    if (typeof data === 'string') {
+      return this.analyzeUrl(data, 'ENHANCED')
+    }
+
+    // Handle object parameter format
+    const { url, campaign_id, analysis_type = 'ENHANCED' } = data
+    const response = await fetch(`${this.baseURL}/api/intelligence/analyze-url`, {
+      method: 'POST',
+      headers: this.getHeaders(),
+      body: JSON.stringify({
+        url,
+        campaign_id,
+        analysis_type,
+        analysis_method: analysis_type
+      })
+    })
+
+    return this.handleResponse(response)
   }
 
   async runIntelligenceAnalysis(data: any): Promise<any> {
@@ -490,6 +526,14 @@ export class ApiClient {
       method: 'POST',
       headers: this.getHeaders(),
       body: JSON.stringify(data)
+    })
+
+    return this.handleResponse(response)
+  }
+
+  async getCampaignIntelligence(campaignId: string): Promise<any> {
+    const response = await fetch(`${this.baseURL}/api/intelligence/campaigns/${campaignId}`, {
+      headers: this.getHeaders()
     })
 
     return this.handleResponse(response)
@@ -515,15 +559,11 @@ export class ApiClient {
   // Content Generation
   // ============================================================================
 
-  async generateContent(contentType: string, intelligenceId: string, options: any = {}): Promise<any> {
+  async generateContent(data: any): Promise<any> {
     const response = await fetch(`${this.baseURL}/api/content/generate`, {
       method: 'POST',
       headers: this.getHeaders(),
-      body: JSON.stringify({
-        content_type: contentType,
-        intelligence_id: intelligenceId,
-        ...options
-      })
+      body: JSON.stringify(data)
     })
 
     return this.handleResponse(response)
@@ -532,6 +572,32 @@ export class ApiClient {
   async getGeneratedContent(campaignId: string): Promise<any> {
     const response = await fetch(`${this.baseURL}/api/content/campaigns/${campaignId}/content`, {
       headers: this.getHeaders()
+    })
+
+    return this.handleResponse(response)
+  }
+
+  async getContentList(campaignId: string, includeDemo: boolean = false): Promise<any> {
+    const response = await fetch(`${this.baseURL}/api/content/list/${campaignId}?include_demo=${includeDemo}`, {
+      headers: this.getHeaders()
+    })
+
+    return this.handleResponse(response)
+  }
+
+  async getContentDetail(campaignId: string, contentId: string): Promise<any> {
+    const response = await fetch(`${this.baseURL}/api/content/detail/${campaignId}/${contentId}`, {
+      headers: this.getHeaders()
+    })
+
+    return this.handleResponse(response)
+  }
+
+  async updateContent(campaignId: string, contentId: string, updateData: any): Promise<any> {
+    const response = await fetch(`${this.baseURL}/api/content/update/${campaignId}/${contentId}`, {
+      method: 'PUT',
+      headers: this.getHeaders(),
+      body: JSON.stringify(updateData)
     })
 
     return this.handleResponse(response)
@@ -558,11 +624,11 @@ export class ApiClient {
     return this.handleResponse(response)
   }
 
-  async toggleDemoVisibility(visible: boolean): Promise<any> {
+  async toggleDemoVisibility(visible?: boolean): Promise<any> {
     const response = await fetch(`${this.baseURL}/api/demo/visibility`, {
       method: 'POST',
       headers: this.getHeaders(),
-      body: JSON.stringify({ visible })
+      body: JSON.stringify(visible !== undefined ? { visible } : {})
     })
 
     return this.handleResponse(response)
@@ -572,14 +638,17 @@ export class ApiClient {
   // File Upload & Storage
   // ============================================================================
 
-  async uploadDocument(file: File): Promise<any> {
+  async uploadDocument(file: File, campaignId?: string): Promise<any> {
     const formData = new FormData()
     formData.append('file', file)
+    if (campaignId) {
+      formData.append('campaign_id', campaignId)
+    }
 
     const response = await fetch(`${this.baseURL}/api/storage/upload`, {
       method: 'POST',
       headers: {
-        Authorization: this.getHeaders().Authorization as string,
+        'Authorization': `Bearer ${this.getAuthToken()}`,
         // Don't set Content-Type for FormData - browser will set it with boundary
       },
       body: formData
@@ -630,6 +699,7 @@ export const useApi = () => {
     createCampaign: apiClient.createCampaign.bind(apiClient),
     getCampaigns: apiClient.getCampaigns.bind(apiClient),
     getCampaign: apiClient.getCampaign.bind(apiClient),
+    updateCampaign: apiClient.updateCampaign.bind(apiClient),
     deleteCampaign: apiClient.deleteCampaign.bind(apiClient),
     duplicateCampaign: apiClient.duplicateCampaign.bind(apiClient),
     getWorkflowState: apiClient.getWorkflowState.bind(apiClient),
@@ -638,11 +708,15 @@ export const useApi = () => {
     analyzeUrl: apiClient.analyzeUrl.bind(apiClient),
     analyzeURL: apiClient.analyzeURL.bind(apiClient),
     runIntelligenceAnalysis: apiClient.runIntelligenceAnalysis.bind(apiClient),
+    getCampaignIntelligence: apiClient.getCampaignIntelligence.bind(apiClient),
     getRecommendedPlatforms: apiClient.getRecommendedPlatforms.bind(apiClient),
 
     // Content Generation
     generateContent: apiClient.generateContent.bind(apiClient),
     getGeneratedContent: apiClient.getGeneratedContent.bind(apiClient),
+    getContentList: apiClient.getContentList.bind(apiClient),
+    getContentDetail: apiClient.getContentDetail.bind(apiClient),
+    updateContent: apiClient.updateContent.bind(apiClient),
 
     // Demo & User Preferences
     createDemoManually: apiClient.createDemoManually.bind(apiClient),
@@ -659,6 +733,8 @@ export const useApi = () => {
 
 // Export the client instance for direct use
 export default apiClient
+export { apiClient }
+export { ApiClient as Api }
 
 // Re-export types for convenience
 export type { Campaign, CampaignCreateRequest }

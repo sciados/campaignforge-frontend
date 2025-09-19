@@ -2,13 +2,16 @@
 'use client'
 import { create } from 'zustand'
 import { devtools } from 'zustand/middleware'
-import { apiClient } from "../api"
-import { Campaign } from "../types/campaign"
+import { Api } from "../api"
+import { Campaign, CampaignType } from "../types/campaign"
+
+// Create API instance for store usage
+const api = new Api()
 
 interface CampaignCreateRequest {
   title: string
   description: string
-  campaign_type?: string
+  campaign_type?: CampaignType
   target_audience?: string
   keywords?: string[]
   tone?: string
@@ -54,7 +57,7 @@ export const useCampaignStore = create<CampaignStore>()(
         set({ isLoading: true, error: null })
         
         try {
-          const campaign = await apiClient.createCampaign({
+          const campaign = await api.createCampaign({
             ...data,
             campaign_type: data.campaign_type || 'universal'
           })
@@ -78,7 +81,7 @@ export const useCampaignStore = create<CampaignStore>()(
         set({ isLoading: true, error: null })
         
         try {
-          const updatedCampaign = await apiClient.updateCampaign(id, data)
+          const updatedCampaign = await api.updateCampaign(id, data)
           
           set((state) => ({
             campaigns: state.campaigns.map(c => c.id === id ? updatedCampaign : c),
@@ -99,7 +102,7 @@ export const useCampaignStore = create<CampaignStore>()(
         set({ isLoading: true, error: null })
         
         try {
-          await apiClient.deleteCampaign(id)
+          await api.deleteCampaign(id)
           
           set((state) => ({
             campaigns: state.campaigns.filter(c => c.id !== id),
@@ -118,7 +121,7 @@ export const useCampaignStore = create<CampaignStore>()(
         set({ isLoading: true, error: null })
         
         try {
-          const campaigns = await apiClient.getCampaigns({ limit: 100 })
+          const campaigns = await api.getCampaigns({ limit: 100 })
           
           set({
             campaigns,
@@ -136,7 +139,7 @@ export const useCampaignStore = create<CampaignStore>()(
         set({ isLoading: true, error: null })
         
         try {
-          const campaign = await apiClient.getCampaign(id)
+          const campaign = await api.getCampaign(id)
           
           set((state) => ({
             currentCampaign: campaign,
