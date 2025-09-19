@@ -1,1155 +1,190 @@
-// src/lib/api.ts - COMPLETE CLEAN VERSION - NO DUPLICATE EXPORTS
+// src/lib/api.ts - Clean API Client for CampaignForge
 /**
- * Enhanced API client for CampaignForge with streamlined 2-step workflow
- * ðŸ”§ UPDATED: Cleaned legacy 4-step workflow references
- * ðŸ§¹ CLEANED: Removed old workflow interfaces and methods
- * ðŸ”§ FIXED: Robust response handling for all backend response formats
- * ðŸŽ¯ FIXED: generateContent method handles both success/error response formats
- * ðŸ”§ NEW: Complete enhanced email generation API integration
- * âœ… FIXED: All duplicate exports removed
- * ðŸŽ¯ FIXED: AI Discovery Service endpoints now call service directly
+ * Streamlined API client with proper TypeScript support
+ * Handles authentication, user types, and campaign management
  */
 
 import { useState, useCallback, useEffect } from 'react'
 import type { Campaign, CampaignCreateRequest } from './types/campaign'
 
-
 const API_BASE_URL = 'https://campaign-backend-production-e2db.up.railway.app'
 
-console.log('ðŸ” Environment check:')
-console.log('- process.env.NEXT_PUBLIC_API_URL:', process.env.NEXT_PUBLIC_API_URL)
-console.log('- API_BASE_URL being used:', API_BASE_URL)
-console.log('- Window location:', typeof window !== 'undefined' ? window.location.href : 'SSR')
+console.log('🔗 API Base URL:', API_BASE_URL)
 
 // ============================================================================
-// ðŸŽ¯ ROBUST RESPONSE TYPES - Handles Multiple Backend Response Formats
+// Response Types
 // ============================================================================
-
-export async function createCampaign(data: CampaignCreateRequest): Promise<Campaign> {
-  const res = await fetch(`${API_BASE_URL}/campaigns`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(data),
-  })
-  if (!res.ok) {
-    throw new Error(`Failed to create campaign: ${res.statusText}`)
-  }
-  return res.json() as Promise<Campaign>
-}
 
 export interface StandardResponse<T = any> {
   success: boolean
   status?: 'success' | 'error' | 'partial' | 'pending'
   message?: string
   data?: T
-  config?: T  // Add this line
+  config?: T
   error?: string
   error_code?: string
   timestamp?: string
   request_id?: string
   warnings?: string[]
-  error_details?: {
-    error_type: string
-    description: string
-    suggestions: string[]
-    debug_info?: Record<string, any>
-  }
 }
 
-export interface LegacyResponse {
-  content_id?: string
-  content_type?: string
-  generated_content?: any
-  smart_url?: string
-  performance_predictions?: any
-  intelligence_sources_used?: number
-  generation_metadata?: any
-  ultra_cheap_stats?: any
-  error?: string
+export interface LegacyResponse<T = any> {
+  data?: T
   message?: string
-}
-
-// ============================================================================
-// ðŸ”§ NEW: ENHANCED EMAIL GENERATION TYPES
-// ============================================================================
-
-export interface EmailGenerationRequest {
-  campaign_id: string
-  preferences?: Record<string, any>
-  use_database_templates?: boolean
-  enable_learning?: boolean
-}
-
-export interface EmailData {
-  email_number: number
-  subject: string
-  body: string
-  send_delay: string
-  strategic_angle: string
-  angle_name?: string
-  subject_metadata?: {
-    performance_record_id: string
-    method: string
-    category_used: string
-    reference_count?: number
-    is_fallback?: boolean
-  }
-  campaign_focus?: string
-  product_name?: string
-}
-
-export interface LearningMetadata {
-  email_number: number
-  performance_record_id: string
-  can_learn_from: boolean
-  template_version?: string
-}
-
-export interface EmailGenerationResponse {
-  success: boolean
-  emails: EmailData[]
-  learning_metadata?: LearningMetadata[]
-  generation_info: {
-    database_enhanced: boolean
-    unique_subjects: number
-    total_emails: number
-    learning_enabled?: boolean
-    generation_method: string
-  }
-  message: string
-}
-
-export interface PerformanceTrackingRequest {
-  performance_data: Array<{
-    performance_record_id: string
-    emails_sent: number
-    emails_opened: number
-    click_rate?: number
-  }>
-}
-
-export interface PerformanceTrackingResponse {
-  success: boolean
-  performance_updates: Array<{
-    performance_record_id: string
-    open_rate: number
-    updated: boolean
-    high_performer: boolean
-    error?: string
-  }>
-  learning_results: {
-    evaluated_count: number
-    stored_as_templates: number
-    promoted_to_high_performing: number
-    promoted_to_top_tier: number
-    new_templates: Array<{
-      template_text: string
-      category: string
-      performance_level: string
-      open_rate: number
-    }>
-  }
-  message: string
-}
-
-export interface LearningAnalyticsResponse {
-  template_stats: Array<{
-    source: string
-    performance_level: string
-    count: number
-    avg_open_rate: number
-  }>
-  ai_performance: {
-    total_ai_subjects: number
-    avg_ai_open_rate: number
-    high_performing_count: number
-    top_tier_count: number
-  }
-  top_templates: Array<{
-    template_text: string
-    avg_open_rate: number
-    performance_level: string
-    source: string
-  }>
-  learning_active: boolean
-  system_status: string
-}
-
-export interface EmailSystemHealthResponse {
-  status: 'healthy' | 'error' | 'unavailable'
-  enhanced_email_system?: {
-    router_available: boolean
-    models_available: boolean
-    generator_ready: boolean
-    template_database: {
-      total_templates: number
-      active_templates: number
-      templates_seeded: boolean
-    }
-  }
-  capabilities?: {
-    ai_subject_generation: boolean
-    database_learning: boolean
-    performance_tracking: boolean
-    self_improvement: boolean
-    universal_product_support: boolean
-  }
-  expected_performance?: {
-    open_rates: string
-    continuous_improvement: string
-    template_growth: string
-  }
   error?: string
-  message?: string
-}
-
-// ============================================================================
-// ðŸ”§ UPDATED TYPES FOR 2-STEP WORKFLOW
-// ============================================================================
-
-/** export interface Campaign {
-  generated_content_count: number
-  id: string
-  title: string
-  description: string
-  keywords?: string[]
-  target_audience?: string
-  campaign_type: string
-  status: string
-  tone?: string
-  style?: string
-  settings: Record<string, any>
-  created_at: string
-  updated_at: string
-  user_id: string
-  company_id: string
-
-  // ðŸ†• NEW: Auto-Analysis Fields (matching backend CampaignResponse)
-  salespage_url?: string
-  auto_analysis_enabled?: boolean
-  auto_analysis_status?: string
-  analysis_confidence_score?: number
-
-  // Enhanced workflow fields for 2-step process
-  workflow_state?: string
-  completion_percentage?: number
-  sources_count?: number
-  intelligence_count?: number
-  content_count?: number
-  total_steps?: number
-
-  // ðŸ†• NEW: Auto-analysis workflow fields
-  content_types?: string[]
-  content_tone?: string
-  content_style?: string
-  generate_content_after_analysis?: boolean
-
-  // Demo campaign fields
-  is_demo?: boolean
-
-  // Legacy fields for backward compatibility
-  content?: any
-  confidence_score?: number
-  last_activity?: string
-} */
-
-// ðŸ”§ UPDATED: Campaign creation interface
-interface CampaignCreateData {
-  title: string
-  description?: string
-  keywords?: string[]
-  target_audience?: string
-  campaign_type?: string
-  tone?: string
-  style?: string
-
-  // ðŸ†• NEW: Auto-Analysis Fields for streamlined workflow
-  salespage_url?: string
-  auto_analysis_enabled?: boolean
-  content_types?: string[]
-  content_tone?: string
-  content_style?: string
-  generate_content_after_analysis?: boolean
-
-  settings?: Record<string, any>
-}
-
-// Demo Preference Types
-export interface DemoPreference {
-  show_demo_campaigns: boolean
-  demo_available: boolean
-  real_campaigns_count: number
-  demo_campaigns_count: number
-}
-
-export interface DemoToggleResponse {
-  success: boolean
-  show_demo_campaigns: boolean
-  message: string
-  action: string
-}
-
-// ðŸ”§ UPDATED: Workflow State for 2-step process
-export interface WorkflowStateResponse {
-  campaign_id: string
-  workflow_state: string
-  completion_percentage: number
-  total_steps: number  // Should be 2 for streamlined workflow
-  current_step: number
-
-  metrics: {
-    sources_count: number
-    intelligence_count: number
-    content_count: number
-  }
-
-  auto_analysis: {
-    enabled: boolean
-    status: string
-    confidence_score: number
-    url?: string
-    started_at?: string
-    completed_at?: string
-    error_message?: string
-  }
-
-  next_steps: Array<{
-    action: string
-    label: string
-    description: string
-    priority: string
-  }>
-
-  can_analyze: boolean
-  can_generate_content: boolean
-  is_demo: boolean
-  step_states: Record<string, any>
-  created_at: string
-  updated_at: string
-}
-
-// ðŸ†• NEW: Workflow progress data for save progress
-export interface WorkflowProgressData {
-  workflow_state?: string
-  completion_percentage?: number
-  step_data?: Record<string, any>
-  auto_analysis_enabled?: boolean
-  generate_content_after_analysis?: boolean
-}
-
-// ðŸ”§ UPDATED: Campaign Intelligence Response
-export interface CampaignIntelligenceResponse {
-  campaign_id: string
-  intelligence_entries: Array<{
-    id: string
-    source_type: string
-    source_url?: string
-    source_title?: string
-    confidence_score: number
-    analysis_status: string
-    offer_intelligence: Record<string, any>
-    psychology_intelligence: Record<string, any>
-    processing_metadata: Record<string, any>
-    created_at: string
-    updated_at?: string
-  }>
-  pagination: {
-    skip: number
-    limit: number
-    total: number
-    returned: number
-  }
-  summary: {
-    total_intelligence_entries: number
-    available_types: string[]
-    campaign_title: string
-    auto_analysis_status: string
-    analysis_confidence_score: number
-  }
-  is_demo: boolean
-}
-
-export interface IntelligenceSource {
-  id: string
-  source_title: string
-  source_type: string
-  source_url?: string
-  confidence_score: number
-  usage_count?: number
-  analysis_status: string
-  created_at: string
-  updated_at?: string
-  offer_intelligence?: Record<string, any>
-  psychology_intelligence?: Record<string, any>
-  content_intelligence?: Record<string, any>
-  competitive_intelligence?: Record<string, any>
-  brand_intelligence?: Record<string, any>
-}
-
-export interface GeneratedContent {
-  content_id: string
-  content_type: string
-  generated_content: {
-    title: string
-    content: any
-    metadata?: any
-    usage_tips?: string[]
-  }
-  smart_url?: string
-  performance_predictions: any
-}
-
-export interface GeneratedContentItem {
-  id: string
-  content_type: string
-  content_title: string
-  content_body: string
-  content_metadata: any
-  generation_settings: any
-  intelligence_used: any
-  performance_data?: any
-  user_rating?: number
-  is_published?: boolean
-  published_at?: string
-  created_at: string
-  updated_at?: string
-  amplification_context?: {
-    generated_from_amplified_intelligence: boolean
-    amplification_metadata: any
-  }
-}
-
-export interface ContentListResponse {
-  campaign_id: string
-  total_content: number
-  content_items: GeneratedContentItem[]
-}
-
-export interface ContentDetailResponse {
-  id: string
-  campaign_id: string
-  content_type: string
-  content_title: string
-  content_body: string
-  parsed_content: any
-  content_metadata: any
-  generation_settings: any
-  intelligence_used: any
-  performance_data: any
-  user_rating?: number
-  is_published: boolean
-  published_at?: string
-  created_at: string
-  updated_at?: string
-  intelligence_source?: {
-    id: string
-    source_title: string
-    source_url?: string
-    confidence_score: number
-    source_type: string
-  }
-}
-
-export interface ContentStats {
-  campaign_id: string
-  total_content: number
-  published_content: number
-  unpublished_content: number
-  rated_content: number
-  average_rating: number
-  amplified_content: number
-  recent_content: number
-  content_by_type: Record<string, number>
-  performance_metrics: {
-    publication_rate: number
-    rating_rate: number
-    amplification_rate: number
-  }
-}
-
-export interface BulkActionResponse {
-  campaign_id: string
-  action: string
-  total_items: number
-  successful: number
-  failed: number
-  results: Array<{
-    id: string
-    action: string
-    success: boolean
-    error?: string
-    rating?: number
-  }>
+  [key: string]: any
 }
 
 export interface User {
   id: string
   email: string
   full_name: string
+  user_type: string | null
   role: string
-  user_type?: string
-  is_active: boolean
-  is_verified: boolean
-  company: {
-    id: string
-    company_name: string
-    company_slug: string
-    subscription_tier: string
-    monthly_credits_used: number
-    monthly_credits_limit: number
-    company_size?: string
-  }
+  user_type_display?: string
+  onboarding_completed?: boolean
 }
 
 // ============================================================================
-// ERROR CLASSES
+// API Error Classes
 // ============================================================================
 
 export class ApiError extends Error {
   constructor(
     message: string,
-    public statusCode?: number,
-    public data?: any,
-    public errorCode?: string,
-    public suggestions?: string[],
-    public requestId?: string
+    public status: number,
+    public code?: string
   ) {
     super(message)
     this.name = 'ApiError'
   }
 }
 
-export class CreditError extends Error {
-  constructor(public data: any) {
-    super(data.detail || 'Credit limit exceeded')
+export class CreditError extends ApiError {
+  constructor(message: string = 'Insufficient credits') {
+    super(message, 402, 'INSUFFICIENT_CREDITS')
     this.name = 'CreditError'
   }
 }
 
 // ============================================================================
-// ðŸŽ¯ ROBUST RESPONSE DETECTION UTILITIES
+// Main API Client Class
 // ============================================================================
 
-function isStandardResponse(response: any): response is StandardResponse {
-  return response && typeof response === 'object' && 'success' in response
-}
-
-function isLegacyResponse(response: any): response is LegacyResponse {
-  return response && typeof response === 'object' && (
-    'content_id' in response ||
-    'generated_content' in response ||
-    'content_type' in response
-  )
-}
-
-function hasErrorIndicators(response: any): boolean {
-  if (!response || typeof response !== 'object') return false
-
-  return (
-    response.error ||
-    response.success === false ||
-    response.status === 'error' ||
-    (response.message && response.message.toLowerCase().includes('error')) ||
-    (response.message && response.message.toLowerCase().includes('failed'))
-  )
-}
-
-function extractErrorMessage(response: any): string {
-  if (response.error) return response.error
-  if (response.message && hasErrorIndicators(response)) return response.message
-  if (response.detail) return response.detail
-  return 'Unknown error occurred'
-}
-
-// ============================================================================
-// UTILITY FUNCTIONS
-// ============================================================================
-
-export function isApiError(error: unknown): error is ApiError {
-  return error instanceof ApiError
-}
-
-export function isCreditError(error: unknown): error is CreditError {
-  return error instanceof CreditError
-}
-
-export function getErrorMessage(error: unknown): string {
-  if (isApiError(error) || isCreditError(error)) {
-    return error.message
-  }
-
-  if (error instanceof Error) {
-    return error.message
-  }
-
-  return 'An unexpected error occurred'
-}
-
-// ============================================================================
-// ðŸ†• NEW: DEMO CAMPAIGN UTILITY FUNCTIONS
-// ============================================================================
-
-const demoUtils = {
-  /**
-   * Check if a campaign is a demo campaign
-   */
-  isDemoCampaign: (campaign: any): boolean => {
-    return campaign?.is_demo === true
-  },
-
-  /**
-   * Filter campaigns by type
-   */
-  filterCampaigns: (campaigns: any[], showDemo: boolean) => {
-    if (showDemo) {
-      return campaigns // Show all
-    }
-    return campaigns.filter(c => !demoUtils.isDemoCampaign(c)) // Hide demos
-  },
-
-  /**
-   * Sort campaigns with smart demo positioning
-   */
-  sortCampaigns: (campaigns: any[], hasRealCampaigns: boolean) => {
-    return campaigns.sort((a, b) => {
-      const aIsDemo = demoUtils.isDemoCampaign(a)
-      const bIsDemo = demoUtils.isDemoCampaign(b)
-
-      if (hasRealCampaigns) {
-        // Real campaigns first, then demos
-        if (aIsDemo !== bIsDemo) {
-          return aIsDemo ? 1 : -1
-        }
-      } else {
-        // Demo campaigns first for new users
-        if (aIsDemo !== bIsDemo) {
-          return aIsDemo ? -1 : 1
-        }
-      }
-
-      // Sort by updated_at within same type
-      return new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
-    })
-  },
-
-  /**
-   * Get demo campaign benefits text
-   */
-  getDemoBenefits: () => [
-    "Reference high-quality analysis examples",
-    "Compare your campaigns with best practices",
-    "Learn from professionally written content",
-    "Great for training new team members",
-    "See the full platform capabilities",
-    "Perfect templates to inspire your own campaigns"
-  ],
-
-  /**
-   * Get smart default for demo preference
-   */
-  getSmartDefault: (realCampaignsCount: number): boolean => {
-    // Show demo for new users (0-2 real campaigns)
-    // Hide demo for experienced users (3+ real campaigns)
-    return realCampaignsCount < 3
-  }
-}
-
-// ============================================================================
-// ðŸ”§ NEW: EMAIL GENERATION UTILITY FUNCTIONS
-// ============================================================================
-
-const emailUtils = {
-  /**
-   * Calculate estimated open rate improvement
-   */
-  calculateOpenRateImprovement: (currentRate: number, systemRate: number = 30): number => {
-    return Math.max(0, systemRate - currentRate)
-  },
-
-  /**
-   * Get email generation benefits
-   */
-  getEmailBenefits: () => [
-    "25-35% open rates using proven subject line templates",
-    "AI learns from your successful emails automatically",
-    "Continuous improvement without manual work",
-    "Universal product support for any sales page",
-    "Database of high-converting psychology patterns",
-    "Performance tracking and learning analytics"
-  ],
-
-  /**
-   * Format learning metadata for display
-   */
-  formatLearningMetadata: (metadata: LearningMetadata[]): string => {
-    const learningCount = metadata.filter(m => m.can_learn_from).length
-    const totalCount = metadata.length
-
-    if (learningCount === 0) {
-      return "Standard generation (no learning enabled)"
-    }
-
-    return `${learningCount}/${totalCount} emails can improve AI performance`
-  },
-
-  /**
-   * Get performance level color
-   */
-  getPerformanceLevelColor: (level: string): string => {
-    switch (level.toLowerCase()) {
-      case 'top_tier': return 'text-green-600'
-      case 'high_performing': return 'text-blue-600'
-      case 'good': return 'text-yellow-600'
-      case 'experimental': return 'text-gray-600'
-      default: return 'text-gray-500'
-    }
-  },
-
-  /**
-   * Format open rate for display
-   */
-  formatOpenRate: (rate: number): string => {
-    return `${rate.toFixed(1)}%`
-  },
-
-  /**
-   * Determine if system needs seeding
-   */
-  needsSeeding: (health: EmailSystemHealthResponse): boolean => {
-    return health.enhanced_email_system?.template_database?.templates_seeded === false
-  },
-
-  /**
-   * Get system readiness status
-   */
-  getReadinessStatus: (health: EmailSystemHealthResponse): {
-    ready: boolean
-    message: string
-    action?: string
-  } => {
-    if (health.status !== 'healthy') {
-      return {
-        ready: false,
-        message: 'Enhanced email system not available',
-        action: 'Check system configuration'
-      }
-    }
-
-    if (!health.enhanced_email_system?.models_available) {
-      return {
-        ready: false,
-        message: 'Email models not loaded',
-        action: 'Contact support'
-      }
-    }
-
-    if (!health.enhanced_email_system?.template_database?.templates_seeded) {
-      return {
-        ready: false,
-        message: 'Templates need to be seeded',
-        action: 'Seed templates database'
-      }
-    }
-
-    return {
-      ready: true,
-      message: 'Enhanced email system ready'
-    }
-  },
-
-  /**
-   * Get learning progress summary
-   */
-  getLearningProgress: (analytics: LearningAnalyticsResponse): {
-    totalTemplates: number
-    aiGenerated: number
-    topPerformers: number
-    averageOpenRate: number
-  } => {
-    const totalTemplates = analytics.template_stats.reduce((sum, stat) => sum + stat.count, 0)
-    const aiGenerated = analytics.template_stats
-      .filter(stat => stat.source.includes('ai_learned'))
-      .reduce((sum, stat) => sum + stat.count, 0)
-
-    return {
-      totalTemplates,
-      aiGenerated,
-      topPerformers: analytics.ai_performance.top_tier_count || 0,
-      averageOpenRate: analytics.ai_performance.avg_ai_open_rate || 0
-    }
-  }
-}
-
-// ============================================================================
-// ðŸ”§ NEW: EMAIL GENERATION CONSTANTS
-// ============================================================================
-
-const EMAIL_CONSTANTS = {
-  PERFORMANCE_THRESHOLDS: {
-    EXCELLENT: 35,
-    GOOD: 25,
-    POOR: 15
-  },
-
-  SEQUENCE_LENGTHS: {
-    SHORT: 3,
-    STANDARD: 5,
-    LONG: 7
-  },
-
-  LEARNING_SETTINGS: {
-    MIN_SENDS_FOR_LEARNING: 50,
-    MIN_OPEN_RATE_FOR_STORAGE: 25,
-    HIGH_PERFORMANCE_THRESHOLD: 30,
-    TOP_TIER_THRESHOLD: 35
-  },
-
-  STRATEGIC_ANGLES: [
-    'scientific_authority',
-    'emotional_transformation',
-    'community_social_proof',
-    'urgency_scarcity',
-    'lifestyle_confidence'
-  ],
-
-  TEMPLATE_CATEGORIES: [
-    'curiosity_gap',
-    'urgency_scarcity',
-    'social_proof',
-    'personal_benefit',
-    'transformation',
-    'authority_scientific',
-    'emotional_triggers',
-    'value_promise'
-  ]
-}
-
-// ============================================================================
-// API CLIENT CLASS (Enhanced with AI Discovery Service)
-// ============================================================================
-
-class ApiClient {
+export class ApiClient {
   private baseURL: string
-  private defaultHeaders: Record<string, string>
 
-  constructor() {
-    this.baseURL = API_BASE_URL
-    this.defaultHeaders = {
-      'Content-Type': 'application/json',
-    }
+  constructor(baseURL: string = API_BASE_URL) {
+    this.baseURL = baseURL
   }
 
   private getAuthToken(): string | null {
-    if (typeof window === 'undefined') {
-      console.log('🔍 getAuthToken: Running in SSR (window undefined)')
-      return null
-    }
-
-    const accessToken = localStorage.getItem('access_token')
-    const authToken = localStorage.getItem('authToken')
-
-    console.log('🔍 getAuthToken debug:', {
-      hasAccessToken: !!accessToken,
-      hasAuthToken: !!authToken,
-      accessTokenLength: accessToken?.length || 0,
-      authTokenLength: authToken?.length || 0,
-      accessTokenPreview: accessToken ? `${accessToken.substring(0, 30)}...` : 'null',
-      authTokenPreview: authToken ? `${authToken.substring(0, 30)}...` : 'null',
-      tokensMatch: accessToken === authToken
-    })
-
-    const finalToken = accessToken || authToken
-    console.log('🔍 getAuthToken result:', {
-      hasFinalToken: !!finalToken,
-      finalTokenLength: finalToken?.length || 0,
-      finalTokenPreview: finalToken ? `${finalToken.substring(0, 30)}...` : 'null'
-    })
-
-    return finalToken
+    if (typeof window === 'undefined') return null
+    return localStorage.getItem('authToken') || localStorage.getItem('access_token')
   }
 
-  private getHeaders(): Record<string, string> {
-    const token = this.getAuthToken()
-    const headers = {
-      ...this.defaultHeaders,
-      ...(token && { Authorization: `Bearer ${token}` })
+  private getHeaders(): HeadersInit {
+    const headers: HeadersInit = {
+      'Content-Type': 'application/json',
     }
 
-    console.log('🔍 getHeaders result:', {
-      hasToken: !!token,
-      hasAuthHeader: !!headers.Authorization,
-      authHeaderPreview: headers.Authorization ? `${headers.Authorization.substring(0, 30)}...` : 'No auth header',
-      allHeaders: Object.keys(headers)
-    })
+    const token = this.getAuthToken()
+    if (token) {
+      headers.Authorization = `Bearer ${token}`
+    }
 
     return headers
   }
 
-  private getCompanyIdFromToken(): string | null {
-    try {
-      const token = this.getAuthToken()
-      if (!token) return null
-      
-      // Decode JWT payload (base64 decode the middle section)
-      const payload = token.split('.')[1]
-      if (!payload) return null
-      
-      const decoded = JSON.parse(atob(payload))
-      return decoded.company_id || null
-    } catch (error) {
-      console.error('Error decoding token for company_id:', error)
-      return null
-    }
-  }
-
-  // ðŸŽ¯ ROBUST RESPONSE HANDLER - Handles Multiple Backend Response Formats
   private async handleResponse<T>(response: Response): Promise<T> {
-    if (response.ok) {
-      try {
-        const responseData = await response.json()
-
-        // Handle standardized responses
-        if (isStandardResponse(responseData)) {
-          if (!responseData.success) {
-            throw new ApiError(
-              responseData.error || responseData.message || 'Operation failed',
-              response.status,
-              responseData,
-              responseData.error_code,
-              responseData.error_details?.suggestions,
-              responseData.request_id
-            )
-          }
-
-          // FIXED: Check for both data and config properties
-          if (responseData.data !== undefined) {
-            return responseData.data as T
-          }
-          if (responseData.config !== undefined) {
-            return responseData.config as T
-          }
-
-          // If neither exists, return the whole response minus metadata
-          const { success, status, message, error, timestamp, request_id, ...actualData } = responseData
-          return actualData as T
-        }
-
-        // Handle legacy responses (unchanged)
-        if (isLegacyResponse(responseData)) {
-          if (hasErrorIndicators(responseData)) {
-            throw new ApiError(extractErrorMessage(responseData), response.status, responseData)
-          }
-          return responseData as T
-        }
-
-        // Handle plain JSON responses
-        return responseData as T
-
-      } catch (jsonError) {
-        if (jsonError instanceof ApiError) {
-          throw jsonError
-        }
-        return {} as T
-      }
-    }
-
-    // Handle error responses
-    let errorData: any
-    try {
-      errorData = await response.json()
-    } catch {
-      errorData = {
-        detail: `HTTP ${response.status}: ${response.statusText}`,
-        status_code: response.status,
-      }
-    }
-
-    // Special handling for different error types
-    if (response.status === 402) {
-      throw new CreditError(errorData)
-    }
-
-    if (response.status === 401) {
-      // Enhanced debugging for authentication issues
-      const currentToken = this.getAuthToken()
-      console.error('🚨 401 Authentication Error Details:', {
-        url: response.url,
-        method: response.headers.get('x-method') || 'Unknown',
-        hasToken: !!currentToken,
-        tokenLength: currentToken?.length || 0,
-        tokenPreview: currentToken ? `${currentToken.substring(0, 20)}...` : 'No token',
-        timestamp: new Date().toISOString(),
-        errorData
-      })
-
-      // Clear tokens and redirect to login
-      this.clearAuthToken()
-      if (typeof window !== 'undefined') {
-        console.log('🔄 Redirecting to login page due to 401 error')
-        window.location.href = '/login'
-      }
-      throw new ApiError('Authentication required', 401, errorData)
-    }
-
-    throw new ApiError(
-      errorData.detail || errorData.message || 'An error occurred',
-      response.status,
-      errorData
-    )
-  }
-
-  // ðŸŽ¯ ROBUST CONTENT GENERATION HANDLER
-  private async handleContentGenerationResponse(response: Response): Promise<GeneratedContent> {
-    let responseData: any
-
-    try {
-      responseData = await response.json()
-      console.log('ðŸ” Raw backend response:', responseData)
-    } catch (jsonError) {
-      console.error('âŒ JSON parsing failed:', jsonError)
-      throw new ApiError(`Invalid JSON response: ${jsonError}`)
-    }
-
-    // ðŸŽ¯ ROBUST: Check for error conditions first
     if (!response.ok) {
-      const errorMessage = extractErrorMessage(responseData)
-      throw new ApiError(errorMessage, response.status, responseData)
-    }
-
-    // ðŸŽ¯ ROBUST: Handle standardized success response
-    if (isStandardResponse(responseData)) {
-      if (!responseData.success) {
-        throw new ApiError(
-          responseData.error || responseData.message || 'Content generation failed',
-          response.status,
-          responseData,
-          responseData.error_code,
-          responseData.error_details?.suggestions,
-          responseData.request_id
-        )
+      if (response.status === 401) {
+        // Clear invalid tokens and redirect to login
+        if (typeof window !== 'undefined') {
+          localStorage.removeItem('authToken')
+          localStorage.removeItem('access_token')
+          window.location.href = '/login'
+        }
+        throw new ApiError('Authentication required', 401, 'UNAUTHORIZED')
       }
 
-      // Extract data from standardized response
-      const data = responseData.data
-      return {
-        content_id: data.content_id,
-        content_type: data.content_type,
-        generated_content: {
-          title: data.generated_content?.title || `Generated ${data.content_type}`,
-          content: (() => {
-            // Handle different response formats properly
-            if (data.generated_content?.content) {
-              return data.generated_content.content;
-            }
-            if (data.generated_content && typeof data.generated_content === 'object') {
-              return data.generated_content;
-            }
-            return {};
-          })(),
-          metadata: data.generation_metadata
-        },
-        smart_url: data.smart_url || undefined,
-        performance_predictions: data.performance_predictions || {}
-      }
-    }
-
-    // ðŸŽ¯ ROBUST: Handle legacy response format
-    if (isLegacyResponse(responseData)) {
-      // Check for error indicators
-      if (hasErrorIndicators(responseData)) {
-        throw new ApiError(extractErrorMessage(responseData), response.status, responseData)
+      if (response.status === 402) {
+        throw new CreditError()
       }
 
-      // Check for required fields
-      if (!responseData.content_id && !responseData.generated_content) {
-        throw new ApiError('Invalid response: missing content data', response.status, responseData)
+      let errorMessage = `HTTP ${response.status}: ${response.statusText}`
+      try {
+        const errorData = await response.json()
+        errorMessage = errorData.message || errorData.error || errorMessage
+      } catch {
+        // Ignore JSON parse errors for error responses
       }
 
-      // Transform legacy response to expected format
-      return {
-        content_id: responseData.content_id || 'legacy-content-id',
-        content_type: responseData.content_type || 'unknown',
-        generated_content: {
-          title: responseData.generated_content?.title || `Generated Content`,
-          content: responseData.generated_content?.content || responseData.generated_content || {},
-          metadata: responseData.generation_metadata || {}
-        },
-        smart_url: responseData.smart_url || undefined,
-        performance_predictions: responseData.performance_predictions || {}
+      throw new ApiError(errorMessage, response.status)
+    }
+
+    const data = await response.json()
+
+    // Handle StandardResponse format
+    if (typeof data === 'object' && data !== null && 'success' in data) {
+      if (!data.success) {
+        throw new ApiError(data.error || data.message || 'API call failed', response.status)
       }
+      return data.data || data.config || data
     }
 
-    // ðŸŽ¯ ROBUST: Fallback for unexpected response format
-    console.warn('âš ï¸ Unexpected response format, attempting to extract content:', responseData)
-
-    return {
-      content_id: responseData.id || responseData.content_id || 'unknown-id',
-      content_type: responseData.content_type || 'unknown',
-      generated_content: {
-        title: 'Generated Content',
-        content: responseData.content || responseData.generated_content || responseData,
-        metadata: responseData.metadata || {}
-      },
-      smart_url: undefined,
-      performance_predictions: {}
-    }
-  }
-
-  setAuthToken(token: string) {
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('access_token', token)
-      localStorage.setItem('authToken', token)
-    }
-  }
-
-  clearAuthToken() {
-    if (typeof window !== 'undefined') {
-      localStorage.removeItem('access_token')
-      localStorage.removeItem('authToken')
-    }
+    // Handle direct data response
+    return data
   }
 
   // ============================================================================
-  // AUTHENTICATION METHODS
+  // Authentication
   // ============================================================================
 
-  async login(credentials: { email: string; password: string }): Promise<{
-    access_token: string
-    token_type: string
-    expires_in: number
-    user_id: string
-  }> {
+  async login(email: string, password: string): Promise<{ access_token: string; user: User }> {
     const response = await fetch(`${this.baseURL}/api/auth/login`, {
       method: 'POST',
-      headers: this.defaultHeaders,
-      body: JSON.stringify(credentials)
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password })
     })
 
-    const result = await this.handleResponse<any>(response)
+    const data = await this.handleResponse<{ access_token: string; user: User }>(response)
 
-    if (result.access_token) {
-      this.setAuthToken(result.access_token)
+    // Store token
+    if (typeof window !== 'undefined' && data.access_token) {
+      localStorage.setItem('access_token', data.access_token)
+      localStorage.setItem('authToken', data.access_token)
     }
 
-    return result
+    return data
   }
 
-  async register(data: {
+  async register(userData: {
     email: string
     password: string
     full_name: string
-  }): Promise<{
-    message: string
-    user_id: string
-    company_id: string
-  }> {
+    user_type?: string
+  }): Promise<{ access_token: string; user: User }> {
     const response = await fetch(`${this.baseURL}/api/auth/register`, {
       method: 'POST',
-      headers: this.defaultHeaders,
-      body: JSON.stringify(data)
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(userData)
     })
 
     return this.handleResponse(response)
+  }
+
+  async getProfile(): Promise<User> {
+    const response = await fetch(`${this.baseURL}/api/auth/profile`, {
+      headers: this.getHeaders()
+    })
+
+    return this.handleResponse(response)
+  }
+
+  async getUserProfile(): Promise<User> {
+    // Alias for getProfile to match existing codebase usage
+    return this.getProfile()
   }
 
   async logout(): Promise<void> {
@@ -1158,247 +193,83 @@ class ApiClient {
         method: 'POST',
         headers: this.getHeaders()
       })
+    } catch (error) {
+      console.warn('Logout API call failed:', error)
     } finally {
-      this.clearAuthToken()
+      // Always clear local tokens
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('access_token')
+        localStorage.removeItem('authToken')
+      }
     }
   }
 
-  async getUserProfile(): Promise<User> {
-    const response = await fetch(`${this.baseURL}/api/auth/profile`, {
-      headers: this.getHeaders()
-    })
-
-    return this.handleResponse<User>(response)
-  }
-
-  // Add these methods to your ApiClient class, after the existing 3 user type methods:
+  // ============================================================================
+  // User Type Configuration
+  // ============================================================================
 
   async getUserTypeConfig(userType?: string): Promise<any> {
-    console.log(`📊 API: getUserTypeConfig called with userType: "${userType}"`);
+    console.log(`📊 API: Getting dashboard config for user type: "${userType}"`)
 
     // Get user type from profile if not provided
     if (!userType) {
       try {
-        const profileResponse = await fetch(`${this.baseURL}/api/auth/profile`, {
-          headers: this.getHeaders()
-        });
-
-        if (profileResponse.ok) {
-          const profile = await profileResponse.json();
-          
-          // Check if user is admin first (role takes precedence)
-          if (profile.role === "ADMIN" || profile.role === "admin") {
-            userType = "admin";
-            console.log(`📊 API: Admin user detected (role: ${profile.role}), using admin config`);
-          } else {
-            userType = profile.user_type;
-            console.log(`📊 API: Got user type from profile: "${userType}"`);
-          }
-        } else {
-          console.warn("🔍 API: Could not get profile, will use fallback config");
-          console.warn(`Profile API status: ${profileResponse.status}`);
-          // Don't throw - continue with fallback
-        }
+        const profile = await this.getProfile()
+        userType = profile.role === 'admin' ? 'admin' : profile.user_type
+        console.log(`📊 API: Got user type from profile: "${userType}"`)
       } catch (error) {
-        console.warn("🔍 Error getting profile, will use fallback config:", error);
-        // Don't throw - continue with fallback
+        console.warn('🔍 Error getting profile, using fallback config:', error)
+        userType = 'affiliate_marketer'
       }
     }
 
-    // Use fallback if we still don't have a user type
-    if (!userType) {
-      console.warn("📊 API: No user type available, using affiliate_marketer fallback");
-      userType = "affiliate_marketer"; // Safe fallback
-    }
-
-    // Special handling for admin users - check if user has admin role
-    if (userType === "admin" || userType === "administrator") {
-      console.log("📊 API: Admin user detected, using admin config");
-      userType = "admin";
-    }
-    
-    // Create user type-specific mock configs
-    const mockConfigs = {
-      admin: {
-        user_profile: {
-          user_type_display: "Administrator",
-          user_type: "admin",
-          dashboard_route: "/admin",
-          usage_summary: {
-            campaigns: { used: 0, limit: 999999, percentage: 0 },
-            analysis: { used: 0, limit: 999999, percentage: 0 },
-            intelligence: { used: 0, limit: 999999, percentage: 0 },
-            content: { used: 0, limit: 999999, percentage: 0 }
-          },
-          subscription_info: {
-            plan: "Admin",
-            tier: "ADMIN",
-            credits_remaining: 999999,
-            next_reset: "Never"
-          }
-        },
-        primary_widgets: ["users", "companies", "revenue", "settings"],
-        dashboard_title: "RodgersDigital Admin",
-        main_cta: "Manage Platform",
-        theme_color: "red"
-      },
-      affiliate_marketer: {
-        user_profile: {
-          user_type_display: "Affiliate Marketer",
-          user_type: "affiliate_marketer",
-          dashboard_route: "/dashboard/affiliate",
-          usage_summary: {
-            campaigns: { used: 2, limit: 10, percentage: 20 },
-            analysis: { used: 5, limit: 25, percentage: 20 },
-            intelligence: { used: 3, limit: 15, percentage: 20 },
-            content: { used: 8, limit: 50, percentage: 16 }
-          },
-          subscription_info: {
-            plan: "Free",
-            tier: "FREE",
-            credits_remaining: 95,
-            next_reset: "2024-02-01"
-          }
-        },
-        primary_widgets: ["campaigns", "analytics", "intelligence", "content"],
-        dashboard_title: "Affiliate Command Center",
-        main_cta: "Track Competitors",
-        theme_color: "blue"
-      },
-      content_creator: {
-        user_profile: {
-          user_type_display: "Content Creator",
-          user_type: "content_creator",
-          dashboard_route: "/dashboard/creator",
-          usage_summary: {
-            campaigns: { used: 4, limit: 15, percentage: 27 },
-            analysis: { used: 8, limit: 30, percentage: 27 },
-            intelligence: { used: 6, limit: 20, percentage: 30 },
-            content: { used: 15, limit: 75, percentage: 20 }
-          },
-          subscription_info: {
-            plan: "Free",
-            tier: "FREE",
-            credits_remaining: 85,
-            next_reset: "2024-02-01"
-          }
-        },
-        primary_widgets: ["content", "campaigns", "analytics", "intelligence"],
-        dashboard_title: "Creator Studio Pro",
-        main_cta: "Analyze Viral Content",
-        theme_color: "purple"
-      },
-      business_owner: {
-        user_profile: {
-          user_type_display: "Business Owner",
-          user_type: "business_owner",
-          dashboard_route: "/dashboard/business",
-          usage_summary: {
-            campaigns: { used: 6, limit: 20, percentage: 30 },
-            analysis: { used: 10, limit: 35, percentage: 29 },
-            intelligence: { used: 8, limit: 25, percentage: 32 },
-            content: { used: 12, limit: 60, percentage: 20 }
-          },
-          subscription_info: {
-            plan: "Free",
-            tier: "FREE",
-            credits_remaining: 75,
-            next_reset: "2024-02-01"
-          }
-        },
-        primary_widgets: ["campaigns", "intelligence", "analytics", "content"],
-        dashboard_title: "Business Growth Hub",
-        main_cta: "Generate Leads",
-        theme_color: "green"
-      },
-      product_creator: {
-        user_profile: {
-          user_type_display: "Product Creator",
-          user_type: "product_creator",
-          dashboard_route: "/dashboard/product-creator",
-          usage_summary: {
-            campaigns: { used: 0, limit: 50, percentage: 0 },
-            analysis: { used: 0, limit: 5000, percentage: 0 },
-            intelligence: { used: 0, limit: 1000, percentage: 0 },
-            content: { used: 0, limit: 200, percentage: 0 }
-          },
-          subscription_info: {
-            plan: "Product Creator",
-            tier: "INVITED",
-            credits_remaining: 5000,
-            next_reset: "2024-12-31"
-          }
-        },
-        primary_widgets: ["url_submission", "content_library", "analytics", "submissions"],
-        dashboard_title: "Product Creator Hub",
-        main_cta: "Submit Sales Page",
-        theme_color: "emerald"
-      }
-    };
-
-    // Determine which config to use - should be based on actual user type
-    const configKey = userType || 'affiliate_marketer'; // Only fallback if no user type found
-    const baseConfig = mockConfigs[configKey as keyof typeof mockConfigs] || mockConfigs.affiliate_marketer;
-
-    // Add common properties to all configs
-    const mockConfig = {
-      ...baseConfig,
-      dashboard_features: [
-        "Campaign Creation",
-        "Performance Analytics", 
-        "Content Generation",
-        "Affiliate Links"
-    // Use live API calls instead of mock system
     try {
-      let response;
+      let response: Response
 
       // For product creators, use the specific product creator dashboard endpoint
       if (userType === 'product_creator') {
-        console.log(`📊 API: Calling product creator dashboard endpoint for user type: "${userType}"`);
+        console.log(`📊 API: Calling product creator dashboard endpoint`)
         response = await fetch(`${this.baseURL}/api/admin/intelligence/product-creator/dashboard`, {
           headers: this.getHeaders()
-        });
+        })
       } else {
         // For other user types, use the general dashboard config endpoint
-        console.log(`📊 API: Calling general dashboard config endpoint for user type: "${userType}"`);
+        console.log(`📊 API: Calling general dashboard config endpoint`)
         response = await fetch(`${this.baseURL}/api/user-types/dashboard-config`, {
           headers: this.getHeaders()
-        });
+        })
       }
 
       if (!response.ok) {
-        console.warn(`📊 API: Dashboard config API failed (${response.status}), using fallback for user type: "${userType}"`);
-        // Return fallback config instead of throwing
-        return this.getFallbackConfig(userType);
+        console.warn(`📊 API: Dashboard config API failed (${response.status}), using fallback`)
+        return this.getFallbackConfig(userType)
       }
 
-      const responseData = await response.json();
-      console.log(`📊 API: Dashboard config response for "${userType}":`, responseData);
+      const responseData = await response.json()
+      console.log(`📊 API: Dashboard config response:`, responseData)
 
       // Handle different response formats
       if (responseData.success && responseData.data) {
         // Product creator endpoint format
-        return this.transformProductCreatorConfig(responseData.data);
+        return this.transformProductCreatorConfig(responseData.data)
       } else if (responseData.success && responseData.config) {
         // Standard dashboard config format
-        return responseData.config;
+        return responseData.config
       } else if (responseData.data) {
         // Direct data format
-        return responseData.data;
+        return responseData.data
       } else {
-        // Fallback to mock config
-        console.warn(`📊 API: Unexpected response format, using fallback for user type: "${userType}"`);
-        return this.getFallbackConfig(userType);
+        console.warn(`📊 API: Unexpected response format, using fallback`)
+        return this.getFallbackConfig(userType)
       }
     } catch (error) {
-      console.warn(`📊 API: Dashboard config request failed for user type: "${userType}"`, error);
-      return this.getFallbackConfig(userType);
+      console.warn(`📊 API: Dashboard config request failed:`, error)
+      return this.getFallbackConfig(userType)
     }
   }
 
-  // Helper method to get fallback config when API calls fail
   private getFallbackConfig(userType: string) {
-    const mockConfigs = {
+    const configs = {
       admin: {
         user_profile: {
           user_type_display: "Administrator",
@@ -1406,19 +277,11 @@ class ApiClient {
           dashboard_route: "/admin",
           usage_summary: {
             campaigns: { used: 0, limit: 999999, percentage: 0 },
-            analysis: { used: 0, limit: 999999, percentage: 0 },
-            intelligence: { used: 0, limit: 999999, percentage: 0 },
-            content: { used: 0, limit: 999999, percentage: 0 }
-          },
-          subscription_info: {
-            plan: "Admin",
-            tier: "ADMIN",
-            credits_remaining: 999999,
-            next_reset: "Never"
+            analysis: { used: 0, limit: 999999, percentage: 0 }
           }
         },
         primary_widgets: ["users", "companies", "revenue", "settings"],
-        dashboard_title: "RodgersDigital Admin",
+        dashboard_title: "Admin Dashboard",
         main_cta: "Manage Platform",
         theme_color: "red"
       },
@@ -1429,15 +292,7 @@ class ApiClient {
           dashboard_route: "/dashboard/affiliate",
           usage_summary: {
             campaigns: { used: 2, limit: 10, percentage: 20 },
-            analysis: { used: 5, limit: 25, percentage: 20 },
-            intelligence: { used: 3, limit: 15, percentage: 20 },
-            content: { used: 8, limit: 50, percentage: 16 }
-          },
-          subscription_info: {
-            plan: "Free",
-            tier: "FREE",
-            credits_remaining: 95,
-            next_reset: "2024-02-01"
+            analysis: { used: 5, limit: 25, percentage: 20 }
           }
         },
         primary_widgets: ["campaigns", "analytics", "intelligence", "content"],
@@ -1452,15 +307,7 @@ class ApiClient {
           dashboard_route: "/dashboard/creator",
           usage_summary: {
             campaigns: { used: 4, limit: 15, percentage: 27 },
-            analysis: { used: 8, limit: 30, percentage: 27 },
-            intelligence: { used: 6, limit: 20, percentage: 30 },
-            content: { used: 15, limit: 75, percentage: 20 }
-          },
-          subscription_info: {
-            plan: "Free",
-            tier: "FREE",
-            credits_remaining: 65,
-            next_reset: "2024-02-01"
+            analysis: { used: 8, limit: 30, percentage: 27 }
           }
         },
         primary_widgets: ["content", "campaigns", "analytics", "intelligence"],
@@ -1475,15 +322,7 @@ class ApiClient {
           dashboard_route: "/dashboard/business",
           usage_summary: {
             campaigns: { used: 6, limit: 20, percentage: 30 },
-            analysis: { used: 10, limit: 35, percentage: 29 },
-            intelligence: { used: 8, limit: 25, percentage: 32 },
-            content: { used: 12, limit: 60, percentage: 20 }
-          },
-          subscription_info: {
-            plan: "Free",
-            tier: "FREE",
-            credits_remaining: 75,
-            next_reset: "2024-02-01"
+            analysis: { used: 10, limit: 35, percentage: 29 }
           }
         },
         primary_widgets: ["campaigns", "intelligence", "analytics", "content"],
@@ -1498,15 +337,7 @@ class ApiClient {
           dashboard_route: "/dashboard/product-creator",
           usage_summary: {
             campaigns: { used: 0, limit: 50, percentage: 0 },
-            analysis: { used: 0, limit: 5000, percentage: 0 },
-            intelligence: { used: 0, limit: 1000, percentage: 0 },
-            content: { used: 0, limit: 200, percentage: 0 }
-          },
-          subscription_info: {
-            plan: "Product Creator",
-            tier: "INVITED",
-            credits_remaining: 5000,
-            next_reset: "2024-12-31"
+            analysis: { used: 0, limit: 5000, percentage: 0 }
           }
         },
         primary_widgets: ["url_submission", "content_library", "analytics", "submissions"],
@@ -1514,32 +345,15 @@ class ApiClient {
         main_cta: "Submit Sales Page",
         theme_color: "emerald"
       }
-    };
+    }
 
-    const configKey = userType || 'affiliate_marketer';
-    const baseConfig = mockConfigs[configKey as keyof typeof mockConfigs] || mockConfigs.affiliate_marketer;
-
-    console.log(`📊 API: Using fallback config for user type: "${userType}"`);
-
-    return {
-      ...baseConfig,
-      dashboard_features: [
-        "Campaign Creation",
-        "Performance Analytics",
-        "Content Generation",
-        "Affiliate Links"
-      ],
-      quick_actions: [
-        { id: "create-campaign", title: "Create Campaign", icon: "plus" },
-        { id: "analyze-performance", title: "View Analytics", icon: "chart" },
-        { id: "generate-content", title: "Generate Content", icon: "edit" }
-      ]
-    };
+    const config = configs[userType as keyof typeof configs] || configs.affiliate_marketer
+    console.log(`📊 API: Using fallback config for user type: "${userType}"`)
+    return config
   }
 
-  // Helper method to transform product creator API response to expected format
   private transformProductCreatorConfig(apiData: any) {
-    console.log(`📊 API: Transforming product creator API data:`, apiData);
+    console.log(`📊 API: Transforming product creator API data:`, apiData)
 
     return {
       user_profile: {
@@ -1557,879 +371,52 @@ class ApiClient {
             limit: 5000,
             percentage: 0
           }
-        },
-        subscription_info: {
-          plan: "Product Creator",
-          tier: "INVITED",
-          credits_remaining: apiData.submission_stats?.remaining_quota || 5000,
-          next_reset: "2024-12-31"
         }
       },
       primary_widgets: ["url_submission", "content_library", "analytics", "submissions"],
       dashboard_title: "Product Creator Hub",
       main_cta: "Submit Sales Page",
       theme_color: "emerald",
-      dashboard_features: apiData.available_tools?.map((tool: any) => tool.name) || [
-        "URL Submission",
-        "Content Library",
-        "Submission Tracking"
-      ],
       restrictions: apiData.restrictions,
       submission_stats: apiData.submission_stats,
       available_tools: apiData.available_tools
-    };
+    }
   }
 
-  async getCurrentUserType(): Promise<any> {
-    const response = await fetch(`${this.baseURL}/api/user-types/current`, {
-      headers: this.getHeaders()
-    })
-    return this.handleResponse(response)
-  }
+  // ============================================================================
+  // User Type Management
+  // ============================================================================
 
-  async selectUserType(data: any): Promise<any> {
+  async selectUserType(userType: string): Promise<User> {
     const response = await fetch(`${this.baseURL}/api/user-types/select`, {
       method: 'POST',
       headers: this.getHeaders(),
-      body: JSON.stringify(data)
-    })
-    return this.handleResponse(response)
-  }
-
-  async detectUserType(request: {
-    description: string
-    goals?: string[]
-    current_activities?: string[]
-    interests?: string[]
-  }): Promise<any> {
-    console.log('Detecting user type:', request)
-
-    const response = await fetch(`${this.baseURL}/api/user-types/detect`, {
-      method: 'POST',
-      headers: this.getHeaders(),
-      body: JSON.stringify(request)
+      body: JSON.stringify({ user_type: userType })
     })
 
     return this.handleResponse(response)
   }
 
-  async completeOnboarding(goals: string[], experienceLevel: string): Promise<any> {
-    console.log('Completing onboarding:', { goals, experienceLevel })
-
-    const response = await fetch(`${this.baseURL}/api/user-types/complete-onboarding`, {
+  async completeOnboarding(goals: string[], experienceLevel: string): Promise<User> {
+    const response = await fetch(`${this.baseURL}/api/users/complete-onboarding`, {
       method: 'POST',
       headers: this.getHeaders(),
       body: JSON.stringify({
         goals,
-        experience_level: experienceLevel
+        experience_level: experienceLevel,
+        onboarding_completed: true
       })
     })
 
-    return this.handleResponse(response)
-  }
-
-  async getAllUserTypes(): Promise<any> {
-    const response = await fetch(`${this.baseURL}/api/user-types/types`, {
-      headers: this.getHeaders()
-    })
-
-    return this.handleResponse(response)
-  }
-
-  async getUserRecommendations(): Promise<any> {
-    const response = await fetch(`${this.baseURL}/api/user-types/recommendations`, {
-      headers: this.getHeaders()
-    })
-
-    return this.handleResponse(response)
-  }
-
-  async getUserUsageSummary(): Promise<any> {
-    const response = await fetch(`${this.baseURL}/api/user-types/usage-summary`, {
-      headers: this.getHeaders()
-    })
-
-    return this.handleResponse(response)
-  }
-
-  async checkUpgradeEligibility(): Promise<any> {
-    const response = await fetch(`${this.baseURL}/api/user-types/upgrade-check`, {
-      headers: this.getHeaders()
-    })
-
-    return this.handleResponse(response)
-  }
-
-  async getWelcomeMessage(): Promise<any> {
-    try {
-      const response = await fetch(`${this.baseURL}/api/user-types/welcome-message`, {
-        headers: this.getHeaders()
-      })
-
-      return this.handleResponse(response)
-    } catch (error) {
-      // Return fallback message instead of throwing
-      return {
-        success: true,
-        welcome_message: "Welcome to CampaignForge!",
-        user_type: null
-      }
-    }
-  }
-
-  async migrateUserType(newUserType: string, reason?: string): Promise<any> {
-    console.log('Migrating user type:', { newUserType, reason })
-
-    const response = await fetch(`${this.baseURL}/api/user-types/migrate`, {
-      method: 'POST',
-      headers: this.getHeaders(),
-      body: JSON.stringify({
-        new_user_type: newUserType,
-        reason
-      })
-    })
-
-    return this.handleResponse(response)
-  }
-
-  // ============================================================================// ============================================================================
-  // ðŸ”§ NEW: ENHANCED SOCIAL MEDIA PLATFORM STATS METHODS
-  // ============================================================================
-
-  async getEnhancedIntelligence(campaignId: string): Promise<any> {
-    const response = await fetch(`${this.baseURL}/api/intelligence/campaigns/${campaignId}/enhanced-intelligence`, {
-      headers: this.getHeaders()
-    })
-    return this.handleResponse(response)
-  }
-
-  // Add to ApiClient class
-  async getRecommendedPlatforms(): Promise<{ recommended_platforms: string[] }> {
-    const response = await fetch(`${this.baseURL}/api/user-social/recommended-platforms`, {
-      headers: this.getHeaders()
-    })
-    return this.handleResponse(response)
-  }
-
-  async addSocialProfile(
-    platform: string,
-    username: string,
-    followers: number = 0,
-    engagement_rate: number = 0
-  ): Promise<{ message: string; profile_id: string }> {
-    const response = await fetch(`${this.baseURL}/api/user-social/profiles`, {
-      method: 'POST',
-      headers: this.getHeaders(),
-      body: JSON.stringify({
-        platform,
-        username,
-        followers,
-        engagement_rate
-      })
-    })
-    return this.handleResponse(response)
-  }
-
-  async getUserSocialProfiles(): Promise<{ profiles: any[] }> {
-    const response = await fetch(`${this.baseURL}/api/user-social/profiles`, {
-      headers: this.getHeaders()
-    })
     return this.handleResponse(response)
   }
 
   // ============================================================================
-  // ðŸ”§ NEW: ENHANCED EMAIL GENERATION METHODS
+  // Campaign Management
   // ============================================================================
 
-  /**
-   * Generate enhanced email sequence with AI learning
-   */
-  async generateEnhancedEmails(request: EmailGenerationRequest): Promise<EmailGenerationResponse> {
-    console.log('ðŸ“§ Generating enhanced emails:', request)
-
-    try {
-      const response = await fetch(`${this.baseURL}/api/intelligence/emails/enhanced-emails/generate`, {
-        method: 'POST',
-        headers: this.getHeaders(),
-        body: JSON.stringify(request)
-      })
-
-      if (!response.ok) {
-        throw new Error(`Enhanced email generation failed: ${response.statusText}`)
-      }
-
-      const result = await response.json()
-      console.log('âœ… Enhanced emails generated successfully:', result)
-
-      return result
-    } catch (error) {
-      console.error('âŒ Enhanced email generation error:', error)
-      throw error
-    }
-  }
-
-  /**
-   * Track email performance for learning system
-   */
-  async trackEmailPerformance(request: PerformanceTrackingRequest): Promise<PerformanceTrackingResponse> {
-    console.log('ðŸ“Š Tracking email performance:', request)
-
-    try {
-      const response = await fetch(`${this.baseURL}/api/intelligence/emails/enhanced-emails/track-performance`, {
-        method: 'POST',
-        headers: this.getHeaders(),
-        body: JSON.stringify(request)
-      })
-
-      if (!response.ok) {
-        throw new Error(`Performance tracking failed: ${response.statusText}`)
-      }
-
-      const result = await response.json()
-      console.log('âœ… Performance tracking successful:', result)
-
-      return result
-    } catch (error) {
-      console.error('âŒ Performance tracking error:', error)
-      throw error
-    }
-  }
-
-  /**
-   * Get learning analytics from email system
-   */
-  async getEmailLearningAnalytics(): Promise<LearningAnalyticsResponse> {
-    try {
-      const response = await fetch(`${this.baseURL}/api/intelligence/emails/enhanced-emails/learning-analytics`, {
-        method: 'GET',
-        headers: this.getHeaders()
-      })
-
-      if (!response.ok) {
-        throw new Error(`Learning analytics failed: ${response.statusText}`)
-      }
-
-      return response.json()
-    } catch (error) {
-      console.error('âŒ Learning analytics error:', error)
-      throw error
-    }
-  }
-
-  /**
-   * Get email system health status
-   */
-  async getEmailSystemHealth(): Promise<EmailSystemHealthResponse> {
-    try {
-      const response = await fetch(`${this.baseURL}/api/emails/system-health`, {
-        method: 'GET',
-        headers: this.getHeaders()
-      })
-
-      if (!response.ok) {
-        throw new Error(`Email system health check failed: ${response.statusText}`)
-      }
-
-      return response.json()
-    } catch (error) {
-      console.error('âŒ Email system health check error:', error)
-      throw error
-    }
-  }
-
-  /**
-   * Seed email templates database
-   */
-  async seedEmailTemplates(forceReseed: boolean = false): Promise<{
-    success: boolean
-    message: string
-    templates_seeded: number
-    total_templates: number
-  }> {
-    try {
-      const response = await fetch(`${this.baseURL}/api/intelligence/emails/enhanced-emails/seed-templates`, {
-        method: 'POST',
-        headers: this.getHeaders(),
-        body: JSON.stringify({ force_reseed: forceReseed })
-      })
-
-      if (!response.ok) {
-        throw new Error(`Template seeding failed: ${response.statusText}`)
-      }
-
-      return response.json()
-    } catch (error) {
-      console.error('âŒ Template seeding error:', error)
-      throw error
-    }
-  }
-
-  /**
-   * Manually trigger learning evaluation
-   */
-  async triggerEmailLearning(daysBack: number = 7): Promise<{
-    success: boolean
-    learning_results: any
-    message: string
-  }> {
-    try {
-      const response = await fetch(`${this.baseURL}/api/intelligence/emails/enhanced-emails/trigger-learning`, {
-        method: 'POST',
-        headers: this.getHeaders(),
-        body: JSON.stringify({ days_back: daysBack })
-      })
-
-      if (!response.ok) {
-        throw new Error(`Learning trigger failed: ${response.statusText}`)
-      }
-
-      return response.json()
-    } catch (error) {
-      console.error('âŒ Learning trigger error:', error)
-      throw error
-    }
-  }
-
-  /**
-   * Test enhanced email generation system
-   */
-  async testEnhancedEmailGeneration(
-    productName: string = 'TestProduct',
-    sequenceLength: number = 3,
-    useLearning: boolean = true
-  ): Promise<{
-    success: boolean
-    test_result: string
-    emails_generated: number
-    sample_subjects: string[]
-    generation_method: string
-    features_tested: any
-    expected_performance: any
-  }> {
-    try {
-      const response = await fetch(`${this.baseURL}/api/intelligence/emails/test-enhanced-generation`, {
-        method: 'POST',
-        headers: this.getHeaders(),
-        body: JSON.stringify({
-          product_name: productName,
-          sequence_length: sequenceLength,
-          use_learning: useLearning
-        })
-      })
-
-      if (!response.ok) {
-        throw new Error(`Enhanced email test failed: ${response.statusText}`)
-      }
-
-      return response.json()
-    } catch (error) {
-      console.error('âŒ Enhanced email test error:', error)
-      throw error
-    }
-  }
-
-  /**
-   * Get enhanced email system status
-   */
-  async getEnhancedEmailSystemStatus(): Promise<{
-    system_ready: boolean
-    learning_active: boolean
-    template_database: any
-    performance_tracking: any
-    status_message: string
-  }> {
-    try {
-      const response = await fetch(`${this.baseURL}/api/intelligence/emails/enhanced-emails/system-status`, {
-        method: 'GET',
-        headers: this.getHeaders()
-      })
-
-      if (!response.ok) {
-        throw new Error(`System status check failed: ${response.statusText}`)
-      }
-
-      return response.json()
-    } catch (error) {
-      console.error('âŒ System status check error:', error)
-      throw error
-    }
-  }
-
-  // ============================================================================
-  // ðŸ†• DEMO PREFERENCE MANAGEMENT METHODS
-  // ============================================================================
-
-  /**
-   * Get user's current demo campaign preferences
-   */
-  async getDemoPreferences(): Promise<DemoPreference> {
-    try {
-      const response = await fetch(`${this.baseURL}/api/campaigns/demo/preferences`, {
-        method: 'GET',
-        headers: this.getHeaders(),
-      })
-
-      if (!response.ok) {
-        throw new Error(`Failed to get demo preferences: ${response.statusText}`)
-      }
-
-      return response.json()
-    } catch (error) {
-      console.error('Error getting demo preferences:', error)
-      throw error
-    }
-  }
-
-  /**
-   * Update user's demo campaign preferences
-   */
-  async updateDemoPreferences(preferences: Partial<DemoPreference>): Promise<DemoPreference> {
-    try {
-      const response = await fetch(`${this.baseURL}/api/campaigns/demo/preferences`, {
-        method: 'POST',
-        headers: this.getHeaders(),
-        body: JSON.stringify(preferences)
-      })
-
-      if (!response.ok) {
-        throw new Error(`Failed to update demo preferences: ${response.statusText}`)
-      }
-
-      return response.json()
-    } catch (error) {
-      console.error('Error updating demo preferences:', error)
-      throw error
-    }
-  }
-
-  /**
-   * Quick toggle demo campaign visibility
-   */
-  async toggleDemoVisibility(): Promise<DemoToggleResponse> {
-    try {
-      const response = await fetch(`${this.baseURL}/api/campaigns/demo/toggle`, {
-        method: 'POST',
-        headers: this.getHeaders(),
-      })
-
-      if (!response.ok) {
-        throw new Error(`Failed to toggle demo visibility: ${response.statusText}`)
-      }
-
-      return response.json()
-    } catch (error) {
-      console.error('Error toggling demo visibility:', error)
-      throw error
-    }
-  }
-
-  /**
-   * Get demo campaign management information (admin)
-   */
-  async getDemoManagementInfo(): Promise<any> {
-    try {
-      const response = await fetch(`${this.baseURL}/api/campaigns/demo/status`, {
-        method: 'GET',
-        headers: this.getHeaders(),
-      })
-
-      if (!response.ok) {
-        throw new Error(`Failed to get demo management info: ${response.statusText}`)
-      }
-
-      return response.json()
-    } catch (error) {
-      console.error('Error getting demo management info:', error)
-      throw error
-    }
-  }
-
-  /**
-     * Create demo campaign manually (admin/testing)
-     */
-  async createDemoManually(): Promise<any> {
-    try {
-      const response = await fetch(`${this.baseURL}/api/campaigns/demo/create`, {
-        method: 'POST',
-        headers: this.getHeaders(),
-      })
-
-      if (!response.ok) {
-        throw new Error(`Failed to create demo campaign: ${response.statusText}`)
-      }
-
-      return response.json()
-    } catch (error) {
-      console.error('Error creating demo campaign:', error)
-      throw error
-    }
-  }
-
-  /**
-   * Get campaigns including demo campaigns (admin view)
-   */
-  async getCampaignsWithDemo(skip = 0, limit = 100): Promise<Campaign[]> {
-    try {
-      const params = new URLSearchParams({
-        skip: skip.toString(),
-        limit: limit.toString()
-      })
-
-      const response = await fetch(`${this.baseURL}/api/campaigns?${params}`, {
-        method: 'GET',
-        headers: this.getHeaders(),
-      })
-
-      if (!response.ok) {
-        throw new Error(`Failed to get campaigns with demo: ${response.statusText}`)
-      }
-
-      return response.json()
-    } catch (error) {
-      console.error('Error getting campaigns with demo:', error)
-      throw error
-    }
-  }
-
-  // ============================================================================
-  // ðŸ”§ UPDATED CAMPAIGN METHODS FOR 2-STEP WORKFLOW
-  // ============================================================================
-
-  async createCampaign(campaignData: CampaignCreateData): Promise<Campaign> {
-    // Get company_id from user profile instead of JWT token
-    const userProfile = await this.getUserProfile()
-    const company_id = userProfile.company?.id
-    if (!company_id) {
-      throw new Error('Authentication required: user profile does not contain company information')
-    }
-    
-    // Map user type to appropriate campaign type (matching backend workflow keys)
-    const getUserCampaignType = (userType: string): string => {
-      switch (userType) {
-        case 'affiliate_marketer':
-          return 'affiliate_promotion'
-        case 'content_creator':
-          return 'content_marketing'
-        case 'social_media_manager':
-          return 'social_media'
-        case 'email_marketer':
-          return 'email_sequence'
-        case 'product_manager':
-          return 'product_launch'
-        default:
-          return 'content_marketing' // fallback
-      }
-    }
-    
-    const appropriateCampaignType = getUserCampaignType(userProfile.user_type || 'content_creator')
-    
-    const dataWithDefaults = {
-      ...campaignData,
-      campaign_type: appropriateCampaignType, // Use user-type-appropriate workflow
-      company_id: company_id, // Required by backend
-      // ðŸ†• NEW: Auto-analysis defaults for streamlined workflow
-      auto_analysis_enabled: campaignData.auto_analysis_enabled ?? true,
-      content_types: campaignData.content_types || ["email", "social_post", "ad_copy"],
-      content_tone: campaignData.content_tone || "conversational",
-      content_style: campaignData.content_style || "modern",
-      generate_content_after_analysis: campaignData.generate_content_after_analysis ?? false,
-    }
-
-    console.log('ðŸš€ Creating campaign with streamlined workflow data:', dataWithDefaults)
-    console.log(`✅ Mapped user_type '${userProfile.user_type}' to campaign_type '${appropriateCampaignType}':`, dataWithDefaults.campaign_type)
-
+  async createCampaign(data: CampaignCreateRequest): Promise<Campaign> {
     const response = await fetch(`${this.baseURL}/api/campaigns/`, {
-      method: 'POST',
-      headers: this.getHeaders(),
-      body: JSON.stringify(dataWithDefaults)
-    })
-
-    return this.handleResponse<Campaign>(response)
-  }
-
-  // ðŸ†• ENHANCED: Updated getCampaigns method with demo awareness
-  async getCampaigns(params?: {
-    page?: number
-    limit?: number
-    status_filter?: string
-    search?: string
-    skip?: number
-  }): Promise<Campaign[]> {
-    const baseUrl = `${this.baseURL}/api/campaigns/`
-
-    const searchParams = new URLSearchParams()
-    if (params?.page) searchParams.set('page', params.page.toString())
-    if (params?.limit) searchParams.set('limit', params.limit.toString())
-    if (params?.skip) searchParams.set('skip', params.skip.toString())
-    if (params?.status_filter) searchParams.set('status_filter', params.status_filter)
-    if (params?.search) searchParams.set('search', params.search)
-
-    const fullUrl = searchParams.toString()
-      ? `${baseUrl}?${searchParams.toString()}`
-      : baseUrl
-
-    console.log('ðŸ” getCampaigns URL:', fullUrl)
-
-    try {
-      const response = await fetch(fullUrl, {
-        headers: this.getHeaders()
-      })
-
-      console.log('âœ… getCampaigns response status:', response.status)
-
-      if (!response.ok) {
-        console.error('âŒ getCampaigns failed:', response.status, response.statusText)
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`)
-      }
-
-      const responseData = await this.handleResponse<{campaigns: Campaign[], total: number, page?: number, per_page?: number}>(response)
-      
-      // Extract campaigns array from response object
-      const campaigns = responseData.campaigns || []
-      console.log('âœ… getCampaigns success, got', campaigns.length, 'campaigns')
-
-      // Add helpful logging for demo campaigns and new workflow
-      if (Array.isArray(campaigns)) {
-        const demoCampaigns = campaigns.filter((c: any) => c.is_demo || (c.settings?.is_demo))
-        const realCampaigns = campaigns.filter((c: any) => !c.is_demo && !c.settings?.is_demo)
-        const globalDemo = campaigns.filter((c: any) => c.settings?.is_global_demo)
-        
-        console.log(`ðŸ"Š Campaigns loaded: ${realCampaigns.length} real, ${demoCampaigns.length} demo, ${globalDemo.length} global demo`)
-      }
-
-      return campaigns
-
-    } catch (error) {
-      console.error('âŒ getCampaigns error:', error)
-      throw error
-    }
-  }
-
-  async getCampaign(campaignId: string): Promise<Campaign> {
-    const headers = this.getHeaders()
-    console.log('🔍 getCampaign called:', {
-      campaignId,
-      url: `${this.baseURL}/api/campaigns/${campaignId}`,
-      hasAuthHeader: !!headers.Authorization,
-      authHeaderPreview: headers.Authorization ? `${headers.Authorization.substring(0, 20)}...` : 'No auth header'
-    })
-
-    const response = await fetch(`${this.baseURL}/api/campaigns/${campaignId}`, {
-      headers
-    })
-
-    console.log('📡 getCampaign response:', {
-      status: response.status,
-      statusText: response.statusText,
-      ok: response.ok
-    })
-
-    return this.handleResponse<Campaign>(response)
-  }
-
-  async updateCampaign(campaignId: string, updates: Partial<Campaign>): Promise<Campaign> {
-    const response = await fetch(`${this.baseURL}/api/campaigns/${campaignId}`, {
-      method: 'PUT',
-      headers: this.getHeaders(),
-      body: JSON.stringify(updates)
-    })
-
-    return this.handleResponse<Campaign>(response)
-  }
-
-  async deleteCampaign(campaignId: string): Promise<{ message: string }> {
-    const response = await fetch(`${this.baseURL}/api/campaigns/${campaignId}`, {
-      method: 'DELETE',
-      headers: this.getHeaders()
-    })
-
-    return this.handleResponse(response)
-  }
-
-  async duplicateCampaign(campaignId: string): Promise<Campaign> {
-    const response = await fetch(`${this.baseURL}/api/campaigns/${campaignId}/duplicate`, {
-      method: 'POST',
-      headers: this.getHeaders()
-    })
-
-    return this.handleResponse<Campaign>(response)
-  }
-
-
-  // ============================================================================
-  // CONTENT MANAGEMENT METHODS
-  // ============================================================================
-
-  async getContentList(campaignId: string, includeBody = false, contentType?: string): Promise<ContentListResponse> {
-    const params = new URLSearchParams()
-    if (includeBody) params.set('include_body', 'true')
-    if (contentType) params.set('content_type', contentType)
-
-    const response = await fetch(`${this.baseURL}/api/intelligence/content/${campaignId}?${params}`, {
-      headers: this.getHeaders()
-    })
-
-    return this.handleResponse<ContentListResponse>(response)
-  }
-
-  async getContentDetail(campaignId: string, contentId: string): Promise<ContentDetailResponse> {
-    const response = await fetch(`${this.baseURL}/api/intelligence/content/${campaignId}/content/${contentId}`, {
-      headers: this.getHeaders()
-    })
-
-    return this.handleResponse<ContentDetailResponse>(response)
-  }
-
-  async updateContent(campaignId: string, contentId: string, updateData: any): Promise<{
-    id: string
-    message: string
-    updated_at: string
-  }> {
-    const response = await fetch(`${this.baseURL}/api/intelligence/content/${campaignId}/content/${contentId}`, {
-      method: 'PUT',
-      headers: this.getHeaders(),
-      body: JSON.stringify(updateData)
-    })
-
-    return this.handleResponse(response)
-  }
-
-  async deleteContent(campaignId: string, contentId: string): Promise<{ message: string }> {
-    const response = await fetch(`${this.baseURL}/api/intelligence/content/${campaignId}/content/${contentId}`, {
-      method: 'DELETE',
-      headers: this.getHeaders()
-    })
-
-    return this.handleResponse(response)
-  }
-
-  async rateContent(campaignId: string, contentId: string, rating: number): Promise<{
-    id: string
-    rating: number
-    message: string
-  }> {
-    const response = await fetch(`${this.baseURL}/api/campaigns/${campaignId}/content/${contentId}/rate`, {
-      method: 'POST',
-      headers: this.getHeaders(),
-      body: JSON.stringify({ rating })
-    })
-
-    return this.handleResponse(response)
-  }
-
-  async publishContent(campaignId: string, contentId: string, publishedAt?: string): Promise<{
-    id: string
-    is_published: boolean
-    published_at: string
-    message: string
-  }> {
-    const response = await fetch(`${this.baseURL}/api/campaigns/${campaignId}/content/${contentId}/publish`, {
-      method: 'POST',
-      headers: this.getHeaders(),
-      body: JSON.stringify({ published_at: publishedAt || 'Manual' })
-    })
-
-    return this.handleResponse(response)
-  }
-
-  async bulkContentAction(campaignId: string, contentIds: string[], action: string, params: any = {}): Promise<BulkActionResponse> {
-    const response = await fetch(`${this.baseURL}/api/campaigns/${campaignId}/content/bulk-action`, {
-      method: 'POST',
-      headers: this.getHeaders(),
-      body: JSON.stringify({ content_ids: contentIds, action, params })
-    })
-
-    return this.handleResponse<BulkActionResponse>(response)
-  }
-
-  async getContentStats(campaignId: string): Promise<ContentStats> {
-    const response = await fetch(`${this.baseURL}/api/campaigns/${campaignId}/content/stats`, {
-      headers: this.getHeaders()
-    })
-
-    return this.handleResponse<ContentStats>(response)
-  }
-
-  async duplicateContent(campaignId: string, contentId: string, title?: string): Promise<{
-    id: string
-    original_id: string
-    title: string
-    message: string
-  }> {
-    const response = await fetch(`${this.baseURL}/api/campaigns/${campaignId}/content/${contentId}/duplicate`, {
-      method: 'POST',
-      headers: this.getHeaders(),
-      body: JSON.stringify({ title })
-    })
-
-    return this.handleResponse(response)
-  }
-
-  // ============================================================================
-  // ðŸ”§ UPDATED WORKFLOW METHODS FOR 2-STEP PROCESS
-  // ============================================================================
-
-  async getWorkflowState(campaignId: string): Promise<WorkflowStateResponse> {
-    const headers = this.getHeaders()
-    console.log('🔍 getWorkflowState called:', {
-      campaignId,
-      url: `${this.baseURL}/api/campaigns/${campaignId}/workflow-state`,
-      hasAuthHeader: !!headers.Authorization,
-      authHeaderPreview: headers.Authorization ? `${headers.Authorization.substring(0, 20)}...` : 'No auth header'
-    })
-
-    const response = await fetch(`${this.baseURL}/api/campaigns/${campaignId}/workflow-state`, {
-      headers
-    })
-
-    console.log('📡 getWorkflowState response:', {
-      status: response.status,
-      statusText: response.statusText,
-      ok: response.ok
-    })
-
-    return this.handleResponse<WorkflowStateResponse>(response)
-  }
-
-  // ðŸ†• NEW: Save workflow progress for streamlined workflow
-  async saveWorkflowProgress(campaignId: string, progressData: WorkflowProgressData): Promise<{
-    success: boolean
-    message: string
-    campaign_id: string
-    updated_workflow_state: string
-    completion_percentage: number
-    step_states: Record<string, any>
-    auto_analysis_status: string
-    updated_at: string
-    is_demo: boolean
-  }> {
-    const response = await fetch(`${this.baseURL}/api/campaigns/${campaignId}/workflow/save-progress`, {
-      method: 'POST',
-      headers: this.getHeaders(),
-      body: JSON.stringify(progressData)
-    })
-
-    return this.handleResponse(response)
-  }
-
-  // ============================================================================
-  // ðŸ”§ UPDATED INTELLIGENCE METHODS
-  // ============================================================================
-
-  async analyzeURL(data: {
-    url: string
-    campaign_id: string
-    analysis_type?: string
-  }): Promise<{
-    intelligence_id: string
-    analysis_status: string
-    confidence_score: number
-    offer_intelligence: any
-    psychology_intelligence: any
-    competitive_opportunities: any[]
-    campaign_suggestions: string[]
-  }> {
-    const response = await fetch(`${this.baseURL}/api/intelligence/analysis/url`, {
       method: 'POST',
       headers: this.getHeaders(),
       body: JSON.stringify(data)
@@ -2438,20 +425,162 @@ class ApiClient {
     return this.handleResponse(response)
   }
 
-  async uploadDocument(file: File, campaignId: string): Promise<{
-    intelligence_id: string
-    status: string
-    insights_extracted: number
-    content_opportunities: string[]
-  }> {
+  async getCampaigns(options: { limit?: number } = {}): Promise<Campaign[]> {
+    const searchParams = new URLSearchParams()
+    if (options.limit) searchParams.append('limit', options.limit.toString())
+
+    const url = `${this.baseURL}/api/campaigns/${searchParams.toString() ? '?' + searchParams.toString() : ''}`
+    const response = await fetch(url, {
+      headers: this.getHeaders()
+    })
+
+    return this.handleResponse(response)
+  }
+
+  async getCampaign(id: string): Promise<Campaign> {
+    const response = await fetch(`${this.baseURL}/api/campaigns/${id}`, {
+      headers: this.getHeaders()
+    })
+
+    return this.handleResponse(response)
+  }
+
+  async deleteCampaign(id: string): Promise<void> {
+    const response = await fetch(`${this.baseURL}/api/campaigns/${id}`, {
+      method: 'DELETE',
+      headers: this.getHeaders()
+    })
+
+    await this.handleResponse(response)
+  }
+
+  async duplicateCampaign(id: string): Promise<Campaign> {
+    const response = await fetch(`${this.baseURL}/api/campaigns/${id}/duplicate`, {
+      method: 'POST',
+      headers: this.getHeaders()
+    })
+
+    return this.handleResponse(response)
+  }
+
+  // ============================================================================
+  // Intelligence & Analysis
+  // ============================================================================
+
+  async analyzeUrl(url: string, analysisMethod: string = 'ENHANCED'): Promise<any> {
+    const response = await fetch(`${this.baseURL}/api/intelligence/analyze`, {
+      method: 'POST',
+      headers: this.getHeaders(),
+      body: JSON.stringify({
+        url,
+        analysis_method: analysisMethod
+      })
+    })
+
+    return this.handleResponse(response)
+  }
+
+  async analyzeURL(url: string, analysisMethod: string = 'ENHANCED'): Promise<any> {
+    // Alias for analyzeUrl to match existing codebase usage
+    return this.analyzeUrl(url, analysisMethod)
+  }
+
+  async runIntelligenceAnalysis(data: any): Promise<any> {
+    const response = await fetch(`${this.baseURL}/api/intelligence/analyze`, {
+      method: 'POST',
+      headers: this.getHeaders(),
+      body: JSON.stringify(data)
+    })
+
+    return this.handleResponse(response)
+  }
+
+  async getRecommendedPlatforms(): Promise<{ recommended_platforms: string[] }> {
+    const response = await fetch(`${this.baseURL}/api/intelligence/recommended-platforms`, {
+      headers: this.getHeaders()
+    })
+
+    return this.handleResponse(response)
+  }
+
+  async getWorkflowState(campaignId: string): Promise<any> {
+    const response = await fetch(`${this.baseURL}/api/campaigns/${campaignId}/workflow`, {
+      headers: this.getHeaders()
+    })
+
+    return this.handleResponse(response)
+  }
+
+  // ============================================================================
+  // Content Generation
+  // ============================================================================
+
+  async generateContent(contentType: string, intelligenceId: string, options: any = {}): Promise<any> {
+    const response = await fetch(`${this.baseURL}/api/content/generate`, {
+      method: 'POST',
+      headers: this.getHeaders(),
+      body: JSON.stringify({
+        content_type: contentType,
+        intelligence_id: intelligenceId,
+        ...options
+      })
+    })
+
+    return this.handleResponse(response)
+  }
+
+  async getGeneratedContent(campaignId: string): Promise<any> {
+    const response = await fetch(`${this.baseURL}/api/content/campaigns/${campaignId}/content`, {
+      headers: this.getHeaders()
+    })
+
+    return this.handleResponse(response)
+  }
+
+  // ============================================================================
+  // Demo & User Preferences
+  // ============================================================================
+
+  async createDemoManually(): Promise<any> {
+    const response = await fetch(`${this.baseURL}/api/demo/create`, {
+      method: 'POST',
+      headers: this.getHeaders()
+    })
+
+    return this.handleResponse(response)
+  }
+
+  async getDemoPreferences(): Promise<any> {
+    const response = await fetch(`${this.baseURL}/api/demo/preferences`, {
+      headers: this.getHeaders()
+    })
+
+    return this.handleResponse(response)
+  }
+
+  async toggleDemoVisibility(visible: boolean): Promise<any> {
+    const response = await fetch(`${this.baseURL}/api/demo/visibility`, {
+      method: 'POST',
+      headers: this.getHeaders(),
+      body: JSON.stringify({ visible })
+    })
+
+    return this.handleResponse(response)
+  }
+
+  // ============================================================================
+  // File Upload & Storage
+  // ============================================================================
+
+  async uploadDocument(file: File): Promise<any> {
     const formData = new FormData()
     formData.append('file', file)
-    formData.append('campaign_id', campaignId)
 
-    const response = await fetch(`${this.baseURL}/api/intelligence/upload-document`, {
+    const response = await fetch(`${this.baseURL}/api/storage/upload`, {
       method: 'POST',
       headers: {
-        Authorization: `Bearer ${this.getAuthToken()}`
+        Authorization: this.getHeaders().Authorization as string,
+        // Don't set Content-Type for FormData - browser will set it with boundary
       },
       body: formData
     })
@@ -2459,732 +588,77 @@ class ApiClient {
     return this.handleResponse(response)
   }
 
-  // ðŸŽ¯ ROBUST CONTENT GENERATION METHOD - Handles All Backend Response Formats
-  async generateContent(data: {
-    content_type: string
-    campaign_id: string
-    preferences?: Record<string, any>
-  }): Promise<GeneratedContent> {
-    console.log('ðŸŽ¯ Generating content with data:', data)
-
-    const requestData = {
-      content_type: data.content_type,
-      campaign_id: data.campaign_id,
-      preferences: data.preferences || {},
-      prompt: `Generate ${data.content_type} content`
-    }
-
-    console.log('ðŸ“¡ Sending request to backend:', requestData)
-
-    const response = await fetch(`${this.baseURL}/api/intelligence/content/generate`, {
-      method: 'POST',
-      headers: this.getHeaders(),
-      body: JSON.stringify(requestData)
-    })
-
-    // ðŸŽ¯ ROBUST: Use specialized content generation response handler
-    const result = await this.handleContentGenerationResponse(response)
-    console.log('âœ… Content generation successful:', result)
-
-    return result
-  }
-
-  // ðŸ”§ UPDATED: Campaign intelligence method with proper parameters
-  async getCampaignIntelligence(
-    campaignId: string,
-    skip: number = 0,
-    limit: number = 50,
-    intelligenceType?: string
-  ): Promise<CampaignIntelligenceResponse> {
-    const params = new URLSearchParams()
-    params.set('skip', skip.toString())
-    params.set('limit', limit.toString())
-    if (intelligenceType) params.set('intelligence_type', intelligenceType)
-
-    const response = await fetch(`${this.baseURL}/api/campaigns/${campaignId}/intelligence?${params}`, {
-      headers: this.getHeaders()
-    })
-
-    return this.handleResponse<CampaignIntelligenceResponse>(response)
-  }
-
   // ============================================================================
-  // ðŸ”§ UPDATED DASHBOARD METHODS (Enhanced with Demo Info & 2-Step Workflow)
+  // Social Media Integration
   // ============================================================================
 
-  async getDashboardStats(): Promise<{
-    total_campaigns_created: number
-    real_campaigns: number
-    demo_campaigns: number
-    workflow_type: string
-    demo_system?: {
-      demo_available: boolean
-      user_demo_preference: boolean
-      demo_visible_in_current_view: boolean
-      can_toggle_demo: boolean
-      helps_onboarding: boolean
-      user_control: string
-    }
-    user_experience?: {
-      is_new_user: boolean
-      demo_recommended: boolean
-      onboarding_complete: boolean
-    }
-    user_id: string
-    company_id: string
-    generated_at: string
-  }> {
-    // ðŸ”§ FIXED: Use correct endpoint path matching backend
-    const response = await fetch(`${this.baseURL}/api/campaigns/stats/stats`, {
-      headers: this.getHeaders()
-    })
-
-    return this.handleResponse(response)
-  }
-
-  async getCampaignStats(): Promise<{
-    total_campaigns_created: number
-    active_campaigns: number
-    draft_campaigns: number
-    completed_campaigns: number
-    total_sources: number
-    total_content: number
-    avg_completion: number
-  }> {
-    const response = await fetch(`${this.baseURL}/api/campaigns/stats/stats`, {
-      headers: this.getHeaders()
-    })
-
-    return this.handleResponse(response)
-  }
-
-  async getCompanyStats(): Promise<{
-    company_name: string
-    subscription_tier: string
-    monthly_credits_used: number
-    monthly_credits_limit: number
-    credits_remaining: number
-    total_campaigns_created: number
-    active_campaigns: number
-    team_members: number
-    campaigns_this_month: number
-    usage_percentage: number
-  }> {
-    const response = await fetch(`${this.baseURL}/api/dashboard/stats`, {
-      headers: this.getHeaders()
-    })
-
-    return this.handleResponse(response)
-  }
-
-  async getCompanyDetails(): Promise<{
-    id: string
-    company_name: string
-    company_slug: string
-    industry?: string
-    company_size?: string
-    website_url?: string
-    subscription_tier: string
-    subscription_status: string
-    monthly_credits_used: number
-    monthly_credits_limit: number
-    created_at: string
-  }> {
-    const response = await fetch(`${this.baseURL}/api/dashboard/company`, {
-      headers: this.getHeaders()
-    })
-
-    return this.handleResponse(response)
-  }
-
-  // ============================================================================
-  // AFFILIATE METHODS
-  // ============================================================================
-
-  async getAffiliatePreferences(): Promise<any> {
-    const response = await fetch(`${this.baseURL}/api/affiliate/preferences`, {
-      headers: this.getHeaders()
-    })
-
-    if (response.status === 404) {
-      return null
-    }
-
-    return this.handleResponse(response)
-  }
-
-  async saveAffiliatePreferences(preferences: any): Promise<any> {
-    const response = await fetch(`${this.baseURL}/api/affiliate/preferences`, {
-      method: 'POST',
-      headers: this.getHeaders(),
-      body: JSON.stringify(preferences)
-    })
-
-    return this.handleResponse(response)
-  }
-
-  async generateAffiliateLink(request: any): Promise<any> {
-    const response = await fetch(`${this.baseURL}/api/affiliate/generate-link`, {
-      method: 'POST',
-      headers: this.getHeaders(),
-      body: JSON.stringify(request)
-    })
-
-    return this.handleResponse(response)
-  }
-
-  async trackAffiliateClick(clickData: any): Promise<any> {
-    const response = await fetch(`${this.baseURL}/api/affiliate/track-click`, {
-      method: 'POST',
-      headers: this.getHeaders(),
-      body: JSON.stringify(clickData)
-    })
-
-    return this.handleResponse(response)
-  }
-
-  async getAffiliatePerformance(days: number = 30): Promise<any> {
-    const response = await fetch(`${this.baseURL}/api/affiliate/performance?days=${days}`, {
-      headers: this.getHeaders()
-    })
-
-    return this.handleResponse(response)
-  }
-
-  // ============================================================================
-  // 🔥 MODULAR 3-STEP ARCHITECTURE API METHODS
-  // ============================================================================
-
-  /**
-   * Step 1: Intelligence Analysis & Extraction
-   * Uses the modular intelligence system with 3-stage processing:
-   * - Stage 1: Base Intelligence Extraction (analyzers.py)
-   * - Stage 2: AI Enhancement Pipeline (6 enhancement modules)
-   * - Stage 3: RAG & Advanced Processing (enhanced_rag_system.py)
-   */
-
-  async runIntelligenceAnalysis(campaignId: string, analysisData: any): Promise<any> {
-    console.log('🧠 API: Running intelligence analysis for campaign:', campaignId);
-    console.log('🧠 Analysis data received:', analysisData);
-
-    // Extract URL from inputs - look for salespage_url or any URL input
-    let sourceUrl = null;
-    if (analysisData.inputs) {
-      // Check for salespage_url first, then other URL types
-      sourceUrl = analysisData.inputs.salespage_url ||
-                  analysisData.inputs.competitor_url ||
-                  // Find any URL from inputs
-                  Object.values(analysisData.inputs).find((value: any) =>
-                    typeof value === 'string' && (value.startsWith('http://') || value.startsWith('https://'))
-                  );
-    }
-
-    if (!sourceUrl) {
-      throw new Error('No valid URL found in inputs. Please add a salespage URL or competitor URL.');
-    }
-
-    console.log('🎯 Extracted source URL for analysis:', sourceUrl);
-
-    // Create the request format expected by the existing backend endpoint
-    const requestData = {
-      source_url: sourceUrl,
-      analysis_method: 'enhanced', // Use enhanced for full 3-stage pipeline
-      force_refresh: true // Force refresh to run full pipeline instead of cached results
-    };
-
-    const response = await fetch(`${this.baseURL}/api/intelligence/analyze`, {
-      method: 'POST',
-      headers: this.getHeaders(),
-      body: JSON.stringify(requestData)
-    });
-
-    return this.handleResponse(response);
-  }
-
-  /**
-   * Step 2: 3-Step Intelligence-Driven Content Generation
-   * Leverages the modular backend architecture:
-   * - Uses stored intelligence from Step 1 (runIntelligenceAnalysis)
-   * - Applies 6 AI enhancement modules for optimization
-   * - Routes to tier-appropriate providers for cost efficiency
-   *
-   * @param campaignId - Campaign with stored intelligence data
-   * @param contentType - Type of content to generate (email, social_post, blog_post, ad_copy, etc.)
-   * @param preferences - Generation preferences and options
-   */
-  async triggerContentGeneration(campaignId: string, contentType: string = 'email', preferences: any = {}): Promise<any> {
-    console.log('🎨 API: Triggering 3-step intelligence-driven content generation');
-    console.log('📋 Campaign:', campaignId, 'Content Type:', contentType);
-
-    // Use the modular 3-step intelligence-driven content generation
-    // Step 1: Intelligence extraction (automatic from stored campaign intelligence)
-    // Step 2: AI prompt optimization (automatic based on intelligence)
-    // Step 3: Content generation with tier-appropriate providers
-    const requestData = {
-      content_type: contentType,
-      campaign_id: campaignId,
-      preferences: {
-        // Enhanced 3-step process preferences
-        use_3_step_process: true,
-        intelligence_extraction: true,
-        prompt_optimization: true,
-        tier_routing: true,
-        // Legacy compatibility
-        generate_multiple_types: preferences.generate_multiple_types || false,
-        ...preferences
-      }
-    };
-
-    console.log('🚀 3-Step Content Generation Request:', requestData);
-
-    const response = await fetch(`${this.baseURL}/api/intelligence/generate-content`, {
-      method: 'POST',
-      headers: this.getHeaders(),
-      body: JSON.stringify(requestData)
-    });
-
-    return this.handleResponse(response);
-  }
-
-  async getContentGenerationStatus(campaignId: string): Promise<any> {
-    console.log('📊 API: Getting content generation status for campaign:', campaignId);
-    
-    const response = await fetch(`${this.baseURL}/api/content/status/${campaignId}`, {
-      headers: this.getHeaders()
-    });
-
-    return this.handleResponse(response);
-  }
-
-  async getGeneratedContent(campaignId: string, contentType?: string): Promise<any> {
-    const headers = this.getHeaders()
-    const url = contentType
-      ? `${this.baseURL}/api/content/results/${campaignId}?content_type=${contentType}`
-      : `${this.baseURL}/api/content/results/${campaignId}`;
-
-    console.log('🔍 getGeneratedContent called:', {
-      campaignId,
-      contentType,
-      url,
-      hasAuthHeader: !!headers.Authorization,
-      authHeaderPreview: headers.Authorization ? `${headers.Authorization.substring(0, 20)}...` : 'No auth header'
-    });
-
-    const response = await fetch(url, {
-      headers
-    });
-
-    console.log('📡 getGeneratedContent response:', {
-      status: response.status,
-      statusText: response.statusText,
-      ok: response.ok
-    });
-
-    return this.handleResponse(response);
-  }
-
-  async regenerateContent(campaignId: string, contentType: string, modifications: any): Promise<any> {
-    console.log('🔄 API: Regenerating content for campaign:', campaignId, 'type:', contentType);
-    
-    const response = await fetch(`${this.baseURL}/api/content/regenerate/${campaignId}`, {
+  async addSocialProfile(platform: string, data: any): Promise<any> {
+    const response = await fetch(`${this.baseURL}/api/user-social/profiles`, {
       method: 'POST',
       headers: this.getHeaders(),
       body: JSON.stringify({
-        content_type: contentType,
-        modifications
+        platform,
+        ...data
       })
-    });
+    })
 
-    return this.handleResponse(response);
-  }
-
-  async getUserContentLimits(): Promise<any> {
-    console.log('📈 API: Getting user content limits');
-    
-    const response = await fetch(`${this.baseURL}/api/content/user-limits`, {
-      headers: this.getHeaders()
-    });
-
-    return this.handleResponse(response);
-  }
-
-  // ============================================================================
-  // 🚫 DEPRECATED METHODS (For Legacy Compatibility - Will be Removed)
-  // ============================================================================
-
-  /**
-   * @deprecated Use runIntelligenceAnalysis() with new 3-step architecture
-   * Legacy method for backward compatibility only
-   */
-  async legacyAnalyzeURL(url: string): Promise<any> {
-    console.warn('⚠️ DEPRECATED: legacyAnalyzeURL() is deprecated. Use runIntelligenceAnalysis() instead.');
-
-    // Convert to new 3-step format
-    const analysisData = {
-      inputs: { salespage_url: url }
-    };
-
-    return this.runIntelligenceAnalysis('legacy', analysisData);
-  }
-
-  /**
-   * @deprecated Use triggerContentGeneration() with enhanced 3-step process
-   * Legacy direct generation without intelligence extraction
-   */
-  async legacyGenerateContent(contentType: string, prompt: string): Promise<any> {
-    console.warn('⚠️ DEPRECATED: legacyGenerateContent() is deprecated. Use triggerContentGeneration() with campaign context instead.');
-
-    // This should not be used - content generation needs intelligence context
-    throw new Error('Legacy content generation is deprecated. Please use campaign-based content generation with intelligence context.');
-  }
-
-  /**
-   * @deprecated Individual generator methods are deprecated
-   * Use triggerContentGeneration() with specific content_type parameter instead
-   */
-  async generateEmailSequence(intelligence: any): Promise<any> {
-    console.warn('⚠️ DEPRECATED: generateEmailSequence() is deprecated. Use triggerContentGeneration(campaignId, "email") instead.');
-
-    throw new Error('Direct email generation is deprecated. Please create a campaign and use triggerContentGeneration().');
-  }
-
-  /**
-   * @deprecated Individual generator methods are deprecated
-   * Use triggerContentGeneration() with specific content_type parameter instead
-   */
-  async generateSocialMediaContent(intelligence: any): Promise<any> {
-    console.warn('⚠️ DEPRECATED: generateSocialMediaContent() is deprecated. Use triggerContentGeneration(campaignId, "social_post") instead.');
-
-    throw new Error('Direct social media generation is deprecated. Please create a campaign and use triggerContentGeneration().');
-  }
-
-  /**
-   * @deprecated Individual generator methods are deprecated
-   * Use triggerContentGeneration() with specific content_type parameter instead
-   */
-  async generateBlogPost(intelligence: any): Promise<any> {
-    console.warn('⚠️ DEPRECATED: generateBlogPost() is deprecated. Use triggerContentGeneration(campaignId, "blog_post") instead.');
-
-    throw new Error('Direct blog generation is deprecated. Please create a campaign and use triggerContentGeneration().');
+    return this.handleResponse(response)
   }
 }
 
 // ============================================================================
-// CREATE API CLIENT INSTANCE (SINGLE INSTANCE)
+// Singleton Instance & Hook
 // ============================================================================
 
 const apiClient = new ApiClient()
 
-// ============================================================================
-// ðŸ”§ NEW: ENHANCED EMAIL GENERATION REACT HOOK
-// ============================================================================
-
-function useEnhancedEmailGeneration() {
-  const [isGenerating, setIsGenerating] = useState(false)
-  const [isTracking, setIsTracking] = useState(false)
-  const [systemHealth, setSystemHealth] = useState<EmailSystemHealthResponse | null>(null)
-  const [analytics, setAnalytics] = useState<LearningAnalyticsResponse | null>(null)
-  const [error, setError] = useState<string | null>(null)
-
-  const generateEmails = useCallback(async (request: EmailGenerationRequest) => {
-    try {
-      setIsGenerating(true)
-      setError(null)
-      const result = await apiClient.generateEnhancedEmails(request)
-      return result
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Email generation failed'
-      setError(errorMessage)
-      throw err
-    } finally {
-      setIsGenerating(false)
-    }
-  }, [])
-
-  const trackPerformance = useCallback(async (request: PerformanceTrackingRequest) => {
-    try {
-      setIsTracking(true)
-      setError(null)
-      const result = await apiClient.trackEmailPerformance(request)
-      return result
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Performance tracking failed'
-      setError(errorMessage)
-      throw err
-    } finally {
-      setIsTracking(false)
-    }
-  }, [])
-
-  const loadSystemHealth = useCallback(async () => {
-    try {
-      setError(null)
-      const health = await apiClient.getEmailSystemHealth()
-      setSystemHealth(health)
-      return health
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'System health check failed')
-      throw err
-    }
-  }, [])
-
-  const loadAnalytics = useCallback(async () => {
-    try {
-      setError(null)
-      const analyticsData = await apiClient.getEmailLearningAnalytics()
-      setAnalytics(analyticsData)
-      return analyticsData
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Analytics loading failed')
-      throw err
-    }
-  }, [])
-
-  const seedTemplates = useCallback(async (forceReseed = false) => {
-    try {
-      setError(null)
-      const result = await apiClient.seedEmailTemplates(forceReseed)
-      return result
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Template seeding failed')
-      throw err
-    }
-  }, [])
-
-  const triggerLearning = useCallback(async (daysBack = 7) => {
-    try {
-      setError(null)
-      const result = await apiClient.triggerEmailLearning(daysBack)
-      return result
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Learning trigger failed')
-      throw err
-    }
-  }, [])
-
-  const testSystem = useCallback(async (productName = 'TestProduct', sequenceLength = 3) => {
-    try {
-      setError(null)
-      const result = await apiClient.testEnhancedEmailGeneration(productName, sequenceLength, true)
-      return result
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'System test failed')
-      throw err
-    }
-  }, [])
-
-  useEffect(() => {
-    // Load system health on mount
-    loadSystemHealth().catch(console.error)
-  }, [loadSystemHealth])
-
-  return {
-    // State
-    isGenerating,
-    isTracking,
-    systemHealth,
-    analytics,
-    error,
-
-    // Actions
-    generateEmails,
-    trackPerformance,
-    loadSystemHealth,
-    loadAnalytics,
-    seedTemplates,
-    triggerLearning,
-    testSystem,
-
-    // Utils
-    isSystemReady: systemHealth?.status === 'healthy',
-    hasTemplates: systemHealth?.enhanced_email_system?.template_database?.templates_seeded ?? false,
-    templateCount: systemHealth?.enhanced_email_system?.template_database?.total_templates ?? 0
-  }
-}
-
-// ============================================================================
-// ðŸ†• NEW: DEMO PREFERENCE REACT HOOK
-// ============================================================================
-
-function useDemoPreferences() {
-  const [preferences, setPreferences] = useState<DemoPreference | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-
-  const loadPreferences = useCallback(async () => {
-    try {
-      setIsLoading(true)
-      setError(null)
-      const prefs = await apiClient.getDemoPreferences()
-      setPreferences(prefs)
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load preferences')
-      console.error('Error loading demo preferences:', err)
-    } finally {
-      setIsLoading(false)
-    }
-  }, [])
-
-  const updatePreferences = useCallback(async (updates: Partial<DemoPreference>) => {
-    try {
-      setError(null)
-      const updatedPrefs = await apiClient.updateDemoPreferences(updates)
-      setPreferences(updatedPrefs)
-      return updatedPrefs
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to update preferences')
-      throw err
-    }
-  }, [])
-
-  const toggleVisibility = useCallback(async () => {
-    try {
-      setError(null)
-      const result = await apiClient.toggleDemoVisibility()
-
-      // Update local preferences
-      if (preferences) {
-        setPreferences({
-          ...preferences,
-          show_demo_campaigns: result.show_demo_campaigns
-        })
-      }
-
-      return result
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to toggle visibility')
-      throw err
-    }
-  }, [preferences])
-
-  useEffect(() => {
-    loadPreferences()
-  }, [loadPreferences])
-
-  return {
-    preferences,
-    isLoading,
-    error,
-    updatePreferences,
-    toggleVisibility,
-    reload: loadPreferences
-  }
-}
-
-// ============================================================================
-// ðŸ”§ UPDATED REACT HOOK FOR API ACCESS (Enhanced with AI Discovery Service)
-// ============================================================================
-
-function useApi() {
+export const useApi = () => {
   return {
     // Authentication
     login: apiClient.login.bind(apiClient),
     register: apiClient.register.bind(apiClient),
-    logout: apiClient.logout.bind(apiClient),
+    getProfile: apiClient.getProfile.bind(apiClient),
     getUserProfile: apiClient.getUserProfile.bind(apiClient),
+    logout: apiClient.logout.bind(apiClient),
 
-    // ðŸ”§ NEW: Enhanced email generation methods
-    generateEnhancedEmails: apiClient.generateEnhancedEmails.bind(apiClient),
-    trackEmailPerformance: apiClient.trackEmailPerformance.bind(apiClient),
-    getEmailLearningAnalytics: apiClient.getEmailLearningAnalytics.bind(apiClient),
-    getEmailSystemHealth: apiClient.getEmailSystemHealth.bind(apiClient),
-    seedEmailTemplates: apiClient.seedEmailTemplates.bind(apiClient),
-    triggerEmailLearning: apiClient.triggerEmailLearning.bind(apiClient),
-    testEnhancedEmailGeneration: apiClient.testEnhancedEmailGeneration.bind(apiClient),
-    getEnhancedEmailSystemStatus: apiClient.getEnhancedEmailSystemStatus.bind(apiClient),
+    // User Type Management
+    getUserTypeConfig: apiClient.getUserTypeConfig.bind(apiClient),
+    selectUserType: apiClient.selectUserType.bind(apiClient),
+    completeOnboarding: apiClient.completeOnboarding.bind(apiClient),
 
-    // ðŸ†• Demo preference methods
-    getDemoPreferences: apiClient.getDemoPreferences.bind(apiClient),
-    updateDemoPreferences: apiClient.updateDemoPreferences.bind(apiClient),
-    toggleDemoVisibility: apiClient.toggleDemoVisibility.bind(apiClient),
-    getDemoManagementInfo: apiClient.getDemoManagementInfo.bind(apiClient),
-    createDemoManually: apiClient.createDemoManually.bind(apiClient),
-    getCampaignsWithDemo: apiClient.getCampaignsWithDemo.bind(apiClient),
-
-    // ðŸ”§ Campaign operations (enhanced for 2-step workflow)
+    // Campaign Management
     createCampaign: apiClient.createCampaign.bind(apiClient),
     getCampaigns: apiClient.getCampaigns.bind(apiClient),
     getCampaign: apiClient.getCampaign.bind(apiClient),
-    updateCampaign: apiClient.updateCampaign.bind(apiClient),
     deleteCampaign: apiClient.deleteCampaign.bind(apiClient),
     duplicateCampaign: apiClient.duplicateCampaign.bind(apiClient),
-
-    // Content management
-    getGeneratedContent: apiClient.getGeneratedContent.bind(apiClient),
-    getContentList: apiClient.getContentList.bind(apiClient),
-    getContentDetail: apiClient.getContentDetail.bind(apiClient),
-    updateContent: apiClient.updateContent.bind(apiClient),
-    deleteContent: apiClient.deleteContent.bind(apiClient),
-    rateContent: apiClient.rateContent.bind(apiClient),
-    publishContent: apiClient.publishContent.bind(apiClient),
-    bulkContentAction: apiClient.bulkContentAction.bind(apiClient),
-    getContentStats: apiClient.getContentStats.bind(apiClient),
-    duplicateContent: apiClient.duplicateContent.bind(apiClient),
-
-    // ðŸ”§ Workflow operations (updated for 2-step process)
     getWorkflowState: apiClient.getWorkflowState.bind(apiClient),
-    saveWorkflowProgress: apiClient.saveWorkflowProgress.bind(apiClient),
-    getEnhancedIntelligence: apiClient.getEnhancedIntelligence.bind(apiClient),
 
-    // ðŸ”§ Intelligence operations (updated)
+    // Intelligence & Analysis
+    analyzeUrl: apiClient.analyzeUrl.bind(apiClient),
     analyzeURL: apiClient.analyzeURL.bind(apiClient),
-    uploadDocument: apiClient.uploadDocument.bind(apiClient),
-    generateContent: apiClient.generateContent.bind(apiClient),
-    getCampaignIntelligence: apiClient.getCampaignIntelligence.bind(apiClient),
     runIntelligenceAnalysis: apiClient.runIntelligenceAnalysis.bind(apiClient),
-    triggerContentGeneration: apiClient.triggerContentGeneration.bind(apiClient),
-
-    // ðŸ"§ Dashboard (enhanced with demo info & 2-step workflow)
-    getDashboardStats: apiClient.getDashboardStats.bind(apiClient),
-    getCampaignStats: apiClient.getCampaignStats.bind(apiClient),
-    getCompanyStats: apiClient.getCompanyStats.bind(apiClient),
-    getCompanyDetails: apiClient.getCompanyDetails.bind(apiClient),
-
-    // Token management
-    setAuthToken: apiClient.setAuthToken.bind(apiClient),
-    clearAuthToken: apiClient.clearAuthToken.bind(apiClient),
-
-    // Affiliate methods
-    getAffiliatePreferences: apiClient.getAffiliatePreferences.bind(apiClient),
-    saveAffiliatePreferences: apiClient.saveAffiliatePreferences.bind(apiClient),
-    generateAffiliateLink: apiClient.generateAffiliateLink.bind(apiClient),
-    trackAffiliateClick: apiClient.trackAffiliateClick.bind(apiClient),
-    getAffiliatePerformance: apiClient.getAffiliatePerformance.bind(apiClient),
-
-    getCurrentUserType: apiClient.getCurrentUserType.bind(apiClient),
-    getUserTypeConfig: apiClient.getUserTypeConfig.bind(apiClient),
-    selectUserType: apiClient.selectUserType.bind(apiClient),
-    detectUserType: apiClient.detectUserType.bind(apiClient),
-    completeOnboarding: apiClient.completeOnboarding.bind(apiClient),
-    getAllUserTypes: apiClient.getAllUserTypes.bind(apiClient),
-    getUserRecommendations: apiClient.getUserRecommendations.bind(apiClient),
-    getUserUsageSummary: apiClient.getUserUsageSummary.bind(apiClient),
-    checkUpgradeEligibility: apiClient.checkUpgradeEligibility.bind(apiClient),
-    getWelcomeMessage: apiClient.getWelcomeMessage.bind(apiClient),
-    migrateUserType: apiClient.migrateUserType.bind(apiClient),
-
-    // Social media platform methods
     getRecommendedPlatforms: apiClient.getRecommendedPlatforms.bind(apiClient),
+
+    // Content Generation
+    generateContent: apiClient.generateContent.bind(apiClient),
+    getGeneratedContent: apiClient.getGeneratedContent.bind(apiClient),
+
+    // Demo & User Preferences
+    createDemoManually: apiClient.createDemoManually.bind(apiClient),
+    getDemoPreferences: apiClient.getDemoPreferences.bind(apiClient),
+    toggleDemoVisibility: apiClient.toggleDemoVisibility.bind(apiClient),
+
+    // File Upload & Storage
+    uploadDocument: apiClient.uploadDocument.bind(apiClient),
+
+    // Social Media Integration
     addSocialProfile: apiClient.addSocialProfile.bind(apiClient),
-    getUserSocialProfiles: apiClient.getUserSocialProfiles.bind(apiClient)
   }
 }
 
-// ============================================================================
-// SINGLE CLEAN EXPORT SECTION - NO DUPLICATES (Following Original Structure)
-// ============================================================================
-
-// Export the main client instance
-export { apiClient }
-
-// Export hooks (using function declaration to avoid duplication)
-export { useEnhancedEmailGeneration, useDemoPreferences, useApi }
-
-// Export utility functions
-export { demoUtils, emailUtils }
-
-// Export constants
-export { EMAIL_CONSTANTS }
-
-// Default export
+// Export the client instance for direct use
 export default apiClient
+
+// Re-export types for convenience
+export type { Campaign, CampaignCreateRequest }

@@ -33,7 +33,8 @@
       "Bash(xargs ls:*)",
       "Bash(cat:*)",
       "Bash(git reset:*)",
-      "WebFetch(domain:resend.com)"
+      "WebFetch(domain:resend.com)",
+      "Read(//c/**)"
     ],
     "deny": [],
     "ask": []
