@@ -52,6 +52,7 @@ import WaitlistManagement from "./components/WaitlistManagement";
 
 // Import the AI Platform Discovery Dashboard component
 import AIPlatformDiscoveryDashboard from "@/components/admin/AIPlatformDiscoveryDashboard";
+import URLSubmissionReview from "./components/URLSubmissionReview";
 
 // Force this page to never be statically rendered
 export const dynamic = "force-dynamic";
@@ -130,6 +131,14 @@ const tabs: Record<string, TabConfig> = {
     description: "Manage admin-controlled product creator invitations",
     highlight: true,
     badge: "NEW",
+  },
+  "url-submissions": {
+    label: "URL Submissions Review",
+    icon: FileText,
+    component: URLSubmissionReview,
+    description: "Review and approve product creator URL submissions",
+    highlight: true,
+    badge: "REVIEW",
   },
   "ai-discovery": {
     label: "AI Platform Discovery",
@@ -727,6 +736,8 @@ export default function AdminPage() {
         );
       case "product-creator-invites":
         return renderProductCreatorInvitesTab();
+      case "url-submissions":
+        return <URLSubmissionReview />;
       case "revenue":
         return renderRevenueTab();
       case "settings":

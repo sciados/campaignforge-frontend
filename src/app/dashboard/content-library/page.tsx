@@ -71,6 +71,7 @@ interface ProductData {
   status: 'active' | 'upcoming' | 'ended';
   created_at: string;
   updated_at?: string;
+  affiliate_signup_url?: string;
 }
 
 interface ProductCategory {
@@ -307,108 +308,119 @@ export default function AffiliateProductLibrary() {
       };
       setUser(transformedUser);
 
-      // Mock product data - replace with actual API call
-      const mockProducts: ProductData[] = [
-        {
-          id: "prod_001",
-          product_name: "AI Profit Builder Pro",
-          sales_page_url: "https://example.com/ai-profit-builder",
-          product_category: "make_money",
-          launch_date: "2024-01-15T00:00:00Z",
-          commission_rate: 50,
-          price: 97,
-          vendor_name: "Digital Marketing Pros",
-          product_description: "Revolutionary AI-powered system that builds profitable online businesses automatically.",
-          conversion_rate: 0.08,
-          earnings_per_click: 2.35,
-          gravity_score: 89,
-          status: "active",
-          created_at: "2024-01-15T00:00:00Z",
-        },
-        {
-          id: "prod_002",
-          product_name: "30-Day Keto Challenge",
-          sales_page_url: "https://example.com/keto-challenge",
-          product_category: "health_fitness",
-          launch_date: "2024-01-20T00:00:00Z",
-          commission_rate: 75,
-          price: 47,
-          vendor_name: "Healthy Living Co",
-          product_description: "Complete 30-day ketogenic diet transformation program with meal plans and coaching.",
-          conversion_rate: 0.12,
-          earnings_per_click: 3.20,
-          gravity_score: 156,
-          status: "active",
-          created_at: "2024-01-20T00:00:00Z",
-        },
-        {
-          id: "prod_003",
-          product_name: "Soulmate Attraction Blueprint",
-          sales_page_url: "https://example.com/soulmate-blueprint",
-          product_category: "relationships",
-          launch_date: "2024-01-25T00:00:00Z",
-          commission_rate: 60,
-          price: 67,
-          vendor_name: "Love & Life Coaching",
-          product_description: "Proven system to attract meaningful relationships using psychology-backed techniques.",
-          conversion_rate: 0.09,
-          earnings_per_click: 2.10,
-          gravity_score: 92,
-          status: "active",
-          created_at: "2024-01-25T00:00:00Z",
-        },
-        {
-          id: "prod_004",
-          product_name: "Cryptocurrency Mastery Course",
-          sales_page_url: "https://example.com/crypto-mastery",
-          product_category: "make_money",
-          launch_date: "2024-02-01T00:00:00Z",
-          commission_rate: 40,
-          price: 297,
-          vendor_name: "Crypto Education Hub",
-          product_description: "Complete cryptocurrency trading course covering technical analysis and risk strategies.",
-          conversion_rate: 0.06,
-          earnings_per_click: 4.50,
-          gravity_score: 234,
-          status: "upcoming",
-          created_at: "2024-01-30T00:00:00Z",
-        },
-        {
-          id: "prod_005",
-          product_name: "Mindfulness Meditation Mastery",
-          sales_page_url: "https://example.com/mindfulness-meditation",
-          product_category: "personal_development",
-          launch_date: "2024-01-10T00:00:00Z",
-          commission_rate: 65,
-          price: 87,
-          vendor_name: "Inner Peace Academy",
-          product_description: "Transform your life with advanced mindfulness techniques and guided meditation practices.",
-          conversion_rate: 0.11,
-          earnings_per_click: 2.80,
-          gravity_score: 127,
-          status: "active",
-          created_at: "2024-01-10T00:00:00Z",
-        },
-      ];
+      // Load approved product submissions from admin review system
+      try {
+        const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ||
+          "https://campaign-backend-production-e2db.up.railway.app";
 
-      setAllProducts(mockProducts);
+        const response = await fetch(
+          `${API_BASE_URL}/api/admin/intelligence/creator-submissions?status=approved&limit=100`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "application/json"
+            },
+          }
+        );
 
-      const productCategories = groupProductsByCategory(mockProducts);
-      setOrganizedProducts(productCategories);
+        let approvedProducts: ProductData[] = [];
 
-      const libraryStats: LibraryStats = {
-        totalProducts: mockProducts.length,
-        activeProducts: mockProducts.filter(p => p.status === 'active').length,
-        categories: productCategories.length,
-        totalEarnings: mockProducts.reduce((sum, product) => sum + (product.earnings_per_click || 0), 0),
-        avgConversionRate: mockProducts.length > 0
-          ? mockProducts.reduce((sum, product) => sum + (product.conversion_rate || 0), 0) / mockProducts.length
-          : 0,
-        topCategory: productCategories.length > 0 ? productCategories[0].label : "None",
-      };
+        if (response.ok) {
+          const data = await response.json();
+          const submissions = data.data || [];
 
-      setStats(libraryStats);
-      setExpandedCategories(new Set(productCategories.slice(0, 3).map(cat => cat.category)));
+          // Transform approved submissions to ProductData format
+          approvedProducts = submissions.map((submission: any) => ({
+            id: submission.id,
+            product_name: submission.product_name,
+            sales_page_url: submission.sales_page_url,
+            product_category: submission.category,
+            launch_date: submission.launch_date,
+            commission_rate: 50, // Default commission rate - could be enhanced
+            price: null, // Will be analyzed from sales page
+            vendor_name: submission.submitter_name || submission.company_name || "Product Creator",
+            product_description: submission.notes || `${submission.product_name} - Submitted via Product Creator program`,
+            conversion_rate: null, // Will be populated after analysis
+            earnings_per_click: null, // Will be populated after analysis
+            gravity_score: null, // Will be populated after analysis
+            status: "active" as const,
+            created_at: submission.submitted_at,
+            updated_at: submission.processed_at,
+            affiliate_signup_url: submission.affiliate_signup_url // Add affiliate signup URL
+          }));
+        }
+
+        // If no approved products yet, show a few mock examples
+        if (approvedProducts.length === 0) {
+          approvedProducts = [
+            {
+              id: "example_001",
+              product_name: "AI Profit Builder Pro",
+              sales_page_url: "https://example.com/ai-profit-builder",
+              product_category: "make_money",
+              launch_date: "2024-01-15T00:00:00Z",
+              commission_rate: 50,
+              price: 97,
+              vendor_name: "Demo Product Creator",
+              product_description: "Example product - Real products will appear here once approved by admin.",
+              conversion_rate: 0.08,
+              earnings_per_click: 2.35,
+              gravity_score: 89,
+              status: "active",
+              created_at: "2024-01-15T00:00:00Z",
+            },
+            {
+              id: "example_002",
+              product_name: "Demo Product - Health & Fitness",
+              sales_page_url: "https://example.com/demo-health",
+              product_category: "health_fitness",
+              launch_date: "2024-01-10T00:00:00Z",
+              commission_rate: 65,
+              price: 87,
+              vendor_name: "Demo Creator",
+              product_description: "Example product - Real products will appear here once approved by admin.",
+              conversion_rate: 0.11,
+              earnings_per_click: 2.80,
+              gravity_score: 127,
+              status: "active",
+              created_at: "2024-01-10T00:00:00Z",
+            },
+          ];
+        }
+
+        setAllProducts(approvedProducts);
+
+        const productCategories = groupProductsByCategory(approvedProducts);
+        setOrganizedProducts(productCategories);
+
+        const libraryStats: LibraryStats = {
+          totalProducts: approvedProducts.length,
+          activeProducts: approvedProducts.filter(p => p.status === 'active').length,
+          categories: productCategories.length,
+          totalEarnings: approvedProducts.reduce((sum, product) => sum + (product.earnings_per_click || 0), 0),
+          avgConversionRate: approvedProducts.length > 0
+            ? approvedProducts.reduce((sum, product) => sum + (product.conversion_rate || 0), 0) / approvedProducts.length
+            : 0,
+          topCategory: productCategories.length > 0 ? productCategories[0].label : "None",
+        };
+
+        setStats(libraryStats);
+        setExpandedCategories(new Set(productCategories.slice(0, 3).map(cat => cat.category)));
+
+      } catch (apiError) {
+        console.error("❌ Failed to load approved submissions:", apiError);
+        // Fall back to empty state if API fails
+        setAllProducts([]);
+        setOrganizedProducts([]);
+        setStats({
+          totalProducts: 0,
+          activeProducts: 0,
+          categories: 0,
+          totalEarnings: 0,
+          avgConversionRate: 0,
+          topCategory: "None",
+        });
+      }
 
       hasLoadedRef.current = true;
     } catch (error) {
