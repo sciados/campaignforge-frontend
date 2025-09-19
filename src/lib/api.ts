@@ -4,7 +4,7 @@
  * Handles authentication, user types, and campaign management
  */
 
-import { useState, useCallback, useEffect } from 'react'
+import { useState, useCallback, useEffect, useMemo } from 'react'
 import type { Campaign, CampaignCreateRequest } from './types/campaign'
 import type {
   CampaignGenerationRequest,
@@ -970,7 +970,7 @@ export class ApiClient {
 const apiClient = new ApiClient()
 
 export const useApi = () => {
-  return {
+  return useMemo(() => ({
     // Authentication
     login: apiClient.login.bind(apiClient),
     register: apiClient.register.bind(apiClient),
@@ -1035,7 +1035,7 @@ export const useApi = () => {
 
     // Social Media Integration
     addSocialProfile: apiClient.addSocialProfile.bind(apiClient),
-  }
+  }), [])
 }
 
 // Export the client instance for direct use
