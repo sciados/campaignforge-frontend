@@ -13,7 +13,10 @@ import {
   RefreshCw,
   BarChart3,
   Eye,
-  AlertCircle
+  AlertCircle,
+  CreditCard,
+  Zap,
+  Shield
 } from "lucide-react";
 
 interface PlatformMetrics {
@@ -135,6 +138,15 @@ export default function AnalyticsDashboard() {
       'warriorplus': 'WarriorPlus'
     };
     return names[platform] || platform;
+  };
+
+  const getPlatformIcon = (platform: string) => {
+    const icons: Record<string, JSX.Element> = {
+      'clickbank': <CreditCard className="h-5 w-5 text-blue-600" />,
+      'jvzoo': <Zap className="h-5 w-5 text-orange-600" />,
+      'warriorplus': <Shield className="h-5 w-5 text-green-600" />
+    };
+    return icons[platform] || <BarChart3 className="h-5 w-5 text-gray-600" />;
   };
 
   const getPlatformStatus = (status: string) => {
