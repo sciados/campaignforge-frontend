@@ -115,6 +115,62 @@ export async function getClickBankSales(days: number = 30) {
 }
 
 // ============================================================================
+// Analytics API Functions
+// ============================================================================
+
+export async function getAnalyticsDashboard() {
+  const token = localStorage.getItem('authToken')
+
+  return fetch(`${API_BASE_URL}/api/analytics/dashboard`, {
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${token}`
+    },
+  }).then(res => res.json());
+}
+
+export async function refreshAnalytics(platform?: string, days: number = 30) {
+  const token = localStorage.getItem('authToken')
+
+  return fetch(`${API_BASE_URL}/api/analytics/refresh`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${token}`
+    },
+    body: JSON.stringify({
+      platform: platform || null,
+      days
+    })
+  }).then(res => res.json());
+}
+
+export async function getPlatformAnalytics(platform: string, days: number = 30) {
+  const token = localStorage.getItem('authToken')
+
+  return fetch(`${API_BASE_URL}/api/analytics/platforms/${platform}?days=${days}`, {
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${token}`
+    },
+  }).then(res => res.json());
+}
+
+export async function getProductAnalytics(platform?: string, productId?: string) {
+  const token = localStorage.getItem('authToken')
+  const params = new URLSearchParams()
+  if (platform) params.append('platform', platform)
+  if (productId) params.append('product_id', productId)
+
+  return fetch(`${API_BASE_URL}/api/analytics/products?${params.toString()}`, {
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${token}`
+    },
+  }).then(res => res.json());
+}
+
+// ============================================================================
 // Main API Client Class
 // ============================================================================
 

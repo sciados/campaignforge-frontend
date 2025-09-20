@@ -528,7 +528,7 @@ function PlatformHelpSidebar({ selectedPlatform }: { selectedPlatform: 'clickban
               </div>
               <div className="flex items-start space-x-2">
                 <span className="bg-blue-200 text-blue-900 text-xs rounded-full w-5 h-5 flex items-center justify-center font-medium flex-shrink-0 mt-0.5">3</span>
-                <p>Click <span className="font-medium">"Create New API Key"</span> and enter a name for your key</p>
+                <p>Click <span className="font-medium">&quot;Create New API Key&quot;</span> and enter a name for your key</p>
               </div>
               <div className="flex items-start space-x-2">
                 <span className="bg-blue-200 text-blue-900 text-xs rounded-full w-5 h-5 flex items-center justify-center font-medium flex-shrink-0 mt-0.5">4</span>
@@ -536,7 +536,7 @@ function PlatformHelpSidebar({ selectedPlatform }: { selectedPlatform: 'clickban
               </div>
               <div className="flex items-start space-x-2">
                 <span className="bg-blue-200 text-blue-900 text-xs rounded-full w-5 h-5 flex items-center justify-center font-medium flex-shrink-0 mt-0.5">5</span>
-                <p>Toggle API key status to <span className="font-medium">"Active"</span> and copy your API key</p>
+                <p>Toggle API key status to <span className="font-medium">&quot;Active&quot;</span> and copy your API key</p>
               </div>
             </div>
           </div>
