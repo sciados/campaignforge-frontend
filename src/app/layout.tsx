@@ -8,6 +8,7 @@ import { AppErrorBoundary } from "@/components/ErrorBoundary";
 import UserTypeSidebar from "@/components/layout/UserTypeSidebar";
 import { usePathname } from "next/navigation";
 import { RightSidebarProvider, useRightSidebar } from "@/contexts/RightSidebarContext";
+import Header from "@/components/dashboards/shared/header";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -34,6 +35,14 @@ function DashboardLayout({ children, sidebarOpen, setSidebarOpen }: {
       <div className="flex flex-1 overflow-hidden">
         {/* Primary Content */}
         <div className="flex-1 flex flex-col min-w-0">
+          {/* Desktop Header */}
+          <div className="hidden lg:block">
+            <Header
+              user={{ name: "User", tier: "Professional" }}
+              searchPlaceholder="Search campaigns, content..."
+            />
+          </div>
+
           {/* Mobile header */}
           <header className="bg-white shadow-sm border-b border-gray-200 lg:hidden">
             <div className="flex items-center justify-between h-16 px-6">
