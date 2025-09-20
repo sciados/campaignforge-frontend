@@ -12,6 +12,7 @@ type SettingsTab = 'profile' | 'notifications' | 'security' | 'billing' | 'prefe
 
 export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState<SettingsTab>('profile');
+  const [selectedPlatform, setSelectedPlatform] = useState<'clickbank' | 'jvzoo' | 'warriorplus'>('clickbank');
 
   const navigationItems = [
     { id: 'profile' as SettingsTab, label: 'Profile', icon: User },
@@ -33,7 +34,9 @@ export default function SettingsPage() {
         </p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+      <div className={`grid grid-cols-1 gap-8 ${
+        activeTab === 'platforms' ? 'lg:grid-cols-5' : 'lg:grid-cols-4'
+      }`}>
         {/* Settings Navigation */}
         <div className="lg:col-span-1">
           <nav className="space-y-2">
@@ -65,15 +68,22 @@ export default function SettingsPage() {
         </div>
 
         {/* Settings Content */}
-        <div className="lg:col-span-3">
+        <div className={activeTab === 'platforms' ? 'lg:col-span-2' : 'lg:col-span-3'}>
           {activeTab === 'profile' && <ProfileSettings />}
           {activeTab === 'notifications' && <NotificationSettings />}
           {activeTab === 'security' && <SecuritySettings />}
           {activeTab === 'billing' && <BillingSettings />}
           {activeTab === 'preferences' && <PreferencesSettings />}
-          {activeTab === 'platforms' && <PlatformIntegrationsSettings />}
+          {activeTab === 'platforms' && <PlatformIntegrationsSettings selectedPlatform={selectedPlatform} setSelectedPlatform={setSelectedPlatform} />}
           {activeTab === 'api' && <APIAccessSettings />}
         </div>
+
+        {/* Right Sidebar - Help Content (only shown for platforms tab) */}
+        {activeTab === 'platforms' && (
+          <div className="lg:col-span-2">
+            <PlatformHelpSidebar selectedPlatform={selectedPlatform} />
+          </div>
+        )}
       </div>
     </div>
   );
@@ -198,13 +208,16 @@ function ProfileSettings() {
 }
 
 // Platform Integrations Settings Component
-function PlatformIntegrationsSettings() {
-  const [selectedPlatform, setSelectedPlatform] = useState<'clickbank' | 'jvzoo' | 'warriorplus'>('clickbank');
+function PlatformIntegrationsSettings({
+  selectedPlatform,
+  setSelectedPlatform
+}: {
+  selectedPlatform: 'clickbank' | 'jvzoo' | 'warriorplus';
+  setSelectedPlatform: (platform: 'clickbank' | 'jvzoo' | 'warriorplus') => void;
+}) {
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-      {/* Main Content - Platforms List */}
-      <div className="lg:col-span-2 space-y-6">
+    <div className="space-y-6">
         <div className="bg-white rounded-2xl border border-gray-200 p-8 shadow-sm">
           <div className="flex items-center justify-between mb-8">
             <div>
@@ -330,135 +343,6 @@ function PlatformIntegrationsSettings() {
           </div>
 
         </div>
-      </div>
-
-      {/* Help Sidebar */}
-      <div className="lg:col-span-1">
-        <div className="bg-blue-50 rounded-2xl border border-blue-200 p-6 sticky top-6">
-          <div className="flex items-center space-x-2 mb-4">
-            <Info className="h-5 w-5 text-blue-600" />
-            <h3 className="text-lg font-medium text-blue-900">Setup Guide</h3>
-          </div>
-
-          {selectedPlatform === 'clickbank' && (
-            <div className="space-y-4">
-              <div>
-                <h4 className="font-medium text-blue-900 mb-2">How to get your ClickBank API credentials:</h4>
-                <div className="space-y-3 text-sm text-blue-800">
-                  <div className="flex items-start space-x-2">
-                    <span className="bg-blue-200 text-blue-900 text-xs rounded-full w-5 h-5 flex items-center justify-center font-medium flex-shrink-0 mt-0.5">1</span>
-                    <p>Log into your ClickBank account at <span className="font-medium">account.clickbank.com</span></p>
-                  </div>
-                  <div className="flex items-start space-x-2">
-                    <span className="bg-blue-200 text-blue-900 text-xs rounded-full w-5 h-5 flex items-center justify-center font-medium flex-shrink-0 mt-0.5">2</span>
-                    <p>Navigate to <span className="font-medium">Settings → My Account</span></p>
-                  </div>
-                  <div className="flex items-start space-x-2">
-                    <span className="bg-blue-200 text-blue-900 text-xs rounded-full w-5 h-5 flex items-center justify-center font-medium flex-shrink-0 mt-0.5">3</span>
-                    <p>Find your <span className="font-medium">Account Nickname</span> (this is your Nickname)</p>
-                  </div>
-                  <div className="flex items-start space-x-2">
-                    <span className="bg-blue-200 text-blue-900 text-xs rounded-full w-5 h-5 flex items-center justify-center font-medium flex-shrink-0 mt-0.5">4</span>
-                    <p>Go to <span className="font-medium">Settings → My Site</span></p>
-                  </div>
-                  <div className="flex items-start space-x-2">
-                    <span className="bg-blue-200 text-blue-900 text-xs rounded-full w-5 h-5 flex items-center justify-center font-medium flex-shrink-0 mt-0.5">5</span>
-                    <p>Generate or copy your <span className="font-medium">Clerk API Key</span></p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="mt-6 p-4 bg-blue-100 rounded-lg">
-                <div className="flex items-start space-x-2">
-                  <CheckCircle className="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" />
-                  <div>
-                    <p className="text-sm font-medium text-blue-900">Security Note</p>
-                    <p className="text-xs text-blue-800 mt-1">Your API keys are encrypted and stored securely. We only use them to fetch your sales data.</p>
-                  </div>
-                </div>
-              </div>
-
-              <button
-                className="w-full bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium py-2 px-4 rounded-lg transition-colors flex items-center justify-center space-x-2"
-                onClick={() => window.open('https://account.clickbank.com', '_blank')}
-              >
-                <span>Open ClickBank Account</span>
-                <ExternalLink className="h-4 w-4" />
-              </button>
-            </div>
-          )}
-
-          {selectedPlatform === 'jvzoo' && (
-            <div className="space-y-4">
-              <div>
-                <h4 className="font-medium text-blue-900 mb-2">JVZoo API Setup (Coming Soon):</h4>
-                <div className="space-y-3 text-sm text-blue-800">
-                  <p>When JVZoo integration becomes available, you&apos;ll need:</p>
-                  <ul className="space-y-2 ml-4">
-                    <li className="flex items-center space-x-2">
-                      <ArrowRight className="h-3 w-3" />
-                      <span>JVZoo API Key</span>
-                    </li>
-                    <li className="flex items-center space-x-2">
-                      <ArrowRight className="h-3 w-3" />
-                      <span>Account ID</span>
-                    </li>
-                    <li className="flex items-center space-x-2">
-                      <ArrowRight className="h-3 w-3" />
-                      <span>Secret Key</span>
-                    </li>
-                  </ul>
-                </div>
-              </div>
-
-              <div className="mt-6 p-4 bg-blue-100 rounded-lg">
-                <div className="flex items-start space-x-2">
-                  <Info className="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" />
-                  <div>
-                    <p className="text-sm font-medium text-blue-900">Stay Updated</p>
-                    <p className="text-xs text-blue-800 mt-1">We&apos;ll notify you when JVZoo integration is ready with step-by-step setup instructions.</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {selectedPlatform === 'warriorplus' && (
-            <div className="space-y-4">
-              <div>
-                <h4 className="font-medium text-blue-900 mb-2">WarriorPlus API Setup (Coming Soon):</h4>
-                <div className="space-y-3 text-sm text-blue-800">
-                  <p>When WarriorPlus integration becomes available, you&apos;ll need:</p>
-                  <ul className="space-y-2 ml-4">
-                    <li className="flex items-center space-x-2">
-                      <ArrowRight className="h-3 w-3" />
-                      <span>WarriorPlus API Token</span>
-                    </li>
-                    <li className="flex items-center space-x-2">
-                      <ArrowRight className="h-3 w-3" />
-                      <span>Vendor ID</span>
-                    </li>
-                    <li className="flex items-center space-x-2">
-                      <ArrowRight className="h-3 w-3" />
-                      <span>Affiliate ID</span>
-                    </li>
-                  </ul>
-                </div>
-              </div>
-
-              <div className="mt-6 p-4 bg-blue-100 rounded-lg">
-                <div className="flex items-start space-x-2">
-                  <Info className="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" />
-                  <div>
-                    <p className="text-sm font-medium text-blue-900">In Development</p>
-                    <p className="text-xs text-blue-800 mt-1">WarriorPlus integration is currently being developed. Complete setup guides will be available upon release.</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
     </div>
   );
 }
@@ -606,6 +490,136 @@ function APIAccessSettings() {
           </button>
         </div>
       </div>
+    </div>
+  );
+}
+
+// Platform Help Sidebar Component
+function PlatformHelpSidebar({ selectedPlatform }: { selectedPlatform: 'clickbank' | 'jvzoo' | 'warriorplus' }) {
+  return (
+    <div className="bg-blue-50 rounded-2xl border border-blue-200 p-6 sticky top-6">
+      <div className="flex items-center space-x-2 mb-4">
+        <Info className="h-5 w-5 text-blue-600" />
+        <h3 className="text-lg font-medium text-blue-900">Setup Guide</h3>
+      </div>
+
+      {selectedPlatform === 'clickbank' && (
+        <div className="space-y-4">
+          <div>
+            <h4 className="font-medium text-blue-900 mb-2">How to get your ClickBank API credentials:</h4>
+            <div className="space-y-3 text-sm text-blue-800">
+              <div className="flex items-start space-x-2">
+                <span className="bg-blue-200 text-blue-900 text-xs rounded-full w-5 h-5 flex items-center justify-center font-medium flex-shrink-0 mt-0.5">1</span>
+                <p>Log into your ClickBank account at <span className="font-medium">account.clickbank.com</span></p>
+              </div>
+              <div className="flex items-start space-x-2">
+                <span className="bg-blue-200 text-blue-900 text-xs rounded-full w-5 h-5 flex items-center justify-center font-medium flex-shrink-0 mt-0.5">2</span>
+                <p>Navigate to <span className="font-medium">Settings → My Account</span></p>
+              </div>
+              <div className="flex items-start space-x-2">
+                <span className="bg-blue-200 text-blue-900 text-xs rounded-full w-5 h-5 flex items-center justify-center font-medium flex-shrink-0 mt-0.5">3</span>
+                <p>Find your <span className="font-medium">Account Nickname</span> (this is your Nickname)</p>
+              </div>
+              <div className="flex items-start space-x-2">
+                <span className="bg-blue-200 text-blue-900 text-xs rounded-full w-5 h-5 flex items-center justify-center font-medium flex-shrink-0 mt-0.5">4</span>
+                <p>Go to <span className="font-medium">Settings → My Site</span></p>
+              </div>
+              <div className="flex items-start space-x-2">
+                <span className="bg-blue-200 text-blue-900 text-xs rounded-full w-5 h-5 flex items-center justify-center font-medium flex-shrink-0 mt-0.5">5</span>
+                <p>Generate or copy your <span className="font-medium">Clerk API Key</span></p>
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-6 p-4 bg-blue-100 rounded-lg">
+            <div className="flex items-start space-x-2">
+              <CheckCircle className="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="text-sm font-medium text-blue-900">Security Note</p>
+                <p className="text-xs text-blue-800 mt-1">Your API keys are encrypted and stored securely. We only use them to fetch your sales data.</p>
+              </div>
+            </div>
+          </div>
+
+          <button
+            className="w-full bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium py-2 px-4 rounded-lg transition-colors flex items-center justify-center space-x-2"
+            onClick={() => window.open('https://account.clickbank.com', '_blank')}
+          >
+            <span>Open ClickBank Account</span>
+            <ExternalLink className="h-4 w-4" />
+          </button>
+        </div>
+      )}
+
+      {selectedPlatform === 'jvzoo' && (
+        <div className="space-y-4">
+          <div>
+            <h4 className="font-medium text-blue-900 mb-2">JVZoo API Setup (Coming Soon):</h4>
+            <div className="space-y-3 text-sm text-blue-800">
+              <p>When JVZoo integration becomes available, you&apos;ll need:</p>
+              <ul className="space-y-2 ml-4">
+                <li className="flex items-center space-x-2">
+                  <ArrowRight className="h-3 w-3" />
+                  <span>JVZoo API Key</span>
+                </li>
+                <li className="flex items-center space-x-2">
+                  <ArrowRight className="h-3 w-3" />
+                  <span>Account ID</span>
+                </li>
+                <li className="flex items-center space-x-2">
+                  <ArrowRight className="h-3 w-3" />
+                  <span>Secret Key</span>
+                </li>
+              </ul>
+            </div>
+          </div>
+
+          <div className="mt-6 p-4 bg-blue-100 rounded-lg">
+            <div className="flex items-start space-x-2">
+              <Info className="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="text-sm font-medium text-blue-900">Stay Updated</p>
+                <p className="text-xs text-blue-800 mt-1">We&apos;ll notify you when JVZoo integration is ready with step-by-step setup instructions.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {selectedPlatform === 'warriorplus' && (
+        <div className="space-y-4">
+          <div>
+            <h4 className="font-medium text-blue-900 mb-2">WarriorPlus API Setup (Coming Soon):</h4>
+            <div className="space-y-3 text-sm text-blue-800">
+              <p>When WarriorPlus integration becomes available, you&apos;ll need:</p>
+              <ul className="space-y-2 ml-4">
+                <li className="flex items-center space-x-2">
+                  <ArrowRight className="h-3 w-3" />
+                  <span>WarriorPlus API Token</span>
+                </li>
+                <li className="flex items-center space-x-2">
+                  <ArrowRight className="h-3 w-3" />
+                  <span>Vendor ID</span>
+                </li>
+                <li className="flex items-center space-x-2">
+                  <ArrowRight className="h-3 w-3" />
+                  <span>Affiliate ID</span>
+                </li>
+              </ul>
+            </div>
+          </div>
+
+          <div className="mt-6 p-4 bg-blue-100 rounded-lg">
+            <div className="flex items-start space-x-2">
+              <Info className="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="text-sm font-medium text-blue-900">In Development</p>
+                <p className="text-xs text-blue-800 mt-1">WarriorPlus integration is currently being developed. Complete setup guides will be available upon release.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
