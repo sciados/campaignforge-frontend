@@ -2,9 +2,10 @@
 
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { User, Bell, Shield, CreditCard, Palette, Globe, Zap, Settings as SettingsIcon, ExternalLink, Copy, CheckCircle, Info, ArrowRight } from "lucide-react";
 import ClickBankSettings from "src/components/clickbank/ClickBankSettings";
+import { useRightSidebar } from "@/contexts/RightSidebarContext";
 
 export const dynamic = "force-dynamic";
 
@@ -13,6 +14,24 @@ type SettingsTab = 'profile' | 'notifications' | 'security' | 'billing' | 'prefe
 export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState<SettingsTab>('profile');
   const [selectedPlatform, setSelectedPlatform] = useState<'clickbank' | 'jvzoo' | 'warriorplus'>('clickbank');
+  const { setContent, setIsVisible } = useRightSidebar();
+
+  // Update right sidebar content when platforms tab is active
+  useEffect(() => {
+    if (activeTab === 'platforms') {
+      setContent(<PlatformHelpSidebar selectedPlatform={selectedPlatform} />);
+      setIsVisible(true);
+    } else {
+      setContent(null);
+      setIsVisible(false);
+    }
+
+    // Cleanup when component unmounts
+    return () => {
+      setContent(null);
+      setIsVisible(false);
+    };
+  }, [activeTab, selectedPlatform, setContent, setIsVisible]);
 
   const navigationItems = [
     { id: 'profile' as SettingsTab, label: 'Profile', icon: User },
@@ -34,9 +53,7 @@ export default function SettingsPage() {
         </p>
       </div>
 
-      <div className={`grid grid-cols-1 gap-8 ${
-        activeTab === 'platforms' ? 'lg:grid-cols-5' : 'lg:grid-cols-4'
-      }`}>
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
         {/* Settings Navigation */}
         <div className="lg:col-span-1">
           <nav className="space-y-2">
@@ -68,7 +85,7 @@ export default function SettingsPage() {
         </div>
 
         {/* Settings Content */}
-        <div className={activeTab === 'platforms' ? 'lg:col-span-2' : 'lg:col-span-3'}>
+        <div className="lg:col-span-3">
           {activeTab === 'profile' && <ProfileSettings />}
           {activeTab === 'notifications' && <NotificationSettings />}
           {activeTab === 'security' && <SecuritySettings />}
@@ -77,13 +94,6 @@ export default function SettingsPage() {
           {activeTab === 'platforms' && <PlatformIntegrationsSettings selectedPlatform={selectedPlatform} setSelectedPlatform={setSelectedPlatform} />}
           {activeTab === 'api' && <APIAccessSettings />}
         </div>
-
-        {/* Right Sidebar - Help Content (only shown for platforms tab) */}
-        {activeTab === 'platforms' && (
-          <div className="lg:col-span-2">
-            <PlatformHelpSidebar selectedPlatform={selectedPlatform} />
-          </div>
-        )}
       </div>
     </div>
   );
