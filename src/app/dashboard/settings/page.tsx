@@ -520,33 +520,43 @@ function PlatformHelpSidebar({ selectedPlatform }: { selectedPlatform: 'clickban
             <div className="space-y-3 text-sm text-blue-800">
               <div className="flex items-start space-x-2">
                 <span className="bg-blue-200 text-blue-900 text-xs rounded-full w-5 h-5 flex items-center justify-center font-medium flex-shrink-0 mt-0.5">1</span>
-                <p>Log into your ClickBank account at <span className="font-medium">account.clickbank.com</span></p>
+                <p>Log into your <span className="font-medium">primary ClickBank account</span> at account.clickbank.com</p>
               </div>
               <div className="flex items-start space-x-2">
                 <span className="bg-blue-200 text-blue-900 text-xs rounded-full w-5 h-5 flex items-center justify-center font-medium flex-shrink-0 mt-0.5">2</span>
-                <p>Navigate to <span className="font-medium">Settings → My Account</span></p>
+                <p>Navigate to <span className="font-medium">Settings → API Management</span></p>
               </div>
               <div className="flex items-start space-x-2">
                 <span className="bg-blue-200 text-blue-900 text-xs rounded-full w-5 h-5 flex items-center justify-center font-medium flex-shrink-0 mt-0.5">3</span>
-                <p>Find your <span className="font-medium">Account Nickname</span> (this is your Nickname)</p>
+                <p>Click <span className="font-medium">"Create New API Key"</span> and enter a name for your key</p>
               </div>
               <div className="flex items-start space-x-2">
                 <span className="bg-blue-200 text-blue-900 text-xs rounded-full w-5 h-5 flex items-center justify-center font-medium flex-shrink-0 mt-0.5">4</span>
-                <p>Go to <span className="font-medium">Settings → My Site</span></p>
+                <p>Select your <span className="font-medium">account nickname</span> and required APIs (Analytics recommended)</p>
               </div>
               <div className="flex items-start space-x-2">
                 <span className="bg-blue-200 text-blue-900 text-xs rounded-full w-5 h-5 flex items-center justify-center font-medium flex-shrink-0 mt-0.5">5</span>
-                <p>Generate or copy your <span className="font-medium">Clerk API Key</span></p>
+                <p>Toggle API key status to <span className="font-medium">"Active"</span> and copy your API key</p>
               </div>
             </div>
           </div>
 
-          <div className="mt-6 p-4 bg-blue-100 rounded-lg">
+          <div className="mt-4 p-3 bg-amber-50 rounded-lg border border-amber-200">
+            <div className="flex items-start space-x-2">
+              <Info className="h-4 w-4 text-amber-600 flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="text-sm font-medium text-amber-900">Important Note</p>
+                <p className="text-xs text-amber-800 mt-1">As of August 2023, developer keys are no longer required. You can use your production API key directly.</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-4 p-4 bg-blue-100 rounded-lg">
             <div className="flex items-start space-x-2">
               <CheckCircle className="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" />
               <div>
-                <p className="text-sm font-medium text-blue-900">Security Note</p>
-                <p className="text-xs text-blue-800 mt-1">Your API keys are encrypted and stored securely. We only use them to fetch your sales data.</p>
+                <p className="text-sm font-medium text-blue-900">Security & Privacy</p>
+                <p className="text-xs text-blue-800 mt-1">Never share your API keys publicly. Your keys are encrypted and stored securely - we only use them to fetch your sales analytics data.</p>
               </div>
             </div>
           </div>

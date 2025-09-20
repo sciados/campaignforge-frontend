@@ -37,7 +37,8 @@
       "Read(//c/**)",
       "Bash(npx tsc:*)",
       "Bash(npm run lint)",
-      "Bash(killall:*)"
+      "Bash(killall:*)",
+      "WebFetch(domain:support.clickbank.com)"
     ],
     "deny": [],
     "ask": []

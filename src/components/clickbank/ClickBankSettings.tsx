@@ -5,7 +5,7 @@ import { connectClickBank } from "@/lib/api";
 
 export default function ClickBankSettings() {
   const [nickname, setNickname] = useState("");
-  const [clerkKey, setClerkKey] = useState("");
+  const [apiKey, setApiKey] = useState("");
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
 
@@ -15,7 +15,7 @@ export default function ClickBankSettings() {
     setMessage(null);
 
     try {
-      const res = await connectClickBank(nickname, clerkKey);
+      const res = await connectClickBank(nickname, apiKey);
       setMessage(res.message || "ClickBank account connected successfully.");
     } catch (err: any) {
       setMessage(err.message || "Failed to connect ClickBank account.");
@@ -41,14 +41,14 @@ export default function ClickBankSettings() {
         </div>
         <div>
           <label className="block text-sm font-medium mb-1">
-            Clerk API Key
+            API Key
           </label>
           <input
             type="password"
-            value={clerkKey}
-            onChange={(e) => setClerkKey(e.target.value)}
+            value={apiKey}
+            onChange={(e) => setApiKey(e.target.value)}
             className="w-full border rounded-lg px-3 py-2"
-            placeholder="Enter your Clerk key"
+            placeholder="Enter your API key"
             required
           />
         </div>

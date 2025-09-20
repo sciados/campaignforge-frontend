@@ -96,13 +96,16 @@ export class CreditError extends ApiError {
 // Clickbank Auto Daily Update
 // ============================================================================
 
-export async function connectClickBank(nickname: string, clerkKey: string) {
+export async function connectClickBank(nickname: string, apiKey: string) {
   const token = localStorage.getItem('authToken')
 
   return fetch(`${API_BASE_URL}/api/clickbank/connect`, {
     method: "POST",
-    body: JSON.stringify({ user_id: 1, nickname, clerk_key: clerkKey }), // replace with logged-in user_id
-    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ nickname, api_key: apiKey }),
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${token}`
+    },
   }).then(res => res.json());
 }
 
