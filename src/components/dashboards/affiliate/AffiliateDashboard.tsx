@@ -64,12 +64,11 @@ interface AffiliateDashboardProps {
   config: DashboardConfig;
 }
 
-// ---------- API Functions with Mock Fallbacks ----------
+// ---------- API Functions ----------
 const fetchDashboardStats = async () => {
   const token = localStorage.getItem("authToken");
   if (!token) {
-    console.warn("No auth token, using mock dashboard stats");
-    return getMockDashboardStats();
+    throw new Error("Authentication required");
   }
 
   try {
@@ -83,20 +82,18 @@ const fetchDashboardStats = async () => {
     if (response.ok) {
       return await response.json();
     } else {
-      console.warn(`Dashboard stats API returned ${response.status}, using mock data`);
-      return getMockDashboardStats();
+      throw new Error(`Dashboard stats API returned ${response.status}`);
     }
   } catch (error) {
-    console.warn("Dashboard stats API failed, using mock data:", error);
-    return getMockDashboardStats();
+    console.error("Dashboard stats API failed:", error);
+    throw error;
   }
 };
 
 const fetchAffiliatePerformance = async (days: number = 30) => {
   const token = localStorage.getItem("authToken");
   if (!token) {
-    console.warn("No auth token, using mock affiliate performance");
-    return getMockAffiliatePerformance();
+    throw new Error("Authentication required");
   }
 
   try {
@@ -113,25 +110,23 @@ const fetchAffiliatePerformance = async (days: number = 30) => {
     if (response.ok) {
       return await response.json();
     } else {
-      console.warn(`Affiliate performance API returned ${response.status}, using mock data`);
-      return getMockAffiliatePerformance();
+      throw new Error(`Affiliate performance API returned ${response.status}`);
     }
   } catch (error) {
-    console.warn("Affiliate performance API failed, using mock data:", error);
-    return getMockAffiliatePerformance();
+    console.error("Affiliate performance API failed:", error);
+    throw error;
   }
 };
 
 const fetchRecentCampaigns = async (limit: number = 5) => {
   const token = localStorage.getItem("authToken");
   if (!token) {
-    console.warn("No auth token, using mock recent campaigns");
-    return getMockRecentCampaigns();
+    throw new Error("Authentication required");
   }
 
   try {
     const response = await fetch(
-      `${API_BASE_URL}/api/campaigns/?limit=${limit}&sort=recent`,
+      `${API_BASE_URL}/api/affiliate/campaigns?limit=${limit}&sort=recent`,
       {
         headers: {
           Authorization: `Bearer ${token}`,
@@ -143,82 +138,14 @@ const fetchRecentCampaigns = async (limit: number = 5) => {
     if (response.ok) {
       return await response.json();
     } else {
-      console.warn(`Recent campaigns API returned ${response.status}, using mock data`);
-      return getMockRecentCampaigns();
+      throw new Error(`Recent campaigns API returned ${response.status}`);
     }
   } catch (error) {
-    console.warn("Recent campaigns API failed, using mock data:", error);
-    return getMockRecentCampaigns();
+    console.error("Recent campaigns API failed:", error);
+    throw error;
   }
 };
 
-// ---------- Mock Data Functions ----------
-const getMockDashboardStats = () => ({
-  monthly_recurring_revenue: 4250,
-  growth_percentage: 23.5,
-  conversion_rate: 4.8,
-  total_campaigns: 12
-});
-
-const getMockAffiliatePerformance = () => ({
-  commission_metrics: {
-    thisMonth: 4250,
-    growth: 23.5,
-    epc: 1.85,
-    topOffer: "ClickBank Health Supplement"
-  },
-  campaign_status: {
-    active: 8,
-    paused: 3,
-    testing: 2,
-    winners: 4
-  },
-  competitor_feed: [
-    {
-      id: 1,
-      competitor: "CompetitorPro",
-      offer: "Weight Loss Program",
-      detected_change: "New landing page detected",
-      timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString()
-    },
-    {
-      id: 2,
-      competitor: "AffiliateKing",
-      offer: "Crypto Trading Course",
-      detected_change: "Ad spend increased 45%",
-      timestamp: new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString()
-    }
-  ]
-});
-
-const getMockRecentCampaigns = () => ({
-  campaigns: [
-    {
-      id: 1,
-      name: "Health Supplement Q4",
-      status: "active",
-      revenue: 1250,
-      conversion_rate: 4.2,
-      created_at: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString()
-    },
-    {
-      id: 2,
-      name: "Fitness Equipment Promo",
-      status: "testing",
-      revenue: 890,
-      conversion_rate: 3.8,
-      created_at: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString()
-    },
-    {
-      id: 3,
-      name: "Online Course Launch",
-      status: "paused",
-      revenue: 2100,
-      conversion_rate: 5.1,
-      created_at: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()
-    }
-  ]
-});
 
 // ---------- Component ----------
 const AffiliateDashboard: React.FC<AffiliateDashboardProps> = ({ config }) => {
@@ -240,12 +167,17 @@ const AffiliateDashboard: React.FC<AffiliateDashboardProps> = ({ config }) => {
     setError(null);
 
     try {
-      // Replace mock data with real API calls
-      const [statsData, performanceData, campaignsData] = await Promise.all([
+      // Use Promise.allSettled to handle partial failures gracefully
+      const [statsResult, performanceResult, campaignsResult] = await Promise.allSettled([
         fetchDashboardStats(),
         fetchAffiliatePerformance(30),
         fetchRecentCampaigns(5),
       ]);
+
+      // Extract data from successful results, default to empty for failures
+      const statsData = statsResult.status === 'fulfilled' ? statsResult.value : {};
+      const performanceData = performanceResult.status === 'fulfilled' ? performanceResult.value : {};
+      const campaignsData = campaignsResult.status === 'fulfilled' ? campaignsResult.value : {};
 
       // Map real data to component structure
       setDashboardData({
@@ -259,7 +191,7 @@ const AffiliateDashboard: React.FC<AffiliateDashboardProps> = ({ config }) => {
             performanceData.commission_metrics?.growth ||
             0,
           epc: performanceData.commission_metrics?.epc || 0,
-          topOffer: performanceData.commission_metrics?.topOffer || "N/A",
+          topOffer: performanceData.commission_metrics?.topOffer || "No data available",
         },
         campaignStatus: {
           active: performanceData.campaign_status?.active || statsData.active_campaigns || 0,
@@ -277,13 +209,19 @@ const AffiliateDashboard: React.FC<AffiliateDashboardProps> = ({ config }) => {
           status: campaign.status,
         })),
       });
+
+      // Only show error if all requests failed
+      const allFailed = [statsResult, performanceResult, campaignsResult].every(result => result.status === 'rejected');
+      if (allFailed) {
+        setError("Unable to load dashboard data. Some features may not be available.");
+      }
     } catch (error) {
       console.error("Failed to load dashboard data:", error);
       setError("Failed to load dashboard data. Please try again.");
 
-      // Fallback to empty state instead of mock data
+      // Fallback to empty state
       setDashboardData({
-        commissionMetrics: { thisMonth: 0, growth: 0, epc: 0, topOffer: "N/A" },
+        commissionMetrics: { thisMonth: 0, growth: 0, epc: 0, topOffer: "No data available" },
         campaignStatus: { active: 0, paused: 0, testing: 0, winners: 0 },
         competitorFeed: [],
         recentCampaigns: [],
@@ -390,12 +328,26 @@ const AffiliateDashboard: React.FC<AffiliateDashboardProps> = ({ config }) => {
                   {config.user_profile.usage_summary.analysis.limit}
                 </div>
               </div>
-              <Link
-                href="/campaigns/create-workflow?type=competitor_tracking"
-                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium"
-              >
-                🔍 {config.main_cta}
-              </Link>
+              <div className="flex space-x-2">
+                <Link
+                  href="/dashboard/affiliate/campaigns"
+                  className="px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
+                >
+                  🚀 My Campaigns
+                </Link>
+                <Link
+                  href="/dashboard/content-library"
+                  className="px-3 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-sm"
+                >
+                  📚 Browse Products
+                </Link>
+                <Link
+                  href="/dashboard/affiliate/link-generator"
+                  className="px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm"
+                >
+                  🔗 Generate Links
+                </Link>
+              </div>
             </div>
           </div>
         </div>
@@ -553,19 +505,91 @@ const AffiliateDashboard: React.FC<AffiliateDashboardProps> = ({ config }) => {
                   ))
                 ) : (
                   <div className="text-center py-8">
-                    <p className="text-gray-500">No campaigns yet.</p>
-                    <Link
-                      href="/campaigns/create-workflow"
-                      className="text-green-600 hover:text-green-700 text-sm font-medium"
-                    >
-                      Create your first campaign →
-                    </Link>
+                    <p className="text-gray-500 mb-4">No campaigns yet.</p>
+                    <div className="space-y-2">
+                      <Link
+                        href="/dashboard/content-library"
+                        className="block text-green-600 hover:text-green-700 text-sm font-medium"
+                      >
+                        📚 Browse products to promote →
+                      </Link>
+                      <Link
+                        href="/dashboard/affiliate/campaigns"
+                        className="block text-blue-600 hover:text-blue-700 text-sm font-medium"
+                      >
+                        🚀 Create your first campaign →
+                      </Link>
+                    </div>
                   </div>
                 )}
               </div>
             </div>
           </motion.div>
         </div>
+
+        {/* Quick Access Section - Connection to Product Creators */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3 }}
+          className="bg-white rounded-lg shadow-sm border mt-8"
+        >
+          <div className="p-6 border-b">
+            <h2 className="text-lg font-semibold text-gray-900">
+              🤝 Affiliate Marketing Toolkit
+            </h2>
+            <p className="text-sm text-gray-600 mt-1">
+              Everything you need to connect with product creators and maximize earnings
+            </p>
+          </div>
+          <div className="p-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <Link
+                href="/dashboard/content-library"
+                className="flex flex-col items-center p-4 border rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                <div className="text-2xl mb-2">📚</div>
+                <div className="font-medium text-gray-900 text-center">Product Library</div>
+                <div className="text-xs text-gray-500 text-center mt-1">
+                  Browse products from creators
+                </div>
+              </Link>
+
+              <Link
+                href="/dashboard/affiliate/campaigns"
+                className="flex flex-col items-center p-4 border rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                <div className="text-2xl mb-2">🚀</div>
+                <div className="font-medium text-gray-900 text-center">My Campaigns</div>
+                <div className="text-xs text-gray-500 text-center mt-1">
+                  Track campaign performance
+                </div>
+              </Link>
+
+              <Link
+                href="/dashboard/affiliate/commissions"
+                className="flex flex-col items-center p-4 border rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                <div className="text-2xl mb-2">💰</div>
+                <div className="font-medium text-gray-900 text-center">Commission Tracking</div>
+                <div className="text-xs text-gray-500 text-center mt-1">
+                  Monitor earnings & payouts
+                </div>
+              </Link>
+
+              <Link
+                href="/dashboard/affiliate/link-generator"
+                className="flex flex-col items-center p-4 border rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                <div className="text-2xl mb-2">🔗</div>
+                <div className="font-medium text-gray-900 text-center">Link Generator</div>
+                <div className="text-xs text-gray-500 text-center mt-1">
+                  Create trackable links
+                </div>
+              </Link>
+            </div>
+          </div>
+        </motion.div>
       </div>
     </div>
   );

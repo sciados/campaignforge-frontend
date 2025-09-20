@@ -3,6 +3,7 @@
 "use client";
 
 import { User, Bell, Shield, CreditCard, Palette, Globe } from "lucide-react";
+import ClickBankSettings from "src/components/clickbank/ClickBankSettings";
 
 export const dynamic = "force-dynamic";
 
@@ -257,6 +258,11 @@ export default function SettingsPage() {
                   </label>
                 </div>
               </div>
+            </div>
+
+            <div className="p-6">
+              <h1 className="text-2xl font-bold mb-6">Clickbank Settings</h1>
+              <ClickBankSettings />
             </div>
 
             {/* Danger Zone */}

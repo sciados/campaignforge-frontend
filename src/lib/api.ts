@@ -93,6 +93,23 @@ export class CreditError extends ApiError {
 }
 
 // ============================================================================
+// Clickbank Auto Daily Update
+// ============================================================================
+
+export async function connectClickBank(nickname: string, clerkKey: string) {
+  return fetch("/api/clickbank/connect", {
+    method: "POST",
+    body: JSON.stringify({ user_id: 1, nickname, clerk_key: clerkKey }), // replace with logged-in user_id
+    headers: { "Content-Type": "application/json" },
+  }).then(res => res.json());
+}
+
+export async function getClickBankSales(days: number = 30) {
+  return fetch(`/api/clickbank/sales?user_id=1&days=${days}`) // replace with logged-in user_id
+    .then(res => res.json());
+}
+
+// ============================================================================
 // Main API Client Class
 // ============================================================================
 
