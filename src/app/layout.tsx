@@ -40,6 +40,9 @@ function DashboardLayout({ children, sidebarOpen, setSidebarOpen }: {
             <Header
               user={{ name: "User", tier: "Professional" }}
               searchPlaceholder="Search campaigns, content..."
+              onSearch={() => {}}
+              onNotificationClick={() => {}}
+              onProfileClick={() => {}}
             />
           </div>
 
