@@ -1,20 +1,35 @@
-// src/app/dashboard/settings/page.tsx - FIXED VERSION
+// src/app/dashboard/settings/page.tsx - REDESIGNED WITH PLATFORM INTEGRATIONS
 
 "use client";
 
-import { User, Bell, Shield, CreditCard, Palette, Globe } from "lucide-react";
+import { useState } from "react";
+import { User, Bell, Shield, CreditCard, Palette, Globe, Zap, Settings as SettingsIcon } from "lucide-react";
 import ClickBankSettings from "src/components/clickbank/ClickBankSettings";
 
 export const dynamic = "force-dynamic";
 
+type SettingsTab = 'profile' | 'notifications' | 'security' | 'billing' | 'preferences' | 'api' | 'platforms';
+
 export default function SettingsPage() {
+  const [activeTab, setActiveTab] = useState<SettingsTab>('profile');
+
+  const navigationItems = [
+    { id: 'profile' as SettingsTab, label: 'Profile', icon: User },
+    { id: 'notifications' as SettingsTab, label: 'Notifications', icon: Bell },
+    { id: 'security' as SettingsTab, label: 'Security', icon: Shield },
+    { id: 'billing' as SettingsTab, label: 'Billing', icon: CreditCard },
+    { id: 'preferences' as SettingsTab, label: 'Preferences', icon: Palette },
+    { id: 'platforms' as SettingsTab, label: 'Platform Integrations', icon: Zap },
+    { id: 'api' as SettingsTab, label: 'API Access', icon: Globe },
+  ];
+
   return (
     <div className="max-w-6xl mx-auto px-6 lg:px-8 py-8">
       {/* Page Title */}
       <div className="mb-8">
         <h1 className="text-3xl font-light text-black">Settings</h1>
         <p className="text-gray-600 mt-2">
-          Manage your account and preferences
+          Manage your account and platform integrations
         </p>
       </div>
 
@@ -22,271 +37,431 @@ export default function SettingsPage() {
         {/* Settings Navigation */}
         <div className="lg:col-span-1">
           <nav className="space-y-2">
-            <button className="w-full flex items-center px-4 py-3 text-left bg-gray-100 rounded-2xl text-black font-medium">
-              <User className="h-5 w-5 mr-3" />
-              Profile
-            </button>
-            <button className="w-full flex items-center px-4 py-3 text-left hover:bg-gray-50 rounded-2xl text-gray-700 transition-colors">
-              <Bell className="h-5 w-5 mr-3" />
-              Notifications
-            </button>
-            <button className="w-full flex items-center px-4 py-3 text-left hover:bg-gray-50 rounded-2xl text-gray-700 transition-colors">
-              <Shield className="h-5 w-5 mr-3" />
-              Security
-            </button>
-            <button className="w-full flex items-center px-4 py-3 text-left hover:bg-gray-50 rounded-2xl text-gray-700 transition-colors">
-              <CreditCard className="h-5 w-5 mr-3" />
-              Billing
-            </button>
-            <button className="w-full flex items-center px-4 py-3 text-left hover:bg-gray-50 rounded-2xl text-gray-700 transition-colors">
-              <Palette className="h-5 w-5 mr-3" />
-              Preferences
-            </button>
-            <button className="w-full flex items-center px-4 py-3 text-left hover:bg-gray-50 rounded-2xl text-gray-700 transition-colors">
-              <Globe className="h-5 w-5 mr-3" />
-              API Access
-            </button>
+            {navigationItems.map((item) => {
+              const Icon = item.icon;
+              const isActive = activeTab === item.id;
+
+              return (
+                <button
+                  key={item.id}
+                  onClick={() => setActiveTab(item.id)}
+                  className={`w-full flex items-center px-4 py-3 text-left rounded-2xl font-medium transition-colors ${
+                    isActive
+                      ? 'bg-gray-100 text-black'
+                      : 'hover:bg-gray-50 text-gray-700'
+                  }`}
+                >
+                  <Icon className="h-5 w-5 mr-3" />
+                  {item.label}
+                  {item.id === 'platforms' && (
+                    <span className="ml-auto bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full">
+                      New
+                    </span>
+                  )}
+                </button>
+              );
+            })}
           </nav>
         </div>
 
         {/* Settings Content */}
         <div className="lg:col-span-3">
-          <div className="bg-white rounded-2xl border border-gray-200 p-8 shadow-sm">
-            <h2 className="text-xl font-medium text-black mb-8">
-              Profile Settings
-            </h2>
+          {activeTab === 'profile' && <ProfileSettings />}
+          {activeTab === 'notifications' && <NotificationSettings />}
+          {activeTab === 'security' && <SecuritySettings />}
+          {activeTab === 'billing' && <BillingSettings />}
+          {activeTab === 'preferences' && <PreferencesSettings />}
+          {activeTab === 'platforms' && <PlatformIntegrationsSettings />}
+          {activeTab === 'api' && <APIAccessSettings />}
+        </div>
+      </div>
+    </div>
+  );
+}
 
-            <div className="space-y-8">
-              {/* Profile Picture */}
-              <div>
-                <label className="block text-sm font-medium text-black mb-4">
-                  Profile Picture
-                </label>
-                <div className="flex items-center space-x-4">
-                  <div className="w-16 h-16 bg-black rounded-full flex items-center justify-center text-white font-medium text-xl">
-                    U
-                  </div>
-                  <div>
-                    <button className="bg-gray-100 hover:bg-gray-200 px-4 py-2 rounded-lg text-black font-medium transition-colors">
-                      Change Photo
-                    </button>
-                    <button className="ml-3 px-4 py-2 text-gray-600 hover:text-gray-800 transition-colors">
-                      Remove
-                    </button>
-                  </div>
-                </div>
-              </div>
+// Profile Settings Component
+function ProfileSettings() {
+  return (
+    <div className="bg-white rounded-2xl border border-gray-200 p-8 shadow-sm">
+      <h2 className="text-xl font-medium text-black mb-8">
+        Profile Settings
+      </h2>
 
-              {/* Name Fields */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <label className="block text-sm font-medium text-black mb-3">
-                    First Name
-                  </label>
-                  <input
-                    type="text"
-                    className="w-full px-4 py-3 bg-gray-100 border-none rounded-lg focus:outline-none focus:bg-white focus:ring-2 focus:ring-blue-500/20 transition-all"
-                    placeholder="John"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-black mb-3">
-                    Last Name
-                  </label>
-                  <input
-                    type="text"
-                    className="w-full px-4 py-3 bg-gray-100 border-none rounded-lg focus:outline-none focus:bg-white focus:ring-2 focus:ring-blue-500/20 transition-all"
-                    placeholder="Doe"
-                  />
-                </div>
-              </div>
-
-              {/* Email */}
-              <div>
-                <label className="block text-sm font-medium text-black mb-3">
-                  Email Address
-                </label>
-                <input
-                  type="email"
-                  className="w-full px-4 py-3 bg-gray-100 border-none rounded-lg focus:outline-none focus:bg-white focus:ring-2 focus:ring-blue-500/20 transition-all"
-                  placeholder="john@company.com"
-                />
-              </div>
-
-              {/* Company */}
-              <div>
-                <label className="block text-sm font-medium text-black mb-3">
-                  Company
-                </label>
-                <input
-                  type="text"
-                  className="w-full px-4 py-3 bg-gray-100 border-none rounded-lg focus:outline-none focus:bg-white focus:ring-2 focus:ring-blue-500/20 transition-all"
-                  placeholder="Your Company"
-                />
-              </div>
-
-              {/* Bio */}
-              <div>
-                <label className="block text-sm font-medium text-black mb-3">
-                  Bio
-                </label>
-                <textarea
-                  rows={4}
-                  className="w-full px-4 py-3 bg-gray-100 border-none rounded-lg focus:outline-none focus:bg-white focus:ring-2 focus:ring-blue-500/20 transition-all resize-none"
-                  placeholder="Tell us about yourself..."
-                />
-              </div>
-
-              {/* Timezone */}
-              <div>
-                <label className="block text-sm font-medium text-black mb-3">
-                  Timezone
-                </label>
-                <select className="w-full px-4 py-3 bg-gray-100 border-none rounded-lg focus:outline-none focus:bg-white focus:ring-2 focus:ring-blue-500/20 transition-all">
-                  <option>UTC (GMT+0)</option>
-                  <option>Eastern Time (GMT-5)</option>
-                  <option>Pacific Time (GMT-8)</option>
-                  <option>Central European Time (GMT+1)</option>
-                </select>
-              </div>
-
-              {/* Save Button */}
-              <div className="flex justify-end pt-6 border-t border-gray-200">
-                <div className="flex space-x-3">
-                  <button className="bg-gray-100 hover:bg-gray-200 px-6 py-3 rounded-lg text-black font-medium transition-colors">
-                    Cancel
-                  </button>
-                  <button className="bg-black hover:bg-gray-900 px-6 py-3 rounded-lg text-white font-medium transition-colors">
-                    Save Changes
-                  </button>
-                </div>
-              </div>
+      <div className="space-y-8">
+        {/* Profile Picture */}
+        <div>
+          <label className="block text-sm font-medium text-black mb-4">
+            Profile Picture
+          </label>
+          <div className="flex items-center space-x-4">
+            <div className="w-16 h-16 bg-black rounded-full flex items-center justify-center text-white font-medium text-xl">
+              U
+            </div>
+            <div>
+              <button className="bg-gray-100 hover:bg-gray-200 px-4 py-2 rounded-lg text-black font-medium transition-colors">
+                Change Photo
+              </button>
+              <button className="ml-3 px-4 py-2 text-gray-600 hover:text-gray-800 transition-colors">
+                Remove
+              </button>
             </div>
           </div>
+        </div>
 
-          {/* Additional Settings Sections */}
-          <div className="mt-8 space-y-6">
-            {/* Account Security */}
-            <div className="bg-white rounded-2xl border border-gray-200 p-8 shadow-sm">
-              <h3 className="text-lg font-medium text-black mb-6">
-                Account Security
-              </h3>
-              <div className="space-y-4">
-                <div className="flex items-center justify-between py-3">
-                  <div>
-                    <h4 className="text-sm font-medium text-black">
-                      Two-Factor Authentication
-                    </h4>
-                    <p className="text-sm text-gray-600">
-                      Add an extra layer of security to your account
-                    </p>
-                  </div>
-                  <button className="bg-gray-100 hover:bg-gray-200 px-4 py-2 rounded-lg text-black font-medium transition-colors">
-                    Enable
-                  </button>
+        {/* Name Fields */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div>
+            <label className="block text-sm font-medium text-black mb-3">
+              First Name
+            </label>
+            <input
+              type="text"
+              className="w-full px-4 py-3 bg-gray-100 border-none rounded-lg focus:outline-none focus:bg-white focus:ring-2 focus:ring-blue-500/20 transition-all"
+              placeholder="John"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-black mb-3">
+              Last Name
+            </label>
+            <input
+              type="text"
+              className="w-full px-4 py-3 bg-gray-100 border-none rounded-lg focus:outline-none focus:bg-white focus:ring-2 focus:ring-blue-500/20 transition-all"
+              placeholder="Doe"
+            />
+          </div>
+        </div>
+
+        {/* Email */}
+        <div>
+          <label className="block text-sm font-medium text-black mb-3">
+            Email Address
+          </label>
+          <input
+            type="email"
+            className="w-full px-4 py-3 bg-gray-100 border-none rounded-lg focus:outline-none focus:bg-white focus:ring-2 focus:ring-blue-500/20 transition-all"
+            placeholder="john@company.com"
+          />
+        </div>
+
+        {/* Company */}
+        <div>
+          <label className="block text-sm font-medium text-black mb-3">
+            Company
+          </label>
+          <input
+            type="text"
+            className="w-full px-4 py-3 bg-gray-100 border-none rounded-lg focus:outline-none focus:bg-white focus:ring-2 focus:ring-blue-500/20 transition-all"
+            placeholder="Your Company"
+          />
+        </div>
+
+        {/* Bio */}
+        <div>
+          <label className="block text-sm font-medium text-black mb-3">
+            Bio
+          </label>
+          <textarea
+            rows={4}
+            className="w-full px-4 py-3 bg-gray-100 border-none rounded-lg focus:outline-none focus:bg-white focus:ring-2 focus:ring-blue-500/20 transition-all resize-none"
+            placeholder="Tell us about yourself..."
+          />
+        </div>
+
+        {/* Timezone */}
+        <div>
+          <label className="block text-sm font-medium text-black mb-3">
+            Timezone
+          </label>
+          <select className="w-full px-4 py-3 bg-gray-100 border-none rounded-lg focus:outline-none focus:bg-white focus:ring-2 focus:ring-blue-500/20 transition-all">
+            <option>UTC (GMT+0)</option>
+            <option>Eastern Time (GMT-5)</option>
+            <option>Pacific Time (GMT-8)</option>
+            <option>Central European Time (GMT+1)</option>
+          </select>
+        </div>
+
+        {/* Save Button */}
+        <div className="flex justify-end pt-6 border-t border-gray-200">
+          <div className="flex space-x-3">
+            <button className="bg-gray-100 hover:bg-gray-200 px-6 py-3 rounded-lg text-black font-medium transition-colors">
+              Cancel
+            </button>
+            <button className="bg-black hover:bg-gray-900 px-6 py-3 rounded-lg text-white font-medium transition-colors">
+              Save Changes
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Platform Integrations Settings Component
+function PlatformIntegrationsSettings() {
+  return (
+    <div className="space-y-6">
+      <div className="bg-white rounded-2xl border border-gray-200 p-8 shadow-sm">
+        <div className="flex items-center justify-between mb-8">
+          <div>
+            <h2 className="text-xl font-medium text-black">Platform Integrations</h2>
+            <p className="text-gray-600 mt-2">
+              Connect your affiliate marketing platforms and tools
+            </p>
+          </div>
+          <span className="bg-blue-100 text-blue-800 text-sm px-3 py-1 rounded-full font-medium">
+            3 Available
+          </span>
+        </div>
+
+        <div className="space-y-6">
+          {/* ClickBank Integration */}
+          <div className="border border-gray-200 rounded-xl p-6">
+            <div className="flex items-start justify-between mb-4">
+              <div className="flex items-center space-x-4">
+                <div className="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center">
+                  <Zap className="h-6 w-6 text-orange-600" />
                 </div>
-                <div className="flex items-center justify-between py-3">
-                  <div>
-                    <h4 className="text-sm font-medium text-black">
-                      Change Password
-                    </h4>
-                    <p className="text-sm text-gray-600">
-                      Update your account password
-                    </p>
-                  </div>
-                  <button className="bg-gray-100 hover:bg-gray-200 px-4 py-2 rounded-lg text-black font-medium transition-colors">
-                    Change
-                  </button>
+                <div>
+                  <h3 className="text-lg font-medium text-black">ClickBank</h3>
+                  <p className="text-sm text-gray-600">
+                    Connect your ClickBank account to fetch sales data and manage affiliate campaigns
+                  </p>
                 </div>
               </div>
+              <span className="bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full font-medium">
+                Available
+              </span>
             </div>
 
-            {/* Notifications */}
-            <div className="bg-white rounded-2xl border border-gray-200 p-8 shadow-sm">
-              <h3 className="text-lg font-medium text-black mb-6">
-                Notification Preferences
-              </h3>
-              <div className="space-y-4">
-                <div className="flex items-center justify-between py-3">
-                  <div>
-                    <h4 className="text-sm font-medium text-black">
-                      Email Notifications
-                    </h4>
-                    <p className="text-sm text-gray-600">
-                      Receive updates about your campaigns
-                    </p>
-                  </div>
-                  <label className="relative inline-flex items-center cursor-pointer">
-                    <input
-                      type="checkbox"
-                      className="sr-only peer"
-                      defaultChecked
-                    />
-                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-black"></div>
-                  </label>
-                </div>
-                <div className="flex items-center justify-between py-3">
-                  <div>
-                    <h4 className="text-sm font-medium text-black">
-                      Push Notifications
-                    </h4>
-                    <p className="text-sm text-gray-600">
-                      Get notified on your devices
-                    </p>
-                  </div>
-                  <label className="relative inline-flex items-center cursor-pointer">
-                    <input type="checkbox" className="sr-only peer" />
-                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-black"></div>
-                  </label>
-                </div>
-                <div className="flex items-center justify-between py-3">
-                  <div>
-                    <h4 className="text-sm font-medium text-black">
-                      Weekly Reports
-                    </h4>
-                    <p className="text-sm text-gray-600">
-                      Summary of your campaign performance
-                    </p>
-                  </div>
-                  <label className="relative inline-flex items-center cursor-pointer">
-                    <input
-                      type="checkbox"
-                      className="sr-only peer"
-                      defaultChecked
-                    />
-                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-black"></div>
-                  </label>
-                </div>
-              </div>
-            </div>
-
-            <div className="p-6">
-              <h1 className="text-2xl font-bold mb-6">Clickbank Settings</h1>
+            <div className="mt-6">
               <ClickBankSettings />
             </div>
+          </div>
 
-            {/* Danger Zone */}
-            <div className="bg-white rounded-2xl border border-red-200 p-8 shadow-sm">
-              <h3 className="text-lg font-medium text-red-900 mb-6">
-                Danger Zone
-              </h3>
-              <div className="space-y-4">
-                <div className="flex items-center justify-between py-3">
-                  <div>
-                    <h4 className="text-sm font-medium text-red-900">
-                      Delete Account
-                    </h4>
-                    <p className="text-sm text-red-600">
-                      Permanently delete your account and all data
-                    </p>
-                  </div>
-                  <button className="bg-red-100 hover:bg-red-200 px-4 py-2 rounded-lg text-red-900 font-medium transition-colors">
-                    Delete Account
-                  </button>
+          {/* JVZoo Integration (Coming Soon) */}
+          <div className="border border-gray-200 rounded-xl p-6 opacity-75">
+            <div className="flex items-start justify-between mb-4">
+              <div className="flex items-center space-x-4">
+                <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
+                  <Globe className="h-6 w-6 text-purple-600" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-medium text-black">JVZoo</h3>
+                  <p className="text-sm text-gray-600">
+                    Integrate with JVZoo for comprehensive affiliate network management
+                  </p>
                 </div>
               </div>
+              <span className="bg-gray-100 text-gray-600 text-xs px-2 py-1 rounded-full font-medium">
+                Coming Soon
+              </span>
+            </div>
+
+            <div className="mt-4 p-4 bg-gray-50 rounded-lg">
+              <p className="text-sm text-gray-600">
+                JVZoo integration will be available in the next update. Get notified when it's ready.
+              </p>
+              <button className="mt-3 bg-gray-200 text-gray-500 px-4 py-2 rounded-lg text-sm font-medium cursor-not-allowed">
+                Notify Me
+              </button>
             </div>
           </div>
+
+          {/* WarriorPlus Integration (Coming Soon) */}
+          <div className="border border-gray-200 rounded-xl p-6 opacity-75">
+            <div className="flex items-start justify-between mb-4">
+              <div className="flex items-center space-x-4">
+                <div className="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center">
+                  <Shield className="h-6 w-6 text-red-600" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-medium text-black">WarriorPlus</h3>
+                  <p className="text-sm text-gray-600">
+                    Connect with WarriorPlus to expand your affiliate marketing reach
+                  </p>
+                </div>
+              </div>
+              <span className="bg-gray-100 text-gray-600 text-xs px-2 py-1 rounded-full font-medium">
+                Coming Soon
+              </span>
+            </div>
+
+            <div className="mt-4 p-4 bg-gray-50 rounded-lg">
+              <p className="text-sm text-gray-600">
+                WarriorPlus integration is in development. Stay tuned for updates.
+              </p>
+              <button className="mt-3 bg-gray-200 text-gray-500 px-4 py-2 rounded-lg text-sm font-medium cursor-not-allowed">
+                Notify Me
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Integration Stats */}
+        <div className="mt-8 p-6 bg-gray-50 rounded-xl">
+          <h4 className="text-sm font-medium text-black mb-4">Integration Overview</h4>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="text-center">
+              <div className="text-2xl font-bold text-black">1</div>
+              <div className="text-sm text-gray-600">Connected Platforms</div>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl font-bold text-black">2</div>
+              <div className="text-sm text-gray-600">Coming Soon</div>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl font-bold text-black">0</div>
+              <div className="text-sm text-gray-600">Data Syncs Today</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Other Settings Components (simplified for now)
+function NotificationSettings() {
+  return (
+    <div className="bg-white rounded-2xl border border-gray-200 p-8 shadow-sm">
+      <h2 className="text-xl font-medium text-black mb-8">Notification Settings</h2>
+      <div className="space-y-4">
+        <div className="flex items-center justify-between py-3">
+          <div>
+            <h4 className="text-sm font-medium text-black">Email Notifications</h4>
+            <p className="text-sm text-gray-600">Receive updates about your campaigns</p>
+          </div>
+          <label className="relative inline-flex items-center cursor-pointer">
+            <input type="checkbox" className="sr-only peer" defaultChecked />
+            <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-black"></div>
+          </label>
+        </div>
+        <div className="flex items-center justify-between py-3">
+          <div>
+            <h4 className="text-sm font-medium text-black">Push Notifications</h4>
+            <p className="text-sm text-gray-600">Get notified on your devices</p>
+          </div>
+          <label className="relative inline-flex items-center cursor-pointer">
+            <input type="checkbox" className="sr-only peer" />
+            <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-black"></div>
+          </label>
+        </div>
+        <div className="flex items-center justify-between py-3">
+          <div>
+            <h4 className="text-sm font-medium text-black">Weekly Reports</h4>
+            <p className="text-sm text-gray-600">Summary of your campaign performance</p>
+          </div>
+          <label className="relative inline-flex items-center cursor-pointer">
+            <input type="checkbox" className="sr-only peer" defaultChecked />
+            <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-black"></div>
+          </label>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function SecuritySettings() {
+  return (
+    <div className="space-y-6">
+      <div className="bg-white rounded-2xl border border-gray-200 p-8 shadow-sm">
+        <h2 className="text-xl font-medium text-black mb-8">Security Settings</h2>
+        <div className="space-y-4">
+          <div className="flex items-center justify-between py-3">
+            <div>
+              <h4 className="text-sm font-medium text-black">Two-Factor Authentication</h4>
+              <p className="text-sm text-gray-600">Add an extra layer of security to your account</p>
+            </div>
+            <button className="bg-gray-100 hover:bg-gray-200 px-4 py-2 rounded-lg text-black font-medium transition-colors">
+              Enable
+            </button>
+          </div>
+          <div className="flex items-center justify-between py-3">
+            <div>
+              <h4 className="text-sm font-medium text-black">Change Password</h4>
+              <p className="text-sm text-gray-600">Update your account password</p>
+            </div>
+            <button className="bg-gray-100 hover:bg-gray-200 px-4 py-2 rounded-lg text-black font-medium transition-colors">
+              Change
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Danger Zone */}
+      <div className="bg-white rounded-2xl border border-red-200 p-8 shadow-sm">
+        <h3 className="text-lg font-medium text-red-900 mb-6">Danger Zone</h3>
+        <div className="space-y-4">
+          <div className="flex items-center justify-between py-3">
+            <div>
+              <h4 className="text-sm font-medium text-red-900">Delete Account</h4>
+              <p className="text-sm text-red-600">Permanently delete your account and all data</p>
+            </div>
+            <button className="bg-red-100 hover:bg-red-200 px-4 py-2 rounded-lg text-red-900 font-medium transition-colors">
+              Delete Account
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function BillingSettings() {
+  return (
+    <div className="bg-white rounded-2xl border border-gray-200 p-8 shadow-sm">
+      <h2 className="text-xl font-medium text-black mb-8">Billing & Subscription</h2>
+      <div className="space-y-6">
+        <div className="p-6 bg-gray-50 rounded-xl">
+          <h3 className="text-lg font-medium text-black mb-2">Current Plan</h3>
+          <p className="text-gray-600 mb-4">You are currently on the Professional plan</p>
+          <button className="bg-black hover:bg-gray-900 px-4 py-2 rounded-lg text-white font-medium transition-colors">
+            Manage Subscription
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function PreferencesSettings() {
+  return (
+    <div className="bg-white rounded-2xl border border-gray-200 p-8 shadow-sm">
+      <h2 className="text-xl font-medium text-black mb-8">Preferences</h2>
+      <div className="space-y-6">
+        <div>
+          <label className="block text-sm font-medium text-black mb-3">Theme</label>
+          <select className="w-full px-4 py-3 bg-gray-100 border-none rounded-lg focus:outline-none focus:bg-white focus:ring-2 focus:ring-blue-500/20 transition-all">
+            <option>Light</option>
+            <option>Dark</option>
+            <option>System</option>
+          </select>
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-black mb-3">Language</label>
+          <select className="w-full px-4 py-3 bg-gray-100 border-none rounded-lg focus:outline-none focus:bg-white focus:ring-2 focus:ring-blue-500/20 transition-all">
+            <option>English</option>
+            <option>Spanish</option>
+            <option>French</option>
+          </select>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function APIAccessSettings() {
+  return (
+    <div className="bg-white rounded-2xl border border-gray-200 p-8 shadow-sm">
+      <h2 className="text-xl font-medium text-black mb-8">API Access</h2>
+      <div className="space-y-6">
+        <div className="p-6 bg-gray-50 rounded-xl">
+          <h3 className="text-lg font-medium text-black mb-2">API Keys</h3>
+          <p className="text-gray-600 mb-4">Manage your API keys for third-party integrations</p>
+          <button className="bg-black hover:bg-gray-900 px-4 py-2 rounded-lg text-white font-medium transition-colors">
+            Generate New Key
+          </button>
         </div>
       </div>
     </div>

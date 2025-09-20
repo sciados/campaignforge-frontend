@@ -200,14 +200,28 @@ const AffiliateDashboard: React.FC<AffiliateDashboardProps> = ({ config }) => {
           winners: performanceData.campaign_status?.winners || statsData.winning_campaigns || 0,
         },
         competitorFeed: performanceData.competitor_feed || [],
-        recentCampaigns: (campaignsData.campaigns || campaignsData || []).map((campaign: any) => ({
-          id: campaign.id,
-          name: campaign.title || campaign.name,
-          type: campaign.content_types?.[0] || "email",
-          earnings: campaign.estimated_revenue || campaign.revenue || 0,
-          ctr_change: campaign.performance_metrics?.ctr_change || campaign.conversion_rate || 0,
-          status: campaign.status,
-        })),
+        recentCampaigns: (() => {
+          // Handle different possible response formats from the API
+          let campaignsArray = [];
+
+          if (campaignsData && campaignsData.campaigns && Array.isArray(campaignsData.campaigns)) {
+            campaignsArray = campaignsData.campaigns;
+          } else if (Array.isArray(campaignsData)) {
+            campaignsArray = campaignsData;
+          } else if (campaignsData && typeof campaignsData === 'object') {
+            // If it's an object, try to extract campaigns from various possible properties
+            campaignsArray = campaignsData.data || campaignsData.results || [];
+          }
+
+          return campaignsArray.map((campaign: any) => ({
+            id: campaign.id,
+            name: campaign.title || campaign.name,
+            type: campaign.content_types?.[0] || campaign.content_type || "email",
+            earnings: campaign.estimated_revenue || campaign.revenue || campaign.earnings || 0,
+            ctr_change: campaign.performance_metrics?.ctr_change || campaign.conversion_rate || 0,
+            status: campaign.status || 'active',
+          }));
+        })(),
       });
 
       // Only show error if all requests failed

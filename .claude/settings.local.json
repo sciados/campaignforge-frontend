@@ -36,7 +36,8 @@
       "WebFetch(domain:resend.com)",
       "Read(//c/**)",
       "Bash(npx tsc:*)",
-      "Bash(npm run lint)"
+      "Bash(npm run lint)",
+      "Bash(killall:*)"
     ],
     "deny": [],
     "ask": []

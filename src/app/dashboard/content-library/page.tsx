@@ -32,6 +32,7 @@ import {
   BarChart3,
   Bookmark,
   Share2,
+  Play,
 } from "lucide-react";
 import { useApi } from "@/lib/api";
 
