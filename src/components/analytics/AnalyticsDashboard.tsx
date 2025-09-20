@@ -332,26 +332,70 @@ export default function AnalyticsDashboard() {
         </CardContent>
       </Card>
 
-      {/* Product Performance */}
+      {/* Product Performance by Platform */}
       {productData.length > 0 && (
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center">
               <ShoppingCart className="h-5 w-5 mr-2" />
-              Top Products
+              Platform Performance
             </CardTitle>
+            <p className="text-sm text-gray-600">Performance stats by Platform → Product</p>
           </CardHeader>
           <CardContent>
-            <div className="space-y-3">
-              {productData.slice(0, 5).map((product, index) => (
-                <div key={`${product.platform}-${product.product_id}`} className="flex justify-between items-center p-3 border rounded-lg">
-                  <div>
-                    <h4 className="font-medium">{product.product_name}</h4>
-                    <p className="text-sm text-gray-600">{getPlatformDisplayName(product.platform)}</p>
+            <div className="space-y-6">
+              {/* Group products by platform */}
+              {Object.entries(
+                productData.reduce((groups: Record<string, any[]>, product) => {
+                  const platform = product.platform;
+                  if (!groups[platform]) groups[platform] = [];
+                  groups[platform].push(product);
+                  return groups;
+                }, {})
+              ).map(([platform, products]) => (
+                <div key={platform} className="border rounded-lg p-4">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="font-semibold text-lg flex items-center">
+                      {getPlatformIcon(platform)}
+                      <span className="ml-2">{getPlatformDisplayName(platform)}</span>
+                    </h3>
+                    <span className="text-sm text-gray-600">
+                      {products.length} product{products.length !== 1 ? 's' : ''}
+                    </span>
                   </div>
-                  <div className="text-right">
-                    <p className="font-semibold">{formatCurrency(product.metrics.revenue)}</p>
-                    <p className="text-sm text-gray-600">{product.metrics.sales} sales</p>
+
+                  <div className="space-y-3">
+                    {products.slice(0, 3).map((product) => (
+                      <div key={`${product.platform}-${product.product_id}`}
+                           className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                        <div className="flex-1">
+                          <h4 className="font-medium">{product.product_name}</h4>
+                          <div className="flex items-center gap-4 mt-1">
+                            <p className="text-sm text-gray-600">SKU: {product.product_id}</p>
+                            {product.metrics.vendor && (
+                              <p className="text-sm text-gray-600">Vendor: {product.metrics.vendor}</p>
+                            )}
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <p className="font-semibold">{formatCurrency(product.metrics.revenue)}</p>
+                          <div className="text-sm text-gray-600">
+                            <span>{product.metrics.sales} sales</span>
+                            {product.metrics.quantity && product.metrics.quantity !== product.metrics.sales && (
+                              <span> • {product.metrics.quantity} units</span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+
+                    {products.length > 3 && (
+                      <div className="text-center py-2">
+                        <span className="text-sm text-gray-500">
+                          + {products.length - 3} more products
+                        </span>
+                      </div>
+                    )}
                   </div>
                 </div>
               ))}

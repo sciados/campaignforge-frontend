@@ -38,7 +38,8 @@
       "Bash(npx tsc:*)",
       "Bash(npm run lint)",
       "Bash(killall:*)",
-      "WebFetch(domain:support.clickbank.com)"
+      "WebFetch(domain:support.clickbank.com)",
+      "WebSearch"
     ],
     "deny": [],
     "ask": []
