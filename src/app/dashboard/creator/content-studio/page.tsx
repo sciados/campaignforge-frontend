@@ -14,7 +14,7 @@ import {
   Pause,
   Settings,
   FileText,
-  Image,
+  Image as ImageIcon,
   Music,
   Wand2,
   Upload,
@@ -80,7 +80,7 @@ const ContentStudioPage: React.FC = () => {
       case "video":
         return <Video className="w-5 h-5" />;
       case "image":
-        return <Image className="w-5 h-5" />;
+        return <ImageIcon className="w-5 h-5" />;
       case "audio":
         return <Music className="w-5 h-5" />;
       case "text":
