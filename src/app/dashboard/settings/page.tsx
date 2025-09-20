@@ -260,7 +260,7 @@ function PlatformIntegrationsSettings() {
 
             <div className="mt-4 p-4 bg-gray-50 rounded-lg">
               <p className="text-sm text-gray-600">
-                JVZoo integration will be available in the next update. Get notified when it's ready.
+                JVZoo integration will be available in the next update. Get notified when it&apos;s ready.
               </p>
               <button className="mt-3 bg-gray-200 text-gray-500 px-4 py-2 rounded-lg text-sm font-medium cursor-not-allowed">
                 Notify Me
