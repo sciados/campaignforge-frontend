@@ -36,7 +36,7 @@ export default function CommissionsPage() {
 
   useEffect(() => {
     loadCommissionData();
-  }, [timeFilter]);
+  }, [timeFilter]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const loadCommissionData = async () => {
     setIsLoading(true);

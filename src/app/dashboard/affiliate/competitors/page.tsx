@@ -36,7 +36,7 @@ export default function CompetitorsPage() {
 
   useEffect(() => {
     loadCompetitorData();
-  }, [selectedCategory]);
+  }, [selectedCategory]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const loadCompetitorData = async () => {
     setIsLoading(true);
@@ -323,7 +323,7 @@ export default function CompetitorsPage() {
                       No competitor data available
                     </h3>
                     <p className="text-gray-500 mb-6">
-                      We're continuously monitoring the market for competitor activity.
+                      We&apos;re continuously monitoring the market for competitor activity.
                       Check back soon for insights.
                     </p>
                     <button
