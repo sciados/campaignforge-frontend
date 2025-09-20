@@ -109,6 +109,18 @@ export async function connectClickBank(nickname: string, apiKey: string) {
   }).then(res => res.json());
 }
 
+export async function getClickBankCredentials() {
+  const token = localStorage.getItem('authToken')
+
+  return fetch(`${API_BASE_URL}/api/clickbank/credentials`, {
+    method: "GET",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+  }).then(res => res.json());
+}
+
 export async function getClickBankSales(days: number = 30) {
   return fetch(`/api/clickbank/sales?user_id=1&days=${days}`) // replace with logged-in user_id
     .then(res => res.json());
