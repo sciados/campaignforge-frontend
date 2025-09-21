@@ -296,7 +296,10 @@ export default function CampaignDetailPage({
         return "completed"; // Setup is always completed if we're viewing the campaign
       case 2:
         // Input Sources step - check if we have sources OR a salespage URL OR intelligence data
-        return (workflowState.metrics.sources_count > 0 || campaign?.salespage_url || workflowState.metrics.intelligence_count > 0) ? "completed" : "pending";
+        // Also check if auto-analysis was completed (indicates a URL was processed)
+        const hasInputSources = workflowState.metrics.sources_count > 0 || campaign?.salespage_url || workflowState.metrics.intelligence_count > 0;
+        const autoAnalysisCompleted = workflowState.auto_analysis.enabled && workflowState.auto_analysis.status === "completed";
+        return (hasInputSources || autoAnalysisCompleted) ? "completed" : "pending";
       case 3:
         // Analysis step - show completed if auto-analysis is complete OR if we have intelligence data
         if (workflowState.auto_analysis.enabled) {
@@ -523,7 +526,7 @@ export default function CampaignDetailPage({
 
                     {/* DEBUG: Show Step 2 status */}
                     <div className="mt-2 text-xs text-red-600 bg-red-50 p-2 rounded">
-                      DEBUG - Step 2 Status: {getWorkflowStepStatus(2)} | Sources: {workflowState?.metrics.sources_count || 0} | Intelligence: {workflowState?.metrics.intelligence_count || 0} | SalesPage: {campaign?.salespage_url ? 'YES' : 'NO'}
+                      DEBUG - Step 2: {getWorkflowStepStatus(2)} | Sources: {workflowState?.metrics.sources_count || 0} | Intelligence: {workflowState?.metrics.intelligence_count || 0} | SalesPage: {campaign?.salespage_url ? 'YES' : 'NO'} | AutoAnalysis: {workflowState?.auto_analysis.enabled ? workflowState.auto_analysis.status : 'disabled'}
                     </div>
 
                     {getWorkflowStepStatus(2) === "completed" && (
@@ -543,9 +546,8 @@ export default function CampaignDetailPage({
                   </div>
                 </div>
 
-                {/* Step 3: Analysis & Intelligence - DEBUG: Always show for now */}
-                {/* DEBUG: Step 2 status = {getWorkflowStepStatus(2)} */}
-                {true && (
+                {/* Step 3: Analysis & Intelligence - Show when Step 2 is completed */}
+                {getWorkflowStepStatus(2) === "completed" && (
                   <div className="flex items-start space-x-4">
                     <div className="flex-shrink-0">
                       {getStepIcon(3, getWorkflowStepStatus(3))}
