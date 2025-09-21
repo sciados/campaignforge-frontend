@@ -325,6 +325,23 @@ export default function CampaignDetailPage({
     }
   };
 
+  const calculateDynamicProgress = () => {
+    if (!workflowState) return 0;
+
+    let completedSteps = 0;
+    const totalSteps = 4;
+
+    // Count completed steps
+    for (let i = 1; i <= totalSteps; i++) {
+      const status = getWorkflowStepStatus(i);
+      if (status === "completed") {
+        completedSteps++;
+      }
+    }
+
+    return Math.round((completedSteps / totalSteps) * 100);
+  };
+
   const getStepIcon = (step: number, status: string) => {
     switch (status) {
       case "completed":
@@ -459,7 +476,7 @@ export default function CampaignDetailPage({
             {/* 2-Step Workflow Progress */}
             <div className="bg-white rounded-xl border border-gray-200 p-6">
               <h2 className="text-lg font-semibold text-gray-900 mb-6">
-                🔄 Campaign Workflow - CACHE CLEARED ✅
+                Campaign Workflow
               </h2>
 
               <div className="space-y-6">
@@ -521,8 +538,8 @@ export default function CampaignDetailPage({
                   </div>
                 </div>
 
-                {/* Step 3: Analysis & Intelligence - Always show for testing */}
-                {true && (
+                {/* Step 3: Analysis & Intelligence - Show when Step 2 is completed */}
+                {getWorkflowStepStatus(2) === "completed" && (
                   <div className="flex items-start space-x-4">
                     <div className="flex-shrink-0">
                       {getStepIcon(3, getWorkflowStepStatus(3))}
@@ -535,12 +552,23 @@ export default function CampaignDetailPage({
                         AI analysis and intelligence extraction from input sources
                       </p>
 
-                      {!workflowState?.auto_analysis.enabled && (
+                      {!workflowState?.auto_analysis.enabled && (!workflowState?.metrics.intelligence_count || workflowState.metrics.intelligence_count === 0) && (
                         <div className="mt-3 p-3 bg-amber-50 rounded-lg border border-amber-200">
                           <div className="flex items-center space-x-2">
                             <Clock className="h-4 w-4 text-amber-600" />
                             <span className="text-sm text-amber-700">
                               Manual analysis required
+                            </span>
+                          </div>
+                        </div>
+                      )}
+
+                      {!workflowState?.auto_analysis.enabled && workflowState?.metrics.intelligence_count && workflowState.metrics.intelligence_count > 0 && (
+                        <div className="mt-3 p-3 bg-green-50 rounded-lg border border-green-200">
+                          <div className="flex items-center space-x-2">
+                            <CheckCircle className="h-4 w-4 text-green-600" />
+                            <span className="text-sm text-green-700">
+                              Analysis completed - {workflowState.metrics.intelligence_count} intelligence insights generated
                             </span>
                           </div>
                         </div>
@@ -647,14 +675,14 @@ export default function CampaignDetailPage({
                     Overall Progress
                   </span>
                   <span className="text-sm text-gray-600">
-                    {workflowState?.completion_percentage || 0}%
+                    {calculateDynamicProgress()}%
                   </span>
                 </div>
                 <div className="w-full bg-gray-200 rounded-full h-2">
                   <div
                     className="bg-purple-600 h-2 rounded-full transition-all duration-300"
                     style={{
-                      width: `${workflowState?.completion_percentage || 0}%`,
+                      width: `${calculateDynamicProgress()}%`,
                     }}
                   />
                 </div>
