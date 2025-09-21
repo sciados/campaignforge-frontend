@@ -475,13 +475,25 @@ export default function AffiliateProductLibrary() {
   };
 
   const handleCreateCampaign = (product: ProductData) => {
+    // Determine platform from product data
+    const platform = product.sales_page_url?.toLowerCase().includes('clickbank') ? 'clickbank' :
+                    product.sales_page_url?.toLowerCase().includes('jvzoo') ? 'jvzoo' :
+                    product.sales_page_url?.toLowerCase().includes('warriorplus') ? 'warriorplus' :
+                    'clickbank'; // default to clickbank
+
     // Store the selected product for campaign creation
     const campaignData = {
       product_name: product.product_name,
+      name: product.product_name, // alias for compatibility
       sales_page_url: product.sales_page_url,
       product_category: product.product_category,
       vendor_name: product.vendor_name,
-      product_id: product.id
+      product_id: product.id,
+      platform: platform,
+      sku: product.id || `${platform}_${product.product_name?.replace(/[^a-zA-Z0-9]/g, '_').toUpperCase()}`,
+      commission_rate: product.commission_rate,
+      price: product.price,
+      status: product.status
     };
 
     // Store in localStorage for the campaign creation workflow

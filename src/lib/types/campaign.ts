@@ -21,6 +21,7 @@ export interface Campaign {
   company_id: string
   product_name?: string
   affiliate_link?: string
+  product_info?: any // Product information from Content Library selection
 
   // Missing properties from original api.ts (restored)
   is_demo?: boolean
@@ -122,6 +123,7 @@ export interface CampaignCreateRequest {
   tone?: string
   style?: string
   settings?: Partial<CampaignSettings>
+  product_info?: any // Product information from Content Library selection
 
   // Auto-analysis fields for streamlined workflow
   salespage_url?: string

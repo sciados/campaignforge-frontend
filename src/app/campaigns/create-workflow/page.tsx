@@ -27,6 +27,7 @@ interface WorkflowState {
     description: string;
     keywords: string[];
     target_audience: string;
+    product_info?: any; // Product information from Content Library
   };
   isStep1Locked: boolean;
   isAnalyzing: boolean;
@@ -67,6 +68,32 @@ export default function CreateWorkflowPage() {
   const [error, setError] = useState<string | null>(null);
   const [isCreating, setIsCreating] = useState(false);
 
+  // Initialize workflow with selected product from Content Library
+  useEffect(() => {
+    const selectedProduct = localStorage.getItem('selectedProduct');
+    if (selectedProduct) {
+      try {
+        const productData = JSON.parse(selectedProduct);
+        console.log('Loading selected product for campaign:', productData);
+
+        setWorkflow(prev => ({
+          ...prev,
+          campaignData: {
+            ...prev.campaignData,
+            title: `${productData.product_name} Campaign`,
+            description: `Marketing campaign for ${productData.product_name} by ${productData.vendor_name}`,
+            product_info: productData
+          }
+        }));
+
+        // Clear the selected product from localStorage after using it
+        localStorage.removeItem('selectedProduct');
+      } catch (error) {
+        console.error('Failed to parse selected product data:', error);
+      }
+    }
+  }, []);
+
   // Auto-advance to Step 3 when analysis completes
   useEffect(() => {
     if (
@@ -92,12 +119,16 @@ export default function CreateWorkflowPage() {
 
     try {
       console.log("Creating campaign with basic data:", campaignData);
+      console.log("Product info from workflow:", workflow.campaignData.product_info);
 
-      // Create campaign with simplified data
-      const campaign = await createCampaign({
+      // Create campaign with simplified data including product info
+      const campaignPayload = {
         ...campaignData,
-        campaign_type: "universal"
-      });
+        campaign_type: "universal",
+        product_info: workflow.campaignData.product_info
+      };
+
+      const campaign = await createCampaign(campaignPayload);
 
       console.log("Campaign created successfully:", campaign.id);
 

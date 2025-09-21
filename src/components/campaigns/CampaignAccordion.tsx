@@ -56,7 +56,8 @@ export default function CampaignAccordion({
 
   // Categorize campaigns
   const categories: CampaignCategory[] = useMemo(() => {
-    const categorized = [
+    // First separate campaigns by status
+    const statusCategories = [
       {
         id: "active",
         title: "Active Campaigns",
@@ -89,6 +90,34 @@ export default function CampaignAccordion({
         description: "Temporarily stopped campaigns",
         color: "gray",
       },
+    ];
+
+    // Then add product-based categories
+    const productCategories = [
+      {
+        id: "clickbank_products",
+        title: "ClickBank Products",
+        icon: Package,
+        campaigns: campaigns.filter((c) => c.product_info?.platform === "clickbank"),
+        description: "Campaigns promoting ClickBank products",
+        color: "orange",
+      },
+      {
+        id: "jvzoo_products",
+        title: "JVZoo Products",
+        icon: Zap,
+        campaigns: campaigns.filter((c) => c.product_info?.platform === "jvzoo"),
+        description: "Campaigns promoting JVZoo products",
+        color: "cyan",
+      },
+      {
+        id: "warriorplus_products",
+        title: "WarriorPlus Products",
+        icon: Building2,
+        campaigns: campaigns.filter((c) => c.product_info?.platform === "warriorplus"),
+        description: "Campaigns promoting WarriorPlus products",
+        color: "indigo",
+      },
       {
         id: "demo",
         title: "Demo Campaigns",
@@ -99,7 +128,9 @@ export default function CampaignAccordion({
       },
     ];
 
-    return categorized.filter((category) => category.campaigns.length > 0);
+    // Combine and filter out empty categories
+    const allCategories = [...statusCategories, ...productCategories];
+    return allCategories.filter((category) => category.campaigns.length > 0);
   }, [campaigns]);
 
   const toggleCategory = (categoryId: string) => {
@@ -170,6 +201,15 @@ export default function CampaignAccordion({
                 <Calendar className="w-4 h-4" />
                 Created {formatDate(campaign.created_at)}
               </span>
+              {campaign.product_info && (
+                <span className="flex items-center gap-1">
+                  <Package className="w-4 h-4" />
+                  {campaign.product_info.product_name || campaign.product_info.name}
+                  <span className="text-xs bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded ml-1">
+                    {campaign.product_info.platform}
+                  </span>
+                </span>
+              )}
               {campaign.target_audience && (
                 <span className="flex items-center gap-1">
                   <Users className="w-4 h-4" />
@@ -280,6 +320,12 @@ export default function CampaignAccordion({
                       ? "bg-blue-100 text-blue-600"
                       : category.color === "gray"
                       ? "bg-gray-100 text-gray-600"
+                      : category.color === "orange"
+                      ? "bg-orange-100 text-orange-600"
+                      : category.color === "cyan"
+                      ? "bg-cyan-100 text-cyan-600"
+                      : category.color === "indigo"
+                      ? "bg-indigo-100 text-indigo-600"
                       : "bg-purple-100 text-purple-600"
                   }`}
                 >
