@@ -87,6 +87,7 @@ export default function CampaignDetailPage({
   const [generatedContent, setGeneratedContent] = useState<GeneratedContent[]>(
     []
   );
+  const [intelligenceCount, setIntelligenceCount] = useState<number>(0);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isGeneratingContent, setIsGeneratingContent] = useState(false);
@@ -204,6 +205,18 @@ export default function CampaignDetailPage({
         }
       }
 
+      // Load intelligence count directly (for legacy campaigns where workflowState doesn't have correct count)
+      try {
+        console.log('🔄 Attempting to load intelligence data for campaign:', params.id);
+        const intelligenceData = await api.get(`/campaigns/${params.id}/intelligence`);
+        const count = Array.isArray(intelligenceData) ? intelligenceData.length : 0;
+        setIntelligenceCount(count);
+        console.log(`📊 Intelligence count loaded: ${count}`);
+      } catch (intelligenceError) {
+        console.warn("Intelligence data not available:", intelligenceError);
+        setIntelligenceCount(0);
+      }
+
       setRetryCount(0); // Reset retry count for successful campaign/workflow loads
     } catch (err) {
       console.error("Error loading campaign data:", err);
@@ -297,7 +310,8 @@ export default function CampaignDetailPage({
       case 2:
         // Input Sources step - check if we have sources OR a salespage URL OR intelligence data
         // Also check if auto-analysis was completed (indicates a URL was processed)
-        const hasInputSources = workflowState.metrics.sources_count > 0 || campaign?.salespage_url || workflowState.metrics.intelligence_count > 0;
+        // Use direct intelligence count as fallback for legacy campaigns
+        const hasInputSources = workflowState.metrics.sources_count > 0 || campaign?.salespage_url || workflowState.metrics.intelligence_count > 0 || intelligenceCount > 0;
         const autoAnalysisCompleted = workflowState.auto_analysis.enabled && workflowState.auto_analysis.status === "completed";
         return (hasInputSources || autoAnalysisCompleted) ? "completed" : "pending";
       case 3:
@@ -314,8 +328,8 @@ export default function CampaignDetailPage({
               return "pending";
           }
         } else {
-          // Manual analysis - check if intelligence data exists
-          return workflowState.metrics.intelligence_count > 0 ? "completed" : "pending";
+          // Manual analysis - check if intelligence data exists (use direct count as fallback)
+          return (workflowState.metrics.intelligence_count > 0 || intelligenceCount > 0) ? "completed" : "pending";
         }
       case 4:
         return workflowState.metrics.content_count > 0
@@ -526,7 +540,7 @@ export default function CampaignDetailPage({
 
                     {/* DEBUG: Show Step 2 status */}
                     <div className="mt-2 text-xs text-red-600 bg-red-50 p-2 rounded">
-                      DEBUG - Step 2: {getWorkflowStepStatus(2)} | Sources: {workflowState?.metrics.sources_count || 0} | Intelligence: {workflowState?.metrics.intelligence_count || 0} | SalesPage: {campaign?.salespage_url ? 'YES' : 'NO'} | AutoAnalysis: {workflowState?.auto_analysis.enabled ? workflowState.auto_analysis.status : 'disabled'}
+                      DEBUG - Step 2: {getWorkflowStepStatus(2)} | Sources: {workflowState?.metrics.sources_count || 0} | WF Intelligence: {workflowState?.metrics.intelligence_count || 0} | Direct Intelligence: {intelligenceCount} | SalesPage: {campaign?.salespage_url ? 'YES' : 'NO'} | AutoAnalysis: {workflowState?.auto_analysis.enabled ? workflowState.auto_analysis.status : 'disabled'}
                     </div>
 
                     {getWorkflowStepStatus(2) === "completed" && (
