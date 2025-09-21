@@ -870,9 +870,8 @@ export class ApiClient {
     const transformedData = {
       ...data,
       name: data.title, // Backend expects 'name', frontend sends 'title'
-      company_id: '00000000-0000-0000-0000-000000000000', // Required by backend - use default UUID
       campaign_type: data.campaign_type || 'affiliate_promotion', // Use valid enum value instead of 'universal'
-      // Remove title to avoid confusion
+      // Remove title to avoid confusion - backend will get company_id from user session
       title: undefined
     }
 
