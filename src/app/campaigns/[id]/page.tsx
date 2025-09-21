@@ -518,7 +518,7 @@ export default function CampaignDetailPage({
                   </div>
                 </div>
 
-                {/* Step 3: Analysis - Always show when sources are available */}
+                {/* Step 3: Analysis & Intelligence - Always show when sources are available */}
                 {getWorkflowStepStatus(2) === "completed" && (
                   <div className="flex items-start space-x-4">
                     <div className="flex-shrink-0">
