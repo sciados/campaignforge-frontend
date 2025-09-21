@@ -870,7 +870,7 @@ export class ApiClient {
     const transformedData = {
       ...data,
       name: data.title, // Backend expects 'name', frontend sends 'title'
-      company_id: 'default', // Required by backend - use default for now
+      company_id: '00000000-0000-0000-0000-000000000000', // Required by backend - use default UUID
       // Remove title to avoid confusion
       title: undefined
     }
