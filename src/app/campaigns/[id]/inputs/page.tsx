@@ -117,14 +117,16 @@ export default function CampaignInputsPage({ params }: CampaignInputsPageProps) 
       }
 
       // Step 1: Convert inputs to format expected by analysis API
+      const inputsData = inputs.reduce((acc, input) => {
+        if (input.value.trim()) {  // Only include inputs with values
+          acc[input.type] = input.value;
+        }
+        return acc;
+      }, {} as Record<string, string>);
+
       const analysisData = {
         campaign_id: params.id,
-        inputs: inputs.reduce((acc, input) => {
-          if (input.value.trim()) {  // Only include inputs with values
-            acc[input.type] = input.value;
-          }
-          return acc;
-        }, {} as Record<string, string>)
+        ...inputsData  // Flatten inputs to top level
       };
 
       console.log('🚀 Starting intelligence analysis with inputs:', analysisData);
