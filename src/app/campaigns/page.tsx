@@ -35,6 +35,7 @@ import type { Campaign } from "@/lib/types/campaign";
 import CampaignFilters from "@/components/campaigns/CampaignFilters";
 import CampaignGrid from "@/components/campaigns/CampaignGrid";
 import CampaignStats from "@/components/campaigns/CampaignStats";
+import CampaignAccordion from "@/components/campaigns/CampaignAccordion";
 
 export default function CampaignsPage() {
   const router = useRouter();
@@ -822,7 +823,7 @@ export default function CampaignsPage() {
               </div>
             )}
 
-            {campaigns.length === 0 && !error ? (
+{campaigns.length === 0 && !error ? (
               <div className="text-center py-12">
                 <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8 max-w-2xl mx-auto">
                   <div className="w-16 h-16 bg-gradient-to-r from-purple-600 to-blue-600 rounded-full flex items-center justify-center mx-auto mb-6">
@@ -1005,123 +1006,14 @@ export default function CampaignsPage() {
                     </button>
                   </div>
                 ) : (
-                  <CampaignGrid
+                  <CampaignAccordion
                     campaigns={filteredCampaigns}
-                    viewMode={viewMode}
-                    onViewModeChange={setViewMode}
                     onCampaignView={handleCampaignView}
                     onCampaignEdit={handleCampaignEdit}
                     onCampaignDuplicate={handleCampaignDuplicate}
                     onCampaignDelete={handleCampaignDelete}
                   />
                 )}
-
-                <div className="bg-white rounded-xl shadow-sm border border-gray-200">
-                  <div className="p-6 border-b border-gray-200">
-                    <div className="flex items-center justify-between">
-                      <h3 className="text-lg font-semibold text-gray-900">
-                        Recent Activity
-                      </h3>
-                      <div className="flex items-center space-x-2">
-                        <Filter className="h-4 w-4 text-gray-400" />
-                        <span className="text-sm text-gray-500">
-                          {filteredCampaigns.length} campaigns •{" "}
-                          {filteredCampaigns.reduce(
-                            (acc, campaign) =>
-                              acc + (campaign.generated_content_count || 0),
-                            0
-                          )}{" "}
-                          content pieces
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="p-6">
-                    <div className="space-y-4">
-                      {filteredCampaigns.slice(0, 3).map((campaign) => {
-                        const contentCount =
-                          campaign.generated_content_count || 0;
-                        const hasContent = contentCount > 0;
-                        const isDemo =
-                          campaign.settings?.is_demo || campaign.is_demo;
-
-                        return (
-                          <div
-                            key={campaign.id}
-                            className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
-                          >
-                            <div className="flex items-center">
-                              <div className="bg-purple-100 p-2 rounded-lg mr-3">
-                                <Target className="h-5 w-5 text-purple-600" />
-                              </div>
-                              <div>
-                                <div className="flex items-center space-x-2 mb-1">
-                                  <h4 className="font-semibold text-gray-900">
-                                    {campaign.title}
-                                  </h4>
-                                  {hasContent && (
-                                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                                      {contentCount} content pieces
-                                    </span>
-                                  )}
-                                  {isDemo && (
-                                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                                      Demo
-                                    </span>
-                                  )}
-                                </div>
-                                <p className="text-gray-600 text-sm flex items-center">
-                                  <Calendar className="h-4 w-4 mr-1" />
-                                  {new Date(
-                                    campaign.created_at
-                                  ).toLocaleDateString()}
-                                  <span className="mx-2">•</span>
-                                  <span className="text-purple-600 font-medium">
-                                    Universal Campaign
-                                  </span>
-                                </p>
-                              </div>
-                            </div>
-                            <div className="flex items-center space-x-2">
-                              <span
-                                className={`px-3 py-1 rounded-full text-sm font-medium ${
-                                  campaign.status === "active"
-                                    ? "bg-green-100 text-green-800"
-                                    : campaign.status === "completed"
-                                    ? "bg-blue-100 text-blue-800"
-                                    : "bg-gray-100 text-gray-800"
-                                }`}
-                              >
-                                {campaign.status}
-                              </span>
-
-                              {hasContent && (
-                                <button
-                                  onClick={() =>
-                                    router.push(
-                                      `/campaigns/${campaign.id}/content`
-                                    )
-                                  }
-                                  className="text-green-600 hover:text-green-700 text-sm font-medium flex items-center space-x-1 px-3 py-1 hover:bg-green-50 rounded-lg transition-colors"
-                                >
-                                  <FolderOpen className="h-4 w-4" />
-                                  <span>Content</span>
-                                </button>
-                              )}
-
-                              <button
-                                onClick={() => handleCampaignView(campaign)}
-                                className="text-purple-600 hover:text-purple-700 text-sm font-medium px-3 py-1 hover:bg-purple-50 rounded-lg transition-colors"
-                              >
-                                View
-                              </button>
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                </div>
               </>
             ) : null}
           </div>
