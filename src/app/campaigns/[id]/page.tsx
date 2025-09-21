@@ -295,8 +295,8 @@ export default function CampaignDetailPage({
       case 1:
         return "completed"; // Setup is always completed if we're viewing the campaign
       case 2:
-        // Input Sources step - check if we have sources OR a salespage URL
-        return (workflowState.metrics.sources_count > 0 || campaign?.salespage_url) ? "completed" : "pending";
+        // Input Sources step - check if we have sources OR a salespage URL OR intelligence data
+        return (workflowState.metrics.sources_count > 0 || campaign?.salespage_url || workflowState.metrics.intelligence_count > 0) ? "completed" : "pending";
       case 3:
         // Analysis step - show completed if auto-analysis is complete OR if we have intelligence data
         if (workflowState.auto_analysis.enabled) {
@@ -510,7 +510,10 @@ export default function CampaignDetailPage({
                         {workflowState?.metrics.sources_count && workflowState.metrics.sources_count > 0
                           ? (campaign?.salespage_url ? ' + ' : '') + `${workflowState.metrics.sources_count} additional source(s)`
                           : ''}
-                        {!campaign?.salespage_url && (!workflowState?.metrics.sources_count || workflowState.metrics.sources_count === 0)
+                        {workflowState?.metrics.intelligence_count && workflowState.metrics.intelligence_count > 0 && !campaign?.salespage_url && (!workflowState?.metrics.sources_count || workflowState.metrics.sources_count === 0)
+                          ? 'Analysis completed with intelligence data'
+                          : ''}
+                        {!campaign?.salespage_url && (!workflowState?.metrics.sources_count || workflowState.metrics.sources_count === 0) && (!workflowState?.metrics.intelligence_count || workflowState.metrics.intelligence_count === 0)
                           ? `${workflowState?.metrics.sources_count || 0} source(s) added`
                           : ''}
                       </div>
