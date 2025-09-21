@@ -883,16 +883,16 @@ export class ApiClient {
 
     const result = await this.handleResponse<any>(response)
 
-    // Backend returns { success: true, message: string, campaign_id: string }
+    // Backend returns { success: true, message: string, campaign: {...} }
     // Transform to expected Campaign format
-    if (result.campaign_id) {
+    if (result.campaign && result.campaign.id) {
       return {
-        id: result.campaign_id,
-        name: data.title,
+        id: result.campaign.id,
+        name: result.campaign.name || data.title,
         description: data.description,
         campaign_type: data.campaign_type || 'affiliate_promotion',
-        status: 'draft',
-        created_at: new Date().toISOString(),
+        status: result.campaign.status || 'draft',
+        created_at: result.campaign.created_at || new Date().toISOString(),
         // Add other required Campaign fields with defaults
         workflow_step: 'INITIAL',
         is_workflow_complete: false
