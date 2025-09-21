@@ -33,6 +33,7 @@ import {
   Bookmark,
   Share2,
   Play,
+  Settings,
 } from "lucide-react";
 import { useApi } from "@/lib/api";
 
@@ -503,6 +504,11 @@ export default function AffiliateProductLibrary() {
     router.push('/campaigns/create-workflow?source=content-library');
   };
 
+  const handleEditProduct = (product: ProductData) => {
+    // Navigate to product settings page
+    router.push(`/dashboard/content-library/products/${product.id}/settings`);
+  };
+
   // ============================================================================
   // FILTERING
   // ============================================================================
@@ -642,6 +648,13 @@ export default function AffiliateProductLibrary() {
             >
               <Plus className="w-4 h-4 mr-1" />
               Create Campaign
+            </button>
+            <button
+              onClick={() => handleEditProduct(product)}
+              className="bg-purple-100 text-purple-700 px-3 py-2 rounded-lg hover:bg-purple-200 transition-colors"
+              title="Edit Product Settings"
+            >
+              <Settings className="w-4 h-4" />
             </button>
             <button
               onClick={() => handleProductClick(product)}
