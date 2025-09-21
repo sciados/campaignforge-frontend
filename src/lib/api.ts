@@ -183,6 +183,69 @@ export async function getProductAnalytics(platform?: string, productId?: string)
 }
 
 // ============================================================================
+// CampaignForge Value Attribution API Functions
+// ============================================================================
+
+export async function trackCampaignUsage(data: {
+  campaign_id: string;
+  affiliate_user_id: string;
+  product_sku: string;
+  platform: string;
+  content_types_used: string[];
+  ai_features_used: string[];
+}) {
+  const token = localStorage.getItem('authToken')
+
+  return fetch(`${API_BASE_URL}/api/intelligence/track-campaign-usage`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${token}`
+    },
+    body: JSON.stringify(data)
+  }).then(res => res.json());
+}
+
+export async function trackPerformanceAttribution(data: {
+  campaign_id: string;
+  performance_metrics: Record<string, any>;
+  attribution_markers: Record<string, any>;
+}) {
+  const token = localStorage.getItem('authToken')
+
+  return fetch(`${API_BASE_URL}/api/intelligence/track-performance-attribution`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${token}`
+    },
+    body: JSON.stringify(data)
+  }).then(res => res.json());
+}
+
+export async function getCreatorValueReport(creatorUserId: string, days: number = 30) {
+  const token = localStorage.getItem('authToken')
+
+  return fetch(`${API_BASE_URL}/api/intelligence/creator-value-report/${creatorUserId}?days=${days}`, {
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${token}`
+    },
+  }).then(res => res.json());
+}
+
+export async function getPlatformEffectivenessMetrics(creatorUserId: string) {
+  const token = localStorage.getItem('authToken')
+
+  return fetch(`${API_BASE_URL}/api/intelligence/platform-effectiveness-metrics/${creatorUserId}`, {
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${token}`
+    },
+  }).then(res => res.json());
+}
+
+// ============================================================================
 // Main API Client Class
 // ============================================================================
 
