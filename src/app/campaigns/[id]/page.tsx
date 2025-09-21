@@ -295,19 +295,24 @@ export default function CampaignDetailPage({
       case 1:
         return "completed"; // Setup is always completed if we're viewing the campaign
       case 2:
-        // Input Sources step - check if we have sources
-        return workflowState.metrics.sources_count > 0 ? "completed" : "pending";
+        // Input Sources step - check if we have sources OR a salespage URL
+        return (workflowState.metrics.sources_count > 0 || campaign?.salespage_url) ? "completed" : "pending";
       case 3:
-        if (!workflowState.auto_analysis.enabled) return "skipped";
-        switch (workflowState.auto_analysis.status) {
-          case "completed":
-            return "completed";
-          case "processing":
-            return "active";
-          case "failed":
-            return "failed";
-          default:
-            return "pending";
+        // Analysis step - show completed if auto-analysis is complete OR if we have intelligence data
+        if (workflowState.auto_analysis.enabled) {
+          switch (workflowState.auto_analysis.status) {
+            case "completed":
+              return "completed";
+            case "processing":
+              return "active";
+            case "failed":
+              return "failed";
+            default:
+              return "pending";
+          }
+        } else {
+          // Manual analysis - check if intelligence data exists
+          return workflowState.metrics.intelligence_count > 0 ? "completed" : "pending";
         }
       case 4:
         return workflowState.metrics.content_count > 0
@@ -501,27 +506,44 @@ export default function CampaignDetailPage({
 
                     {getWorkflowStepStatus(2) === "completed" && (
                       <div className="mt-2 text-sm text-green-600">
-                        {workflowState?.metrics.sources_count || 0} source(s) added
+                        {campaign?.salespage_url ? 'Salespage URL added' : ''}
+                        {workflowState?.metrics.sources_count && workflowState.metrics.sources_count > 0
+                          ? (campaign?.salespage_url ? ' + ' : '') + `${workflowState.metrics.sources_count} additional source(s)`
+                          : ''}
+                        {!campaign?.salespage_url && (!workflowState?.metrics.sources_count || workflowState.metrics.sources_count === 0)
+                          ? `${workflowState?.metrics.sources_count || 0} source(s) added`
+                          : ''}
                       </div>
                     )}
                   </div>
                 </div>
 
-                {/* Step 3: Auto-Analysis (if enabled) */}
-                {workflowState?.auto_analysis.enabled && (
+                {/* Step 3: Analysis - Always show when sources are available */}
+                {getWorkflowStepStatus(2) === "completed" && (
                   <div className="flex items-start space-x-4">
                     <div className="flex-shrink-0">
                       {getStepIcon(3, getWorkflowStepStatus(3))}
                     </div>
                     <div className="flex-1">
                       <h3 className="font-medium text-gray-900">
-                        AI Analysis & Intelligence
+                        Analysis & Intelligence
                       </h3>
                       <p className="text-sm text-gray-600 mt-1">
-                        Automatic content analysis and intelligence enhancement
+                        AI analysis and intelligence extraction from input sources
                       </p>
 
-                      {workflowState.auto_analysis.status === "processing" && (
+                      {!workflowState?.auto_analysis.enabled && (
+                        <div className="mt-3 p-3 bg-amber-50 rounded-lg border border-amber-200">
+                          <div className="flex items-center space-x-2">
+                            <Clock className="h-4 w-4 text-amber-600" />
+                            <span className="text-sm text-amber-700">
+                              Manual analysis required
+                            </span>
+                          </div>
+                        </div>
+                      )}
+
+                      {workflowState?.auto_analysis.enabled && workflowState.auto_analysis.status === "processing" && (
                         <div className="mt-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
                           <div className="flex items-center space-x-2">
                             <Brain className="h-4 w-4 text-blue-600" />
@@ -532,7 +554,7 @@ export default function CampaignDetailPage({
                         </div>
                       )}
 
-                      {workflowState.auto_analysis.status === "completed" && (
+                      {workflowState?.auto_analysis.enabled && workflowState.auto_analysis.status === "completed" && (
                         <div className="mt-3">
                           <div className="text-sm text-green-600">
                             Analysis complete (confidence:{" "}
@@ -544,7 +566,7 @@ export default function CampaignDetailPage({
                         </div>
                       )}
 
-                      {workflowState.auto_analysis.status === "failed" && (
+                      {workflowState?.auto_analysis.enabled && workflowState.auto_analysis.status === "failed" && (
                         <div className="mt-3 p-3 bg-red-50 rounded-lg border border-red-200">
                           <div className="flex items-center justify-between">
                             <span className="text-sm text-red-700">
@@ -581,7 +603,7 @@ export default function CampaignDetailPage({
                       workflowState.metrics.content_count === 0 && (
                         <button
                           onClick={handleGenerateContent}
-                          disabled={isGeneratingContent || getWorkflowStepStatus(2) === "pending"}
+                          disabled={isGeneratingContent || (!campaign?.salespage_url && (!workflowState?.metrics.sources_count || workflowState.metrics.sources_count === 0))}
                           className="mt-3 px-4 py-2 bg-purple-600 text-white text-sm rounded-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
                         >
                           {isGeneratingContent ? (
@@ -598,7 +620,7 @@ export default function CampaignDetailPage({
                         </button>
                       )}
 
-                    {getWorkflowStepStatus(2) === "pending" && (
+                    {!campaign?.salespage_url && (!workflowState?.metrics.sources_count || workflowState.metrics.sources_count === 0) && (
                       <div className="mt-2 text-sm text-amber-600">
                         Add input sources first to enable content generation
                       </div>
