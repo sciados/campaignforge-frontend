@@ -55,7 +55,7 @@ export interface Campaign {
 }
 
 export interface CampaignSettings {
-  is_demo: boolean | undefined
+  is_demo?: boolean
   // Universal campaign settings
   campaign_type?: CampaignType
   input_source_type?: string
@@ -70,6 +70,16 @@ export interface CampaignSettings {
   default_tone?: string
   default_style?: string
   content_preferences?: ContentPreferences
+
+  // Brand voice settings
+  brand_voice?: string
+  brand_personality?: string
+  messaging_style?: string
+  content_length?: string
+  ai_creativity?: string
+  include_emojis?: boolean
+  include_calls_to_action?: boolean
+  content_focus?: string
 
   // Intelligence settings
   keyword_extraction?: boolean

@@ -124,7 +124,7 @@ export default function CreateWorkflowPage() {
       // Create campaign with simplified data including product info
       const campaignPayload = {
         ...campaignData,
-        campaign_type: "universal",
+        campaign_type: "universal" as const,
         product_info: workflow.campaignData.product_info
       };
 
