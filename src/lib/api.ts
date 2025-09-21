@@ -626,7 +626,7 @@ export class ApiClient {
       const campaign = await this.createCampaign({
         title: request.title,
         description: request.description,
-        campaign_type: request.campaign_type || 'universal',
+        campaign_type: request.campaign_type || 'affiliate_promotion',
         target_audience: request.target_audience,
         keywords: request.key_messages
       })
@@ -871,6 +871,7 @@ export class ApiClient {
       ...data,
       name: data.title, // Backend expects 'name', frontend sends 'title'
       company_id: '00000000-0000-0000-0000-000000000000', // Required by backend - use default UUID
+      campaign_type: data.campaign_type || 'affiliate_promotion', // Use valid enum value instead of 'universal'
       // Remove title to avoid confusion
       title: undefined
     }
