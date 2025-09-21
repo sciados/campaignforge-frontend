@@ -889,13 +889,18 @@ export class ApiClient {
       return {
         id: result.campaign.id,
         name: result.campaign.name || data.title,
-        description: data.description,
+        title: result.campaign.name || data.title,
+        description: data.description || '',
         campaign_type: data.campaign_type || 'affiliate_promotion',
         status: result.campaign.status || 'draft',
         created_at: result.campaign.created_at || new Date().toISOString(),
-        // Add other required Campaign fields with defaults
+        updated_at: result.campaign.updated_at || new Date().toISOString(),
         workflow_step: 'INITIAL',
-        is_workflow_complete: false
+        is_workflow_complete: false,
+        // Add required fields with defaults
+        user_id: '',
+        company_id: '',
+        settings: {}
       } as Campaign
     }
 
