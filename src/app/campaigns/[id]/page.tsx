@@ -1,4 +1,4 @@
-// src/app/campaigns/[id]/page.tsx - FIXED VERSION
+// src/app/campaigns/[id]/page.tsx
 "use client";
 
 import React, { useState, useEffect, useCallback } from "react";
@@ -130,7 +130,6 @@ export default function CampaignDetailPage({
 
       // Load workflow state
       try {
-        console.log('🔄 Attempting to load workflow state for campaign:', params.id);
         const workflowData = await api.getWorkflowState(params.id);
         // Map status to allowed union type
         const allowedStatuses = [
@@ -184,7 +183,6 @@ export default function CampaignDetailPage({
 
       // Load generated content if available
       try {
-        console.log('🔄 Attempting to load generated content for campaign:', params.id);
         const contentData = await api.getGeneratedContent(params.id);
         setGeneratedContent(Array.isArray(contentData) ? contentData : []);
         setRetryCount(0); // Reset retry count on success
@@ -207,11 +205,9 @@ export default function CampaignDetailPage({
 
       // Load intelligence count directly (for legacy campaigns where workflowState doesn't have correct count)
       try {
-        console.log('🔄 Attempting to load intelligence data for campaign:', params.id);
-        const intelligenceData = await api.get(`/campaigns/${params.id}/intelligence`);
+        const intelligenceData = await api.getCampaignIntelligence(params.id);
         const count = Array.isArray(intelligenceData) ? intelligenceData.length : 0;
         setIntelligenceCount(count);
-        console.log(`📊 Intelligence count loaded: ${count}`);
       } catch (intelligenceError) {
         console.warn("Intelligence data not available:", intelligenceError);
         setIntelligenceCount(0);
@@ -230,7 +226,6 @@ export default function CampaignDetailPage({
   useEffect(() => {
     if (!params.id) return;
 
-    console.log('🔄 Campaign useEffect running for ID:', params.id);
     loadCampaignData();
     // Note: Deliberately NOT including loadCampaignData in dependencies to prevent infinite loop
     // eslint-disable-next-line react-hooks/exhaustive-deps

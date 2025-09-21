@@ -866,10 +866,19 @@ export class ApiClient {
   // ============================================================================
 
   async createCampaign(data: CampaignCreateRequest): Promise<Campaign> {
+    // Transform frontend data to match backend expectations
+    const transformedData = {
+      ...data,
+      name: data.title, // Backend expects 'name', frontend sends 'title'
+      company_id: 'default', // Required by backend - use default for now
+      // Remove title to avoid confusion
+      title: undefined
+    }
+
     const response = await fetch(`${this.baseURL}/api/campaigns/`, {
       method: 'POST',
       headers: this.getHeaders(),
-      body: JSON.stringify(data)
+      body: JSON.stringify(transformedData)
     })
 
     return this.handleResponse(response)
