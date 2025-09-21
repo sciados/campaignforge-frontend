@@ -881,7 +881,25 @@ export class ApiClient {
       body: JSON.stringify(transformedData)
     })
 
-    return this.handleResponse(response)
+    const result = await this.handleResponse<any>(response)
+
+    // Backend returns { success: true, message: string, campaign_id: string }
+    // Transform to expected Campaign format
+    if (result.campaign_id) {
+      return {
+        id: result.campaign_id,
+        name: data.title,
+        description: data.description,
+        campaign_type: data.campaign_type || 'affiliate_promotion',
+        status: 'draft',
+        created_at: new Date().toISOString(),
+        // Add other required Campaign fields with defaults
+        workflow_step: 'INITIAL',
+        is_workflow_complete: false
+      } as Campaign
+    }
+
+    throw new Error('Invalid response format from campaign creation')
   }
 
   async getCampaigns(options: { limit?: number } = {}): Promise<Campaign[]> {
