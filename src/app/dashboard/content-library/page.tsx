@@ -186,7 +186,6 @@ export default function AffiliateProductLibrary() {
   const [searchQuery, setSearchQuery] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
-  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
 
   const router = useRouter();
@@ -475,6 +474,23 @@ export default function AffiliateProductLibrary() {
     }
   };
 
+  const handleCreateCampaign = (product: ProductData) => {
+    // Store the selected product for campaign creation
+    const campaignData = {
+      product_name: product.product_name,
+      sales_page_url: product.sales_page_url,
+      product_category: product.product_category,
+      vendor_name: product.vendor_name,
+      product_id: product.id
+    };
+
+    // Store in localStorage for the campaign creation workflow
+    localStorage.setItem('selectedProduct', JSON.stringify(campaignData));
+
+    // Navigate to campaign creation with product pre-selected
+    router.push('/campaigns/create-workflow?source=content-library');
+  };
+
   // ============================================================================
   // FILTERING
   // ============================================================================
@@ -580,68 +596,61 @@ export default function AffiliateProductLibrary() {
     );
   };
 
-  const renderProductCard = (product: ProductData) => {
+  const renderProductRow = (product: ProductData) => {
     const statusConfig = PRODUCT_STATUS_CONFIG[product.status];
     const StatusIcon = statusConfig?.icon || Clock;
 
     return (
       <div
         key={product.id}
-        className="bg-white border border-gray-200 rounded-lg p-6 hover:shadow-lg transition-all cursor-pointer hover:border-gray-300"
+        className="border-b border-gray-100 last:border-b-0 p-4 hover:bg-gray-50 transition-colors"
       >
-        <div className="flex items-start justify-between mb-4">
-          <div className="flex-1">
-            <div className="flex items-center gap-2 mb-2">
-              <h4 className="font-semibold text-gray-900 text-lg">{product.product_name}</h4>
+        <div className="flex items-center justify-between">
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-3 mb-2">
+              <h4 className="font-medium text-gray-900 truncate">{product.product_name}</h4>
               <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${statusConfig?.color || 'bg-gray-100 text-gray-800'}`}>
                 <StatusIcon className="w-3 h-3" />
                 {statusConfig?.label || product.status}
               </span>
             </div>
-            <p className="text-sm text-gray-600 mb-3">{product.vendor_name}</p>
-            <p className="text-sm text-gray-700 mb-4 line-clamp-2">{product.product_description}</p>
+            <div className="flex items-center gap-6 text-sm text-gray-600">
+              <span>By {product.vendor_name}</span>
+              <span className="text-green-600 font-medium">{product.commission_rate}%</span>
+              <span className="text-gray-900 font-medium">{formatCurrency(product.price || 0)}</span>
+              <span className="text-blue-600">EPC: {formatCurrency(product.earnings_per_click || 0)}</span>
+              <span className="text-purple-600">Conv: {formatPercentage(product.conversion_rate || 0)}</span>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 ml-4">
+            <button
+              onClick={() => handleCreateCampaign(product)}
+              className="bg-blue-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-blue-700 transition-colors flex items-center text-sm"
+            >
+              <Plus className="w-4 h-4 mr-1" />
+              Create Campaign
+            </button>
+            <button
+              onClick={() => handleProductClick(product)}
+              className="bg-gray-100 text-gray-700 px-3 py-2 rounded-lg hover:bg-gray-200 transition-colors"
+              title="View Sales Page"
+            >
+              <ExternalLink className="w-4 h-4" />
+            </button>
+            <button
+              onClick={() => handleCopyUrl(product.sales_page_url)}
+              className="bg-gray-100 text-gray-700 px-3 py-2 rounded-lg hover:bg-gray-200 transition-colors"
+              title="Copy URL"
+            >
+              <Copy className="w-4 h-4" />
+            </button>
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-4 mb-4">
-          <div>
-            <p className="text-xs text-gray-500">Commission</p>
-            <p className="text-sm font-semibold text-green-600">{product.commission_rate}%</p>
-          </div>
-          <div>
-            <p className="text-xs text-gray-500">Price</p>
-            <p className="text-sm font-semibold text-gray-900">{formatCurrency(product.price || 0)}</p>
-          </div>
-          <div>
-            <p className="text-xs text-gray-500">EPC</p>
-            <p className="text-sm font-semibold text-blue-600">{formatCurrency(product.earnings_per_click || 0)}</p>
-          </div>
-          <div>
-            <p className="text-xs text-gray-500">Conversion</p>
-            <p className="text-sm font-semibold text-purple-600">{formatPercentage(product.conversion_rate || 0)}</p>
-          </div>
-        </div>
-
-        <div className="flex items-center justify-between text-xs text-gray-500 mb-4">
-          <span>Launch: {new Date(product.launch_date).toLocaleDateString()}</span>
-          <span>Gravity: {product.gravity_score}</span>
-        </div>
-
-        <div className="flex gap-2">
-          <button
-            onClick={() => handleProductClick(product)}
-            className="flex-1 bg-black text-white px-4 py-2 rounded-lg font-medium hover:bg-gray-900 transition-colors flex items-center justify-center text-sm"
-          >
-            <ExternalLink className="w-4 h-4 mr-2" />
-            View Sales Page
-          </button>
-          <button
-            onClick={() => handleCopyUrl(product.sales_page_url)}
-            className="bg-gray-100 text-gray-700 px-3 py-2 rounded-lg hover:bg-gray-200 transition-colors"
-          >
-            <Copy className="w-4 h-4" />
-          </button>
-        </div>
+        {product.product_description && (
+          <p className="text-sm text-gray-600 mt-2 line-clamp-1">{product.product_description}</p>
+        )}
       </div>
     );
   };
@@ -650,43 +659,60 @@ export default function AffiliateProductLibrary() {
     const isExpanded = expandedCategories.has(category.category);
 
     return (
-      <div key={category.category} className="bg-white rounded-2xl border border-gray-200 shadow-sm mb-6">
+      <div key={category.category} className="bg-white rounded-xl border border-gray-200 shadow-sm mb-4">
         <button
           onClick={() => toggleCategoryExpansion(category.category)}
-          className="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors rounded-t-2xl"
+          className="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors rounded-xl"
         >
           <div className="flex items-center space-x-4">
             <div className="flex items-center space-x-3">
               {isExpanded ? (
-                <ChevronDown className="h-5 w-5 text-gray-400" />
+                <ChevronDown className="h-5 w-5 text-gray-500" />
               ) : (
-                <ChevronRight className="h-5 w-5 text-gray-400" />
+                <ChevronRight className="h-5 w-5 text-gray-500" />
               )}
               <span className="text-2xl">{category.icon}</span>
-              <h3 className="text-lg font-semibold text-gray-900">{category.label}</h3>
-            </div>
-            <div className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${category.color}`}>
-              {category.count} products
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900 text-left">{category.label}</h3>
+                <p className="text-sm text-gray-500 text-left">
+                  {category.count} product{category.count !== 1 ? 's' : ''} available
+                </p>
+              </div>
             </div>
           </div>
 
-          <div className="flex items-center space-x-6 text-sm text-gray-600">
-            <span>Avg EPC: {formatCurrency(category.totalEarnings || 0)}</span>
-            <span>Avg Conv: {formatPercentage(category.avgConversion || 0)}</span>
+          <div className="flex items-center space-x-6 text-sm">
+            <div className="text-right">
+              <p className="font-medium text-gray-900">{formatCurrency(category.totalEarnings || 0)}</p>
+              <p className="text-gray-500">Avg EPC</p>
+            </div>
+            <div className="text-right">
+              <p className="font-medium text-gray-900">{formatPercentage(category.avgConversion || 0)}</p>
+              <p className="text-gray-500">Avg Conv</p>
+            </div>
+            <div className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${category.color}`}>
+              {isExpanded ? 'Hide' : 'View'} Products
+            </div>
           </div>
         </button>
 
         {isExpanded && (
-          <div className="border-t border-gray-200 p-6">
-            {viewMode === "grid" ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {category.products.map(renderProductCard)}
+          <div className="border-t border-gray-200">
+            <div className="bg-gray-50 px-6 py-3 border-b border-gray-200">
+              <div className="flex items-center justify-between text-sm text-gray-600">
+                <div className="flex items-center gap-8">
+                  <span className="font-medium">Product Name</span>
+                  <span>Commission</span>
+                  <span>Price</span>
+                  <span>EPC</span>
+                  <span>Conversion</span>
+                </div>
+                <span className="font-medium">Actions</span>
               </div>
-            ) : (
-              <div className="space-y-4">
-                {category.products.map(renderProductCard)}
-              </div>
-            )}
+            </div>
+            <div className="max-h-96 overflow-y-auto">
+              {category.products.map(renderProductRow)}
+            </div>
           </div>
         )}
       </div>
@@ -773,7 +799,7 @@ export default function AffiliateProductLibrary() {
         <div className="mb-8">
           <h2 className="text-3xl font-light text-black">Affiliate Products</h2>
           <p className="text-gray-600 mt-2">
-            Discover high-converting products organized by category and launch date
+            Browse products by category and create campaigns with a single click
           </p>
         </div>
 
@@ -819,29 +845,6 @@ export default function AffiliateProductLibrary() {
             </div>
 
             <div className="flex items-center space-x-3">
-              <div className="flex border border-gray-200 rounded-lg">
-                <button
-                  onClick={() => setViewMode("grid")}
-                  className={`p-3 ${
-                    viewMode === "grid"
-                      ? "bg-gray-100 text-black"
-                      : "text-gray-400 hover:text-gray-600"
-                  } transition-colors`}
-                >
-                  <Grid className="h-4 w-4" />
-                </button>
-                <button
-                  onClick={() => setViewMode("list")}
-                  className={`p-3 ${
-                    viewMode === "list"
-                      ? "bg-gray-100 text-black"
-                      : "text-gray-400 hover:text-gray-600"
-                  } transition-colors`}
-                >
-                  <List className="h-4 w-4" />
-                </button>
-              </div>
-
               <button
                 onClick={() => {
                   hasLoadedRef.current = false;
