@@ -13,10 +13,19 @@ export async function POST(request: NextRequest) {
   try {
     // Get the request body
     const body = await request.json();
-    
+
     // Get authorization header
     const authorization = request.headers.get('authorization');
-    
+
+    // Fetch campaign settings to enhance content generation
+    const campaignSettings = await fetchCampaignSettings(body.campaign_id, authorization);
+
+    // Enhance the request body with campaign settings
+    const enhancedBody = {
+      ...body,
+      campaign_settings: campaignSettings
+    };
+
     // Backend URL - adjust this to match your FastAPI server
     const backendUrl = process.env.BACKEND_URL || 'http://localhost:8000';
     const apiUrl = `${backendUrl}/intelligence/generate-content`;
@@ -29,7 +38,7 @@ export async function POST(request: NextRequest) {
           'Content-Type': 'application/json',
           ...(authorization && { 'Authorization': authorization }),
         },
-        body: JSON.stringify(body),
+        body: JSON.stringify(enhancedBody),
       });
 
       if (backendResponse.ok) {
@@ -50,14 +59,18 @@ export async function POST(request: NextRequest) {
     
     // Get campaign-specific data for more realistic simulation
     const campaignData = getCampaignIntelligenceData(body.campaign_id);
-    
+
+    // Apply post-processing based on campaign settings
+    const generatedContent = generateMockContent(body.content_type, campaignData, campaignSettings);
+    const processedContent = applySettingsPostProcessing(generatedContent, campaignSettings);
+
     // Mock successful response with campaign-specific intelligence
     const mockResponse = {
       success: true,
       data: {
         success: true,
         content_type: body.content_type,
-        content: generateMockContent(body.content_type, campaignData),
+        content: processedContent,
         intelligence_driven: true,
         three_step_process: {
           step1_intelligence_sources: campaignData.intelligence_count,
@@ -80,6 +93,15 @@ export async function POST(request: NextRequest) {
             target_audience: campaignData.target_audience,
             competitive_advantages: campaignData.competitive_advantages,
             brand_voice: campaignData.brand_voice
+          },
+          campaign_settings_applied: {
+            brand_voice: campaignSettings?.brand_voice || 'default',
+            messaging_style: campaignSettings?.messaging_style || 'default',
+            content_focus: campaignSettings?.content_focus || 'benefits',
+            ai_creativity: campaignSettings?.ai_creativity || 'balanced',
+            content_length: campaignSettings?.content_length || 'medium',
+            include_emojis: campaignSettings?.include_emojis || false,
+            include_calls_to_action: campaignSettings?.include_calls_to_action || true
           },
           ai_optimization: {
             provider_used: campaignData.ai_provider.toLowerCase(),
@@ -179,12 +201,176 @@ function getCampaignIntelligenceData(campaignId: string) {
   return campaignIntelligence[campaignId] || campaignIntelligence['demo_campaign_123'];
 }
 
-function generateMockContent(contentType: string, campaignData?: any): Record<string, any> {
+// Helper function to fetch campaign settings
+async function fetchCampaignSettings(campaignId: string, authorization?: string | null) {
+  try {
+    const backendUrl = process.env.BACKEND_URL || 'http://localhost:8000';
+    const response = await fetch(`${backendUrl}/campaigns/${campaignId}`, {
+      headers: {
+        ...(authorization && { 'Authorization': authorization }),
+      },
+    });
+
+    if (response.ok) {
+      const campaignData = await response.json();
+      return campaignData?.settings || {};
+    }
+  } catch (error) {
+    console.warn('Failed to fetch campaign settings:', error);
+  }
+
+  // Return default settings if fetch fails
+  return {
+    brand_voice: 'professional',
+    messaging_style: 'informative',
+    content_focus: 'benefits',
+    ai_creativity: 'balanced',
+    content_length: 'medium',
+    include_emojis: false,
+    include_calls_to_action: true
+  };
+}
+
+// Helper function to apply post-processing based on campaign settings
+function applySettingsPostProcessing(content: any, settings: any): any {
+  if (!content || !settings) return content;
+
+  // Apply emoji settings
+  if (typeof content === 'object' && content.emails) {
+    // Process email sequence
+    content.emails = content.emails.map((email: any) => ({
+      ...email,
+      subject: applyEmojiSettings(email.subject, settings.include_emojis),
+      body: applyEmojiSettings(email.body, settings.include_emojis),
+    }));
+  } else if (typeof content === 'object' && content.posts) {
+    // Process social posts
+    content.posts = content.posts.map((post: any) => ({
+      ...post,
+      content: applyEmojiSettings(post.content, settings.include_emojis),
+    }));
+  } else if (typeof content === 'object' && content.ads) {
+    // Process ad copy
+    content.ads = content.ads.map((ad: any) => ({
+      ...ad,
+      headline: applyEmojiSettings(ad.headline, settings.include_emojis),
+      body: applyEmojiSettings(ad.body, settings.include_emojis),
+    }));
+  }
+
+  // Apply CTA settings
+  if (!settings.include_calls_to_action && typeof content === 'object') {
+    content = removeCTAs(content);
+  }
+
+  return content;
+}
+
+// Helper function to apply/remove emojis based on settings
+function applyEmojiSettings(text: string, includeEmojis: boolean): string {
+  if (!text) return text;
+
+  if (includeEmojis) {
+    // Add contextual emojis if not present
+    if (!containsEmojis(text)) {
+      return addContextualEmojis(text);
+    }
+  } else {
+    // Remove emojis by replacing common ones found in text
+    const commonEmojis = ['🌿', '✨', '🧬', '🎯', '💪', '🚀', '⭐', '🔥', '💡', '📈', '🏆', '🎉', '👍', '❤️', '💯'];
+    let result = text;
+    commonEmojis.forEach(emoji => {
+      result = result.replace(new RegExp(emoji, 'g'), '');
+    });
+    return result.trim();
+  }
+
+  return text;
+}
+
+// Helper function to check if text contains emojis
+function containsEmojis(text: string): boolean {
+  // Simple check for common emojis
+  const commonEmojis = ['🌿', '✨', '🧬', '🎯', '💪', '🚀', '⭐', '🔥', '💡', '📈', '🏆', '🎉', '👍', '❤️', '💯'];
+  return commonEmojis.some(emoji => text.includes(emoji));
+}
+
+// Helper function to add contextual emojis
+function addContextualEmojis(text: string): string {
+  let result = text;
+
+  // Add emojis based on context
+  if (text.toLowerCase().includes('health') || text.toLowerCase().includes('wellness')) {
+    result = '🌿 ' + result;
+  } else if (text.toLowerCase().includes('discover') || text.toLowerCase().includes('breakthrough')) {
+    result = '✨ ' + result;
+  } else if (text.toLowerCase().includes('science') || text.toLowerCase().includes('research')) {
+    result = '🧬 ' + result;
+  } else if (text.toLowerCase().includes('results') || text.toLowerCase().includes('success')) {
+    result = '🎯 ' + result;
+  }
+
+  return result;
+}
+
+// Helper function to remove CTAs
+function removeCTAs(content: any): any {
+  const ctaPatterns = [
+    /try .+ today/gi,
+    /get .+ now/gi,
+    /order .+ today/gi,
+    /click here/gi,
+    /learn more/gi,
+    /buy now/gi,
+    /shop now/gi,
+    /get started/gi,
+  ];
+
+  if (typeof content === 'string') {
+    let result = content;
+    ctaPatterns.forEach(pattern => {
+      result = result.replace(pattern, '');
+    });
+    return result.trim();
+  }
+
+  // Handle object content recursively
+  if (typeof content === 'object') {
+    const result = { ...content };
+
+    Object.keys(result).forEach(key => {
+      if (typeof result[key] === 'string') {
+        result[key] = removeCTAs(result[key]);
+      } else if (Array.isArray(result[key])) {
+        result[key] = result[key].map((item: any) => removeCTAs(item));
+      } else if (typeof result[key] === 'object') {
+        result[key] = removeCTAs(result[key]);
+      }
+    });
+
+    return result;
+  }
+
+  return content;
+}
+
+function generateMockContent(contentType: string, campaignData?: any, settings?: any): Record<string, any> {
   const productName = campaignData?.product_name || 'Demo Product';
-  const brandVoice = campaignData?.brand_voice || 'conversational';
+  const brandVoice = settings?.brand_voice || campaignData?.brand_voice || 'conversational';
   const targetAudience = campaignData?.target_audience || 'health-conscious adults';
   const competitiveAdvantages = campaignData?.competitive_advantages || ['science-backed', 'cost-effective'];
   const marketPositioning = campaignData?.market_positioning || 'wellness product';
+
+  // Use campaign settings for content customization
+  const messagingStyle = settings?.messaging_style || 'informative';
+  const contentFocus = settings?.content_focus || 'benefits';
+  const aiCreativity = settings?.ai_creativity || 'balanced';
+  const contentLength = settings?.content_length || 'medium';
+
+  // Adjust content tone and style based on settings
+  const toneAdjustments = getToneAdjustments(brandVoice, messagingStyle);
+  const creativityLevel = getCreativityLevel(aiCreativity);
+  const lengthMultiplier = getLengthMultiplier(contentLength);
   switch (contentType) {
     case 'email_sequence':
       return {
@@ -305,4 +491,51 @@ function generateMockContent(contentType: string, campaignData?: any): Record<st
         }
       };
   }
+}
+
+// Helper functions for settings-based content adjustments
+function getToneAdjustments(brandVoice: string, messagingStyle: string) {
+  const toneMap: Record<string, string> = {
+    'professional': 'authoritative and expert',
+    'friendly': 'warm and approachable',
+    'authoritative': 'confident and trustworthy',
+    'innovative': 'cutting-edge and forward-thinking',
+    'caring': 'empathetic and supportive',
+    'bold': 'confident and direct'
+  };
+
+  const styleMap: Record<string, string> = {
+    'informative': 'educational and fact-based',
+    'persuasive': 'compelling and action-oriented',
+    'storytelling': 'narrative and engaging',
+    'direct': 'straightforward and clear',
+    'inspirational': 'motivating and uplifting'
+  };
+
+  return {
+    voice: toneMap[brandVoice] || 'conversational',
+    style: styleMap[messagingStyle] || 'informative'
+  };
+}
+
+function getCreativityLevel(aiCreativity: string): number {
+  const creativityMap: Record<string, number> = {
+    'conservative': 0.3,
+    'balanced': 0.6,
+    'creative': 0.8,
+    'experimental': 0.9
+  };
+
+  return creativityMap[aiCreativity] || 0.6;
+}
+
+function getLengthMultiplier(contentLength: string): number {
+  const lengthMap: Record<string, number> = {
+    'short': 0.7,
+    'medium': 1.0,
+    'long': 1.4,
+    'varies': 1.0
+  };
+
+  return lengthMap[contentLength] || 1.0;
 }
