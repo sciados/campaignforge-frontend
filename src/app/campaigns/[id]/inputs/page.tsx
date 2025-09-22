@@ -325,29 +325,14 @@ export default function CampaignInputsPage({ params }: CampaignInputsPageProps) 
       {/* Main Content */}
       <div className="max-w-4xl mx-auto px-6 py-8">
         <div className="bg-white rounded-lg shadow-sm p-6">
-          {analyzing ? (
-            <div className="text-center py-12">
-              <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                Analyzing Intelligence Sources
-              </h3>
-              <p className="text-gray-600">
-                Processing your input sources and extracting marketing intelligence...
-              </p>
-              <p className="text-sm text-gray-500 mt-2">
-                This analysis will power your content generation later.
-              </p>
-            </div>
-          ) : (
-            <SimplifiedInputsManager
-              campaignId={params.id}
-              userType={getUserType()}
-              onInputsChange={handleInputsChange}
-              onAnalyze={handleAnalyze}
-              isAnalyzing={analyzing}
-              analysisProgress={analysisProgress}
-            />
-          )}
+          <SimplifiedInputsManager
+            campaignId={params.id}
+            userType={getUserType()}
+            onInputsChange={handleInputsChange}
+            onAnalyze={handleAnalyze}
+            isAnalyzing={analyzing}
+            analysisProgress={analysisProgress}
+          />
         </div>
 
         {/* Help Section */}
