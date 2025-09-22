@@ -45,11 +45,6 @@ interface SimplifiedInputsManagerProps {
   onInputsChange: (inputs: CampaignInput[]) => void;
   onAnalyze: () => void;
   isAnalyzing?: boolean;
-  analysisProgress?: {
-    stage: string;
-    progress: number;
-    message: string;
-  };
 }
 
 const INPUT_TYPES: InputType[] = [
@@ -121,13 +116,11 @@ export default function SimplifiedInputsManager({
   onInputsChange,
   onAnalyze,
   isAnalyzing = false,
-  analysisProgress,
 }: SimplifiedInputsManagerProps) {
 
   // Debug logging for props
   console.log('🔧 SimplifiedInputsManager props:', {
     isAnalyzing,
-    analysisProgress,
     campaignId
   });
   // Initialize inputs with empty values for all relevant input types
@@ -379,7 +372,7 @@ export default function SimplifiedInputsManager({
 
       {/* Simple Analysis Loading State */}
       {isAnalyzing && (
-        <div className="border border-blue-200 bg-blue-50 rounded-lg p-6">
+        <div className="border-2 border-blue-500 bg-blue-50 rounded-lg p-6 mt-6">
           <div className="flex items-center gap-4">
             <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin flex-shrink-0"></div>
             <div>
@@ -396,6 +389,11 @@ export default function SimplifiedInputsManager({
           </div>
         </div>
       )}
+
+      {/* Debug: Always show isAnalyzing state */}
+      <div className="mt-4 p-2 bg-gray-100 rounded text-xs text-gray-600">
+        Debug: isAnalyzing = {isAnalyzing ? 'TRUE' : 'FALSE'}
+      </div>
     </div>
   );
 }

@@ -211,7 +211,6 @@ export default function CampaignInputsPage({ params }: CampaignInputsPageProps) 
           ? err.message
           : 'Failed to complete intelligence analysis. Please try again.'
       );
-    } finally {
       setAnalyzing(false);
     }
   };
