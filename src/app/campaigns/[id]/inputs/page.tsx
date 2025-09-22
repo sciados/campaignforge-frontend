@@ -34,7 +34,7 @@ export default function CampaignInputsPage({ params }: CampaignInputsPageProps) 
     stage: string;
     progress: number;
     message: string;
-  } | null>(null);
+  } | undefined>(undefined);
   const [error, setError] = useState<string | null>(null);
   const progressPollingRef = useRef<NodeJS.Timeout | null>(null);
   
@@ -117,7 +117,7 @@ export default function CampaignInputsPage({ params }: CampaignInputsPageProps) 
             progressPollingRef.current = null;
           }
           setAnalyzing(false);
-          setAnalysisProgress(null);
+          setAnalysisProgress(undefined);
 
           // Navigate to results
           router.push(`/campaigns/${params.id}?tab=intelligence&analysis=completed`);

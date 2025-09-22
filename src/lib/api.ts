@@ -316,6 +316,19 @@ export class ApiClient {
   }
 
   // ============================================================================
+  // Generic HTTP Methods
+  // ============================================================================
+
+  async get<T = any>(endpoint: string): Promise<T> {
+    const response = await fetch(`${this.baseURL}${endpoint}`, {
+      method: 'GET',
+      headers: this.getHeaders()
+    })
+
+    return this.handleResponse<T>(response)
+  }
+
+  // ============================================================================
   // Authentication
   // ============================================================================
 
@@ -1156,6 +1169,9 @@ const apiClient = new ApiClient()
 
 export const useApi = () => {
   return useMemo(() => ({
+    // Generic HTTP Methods
+    get: apiClient.get.bind(apiClient),
+
     // Authentication
     login: apiClient.login.bind(apiClient),
     register: apiClient.register.bind(apiClient),
