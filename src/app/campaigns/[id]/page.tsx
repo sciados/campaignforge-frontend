@@ -234,6 +234,51 @@ export default function CampaignDetailPage({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [params.id]); // Only re-run when campaign ID changes
 
+  // Define getWorkflowStepStatus function before using it
+  const getWorkflowStepStatus = useCallback((step: number): "pending" | "in_progress" | "completed" | "ready" | "active" | "failed" => {
+    if (!workflowState) return "pending";
+
+    switch (step) {
+      case 1:
+        return "completed"; // Setup is always completed if we're viewing the campaign
+      case 2:
+        // Input Sources step - if we have any intelligence data, input sources must have been provided
+        // Since analysis completed automatically, Step 2 is completed when intelligence exists
+        const hasIntelligenceData = workflowState.metrics.intelligence_count > 0 || intelligenceCount > 0;
+        const hasDirectInputs = workflowState.metrics.sources_count > 0 || campaign?.salespage_url;
+        const autoAnalysisCompleted = workflowState.auto_analysis.enabled && workflowState.auto_analysis.status === "completed";
+        return (hasIntelligenceData || hasDirectInputs || autoAnalysisCompleted) ? "completed" : "pending";
+      case 3:
+        // Analysis step - if we have intelligence data OR auto-analysis completed, analysis is done
+        if (workflowState.auto_analysis.enabled) {
+          switch (workflowState.auto_analysis.status) {
+            case "completed":
+              return "completed";
+            case "processing":
+              return "active";
+            case "failed":
+              return "failed";
+            default:
+              // If we have intelligence data but auto-analysis shows pending, it was completed previously
+              return (workflowState.metrics.intelligence_count > 0 || intelligenceCount > 0) ? "completed" : "pending";
+          }
+        } else {
+          // Manual analysis or legacy campaigns - check if intelligence data exists
+          return (workflowState.metrics.intelligence_count > 0 || intelligenceCount > 0) ? "completed" : "pending";
+        }
+      case 4:
+        // Content Generation - depends on intelligence being available
+        const step3Complete = getWorkflowStepStatus(3) === "completed";
+        return workflowState.metrics.content_count > 0
+          ? "completed"
+          : step3Complete
+          ? "ready"
+          : "pending";
+      default:
+        return "pending";
+    }
+  }, [workflowState, intelligenceCount, campaign?.salespage_url]);
+
   // Auto-set active tab based on workflow progress
   useEffect(() => {
     if (!workflowState) return;
@@ -255,7 +300,7 @@ export default function CampaignDetailPage({
     } else {
       setActiveTab(1);
     }
-  }, [workflowState, intelligenceCount]);
+  }, [workflowState, intelligenceCount, getWorkflowStepStatus]);
 
   // Generate content using Universal Sales Engine (Step 4 of workflow)
   const handleGenerateContent = async () => {
@@ -405,50 +450,6 @@ export default function CampaignDetailPage({
       );
     } finally {
       setIsGeneratingReport(false);
-    }
-  };
-
-  const getWorkflowStepStatus = (step: number) => {
-    if (!workflowState) return "pending";
-
-    switch (step) {
-      case 1:
-        return "completed"; // Setup is always completed if we're viewing the campaign
-      case 2:
-        // Input Sources step - if we have any intelligence data, input sources must have been provided
-        // Since analysis completed automatically, Step 2 is completed when intelligence exists
-        const hasIntelligenceData = workflowState.metrics.intelligence_count > 0 || intelligenceCount > 0;
-        const hasDirectInputs = workflowState.metrics.sources_count > 0 || campaign?.salespage_url;
-        const autoAnalysisCompleted = workflowState.auto_analysis.enabled && workflowState.auto_analysis.status === "completed";
-        return (hasIntelligenceData || hasDirectInputs || autoAnalysisCompleted) ? "completed" : "pending";
-      case 3:
-        // Analysis step - if we have intelligence data OR auto-analysis completed, analysis is done
-        if (workflowState.auto_analysis.enabled) {
-          switch (workflowState.auto_analysis.status) {
-            case "completed":
-              return "completed";
-            case "processing":
-              return "active";
-            case "failed":
-              return "failed";
-            default:
-              // If we have intelligence data but auto-analysis shows pending, it was completed previously
-              return (workflowState.metrics.intelligence_count > 0 || intelligenceCount > 0) ? "completed" : "pending";
-          }
-        } else {
-          // Manual analysis or legacy campaigns - check if intelligence data exists
-          return (workflowState.metrics.intelligence_count > 0 || intelligenceCount > 0) ? "completed" : "pending";
-        }
-      case 4:
-        // Content Generation - depends on intelligence being available
-        const step3Complete = getWorkflowStepStatus(3) === "completed";
-        return workflowState.metrics.content_count > 0
-          ? "completed"
-          : step3Complete
-          ? "ready"
-          : "pending";
-      default:
-        return "pending";
     }
   };
 
@@ -898,7 +899,7 @@ export default function CampaignDetailPage({
                                   <div className="flex items-center space-x-2">
                                     <CheckCircle className="h-5 w-5 text-purple-600" />
                                     <span className="text-sm text-purple-700 font-medium">
-                                      {workflowState.metrics.content_count} content pieces generated
+                                      {workflowState?.metrics.content_count || 0} content pieces generated
                                     </span>
                                   </div>
                                 </div>
