@@ -1,3 +1,0 @@
-"conname","definition"
-"check_campaign_type","CHECK (((campaign_type)::text = ANY ((ARRAY['email_sequence'::character varying, 'social_media'::character varying, 'content_marketing'::character varying, 'affiliate_promotion'::character varying, 'product_launch'::character varying])::text[])))"
-"check_status","CHECK (((status)::text = ANY ((ARRAY['draft'::character varying, 'active'::character varying, 'paused'::character varying, 'completed'::character varying, 'archived'::character varying])::text[])))"
