@@ -22,6 +22,7 @@ import {
   ExternalLink,
   Plus,
   Loader2,
+  FileDown,
 } from "lucide-react";
 import { useApi } from "@/lib/api";
 
@@ -91,8 +92,10 @@ export default function CampaignDetailPage({
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isGeneratingContent, setIsGeneratingContent] = useState(false);
+  const [isGeneratingReport, setIsGeneratingReport] = useState(false);
   const [retryCount, setRetryCount] = useState(0);
   const [lastLoadTime, setLastLoadTime] = useState(0);
+  const [activeTab, setActiveTab] = useState<number>(1);
 
   // Rate limiting helper - prevent rapid retries
   const shouldAllowRequest = useCallback(() => {
@@ -231,28 +234,73 @@ export default function CampaignDetailPage({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [params.id]); // Only re-run when campaign ID changes
 
-  // Generate content (Step 2 of workflow)
+  // Auto-set active tab based on workflow progress
+  useEffect(() => {
+    if (!workflowState) return;
+
+    // Determine the appropriate active tab
+    const step1Status = getWorkflowStepStatus(1);
+    const step2Status = getWorkflowStepStatus(2);
+    const step3Status = getWorkflowStepStatus(3);
+    const step4Status = getWorkflowStepStatus(4);
+
+    if (step4Status === "ready" || step4Status === "completed") {
+      setActiveTab(4);
+    } else if (step3Status === "active" || step3Status === "completed") {
+      setActiveTab(3);
+    } else if (step2Status === "completed") {
+      setActiveTab(3); // Move to analysis tab when URL is submitted
+    } else if (step1Status === "completed") {
+      setActiveTab(2); // Move to source input tab after setup
+    } else {
+      setActiveTab(1);
+    }
+  }, [workflowState, intelligenceCount]);
+
+  // Generate content using Universal Sales Engine (Step 4 of workflow)
   const handleGenerateContent = async () => {
-    if (!campaign || !workflowState?.can_generate_content) return;
+    if (!campaign || getWorkflowStepStatus(3) !== "completed") return;
 
     setIsGeneratingContent(true);
     setError(null);
 
     try {
-      // Generate multiple content types
-      const contentTypes = ["email", "social_post", "blog_post", "ad_copy"];
+      // Use the Universal Sales Engine to generate sales-focused content
+      const contentTypes = [
+        { type: "email", format: "EMAIL" },
+        { type: "social_post", format: "SOCIAL_POST" },
+        { type: "blog_post", format: "BLOG_POST" },
+        { type: "ad_copy", format: "AD_COPY" }
+      ];
 
-      for (const contentType of contentTypes) {
+      for (const { type, format } of contentTypes) {
         try {
-          await api.generateContent({
-            campaign_id: params.id,
-            content_type: contentType,
-            preferences: {
-              use_enhanced_intelligence: workflowState.auto_analysis.enabled,
-            },
-          });
+          // Try the new Universal Sales Engine endpoint first
+          try {
+            await api.post('/content/universal/generate', {
+              campaign_id: params.id,
+              format: format,
+              psychology_stage: 'AWARENESS', // Default to awareness stage
+              specific_requirements: {
+                content_length: 'medium',
+                tone: 'professional',
+                include_cta: true
+              }
+            });
+          } catch (universalError) {
+            // Fallback to legacy content generation if Universal Engine not available
+            console.warn(`Universal Engine not available for ${type}, falling back to legacy:`, universalError);
+            await api.generateContent({
+              campaign_id: params.id,
+              content_type: type,
+              preferences: {
+                use_enhanced_intelligence: workflowState?.auto_analysis.enabled || false,
+                sales_focused: true, // Ensure all content is sales-focused
+              },
+            });
+          }
         } catch (contentError) {
-          console.warn(`Failed to generate ${contentType}:`, contentError);
+          console.warn(`Failed to generate ${type}:`, contentError);
         }
       }
 
@@ -296,6 +344,70 @@ export default function CampaignDetailPage({
     }
   };
 
+  // Generate comprehensive PDF report
+  const handleGenerateReport = async () => {
+    if (!campaign || getWorkflowStepStatus(3) !== "completed") return;
+
+    setIsGeneratingReport(true);
+    setError(null);
+
+    try {
+      // Request PDF report generation from backend
+      const response = await api.post(`/intelligence/campaigns/${params.id}/report`, {
+        format: 'pdf',
+        include_sections: [
+          'executive_summary',
+          'product_analysis',
+          'target_audience',
+          'competition_analysis',
+          'marketing_strategy',
+          'content_recommendations',
+          'sales_psychology',
+          'conversion_opportunities',
+          'actionable_insights'
+        ]
+      });
+
+      // Handle different response formats
+      if (response.data && response.data.download_url) {
+        // If backend returns a download URL
+        window.open(response.data.download_url, '_blank');
+      } else if (response.data && response.data.pdf_data) {
+        // If backend returns base64 PDF data
+        const blob = new Blob([atob(response.data.pdf_data)], { type: 'application/pdf' });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${campaign.title}_Intelligence_Report.pdf`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(url);
+      } else {
+        // If response is the PDF blob directly
+        const blob = new Blob([response.data], { type: 'application/pdf' });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${campaign.title}_Intelligence_Report.pdf`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(url);
+      }
+
+    } catch (err) {
+      console.error("Report generation error:", err);
+      setError(
+        `Report generation failed: ${
+          err instanceof Error ? err.message : "Unknown error"
+        }`
+      );
+    } finally {
+      setIsGeneratingReport(false);
+    }
+  };
+
   const getWorkflowStepStatus = (step: number) => {
     if (!workflowState) return "pending";
 
@@ -303,14 +415,14 @@ export default function CampaignDetailPage({
       case 1:
         return "completed"; // Setup is always completed if we're viewing the campaign
       case 2:
-        // Input Sources step - check if we have sources OR a salespage URL OR intelligence data
-        // Also check if auto-analysis was completed (indicates a URL was processed)
-        // Use direct intelligence count as fallback for legacy campaigns
-        const hasInputSources = workflowState.metrics.sources_count > 0 || campaign?.salespage_url || workflowState.metrics.intelligence_count > 0 || intelligenceCount > 0;
+        // Input Sources step - if we have any intelligence data, input sources must have been provided
+        // Since analysis completed automatically, Step 2 is completed when intelligence exists
+        const hasIntelligenceData = workflowState.metrics.intelligence_count > 0 || intelligenceCount > 0;
+        const hasDirectInputs = workflowState.metrics.sources_count > 0 || campaign?.salespage_url;
         const autoAnalysisCompleted = workflowState.auto_analysis.enabled && workflowState.auto_analysis.status === "completed";
-        return (hasInputSources || autoAnalysisCompleted) ? "completed" : "pending";
+        return (hasIntelligenceData || hasDirectInputs || autoAnalysisCompleted) ? "completed" : "pending";
       case 3:
-        // Analysis step - show completed if auto-analysis is complete OR if we have intelligence data
+        // Analysis step - if we have intelligence data OR auto-analysis completed, analysis is done
         if (workflowState.auto_analysis.enabled) {
           switch (workflowState.auto_analysis.status) {
             case "completed":
@@ -320,16 +432,19 @@ export default function CampaignDetailPage({
             case "failed":
               return "failed";
             default:
-              return "pending";
+              // If we have intelligence data but auto-analysis shows pending, it was completed previously
+              return (workflowState.metrics.intelligence_count > 0 || intelligenceCount > 0) ? "completed" : "pending";
           }
         } else {
-          // Manual analysis - check if intelligence data exists (use direct count as fallback)
+          // Manual analysis or legacy campaigns - check if intelligence data exists
           return (workflowState.metrics.intelligence_count > 0 || intelligenceCount > 0) ? "completed" : "pending";
         }
       case 4:
+        // Content Generation - depends on intelligence being available
+        const step3Complete = getWorkflowStepStatus(3) === "completed";
         return workflowState.metrics.content_count > 0
           ? "completed"
-          : workflowState.can_generate_content
+          : step3Complete
           ? "ready"
           : "pending";
       default:
@@ -387,6 +502,35 @@ export default function CampaignDetailPage({
         return <BarChart3 className="h-5 w-5" />;
       default:
         return <FileText className="h-5 w-5" />;
+    }
+  };
+
+  const getTabClasses = (tabNumber: number) => {
+    const status = getWorkflowStepStatus(tabNumber);
+    const isActive = activeTab === tabNumber;
+    const isClickable = status === "completed" || isActive;
+
+    if (isActive) {
+      return "bg-green-600 text-white border-green-600 shadow-lg"; // Active = Green
+    } else if (status === "completed") {
+      return "bg-purple-600 text-white border-purple-600 cursor-pointer hover:bg-purple-700"; // Completed = Purple
+    } else if (status === "pending") {
+      return "bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed"; // Pending = Gray
+    } else if (status === "active") {
+      return "bg-blue-100 text-blue-700 border-blue-300 animate-pulse"; // Processing = Blue
+    } else {
+      return "bg-gray-50 text-gray-500 border-gray-200"; // Default
+    }
+  };
+
+  const isTabClickable = (tabNumber: number) => {
+    const status = getWorkflowStepStatus(tabNumber);
+    return status === "completed" || activeTab === tabNumber || activeTab > tabNumber;
+  };
+
+  const handleTabClick = (tabNumber: number) => {
+    if (isTabClickable(tabNumber)) {
+      setActiveTab(tabNumber);
     }
   };
 
@@ -485,224 +629,304 @@ export default function CampaignDetailPage({
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Main Content */}
           <div className="lg:col-span-2 space-y-6">
-            {/* 2-Step Workflow Progress */}
+            {/* Tab-Based Workflow */}
             <div className="bg-white rounded-xl border border-gray-200 p-6">
               <h2 className="text-lg font-semibold text-gray-900 mb-6">
                 Campaign Workflow
               </h2>
 
-              <div className="space-y-6">
-                {/* Step 1: Campaign Setup */}
-                <div className="flex items-start space-x-4">
-                  <div className="flex-shrink-0">
-                    {getStepIcon(1, getWorkflowStepStatus(1))}
-                  </div>
-                  <div className="flex-1">
-                    <h3 className="font-medium text-gray-900">
-                      Campaign Setup
-                    </h3>
-                    <p className="text-sm text-gray-600 mt-1">
-                      Basic campaign information and source configuration
-                    </p>
-                    <div className="mt-2 text-sm text-green-600">
-                      Setup complete
-                    </div>
-                  </div>
-                </div>
+              {/* Tab Navigation */}
+              <div className="flex space-x-2 mb-6 overflow-x-auto">
+                {[1, 2, 3, 4].map((tabNumber) => {
+                  const status = getWorkflowStepStatus(tabNumber);
+                  const isActive = activeTab === tabNumber;
+                  const tabLabels = ["Setup", "Source", "Analysis", "Content"];
 
-                {/* Step 2: Input Sources */}
-                <div className="flex items-start space-x-4">
-                  <div className="flex-shrink-0">
-                    {getStepIcon(2, getWorkflowStepStatus(2))}
-                  </div>
-                  <div className="flex-1">
-                    <h3 className="font-medium text-gray-900">
-                      Input Sources
-                    </h3>
-                    <p className="text-sm text-gray-600 mt-1">
-                      Add sales pages, documents, or other source materials
-                    </p>
+                  return (
+                    <button
+                      key={tabNumber}
+                      onClick={() => handleTabClick(tabNumber)}
+                      disabled={!isTabClickable(tabNumber)}
+                      className={`flex items-center space-x-2 px-4 py-3 rounded-lg border-2 font-medium text-sm transition-all duration-200 whitespace-nowrap min-w-0 ${getTabClasses(tabNumber)}`}
+                    >
+                      <span className="w-6 h-6 rounded-full bg-white bg-opacity-20 flex items-center justify-center text-xs font-bold">
+                        {tabNumber}
+                      </span>
+                      <span>{tabLabels[tabNumber - 1]}</span>
+                      {status === "completed" && !isActive && (
+                        <CheckCircle className="h-4 w-4" />
+                      )}
+                      {status === "active" && (
+                        <RefreshCw className="h-4 w-4 animate-spin" />
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
 
-                    {getWorkflowStepStatus(2) === "pending" && (
-                      <button
-                        onClick={() => router.push(`/campaigns/${params.id}/inputs`)}
-                        className="mt-3 px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 flex items-center space-x-2"
-                      >
-                        <Plus className="h-4 w-4" />
-                        <span>Add Input Sources</span>
-                      </button>
-                    )}
+              {/* Progress Bar */}
+              <div className="mb-6 bg-gray-200 rounded-full h-2">
+                <div
+                  className="bg-gradient-to-r from-purple-600 to-green-600 h-2 rounded-full transition-all duration-300"
+                  style={{
+                    width: `${calculateDynamicProgress()}%`,
+                  }}
+                />
+              </div>
 
-                    {/* DEBUG: Show Step 2 status */}
-                    <div className="mt-2 text-xs text-red-600 bg-red-50 p-2 rounded">
-                      DEBUG - Step 2: {getWorkflowStepStatus(2)} | Sources: {workflowState?.metrics.sources_count || 0} | WF Intelligence: {workflowState?.metrics.intelligence_count || 0} | Direct Intelligence: {intelligenceCount} | SalesPage: {campaign?.salespage_url ? 'YES' : 'NO'} | AutoAnalysis: {workflowState?.auto_analysis.enabled ? workflowState.auto_analysis.status : 'disabled'}
-                    </div>
-
-                    {getWorkflowStepStatus(2) === "completed" && (
-                      <div className="mt-2 text-sm text-green-600">
-                        {campaign?.salespage_url ? 'Salespage URL added' : ''}
-                        {workflowState?.metrics.sources_count && workflowState.metrics.sources_count > 0
-                          ? (campaign?.salespage_url ? ' + ' : '') + `${workflowState.metrics.sources_count} additional source(s)`
-                          : ''}
-                        {workflowState?.metrics.intelligence_count && workflowState.metrics.intelligence_count > 0 && !campaign?.salespage_url && (!workflowState?.metrics.sources_count || workflowState.metrics.sources_count === 0)
-                          ? 'Analysis completed with intelligence data'
-                          : ''}
-                        {!campaign?.salespage_url && (!workflowState?.metrics.sources_count || workflowState.metrics.sources_count === 0) && (!workflowState?.metrics.intelligence_count || workflowState.metrics.intelligence_count === 0)
-                          ? `${workflowState?.metrics.sources_count || 0} source(s) added`
-                          : ''}
+              {/* Tab Content */}
+              <div className="min-h-[300px]">
+                {activeTab === 1 && (
+                  <div className="space-y-4">
+                    <div className="flex items-start space-x-4">
+                      <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
+                        <CheckCircle className="h-6 w-6 text-green-600" />
                       </div>
-                    )}
-                  </div>
-                </div>
-
-                {/* Step 3: Analysis & Intelligence - Show when Step 2 is completed */}
-                {getWorkflowStepStatus(2) === "completed" && (
-                  <div className="flex items-start space-x-4">
-                    <div className="flex-shrink-0">
-                      {getStepIcon(3, getWorkflowStepStatus(3))}
-                    </div>
-                    <div className="flex-1">
-                      <h3 className="font-medium text-gray-900">
-                        Analysis & Intelligence
-                      </h3>
-                      <p className="text-sm text-gray-600 mt-1">
-                        AI analysis and intelligence extraction from input sources
-                      </p>
-
-                      {!workflowState?.auto_analysis.enabled && (!workflowState?.metrics.intelligence_count || workflowState.metrics.intelligence_count === 0) && (
-                        <div className="mt-3 p-3 bg-amber-50 rounded-lg border border-amber-200">
-                          <div className="flex items-center space-x-2">
-                            <Clock className="h-4 w-4 text-amber-600" />
-                            <span className="text-sm text-amber-700">
-                              Manual analysis required
-                            </span>
+                      <div className="flex-1">
+                        <h3 className="text-lg font-semibold text-gray-900">Campaign Setup Complete</h3>
+                        <p className="text-gray-600 mt-1">
+                          Your campaign has been created and configured successfully.
+                        </p>
+                        <div className="mt-4 p-4 bg-green-50 rounded-lg">
+                          <div className="text-sm text-green-800">
+                            ✅ Campaign: {campaign?.title}<br/>
+                            ✅ Type: {campaign?.campaign_type || "Universal"}<br/>
+                            ✅ Created: {campaign?.created_at ? new Date(campaign.created_at).toLocaleDateString() : "Recently"}
                           </div>
                         </div>
-                      )}
-
-                      {!workflowState?.auto_analysis.enabled && workflowState?.metrics.intelligence_count && workflowState.metrics.intelligence_count > 0 && (
-                        <div className="mt-3 p-3 bg-green-50 rounded-lg border border-green-200">
-                          <div className="flex items-center space-x-2">
-                            <CheckCircle className="h-4 w-4 text-green-600" />
-                            <span className="text-sm text-green-700">
-                              Analysis completed - {workflowState.metrics.intelligence_count} intelligence insights generated
-                            </span>
-                          </div>
-                        </div>
-                      )}
-
-                      {workflowState?.auto_analysis.enabled && workflowState.auto_analysis.status === "processing" && (
-                        <div className="mt-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
-                          <div className="flex items-center space-x-2">
-                            <Brain className="h-4 w-4 text-blue-600" />
-                            <span className="text-sm text-blue-700">
-                              Analyzing content...
-                            </span>
-                          </div>
-                        </div>
-                      )}
-
-                      {workflowState?.auto_analysis.enabled && workflowState.auto_analysis.status === "completed" && (
-                        <div className="mt-3">
-                          <div className="text-sm text-green-600">
-                            Analysis complete (confidence:{" "}
-                            {Math.round(
-                              workflowState.auto_analysis.confidence_score * 100
-                            )}
-                            %)
-                          </div>
-                        </div>
-                      )}
-
-                      {workflowState?.auto_analysis.enabled && workflowState.auto_analysis.status === "failed" && (
-                        <div className="mt-3 p-3 bg-red-50 rounded-lg border border-red-200">
-                          <div className="flex items-center justify-between">
-                            <span className="text-sm text-red-700">
-                              {workflowState.auto_analysis.error_message ||
-                                "Analysis failed"}
-                            </span>
-                            <button
-                              onClick={handleRetryAnalysis}
-                              className="text-sm text-red-600 hover:text-red-800 font-medium"
-                            >
-                              Retry
-                            </button>
-                          </div>
-                        </div>
-                      )}
+                      </div>
                     </div>
                   </div>
                 )}
 
-                {/* Step 4: Content Generation */}
-                <div className="flex items-start space-x-4">
-                  <div className="flex-shrink-0">
-                    {getStepIcon(4, getWorkflowStepStatus(4))}
-                  </div>
-                  <div className="flex-1">
-                    <h3 className="font-medium text-gray-900">
-                      Content Generation
-                    </h3>
-                    <p className="text-sm text-gray-600 mt-1">
-                      Generate emails, social posts, ads, and more
-                    </p>
-
-                    {workflowState?.can_generate_content &&
-                      workflowState.metrics.content_count === 0 && (
-                        <button
-                          onClick={handleGenerateContent}
-                          disabled={isGeneratingContent || (!campaign?.salespage_url && (!workflowState?.metrics.sources_count || workflowState.metrics.sources_count === 0))}
-                          className="mt-3 px-4 py-2 bg-purple-600 text-white text-sm rounded-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
-                        >
-                          {isGeneratingContent ? (
-                            <>
-                              <Loader2 className="h-4 w-4 animate-spin" />
-                              <span>Generating...</span>
-                            </>
-                          ) : (
-                            <>
-                              <Sparkles className="h-4 w-4" />
-                              <span>Generate Content</span>
-                            </>
-                          )}
-                        </button>
-                      )}
-
-                    {!campaign?.salespage_url && (!workflowState?.metrics.sources_count || workflowState.metrics.sources_count === 0) && (
-                      <div className="mt-2 text-sm text-amber-600">
-                        Add input sources first to enable content generation
+                {activeTab === 2 && (
+                  <div className="space-y-4">
+                    <div className="flex items-start space-x-4">
+                      <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${getWorkflowStepStatus(2) === "completed" ? "bg-purple-100" : "bg-blue-100"}`}>
+                        {getStepIcon(2, getWorkflowStepStatus(2))}
                       </div>
-                    )}
+                      <div className="flex-1">
+                        <h3 className="text-lg font-semibold text-gray-900">Input Source URL</h3>
+                        <p className="text-gray-600 mt-1">
+                          Provide your sales page URL for AI analysis and intelligence extraction.
+                        </p>
 
-                    {workflowState?.metrics &&
-                      workflowState.metrics.content_count > 0 && (
-                        <div className="mt-2 text-sm text-green-600">
-                          {workflowState.metrics.content_count} content pieces
-                          generated
-                        </div>
-                      )}
+                        {getWorkflowStepStatus(2) === "pending" && (
+                          <div className="mt-4 p-4 bg-amber-50 rounded-lg border border-amber-200">
+                            <div className="flex items-center space-x-2">
+                              <Clock className="h-5 w-5 text-amber-600" />
+                              <span className="text-sm text-amber-700 font-medium">
+                                Please provide a URL to continue
+                              </span>
+                            </div>
+                            <p className="text-xs text-amber-600 mt-2">
+                              The URL should point to your sales page, landing page, or product page for analysis.
+                            </p>
+                          </div>
+                        )}
+
+                        {getWorkflowStepStatus(2) === "completed" && (
+                          <div className="mt-4 p-4 bg-purple-50 rounded-lg border border-purple-200">
+                            <div className="flex items-center space-x-2">
+                              <CheckCircle className="h-5 w-5 text-purple-600" />
+                              <span className="text-sm text-purple-700 font-medium">
+                                URL submitted successfully
+                              </span>
+                            </div>
+                            {campaign?.salespage_url && (
+                              <div className="mt-2 text-xs text-gray-600">
+                                Source: {campaign.salespage_url}
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    </div>
                   </div>
-                </div>
-              </div>
+                )}
 
-              {/* Progress Bar */}
-              <div className="mt-6 pt-6 border-t border-gray-200">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-medium text-gray-700">
-                    Overall Progress
-                  </span>
-                  <span className="text-sm text-gray-600">
-                    {calculateDynamicProgress()}%
-                  </span>
-                </div>
-                <div className="w-full bg-gray-200 rounded-full h-2">
-                  <div
-                    className="bg-purple-600 h-2 rounded-full transition-all duration-300"
-                    style={{
-                      width: `${calculateDynamicProgress()}%`,
-                    }}
-                  />
-                </div>
+                {activeTab === 3 && (
+                  <div className="space-y-4">
+                    <div className="flex items-start space-x-4">
+                      <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${getWorkflowStepStatus(3) === "completed" ? "bg-purple-100" : getWorkflowStepStatus(3) === "active" ? "bg-blue-100" : "bg-gray-100"}`}>
+                        {getStepIcon(3, getWorkflowStepStatus(3))}
+                      </div>
+                      <div className="flex-1">
+                        <h3 className="text-lg font-semibold text-gray-900">AI Analysis</h3>
+                        <p className="text-gray-600 mt-1">
+                          Advanced AI analysis extracts sales intelligence from your source URL automatically.
+                        </p>
+
+                        {getWorkflowStepStatus(2) !== "completed" && (
+                          <div className="mt-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                            <div className="flex items-center space-x-2">
+                              <Clock className="h-5 w-5 text-gray-500" />
+                              <span className="text-sm text-gray-600">
+                                Waiting for URL input to start analysis
+                              </span>
+                            </div>
+                          </div>
+                        )}
+
+                        {workflowState?.auto_analysis.enabled && workflowState.auto_analysis.status === "processing" && (
+                          <div className="mt-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                            <div className="flex items-center space-x-2">
+                              <Brain className="h-5 w-5 text-blue-600" />
+                              <span className="text-sm text-blue-700 font-medium">
+                                Analyzing content...
+                              </span>
+                            </div>
+                            <div className="mt-3">
+                              <div className="bg-blue-200 rounded-full h-2">
+                                <div className="bg-blue-600 h-2 rounded-full animate-pulse" style={{width: '60%'}}></div>
+                              </div>
+                              <p className="text-xs text-blue-600 mt-2">
+                                Extracting sales intelligence, product details, target audience, and conversion strategies...
+                              </p>
+                            </div>
+                          </div>
+                        )}
+
+                        {getWorkflowStepStatus(3) === "completed" && (
+                          <div className="mt-4 p-4 bg-purple-50 rounded-lg border border-purple-200">
+                            <div className="flex items-center space-x-2">
+                              <CheckCircle className="h-5 w-5 text-purple-600" />
+                              <span className="text-sm text-purple-700 font-medium">
+                                Analysis completed successfully
+                              </span>
+                            </div>
+                            <div className="mt-2 text-sm text-gray-600">
+                              {workflowState?.metrics.intelligence_count || intelligenceCount} intelligence insights extracted
+                              {workflowState?.auto_analysis.enabled && workflowState.auto_analysis.confidence_score && (
+                                <span className="ml-2">
+                                  (Confidence: {Math.round(workflowState.auto_analysis.confidence_score * 100)}%)
+                                </span>
+                              )}
+                            </div>
+                            <div className="mt-3 text-xs text-blue-600">
+                              💡 Tip: Download the comprehensive intelligence report from the sidebar to get detailed marketing strategies and actionable insights.
+                            </div>
+                          </div>
+                        )}
+
+                        {workflowState?.auto_analysis.enabled && workflowState.auto_analysis.status === "failed" && (
+                          <div className="mt-4 p-4 bg-red-50 rounded-lg border border-red-200">
+                            <div className="flex items-center justify-between">
+                              <span className="text-sm text-red-700">
+                                {workflowState.auto_analysis.error_message || "Analysis failed"}
+                              </span>
+                              <button
+                                onClick={handleRetryAnalysis}
+                                className="text-sm text-red-600 hover:text-red-800 font-medium"
+                              >
+                                Retry
+                              </button>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {activeTab === 4 && (
+                  <div className="space-y-4">
+                    <div className="flex items-start space-x-4">
+                      <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${getWorkflowStepStatus(4) === "completed" ? "bg-purple-100" : getWorkflowStepStatus(4) === "ready" ? "bg-green-100" : "bg-gray-100"}`}>
+                        {getStepIcon(4, getWorkflowStepStatus(4))}
+                      </div>
+                      <div className="flex-1">
+                        <h3 className="text-lg font-semibold text-gray-900">
+                          Universal Sales Content Generation
+                          {getWorkflowStepStatus(3) === "completed" && getWorkflowStepStatus(4) !== "completed" && (
+                            <span className="ml-2 px-2 py-1 text-xs bg-green-600 text-white rounded-full">
+                              READY
+                            </span>
+                          )}
+                        </h3>
+                        <p className="text-gray-600 mt-1">
+                          Generate sales-focused emails, social posts, ads, videos, and more using the Universal Sales Engine with advanced psychology principles.
+                        </p>
+
+                        {getWorkflowStepStatus(3) !== "completed" && (
+                          <div className="mt-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                            <div className="flex items-center space-x-2">
+                              <Clock className="h-5 w-5 text-gray-500" />
+                              <span className="text-sm text-gray-600">
+                                Complete analysis first to enable content generation
+                              </span>
+                            </div>
+                          </div>
+                        )}
+
+                        {getWorkflowStepStatus(3) === "completed" && (
+                          <div className="mt-4">
+                            {workflowState?.metrics.content_count === 0 ? (
+                              <div className="space-y-4">
+                                <div className="p-4 bg-gradient-to-r from-green-50 to-purple-50 rounded-lg border border-green-200">
+                                  <div className="flex items-center space-x-2 mb-2">
+                                    <Sparkles className="h-5 w-5 text-green-600" />
+                                    <span className="text-sm text-green-700 font-medium">
+                                      Ready to generate content!
+                                    </span>
+                                  </div>
+                                  <p className="text-xs text-gray-600">
+                                    Generate emails, videos, images, social posts, ads & more with sales psychology
+                                  </p>
+                                </div>
+                                <button
+                                  onClick={handleGenerateContent}
+                                  disabled={isGeneratingContent}
+                                  className="w-full px-6 py-4 bg-gradient-to-r from-green-600 to-purple-600 text-white font-medium rounded-lg hover:from-green-700 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2 shadow-lg transition-all"
+                                >
+                                  {isGeneratingContent ? (
+                                    <>
+                                      <Loader2 className="h-5 w-5 animate-spin" />
+                                      <span>Generating Universal Sales Content...</span>
+                                    </>
+                                  ) : (
+                                    <>
+                                      <Sparkles className="h-5 w-5" />
+                                      <span>Generate Universal Sales Content</span>
+                                    </>
+                                  )}
+                                </button>
+                              </div>
+                            ) : (
+                              <div className="space-y-4">
+                                <div className="p-4 bg-purple-50 rounded-lg border border-purple-200">
+                                  <div className="flex items-center space-x-2">
+                                    <CheckCircle className="h-5 w-5 text-purple-600" />
+                                    <span className="text-sm text-purple-700 font-medium">
+                                      {workflowState.metrics.content_count} content pieces generated
+                                    </span>
+                                  </div>
+                                </div>
+                                <button
+                                  onClick={handleGenerateContent}
+                                  disabled={isGeneratingContent}
+                                  className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
+                                >
+                                  {isGeneratingContent ? (
+                                    <>
+                                      <Loader2 className="h-4 w-4 animate-spin" />
+                                      <span>Generating...</span>
+                                    </>
+                                  ) : (
+                                    <>
+                                      <Plus className="h-4 w-4" />
+                                      <span>Generate More Content</span>
+                                    </>
+                                  )}
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -851,6 +1075,27 @@ export default function CampaignDetailPage({
                   >
                     <Plus className="h-4 w-4" />
                     <span>Generate More Content</span>
+                  </button>
+                )}
+
+                {/* Intelligence Report Download */}
+                {getWorkflowStepStatus(3) === "completed" && (
+                  <button
+                    onClick={handleGenerateReport}
+                    disabled={isGeneratingReport}
+                    className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors flex items-center space-x-2"
+                  >
+                    {isGeneratingReport ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        <span>Generating...</span>
+                      </>
+                    ) : (
+                      <>
+                        <FileDown className="h-4 w-4" />
+                        <span>Download Report</span>
+                      </>
+                    )}
                   </button>
                 )}
 
