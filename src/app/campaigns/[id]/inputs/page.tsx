@@ -32,6 +32,7 @@ export default function CampaignInputsPage({ params }: CampaignInputsPageProps) 
   const [analyzing, setAnalyzing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const progressPollingRef = useRef<NodeJS.Timeout | null>(null);
+  const pollCountRef = useRef(0);
   
   // Rate limiting for page loads
   const isLoadingRef = useRef(false);
@@ -96,11 +97,15 @@ export default function CampaignInputsPage({ params }: CampaignInputsPageProps) 
     try {
       const progressResponse = await api.get(`/api/intelligence/progress/${analysisId}`);
 
+      console.log('🔍 Progress response:', progressResponse);
+
       if (progressResponse.success && progressResponse.data) {
         const { completed, stage } = progressResponse.data;
+        console.log('🔍 Progress data:', { completed, stage, data: progressResponse.data });
 
         // If analysis is completed, stop polling and navigate
-        if (completed || stage === 'completed') {
+        if (completed === true || stage === 'completed') {
+          console.log('✅ Analysis completed detected, stopping polling');
           if (progressPollingRef.current) {
             clearInterval(progressPollingRef.current);
             progressPollingRef.current = null;
@@ -110,7 +115,11 @@ export default function CampaignInputsPage({ params }: CampaignInputsPageProps) 
           // Navigate to results
           console.log('✅ Analysis completed, navigating to results');
           router.push(`/campaigns/${params.id}?tab=intelligence&analysis=completed`);
+        } else {
+          console.log('🔄 Analysis still in progress, continuing to poll');
         }
+      } else {
+        console.log('❌ Invalid progress response:', progressResponse);
       }
     } catch (err) {
       console.error('Failed to poll analysis completion:', err);
@@ -125,14 +134,31 @@ export default function CampaignInputsPage({ params }: CampaignInputsPageProps) 
       clearInterval(progressPollingRef.current);
     }
 
+    pollCountRef.current = 0;
+    const maxPolls = 60; // Maximum 5 minutes (60 * 5 seconds)
+
     // Poll every 5 seconds (less frequent since we're just checking completion)
     progressPollingRef.current = setInterval(() => {
+      pollCountRef.current++;
+      console.log(`🔄 Polling attempt ${pollCountRef.current}/${maxPolls} for analysis ${analysisId}`);
+
+      if (pollCountRef.current >= maxPolls) {
+        console.log('⏰ Polling timeout reached, stopping and navigating to results');
+        if (progressPollingRef.current) {
+          clearInterval(progressPollingRef.current);
+          progressPollingRef.current = null;
+        }
+        setAnalyzing(false);
+        router.push(`/campaigns/${params.id}?tab=intelligence&analysis=timeout`);
+        return;
+      }
+
       pollForCompletion(analysisId);
     }, 5000);
 
     // Also poll immediately
     pollForCompletion(analysisId);
-  }, [pollForCompletion]);
+  }, [pollForCompletion, params.id, router]);
 
   // Cleanup polling on unmount
   useEffect(() => {
