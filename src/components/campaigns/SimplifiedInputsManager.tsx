@@ -14,6 +14,10 @@ import {
   X,
   AlertCircle,
   Sparkles,
+  Brain,
+  Search,
+  Database,
+  Zap,
 } from "lucide-react";
 
 interface InputType {
@@ -41,6 +45,12 @@ interface SimplifiedInputsManagerProps {
   userType: "affiliate" | "business" | "creator" | "agency" | null;
   onInputsChange: (inputs: CampaignInput[]) => void;
   onAnalyze: () => void;
+  isAnalyzing?: boolean;
+  analysisProgress?: {
+    stage: string;
+    progress: number;
+    message: string;
+  };
 }
 
 const INPUT_TYPES: InputType[] = [
@@ -111,6 +121,8 @@ export default function SimplifiedInputsManager({
   userType,
   onInputsChange,
   onAnalyze,
+  isAnalyzing = false,
+  analysisProgress,
 }: SimplifiedInputsManagerProps) {
   // Initialize inputs with empty values for all relevant input types
   const [inputs, setInputs] = useState<CampaignInput[]>([]);
@@ -200,6 +212,41 @@ export default function SimplifiedInputsManager({
     (input) => input.status === "valid" && input.value.trim() !== ""
   );
   const hasInvalidInputs = inputs.some((input) => input.status === "invalid");
+
+  // Analysis progress stages
+  const getAnalysisStageIcon = (stage: string) => {
+    switch (stage) {
+      case "initializing":
+        return Zap;
+      case "content_extraction":
+        return FileText;
+      case "base_analysis":
+        return Brain;
+      case "ai_enhancement":
+        return Sparkles;
+      case "rag_research":
+        return Search;
+      case "data_storage":
+        return Database;
+      case "completed":
+        return Check;
+      default:
+        return Brain;
+    }
+  };
+
+  const getProgressPercentage = (stage: string, progress: number) => {
+    const stageWeights = {
+      "initializing": 5,
+      "content_extraction": 15,
+      "base_analysis": 25,
+      "ai_enhancement": 35,
+      "rag_research": 75,
+      "data_storage": 90,
+      "completed": 100,
+    };
+    return stageWeights[stage as keyof typeof stageWeights] || progress;
+  };
 
   return (
     <div className="space-y-6">
@@ -340,17 +387,157 @@ export default function SimplifiedInputsManager({
 
           <button
             onClick={onAnalyze}
-            disabled={!hasValidInputs || hasInvalidInputs}
+            disabled={!hasValidInputs || hasInvalidInputs || isAnalyzing}
             className={`px-6 py-2 rounded-lg font-medium transition-colors ${
-              hasValidInputs && !hasInvalidInputs
+              hasValidInputs && !hasInvalidInputs && !isAnalyzing
                 ? "bg-blue-600 text-white hover:bg-blue-700"
                 : "bg-gray-200 text-gray-500 cursor-not-allowed"
             }`}
           >
-            Analyze Sources
+            {isAnalyzing ? (
+              <span className="flex items-center gap-2">
+                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                Analyzing...
+              </span>
+            ) : (
+              "Analyze Sources"
+            )}
           </button>
         </div>
       </div>
+
+      {/* Analysis Progress Bar */}
+      {isAnalyzing && analysisProgress && (
+        <div className="border border-blue-200 bg-blue-50 rounded-lg p-6 space-y-4">
+          {/* Header */}
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
+              <Brain className="w-4 h-4 text-white" />
+            </div>
+            <div>
+              <h4 className="font-semibold text-blue-900">
+                MAXIMUM Analysis in Progress
+              </h4>
+              <p className="text-sm text-blue-700">
+                Performing comprehensive intelligence extraction with internet search RAG
+              </p>
+            </div>
+          </div>
+
+          {/* Progress Bar */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-medium text-blue-900">
+                {analysisProgress.stage.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+              </span>
+              <span className="text-sm text-blue-700">
+                {getProgressPercentage(analysisProgress.stage, analysisProgress.progress)}%
+              </span>
+            </div>
+
+            <div className="w-full bg-blue-200 rounded-full h-3">
+              <div
+                className="bg-gradient-to-r from-blue-500 to-blue-600 h-3 rounded-full transition-all duration-500 ease-out"
+                style={{
+                  width: `${getProgressPercentage(analysisProgress.stage, analysisProgress.progress)}%`,
+                }}
+              />
+            </div>
+          </div>
+
+          {/* Current Stage Details */}
+          <div className="flex items-center gap-3 text-sm">
+            {(() => {
+              const StageIcon = getAnalysisStageIcon(analysisProgress.stage);
+              return (
+                <>
+                  <StageIcon className="w-4 h-4 text-blue-600 flex-shrink-0" />
+                  <span className="text-blue-800">{analysisProgress.message}</span>
+                </>
+              );
+            })()}
+          </div>
+
+          {/* Stage Breakdown */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 pt-3 border-t border-blue-200">
+            {[
+              { stage: "content_extraction", label: "Content Extraction", desc: "Scraping & parsing" },
+              { stage: "base_analysis", label: "Base Analysis", desc: "Product intelligence" },
+              { stage: "ai_enhancement", label: "AI Enhancement", desc: "6 enhancement modules" },
+              { stage: "rag_research", label: "Internet Research", desc: "Business intelligence RAG" },
+              { stage: "data_storage", label: "Data Storage", desc: "Intelligence database" },
+              { stage: "completed", label: "Completed", desc: "Analysis ready" },
+            ].map(({ stage, label, desc }) => {
+              const isActive = analysisProgress.stage === stage;
+              const isCompleted = getProgressPercentage(analysisProgress.stage, analysisProgress.progress) > getProgressPercentage(stage, 0);
+              const StageIcon = getAnalysisStageIcon(stage);
+
+              return (
+                <div
+                  key={stage}
+                  className={`flex items-center gap-2 p-2 rounded-md transition-colors ${
+                    isActive
+                      ? "bg-blue-100 border border-blue-300"
+                      : isCompleted
+                      ? "bg-green-50 border border-green-200"
+                      : "bg-white border border-gray-200"
+                  }`}
+                >
+                  <div
+                    className={`w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 ${
+                      isActive
+                        ? "bg-blue-600 text-white"
+                        : isCompleted
+                        ? "bg-green-600 text-white"
+                        : "bg-gray-200 text-gray-500"
+                    }`}
+                  >
+                    {isCompleted && !isActive ? (
+                      <Check className="w-3 h-3" />
+                    ) : (
+                      <StageIcon className="w-3 h-3" />
+                    )}
+                  </div>
+                  <div className="min-w-0">
+                    <div
+                      className={`text-xs font-medium ${
+                        isActive
+                          ? "text-blue-900"
+                          : isCompleted
+                          ? "text-green-900"
+                          : "text-gray-700"
+                      }`}
+                    >
+                      {label}
+                    </div>
+                    <div
+                      className={`text-xs ${
+                        isActive
+                          ? "text-blue-700"
+                          : isCompleted
+                          ? "text-green-700"
+                          : "text-gray-500"
+                      }`}
+                    >
+                      {desc}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Time Estimate */}
+          <div className="text-center pt-3 border-t border-blue-200">
+            <p className="text-xs text-blue-600">
+              🔬 Maximum quality analysis with business intelligence research
+            </p>
+            <p className="text-xs text-blue-500 mt-1">
+              Estimated time: 2-3 minutes for comprehensive analysis
+            </p>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

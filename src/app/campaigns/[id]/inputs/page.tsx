@@ -30,7 +30,13 @@ export default function CampaignInputsPage({ params }: CampaignInputsPageProps) 
   const [inputs, setInputs] = useState<CampaignInput[]>([]);
   const [loading, setLoading] = useState(true);
   const [analyzing, setAnalyzing] = useState(false);
+  const [analysisProgress, setAnalysisProgress] = useState<{
+    stage: string;
+    progress: number;
+    message: string;
+  } | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const progressPollingRef = useRef<NodeJS.Timeout | null>(null);
   
   // Rate limiting for page loads
   const isLoadingRef = useRef(false);
@@ -90,6 +96,71 @@ export default function CampaignInputsPage({ params }: CampaignInputsPageProps) 
     setInputs(newInputs);
   }, []); // Remove inputs dependency to prevent re-renders
 
+  // Progress polling function
+  const pollAnalysisProgress = useCallback(async (analysisId: string) => {
+    try {
+      const progressResponse = await api.get(`/api/intelligence/progress/${analysisId}`);
+
+      if (progressResponse.success && progressResponse.data) {
+        const { stage, progress, message, completed } = progressResponse.data;
+
+        setAnalysisProgress({
+          stage,
+          progress,
+          message
+        });
+
+        // If analysis is completed, stop polling
+        if (completed || stage === 'completed') {
+          if (progressPollingRef.current) {
+            clearInterval(progressPollingRef.current);
+            progressPollingRef.current = null;
+          }
+          setAnalyzing(false);
+          setAnalysisProgress(null);
+
+          // Navigate to results
+          router.push(`/campaigns/${params.id}?tab=intelligence&analysis=completed`);
+        }
+      }
+    } catch (err) {
+      console.error('Failed to poll analysis progress:', err);
+      // Continue polling even if individual requests fail
+    }
+  }, [api, params.id, router]);
+
+  // Start progress polling
+  const startProgressPolling = useCallback((analysisId: string) => {
+    // Clear any existing polling
+    if (progressPollingRef.current) {
+      clearInterval(progressPollingRef.current);
+    }
+
+    // Initial progress state
+    setAnalysisProgress({
+      stage: 'initializing',
+      progress: 5,
+      message: 'Starting MAXIMUM analysis pipeline...'
+    });
+
+    // Poll every 2 seconds
+    progressPollingRef.current = setInterval(() => {
+      pollAnalysisProgress(analysisId);
+    }, 2000);
+
+    // Also poll immediately
+    pollAnalysisProgress(analysisId);
+  }, [pollAnalysisProgress]);
+
+  // Cleanup polling on unmount
+  useEffect(() => {
+    return () => {
+      if (progressPollingRef.current) {
+        clearInterval(progressPollingRef.current);
+      }
+    };
+  }, []);
+
   const handleAnalyze = async () => {
     try {
       setAnalyzing(true);
@@ -130,19 +201,23 @@ export default function CampaignInputsPage({ params }: CampaignInputsPageProps) 
       };
 
       console.log('🚀 Starting intelligence analysis with inputs:', analysisData);
-      
-      // Step 2: Run intelligence analysis
+
+      // Step 2: Run intelligence analysis (now async)
       const analysisResponse = await api.runIntelligenceAnalysis(analysisData);
-      
+
       if (!analysisResponse.success) {
         throw new Error(analysisResponse.error || 'Intelligence analysis failed');
       }
 
-      console.log('✅ Intelligence analysis completed successfully!');
-
-      // Navigate to campaign detail page to show analysis results
-      // Content generation will be a separate step initiated by user
-      router.push(`/campaigns/${params.id}?tab=intelligence&analysis=completed`);
+      // If we get an analysis_id, start progress polling
+      if (analysisResponse.data?.analysis_id) {
+        console.log('🔄 Starting progress polling for analysis:', analysisResponse.data.analysis_id);
+        startProgressPolling(analysisResponse.data.analysis_id);
+      } else {
+        // Fallback: analysis completed immediately
+        console.log('✅ Intelligence analysis completed immediately!');
+        router.push(`/campaigns/${params.id}?tab=intelligence&analysis=completed`);
+      }
       
     } catch (err) {
       console.error('Intelligence analysis failed:', err);
@@ -269,6 +344,8 @@ export default function CampaignInputsPage({ params }: CampaignInputsPageProps) 
               userType={getUserType()}
               onInputsChange={handleInputsChange}
               onAnalyze={handleAnalyze}
+              isAnalyzing={analyzing}
+              analysisProgress={analysisProgress}
             />
           )}
         </div>
