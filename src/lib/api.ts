@@ -328,6 +328,16 @@ export class ApiClient {
     return this.handleResponse<T>(response)
   }
 
+  async post<T = any>(endpoint: string, data?: any): Promise<T> {
+    const response = await fetch(`${this.baseURL}${endpoint}`, {
+      method: 'POST',
+      headers: this.getHeaders(),
+      body: data ? JSON.stringify(data) : undefined
+    })
+
+    return this.handleResponse<T>(response)
+  }
+
   // ============================================================================
   // Authentication
   // ============================================================================
@@ -1171,6 +1181,7 @@ export const useApi = () => {
   return useMemo(() => ({
     // Generic HTTP Methods
     get: apiClient.get.bind(apiClient),
+    post: apiClient.post.bind(apiClient),
 
     // Authentication
     login: apiClient.login.bind(apiClient),
