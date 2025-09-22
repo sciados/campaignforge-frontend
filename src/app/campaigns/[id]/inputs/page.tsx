@@ -30,11 +30,6 @@ export default function CampaignInputsPage({ params }: CampaignInputsPageProps) 
   const [inputs, setInputs] = useState<CampaignInput[]>([]);
   const [loading, setLoading] = useState(true);
   const [analyzing, setAnalyzing] = useState(false);
-  const [analysisProgress, setAnalysisProgress] = useState<{
-    stage: string;
-    progress: number;
-    message: string;
-  } | undefined>(undefined);
   const [error, setError] = useState<string | null>(null);
   const progressPollingRef = useRef<NodeJS.Timeout | null>(null);
   
@@ -96,61 +91,48 @@ export default function CampaignInputsPage({ params }: CampaignInputsPageProps) 
     setInputs(newInputs);
   }, []); // Remove inputs dependency to prevent re-renders
 
-  // Progress polling function
-  const pollAnalysisProgress = useCallback(async (analysisId: string) => {
+  // Simple completion polling
+  const pollForCompletion = useCallback(async (analysisId: string) => {
     try {
       const progressResponse = await api.get(`/api/intelligence/progress/${analysisId}`);
 
       if (progressResponse.success && progressResponse.data) {
-        const { stage, progress, message, completed } = progressResponse.data;
+        const { completed, stage } = progressResponse.data;
 
-        setAnalysisProgress({
-          stage,
-          progress,
-          message
-        });
-
-        // If analysis is completed, stop polling
+        // If analysis is completed, stop polling and navigate
         if (completed || stage === 'completed') {
           if (progressPollingRef.current) {
             clearInterval(progressPollingRef.current);
             progressPollingRef.current = null;
           }
           setAnalyzing(false);
-          setAnalysisProgress(undefined);
 
           // Navigate to results
+          console.log('✅ Analysis completed, navigating to results');
           router.push(`/campaigns/${params.id}?tab=intelligence&analysis=completed`);
         }
       }
     } catch (err) {
-      console.error('Failed to poll analysis progress:', err);
+      console.error('Failed to poll analysis completion:', err);
       // Continue polling even if individual requests fail
     }
   }, [api, params.id, router]);
 
-  // Start progress polling
-  const startProgressPolling = useCallback((analysisId: string) => {
+  // Start simple completion polling
+  const startCompletionPolling = useCallback((analysisId: string) => {
     // Clear any existing polling
     if (progressPollingRef.current) {
       clearInterval(progressPollingRef.current);
     }
 
-    // Initial progress state
-    setAnalysisProgress({
-      stage: 'initializing',
-      progress: 5,
-      message: 'Starting MAXIMUM analysis pipeline...'
-    });
-
-    // Poll every 2 seconds
+    // Poll every 5 seconds (less frequent since we're just checking completion)
     progressPollingRef.current = setInterval(() => {
-      pollAnalysisProgress(analysisId);
-    }, 2000);
+      pollForCompletion(analysisId);
+    }, 5000);
 
     // Also poll immediately
-    pollAnalysisProgress(analysisId);
-  }, [pollAnalysisProgress]);
+    pollForCompletion(analysisId);
+  }, [pollForCompletion]);
 
   // Cleanup polling on unmount
   useEffect(() => {
@@ -163,10 +145,12 @@ export default function CampaignInputsPage({ params }: CampaignInputsPageProps) 
 
   const handleAnalyze = async () => {
     try {
+      console.log('🚀 Starting analysis - setting analyzing state to true');
       setAnalyzing(true);
 
       console.log('🔍 handleAnalyze called with inputs:', inputs);
       console.log('🔍 Input count:', inputs.length);
+      console.log('🔍 Current analyzing state:', analyzing);
       inputs.forEach((input, index) => {
         console.log(`🔍 Input ${index}:`, {
           id: input.id,
@@ -209,13 +193,14 @@ export default function CampaignInputsPage({ params }: CampaignInputsPageProps) 
         throw new Error(analysisResponse.error || 'Intelligence analysis failed');
       }
 
-      // If we get an analysis_id, start progress polling
+      // If we get an analysis_id, start completion polling
       if (analysisResponse.data?.analysis_id) {
-        console.log('🔄 Starting progress polling for analysis:', analysisResponse.data.analysis_id);
-        startProgressPolling(analysisResponse.data.analysis_id);
+        console.log('🔄 Starting completion polling for analysis:', analysisResponse.data.analysis_id);
+        startCompletionPolling(analysisResponse.data.analysis_id);
       } else {
         // Fallback: analysis completed immediately
         console.log('✅ Intelligence analysis completed immediately!');
+        setAnalyzing(false);
         router.push(`/campaigns/${params.id}?tab=intelligence&analysis=completed`);
       }
       
@@ -331,7 +316,6 @@ export default function CampaignInputsPage({ params }: CampaignInputsPageProps) 
             onInputsChange={handleInputsChange}
             onAnalyze={handleAnalyze}
             isAnalyzing={analyzing}
-            analysisProgress={analysisProgress}
           />
         </div>
 
