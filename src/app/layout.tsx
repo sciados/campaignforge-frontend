@@ -91,7 +91,8 @@ export default function RootLayout({
   const pathname = usePathname();
 
   // Define which routes should show the sidebar (dashboard-style pages)
-  const showSidebar = pathname.startsWith("/dashboard");
+  const showSidebar = pathname.startsWith("/dashboard") ||
+                     pathname.match(/^\/campaigns\/[^\/]+\/(inputs|generate)$/); // Include campaign workflow pages
 
   // Hide sidebar completely on auth pages and standalone pages
   const hideSidebar =
@@ -99,7 +100,9 @@ export default function RootLayout({
     pathname === "/register" ||
     pathname === "/user-selection" ||
     pathname === "/onboarding" ||
-    pathname.startsWith("/campaigns"); // Hide sidebar for all campaign pages
+    pathname === "/campaigns" || // Hide sidebar for campaigns list page
+    pathname.startsWith("/campaigns/create-workflow") || // Hide sidebar for creation workflow
+    pathname.match(/^\/campaigns\/[^\/]+\/settings$/); // Hide sidebar for settings pages
 
   return (
     <html lang="en" className={inter.variable}>

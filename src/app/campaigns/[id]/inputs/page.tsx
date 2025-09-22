@@ -3,7 +3,7 @@
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Sparkles } from 'lucide-react';
+import { ArrowLeft, Sparkles, FileDown, Loader2 } from 'lucide-react';
 import { useApi } from '@/lib/api';
 import SimplifiedInputsManager from '@/components/campaigns/SimplifiedInputsManager';
 
@@ -31,6 +31,8 @@ export default function CampaignInputsPage({ params }: CampaignInputsPageProps) 
   const [loading, setLoading] = useState(true);
   const [analyzing, setAnalyzing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isGeneratingReport, setIsGeneratingReport] = useState(false);
+  const [analysisCompleted, setAnalysisCompleted] = useState(false);
   const progressPollingRef = useRef<NodeJS.Timeout | null>(null);
   const pollCountRef = useRef(0);
   
@@ -111,10 +113,11 @@ export default function CampaignInputsPage({ params }: CampaignInputsPageProps) 
             progressPollingRef.current = null;
           }
           setAnalyzing(false);
+          setAnalysisCompleted(true);
 
-          // Navigate to results
-          console.log('✅ Analysis completed, navigating to results');
-          router.push(`/campaigns/${params.id}?tab=intelligence&analysis=completed`);
+          // Navigate to content generation page
+          console.log('✅ Analysis completed, navigating to content generation');
+          router.push(`/campaigns/${params.id}/generate`);
         } else {
           console.log('🔄 Analysis still in progress, continuing to poll');
         }
@@ -149,7 +152,8 @@ export default function CampaignInputsPage({ params }: CampaignInputsPageProps) 
           progressPollingRef.current = null;
         }
         setAnalyzing(false);
-        router.push(`/campaigns/${params.id}?tab=intelligence&analysis=timeout`);
+        setAnalysisCompleted(true);
+        router.push(`/campaigns/${params.id}/generate`);
         return;
       }
 
@@ -227,7 +231,8 @@ export default function CampaignInputsPage({ params }: CampaignInputsPageProps) 
         // Fallback: analysis completed immediately
         console.log('✅ Intelligence analysis completed immediately!');
         setAnalyzing(false);
-        router.push(`/campaigns/${params.id}?tab=intelligence&analysis=completed`);
+        setAnalysisCompleted(true);
+        router.push(`/campaigns/${params.id}/generate`);
       }
       
     } catch (err) {
@@ -238,6 +243,70 @@ export default function CampaignInputsPage({ params }: CampaignInputsPageProps) 
           : 'Failed to complete intelligence analysis. Please try again.'
       );
       setAnalyzing(false);
+    }
+  };
+
+  // Generate comprehensive PDF report
+  const handleGenerateReport = async () => {
+    if (!campaign || !analysisCompleted) return;
+
+    setIsGeneratingReport(true);
+    setError(null);
+
+    try {
+      // Request PDF report generation from backend
+      const response = await api.post(`/intelligence/campaigns/${params.id}/report`, {
+        format: 'pdf',
+        include_sections: [
+          'executive_summary',
+          'product_analysis',
+          'target_audience',
+          'competition_analysis',
+          'marketing_strategy',
+          'content_recommendations',
+          'sales_psychology',
+          'conversion_opportunities',
+          'actionable_insights'
+        ]
+      });
+
+      // Handle different response formats
+      if (response.data && response.data.download_url) {
+        // If backend returns a download URL
+        window.open(response.data.download_url, '_blank');
+      } else if (response.data && response.data.pdf_data) {
+        // If backend returns base64 PDF data
+        const blob = new Blob([atob(response.data.pdf_data)], { type: 'application/pdf' });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${campaign.title}_Intelligence_Report.pdf`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(url);
+      } else {
+        // If response is the PDF blob directly
+        const blob = new Blob([response.data], { type: 'application/pdf' });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${campaign.title}_Intelligence_Report.pdf`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(url);
+      }
+
+    } catch (err) {
+      console.error("Report generation error:", err);
+      setError(
+        `Report generation failed: ${
+          err instanceof Error ? err.message : "Unknown error"
+        }`
+      );
+    } finally {
+      setIsGeneratingReport(false);
     }
   };
 
@@ -304,36 +373,34 @@ export default function CampaignInputsPage({ params }: CampaignInputsPageProps) 
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <div className="bg-white border-b border-gray-200">
-        <div className="max-w-4xl mx-auto px-6 py-6">
-          <div className="flex items-center gap-4 mb-6">
-            <button
-              onClick={() => router.back()}
-              className="flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-colors"
-            >
-              <ArrowLeft className="w-4 h-4" />
-              Back
-            </button>
-          </div>
+    <div className="p-6">
+      {/* Page Header */}
+      <div className="mb-6">
+        <div className="flex items-center gap-4 mb-4">
+          <button
+            onClick={() => router.back()}
+            className="flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-colors"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            Back
+          </button>
+        </div>
 
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900 mb-2">
-              {campaign?.title || 'Campaign Setup'}
-            </h1>
-            <p className="text-gray-600">
-              Add input sources to power AI analysis and content generation for your campaign
-            </p>
-            {campaign?.description && (
-              <p className="text-sm text-gray-500 mt-2">{campaign.description}</p>
-            )}
-          </div>
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">
+            {campaign?.title || 'Campaign Setup'}
+          </h1>
+          <p className="text-gray-600">
+            Add input sources to power AI analysis and content generation for your campaign
+          </p>
+          {campaign?.description && (
+            <p className="text-sm text-gray-500 mt-2">{campaign.description}</p>
+          )}
         </div>
       </div>
 
       {/* Main Content */}
-      <div className="max-w-4xl mx-auto px-6 py-8">
+      <div className="space-y-6">
         <div className="bg-white rounded-lg shadow-sm p-6">
           <SimplifiedInputsManager
             campaignId={params.id}
@@ -344,8 +411,41 @@ export default function CampaignInputsPage({ params }: CampaignInputsPageProps) 
           />
         </div>
 
+        {/* PDF Report Section */}
+        {analysisCompleted && (
+          <div className="bg-white rounded-lg shadow-sm p-6 mt-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                  Intelligence Report
+                </h3>
+                <p className="text-gray-600">
+                  Download a comprehensive PDF report with analysis insights and marketing strategies.
+                </p>
+              </div>
+              <button
+                onClick={handleGenerateReport}
+                disabled={isGeneratingReport}
+                className="px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center space-x-2"
+              >
+                {isGeneratingReport ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span>Generating...</span>
+                  </>
+                ) : (
+                  <>
+                    <FileDown className="w-4 h-4" />
+                    <span>Download Report</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Help Section */}
-        <div className="mt-8 bg-blue-50 rounded-lg p-6">
+        <div className="bg-blue-50 rounded-lg p-6">
           <div className="flex items-start gap-3">
             <Sparkles className="w-5 h-5 text-blue-500 mt-0.5" />
             <div>
