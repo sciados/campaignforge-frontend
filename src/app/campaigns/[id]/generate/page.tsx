@@ -19,6 +19,7 @@ import {
   Loader2,
   FileDown,
   Brain,
+  X,
 } from "lucide-react";
 import { useApi } from "@/lib/api";
 import { useRightSidebar } from "@/contexts/RightSidebarContext";
@@ -85,6 +86,9 @@ export default function ContentGenerationPage({ params }: ContentGenerationPageP
   const [error, setError] = useState<string | null>(null);
   const [isGeneratingContent, setIsGeneratingContent] = useState(false);
   const [isGeneratingReport, setIsGeneratingReport] = useState(false);
+  const [showReportModal, setShowReportModal] = useState(false);
+  const [reportGenerated, setReportGenerated] = useState(false);
+  const [reportBlob, setReportBlob] = useState<Blob | null>(null);
 
   // Load campaign data
   useEffect(() => {
@@ -241,59 +245,73 @@ export default function ContentGenerationPage({ params }: ContentGenerationPageP
     }
   };
 
-  // Generate PDF report
-  const handleGenerateReport = async () => {
+  // Open report modal and start generation
+  const handleGenerateReport = () => {
+    setShowReportModal(true);
+    setReportGenerated(false);
+    setReportBlob(null);
+    generateReportInModal();
+  };
+
+  // Generate PDF report in modal
+  const generateReportInModal = async () => {
     if (!campaign) return;
 
     setIsGeneratingReport(true);
     setError(null);
 
     try {
-      const response = await api.post(`/intelligence/campaigns/${params.id}/report`, {
-        format: 'pdf',
-        include_sections: [
-          'executive_summary',
-          'product_analysis',
-          'target_audience',
-          'competition_analysis',
-          'marketing_strategy',
-          'content_recommendations',
-          'sales_psychology',
-          'conversion_opportunities',
-          'actionable_insights'
-        ]
+      // Request PDF report generation from backend (direct binary response)
+      const response = await fetch(`https://campaign-backend-production-e2db.up.railway.app/api/intelligence/campaigns/${params.id}/report`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('access_token') || localStorage.getItem('authToken')}`
+        },
+        body: JSON.stringify({
+          format: 'pdf',
+          include_sections: [
+            'executive_summary',
+            'product_analysis',
+            'target_audience',
+            'competition_analysis',
+            'marketing_strategy',
+            'content_recommendations',
+            'sales_psychology',
+            'conversion_opportunities',
+            'actionable_insights'
+          ]
+        })
       });
 
-      // Handle different response formats
-      if (response.data && response.data.download_url) {
-        window.open(response.data.download_url, '_blank');
-      } else if (response.data && response.data.pdf_data) {
-        const blob = new Blob([atob(response.data.pdf_data)], { type: 'application/pdf' });
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `${campaign.title}_Intelligence_Report.pdf`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        window.URL.revokeObjectURL(url);
-      } else {
-        const blob = new Blob([response.data], { type: 'application/pdf' });
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `${campaign.title}_Intelligence_Report.pdf`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        window.URL.revokeObjectURL(url);
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
+
+      // Store the PDF blob for download
+      const blob = await response.blob();
+      setReportBlob(blob);
+      setReportGenerated(true);
     } catch (err) {
       console.error("Report generation error:", err);
       setError(`Report generation failed: ${err instanceof Error ? err.message : "Unknown error"}`);
     } finally {
       setIsGeneratingReport(false);
     }
+  };
+
+  // Download the generated PDF
+  const handleDownloadReport = () => {
+    if (!reportBlob || !campaign) return;
+
+    const url = window.URL.createObjectURL(reportBlob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${campaign.title}_Intelligence_Report.pdf`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
   };
 
   if (isLoading) {
@@ -360,8 +378,8 @@ export default function ContentGenerationPage({ params }: ContentGenerationPageP
                 </>
               ) : (
                 <>
-                  <FileDown className="h-4 w-4" />
-                  <span>Download Report</span>
+                  <FileText className="h-4 w-4" />
+                  <span>Generate Report</span>
                 </>
               )}
             </button>
@@ -475,6 +493,88 @@ export default function ContentGenerationPage({ params }: ContentGenerationPageP
           )}
         </div>
       </div>
+
+      {/* PDF Report Generation Modal */}
+      {showReportModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-gray-900">
+                Intelligence Report
+              </h3>
+              <button
+                onClick={() => setShowReportModal(false)}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <div className="text-center">
+              {isGeneratingReport ? (
+                <div className="py-8">
+                  <Loader2 className="h-12 w-12 animate-spin text-purple-600 mx-auto mb-4" />
+                  <h4 className="text-lg font-medium text-gray-900 mb-2">
+                    Generating Report...
+                  </h4>
+                  <p className="text-gray-600">
+                    Creating your comprehensive intelligence report with marketing insights.
+                  </p>
+                </div>
+              ) : reportGenerated ? (
+                <div className="py-8">
+                  <CheckCircle className="h-12 w-12 text-green-600 mx-auto mb-4" />
+                  <h4 className="text-lg font-medium text-gray-900 mb-2">
+                    Report Ready!
+                  </h4>
+                  <p className="text-gray-600 mb-6">
+                    Your intelligence report has been generated successfully.
+                  </p>
+                  <div className="flex space-x-3 justify-center">
+                    <button
+                      onClick={handleDownloadReport}
+                      className="px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors flex items-center space-x-2"
+                    >
+                      <FileDown className="h-4 w-4" />
+                      <span>Download PDF</span>
+                    </button>
+                    <button
+                      onClick={() => setShowReportModal(false)}
+                      className="px-6 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
+                    >
+                      Close
+                    </button>
+                  </div>
+                </div>
+              ) : error ? (
+                <div className="py-8">
+                  <AlertCircle className="h-12 w-12 text-red-600 mx-auto mb-4" />
+                  <h4 className="text-lg font-medium text-gray-900 mb-2">
+                    Generation Failed
+                  </h4>
+                  <p className="text-red-600 mb-6">
+                    {error}
+                  </p>
+                  <div className="flex space-x-3 justify-center">
+                    <button
+                      onClick={() => generateReportInModal()}
+                      className="px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
+                    >
+                      Retry
+                    </button>
+                    <button
+                      onClick={() => setShowReportModal(false)}
+                      className="px-6 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
+                    >
+                      Close
+                    </button>
+                  </div>
+                </div>
+              ) : null}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

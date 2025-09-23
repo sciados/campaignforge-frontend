@@ -3,7 +3,7 @@
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Sparkles, FileDown, Loader2 } from 'lucide-react';
+import { ArrowLeft, Sparkles, FileDown, Loader2, X, CheckCircle } from 'lucide-react';
 import { useApi } from '@/lib/api';
 import SimplifiedInputsManager from '@/components/campaigns/SimplifiedInputsManager';
 
@@ -254,49 +254,43 @@ export default function CampaignInputsPage({ params }: CampaignInputsPageProps) 
     setError(null);
 
     try {
-      // Request PDF report generation from backend
-      const response = await api.post(`/intelligence/campaigns/${params.id}/report`, {
-        format: 'pdf',
-        include_sections: [
-          'executive_summary',
-          'product_analysis',
-          'target_audience',
-          'competition_analysis',
-          'marketing_strategy',
-          'content_recommendations',
-          'sales_psychology',
-          'conversion_opportunities',
-          'actionable_insights'
-        ]
+      // Request PDF report generation from backend (direct binary response)
+      const response = await fetch(`https://campaign-backend-production-e2db.up.railway.app/api/intelligence/campaigns/${params.id}/report`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('access_token') || localStorage.getItem('authToken')}`
+        },
+        body: JSON.stringify({
+          format: 'pdf',
+          include_sections: [
+            'executive_summary',
+            'product_analysis',
+            'target_audience',
+            'competition_analysis',
+            'marketing_strategy',
+            'content_recommendations',
+            'sales_psychology',
+            'conversion_opportunities',
+            'actionable_insights'
+          ]
+        })
       });
 
-      // Handle different response formats
-      if (response.data && response.data.download_url) {
-        // If backend returns a download URL
-        window.open(response.data.download_url, '_blank');
-      } else if (response.data && response.data.pdf_data) {
-        // If backend returns base64 PDF data
-        const blob = new Blob([atob(response.data.pdf_data)], { type: 'application/pdf' });
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `${campaign.title}_Intelligence_Report.pdf`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        window.URL.revokeObjectURL(url);
-      } else {
-        // If response is the PDF blob directly
-        const blob = new Blob([response.data], { type: 'application/pdf' });
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `${campaign.title}_Intelligence_Report.pdf`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        window.URL.revokeObjectURL(url);
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
+
+      // Get the PDF blob from the response
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${campaign.title}_Intelligence_Report.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
 
     } catch (err) {
       console.error("Report generation error:", err);
