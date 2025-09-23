@@ -20,6 +20,7 @@ import {
   FileDown,
   Brain,
   X,
+  Printer,
 } from "lucide-react";
 import { useApi } from "@/lib/api";
 import { useRightSidebar } from "@/contexts/RightSidebarContext";
@@ -88,7 +89,6 @@ export default function ContentGenerationPage({ params }: ContentGenerationPageP
   const [isGeneratingReport, setIsGeneratingReport] = useState(false);
   const [showReportModal, setShowReportModal] = useState(false);
   const [reportGenerated, setReportGenerated] = useState(false);
-  const [reportBlob, setReportBlob] = useState<Blob | null>(null);
 
   // Load campaign data
   useEffect(() => {
@@ -245,53 +245,216 @@ export default function ContentGenerationPage({ params }: ContentGenerationPageP
     }
   };
 
-  // Open report modal and start generation
-  const handleGenerateReport = () => {
-    setShowReportModal(true);
-    setReportGenerated(false);
-    setReportBlob(null);
-    generateReportInModal();
-  };
-
-  // Generate PDF report in modal
-  const generateReportInModal = async () => {
+  // Open print-friendly report
+  const handleGenerateReport = async () => {
     if (!campaign) return;
 
+    setShowReportModal(true);
     setIsGeneratingReport(true);
     setError(null);
 
     try {
-      // Request PDF report generation from backend (direct binary response)
-      const response = await fetch(`https://campaign-backend-production-e2db.up.railway.app/api/intelligence/campaigns/${params.id}/report`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('access_token') || localStorage.getItem('authToken')}`
-        },
-        body: JSON.stringify({
-          format: 'pdf',
-          include_sections: [
-            'executive_summary',
-            'product_analysis',
-            'target_audience',
-            'competition_analysis',
-            'marketing_strategy',
-            'content_recommendations',
-            'sales_psychology',
-            'conversion_opportunities',
-            'actionable_insights'
-          ]
-        })
-      });
+      // Get campaign intelligence data for printing
+      const intelligenceResponse = await api.getCampaignIntelligence(params.id);
 
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      if (!intelligenceResponse.success || !intelligenceResponse.data) {
+        throw new Error('No intelligence data available for this campaign.');
       }
 
-      // Store the PDF blob for download
-      const blob = await response.blob();
-      setReportBlob(blob);
+      const intelligence = intelligenceResponse.data;
+
+      // Create print-friendly content
+      const printContent = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <title>${campaign.title} - Intelligence Report</title>
+          <style>
+            body {
+              font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+              line-height: 1.6;
+              margin: 40px;
+              color: #333;
+            }
+            .header {
+              text-align: center;
+              border-bottom: 3px solid #6366f1;
+              padding-bottom: 20px;
+              margin-bottom: 30px;
+            }
+            .header h1 {
+              color: #6366f1;
+              margin: 0;
+              font-size: 28px;
+            }
+            .header p {
+              color: #666;
+              margin: 10px 0 0 0;
+              font-size: 16px;
+            }
+            .section {
+              margin-bottom: 30px;
+              page-break-inside: avoid;
+            }
+            .section h2 {
+              color: #4f46e5;
+              border-left: 4px solid #6366f1;
+              padding-left: 15px;
+              margin-bottom: 15px;
+              font-size: 20px;
+            }
+            .section h3 {
+              color: #374151;
+              margin-top: 20px;
+              margin-bottom: 10px;
+              font-size: 16px;
+            }
+            .content {
+              margin-left: 20px;
+              text-align: justify;
+            }
+            .list-item {
+              margin-bottom: 8px;
+              padding-left: 15px;
+            }
+            .metadata {
+              background: #f8fafc;
+              padding: 15px;
+              border-radius: 8px;
+              margin-bottom: 20px;
+              border-left: 4px solid #e5e7eb;
+            }
+            .footer {
+              margin-top: 40px;
+              text-align: center;
+              color: #666;
+              font-size: 12px;
+              border-top: 1px solid #e5e7eb;
+              padding-top: 20px;
+            }
+            @media print {
+              body { margin: 20px; }
+              .no-print { display: none; }
+              .page-break { page-break-before: always; }
+            }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <h1>${campaign.title}</h1>
+            <p>Intelligence Report - Generated on ${new Date().toLocaleDateString()}</p>
+          </div>
+
+          <div class="metadata">
+            <h3>Campaign Overview</h3>
+            <p><strong>Campaign Type:</strong> ${campaign.campaign_type || 'Standard'}</p>
+            <p><strong>Status:</strong> ${campaign.status}</p>
+            ${campaign.description ? `<p><strong>Description:</strong> ${campaign.description}</p>` : ''}
+            ${campaign.product_name ? `<p><strong>Product:</strong> ${campaign.product_name}</p>` : ''}
+            ${campaign.target_audience ? `<p><strong>Target Audience:</strong> ${campaign.target_audience}</p>` : ''}
+          </div>
+
+          ${intelligence.analysis_summary ? `
+          <div class="section">
+            <h2>Executive Summary</h2>
+            <div class="content">
+              <p>${intelligence.analysis_summary}</p>
+            </div>
+          </div>
+          ` : ''}
+
+          ${intelligence.key_insights && intelligence.key_insights.length > 0 ? `
+          <div class="section">
+            <h2>Key Insights</h2>
+            <div class="content">
+              ${intelligence.key_insights.map((insight: string) => `<div class="list-item">• ${insight}</div>`).join('')}
+            </div>
+          </div>
+          ` : ''}
+
+          ${intelligence.target_audience_analysis ? `
+          <div class="section">
+            <h2>Target Audience Analysis</h2>
+            <div class="content">
+              <p>${intelligence.target_audience_analysis}</p>
+            </div>
+          </div>
+          ` : ''}
+
+          ${intelligence.competition_analysis ? `
+          <div class="section">
+            <h2>Competition Analysis</h2>
+            <div class="content">
+              <p>${intelligence.competition_analysis}</p>
+            </div>
+          </div>
+          ` : ''}
+
+          ${intelligence.marketing_angles && intelligence.marketing_angles.length > 0 ? `
+          <div class="section">
+            <h2>Marketing Angles</h2>
+            <div class="content">
+              ${intelligence.marketing_angles.map((angle: string) => `<div class="list-item">• ${angle}</div>`).join('')}
+            </div>
+          </div>
+          ` : ''}
+
+          ${intelligence.content_strategy ? `
+          <div class="section">
+            <h2>Content Strategy</h2>
+            <div class="content">
+              <p>${intelligence.content_strategy}</p>
+            </div>
+          </div>
+          ` : ''}
+
+          ${intelligence.sales_psychology ? `
+          <div class="section">
+            <h2>Sales Psychology</h2>
+            <div class="content">
+              <p>${intelligence.sales_psychology}</p>
+            </div>
+          </div>
+          ` : ''}
+
+          ${generatedContent.length > 0 ? `
+          <div class="section page-break">
+            <h2>Generated Content</h2>
+            ${generatedContent.map((content: any) => `
+              <div class="content">
+                <h3>${content.content_title}</h3>
+                <p><strong>Type:</strong> ${content.content_type.replace('_', ' ').toUpperCase()}</p>
+                <div style="background: #f9fafb; padding: 15px; border-radius: 6px; margin: 10px 0;">
+                  ${content.content_body.replace(/\n/g, '<br>')}
+                </div>
+              </div>
+            `).join('')}
+          </div>
+          ` : ''}
+
+          <div class="footer">
+            <p>Generated by CampaignForge Intelligence System</p>
+            <p>This report contains AI-generated insights and recommendations.</p>
+          </div>
+        </body>
+        </html>
+      `;
+
+      // Open print window
+      const printWindow = window.open('', '_blank');
+      if (printWindow) {
+        printWindow.document.write(printContent);
+        printWindow.document.close();
+
+        // Auto-focus and print dialog
+        printWindow.focus();
+        setTimeout(() => {
+          printWindow.print();
+        }, 250);
+      }
+
       setReportGenerated(true);
+
     } catch (err) {
       console.error("Report generation error:", err);
       setError(`Report generation failed: ${err instanceof Error ? err.message : "Unknown error"}`);
@@ -300,18 +463,11 @@ export default function ContentGenerationPage({ params }: ContentGenerationPageP
     }
   };
 
-  // Download the generated PDF
-  const handleDownloadReport = () => {
-    if (!reportBlob || !campaign) return;
-
-    const url = window.URL.createObjectURL(reportBlob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `${campaign.title}_Intelligence_Report.pdf`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    window.URL.revokeObjectURL(url);
+  // Close modal
+  const handleCloseModal = () => {
+    setShowReportModal(false);
+    setReportGenerated(false);
+    setError(null);
   };
 
   if (isLoading) {
@@ -378,8 +534,8 @@ export default function ContentGenerationPage({ params }: ContentGenerationPageP
                 </>
               ) : (
                 <>
-                  <FileText className="h-4 w-4" />
-                  <span>Generate Report</span>
+                  <Printer className="h-4 w-4" />
+                  <span>Print Report</span>
                 </>
               )}
             </button>
@@ -494,7 +650,7 @@ export default function ContentGenerationPage({ params }: ContentGenerationPageP
         </div>
       </div>
 
-      {/* PDF Report Generation Modal */}
+      {/* Print Report Modal */}
       {showReportModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
@@ -518,7 +674,7 @@ export default function ContentGenerationPage({ params }: ContentGenerationPageP
                     Generating Report...
                   </h4>
                   <p className="text-gray-600">
-                    Creating your comprehensive intelligence report with marketing insights.
+                    Preparing your intelligence report for printing or saving as PDF.
                   </p>
                 </div>
               ) : reportGenerated ? (
@@ -528,15 +684,15 @@ export default function ContentGenerationPage({ params }: ContentGenerationPageP
                     Report Ready!
                   </h4>
                   <p className="text-gray-600 mb-6">
-                    Your intelligence report has been generated successfully.
+                    Your intelligence report has opened in a new window. Use your browser&apos;s print function to save as PDF or print.
                   </p>
                   <div className="flex space-x-3 justify-center">
                     <button
-                      onClick={handleDownloadReport}
+                      onClick={handleGenerateReport}
                       className="px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors flex items-center space-x-2"
                     >
-                      <FileDown className="h-4 w-4" />
-                      <span>Download PDF</span>
+                      <Printer className="h-4 w-4" />
+                      <span>Print Again</span>
                     </button>
                     <button
                       onClick={() => setShowReportModal(false)}
@@ -557,7 +713,7 @@ export default function ContentGenerationPage({ params }: ContentGenerationPageP
                   </p>
                   <div className="flex space-x-3 justify-center">
                     <button
-                      onClick={() => generateReportInModal()}
+                      onClick={handleGenerateReport}
                       className="px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
                     >
                       Retry
