@@ -75,7 +75,7 @@ interface GeneratedContent {
 export default function ContentGenerationPage({ params }: ContentGenerationPageProps) {
   const router = useRouter();
   const api = useApi();
-  const { setContent, hide } = useRightSidebar();
+  const { setContent, setIsVisible } = useRightSidebar();
 
   const [campaign, setCampaign] = useState<Campaign | null>(null);
   const [workflowState, setWorkflowState] = useState<WorkflowState | null>(null);
@@ -113,7 +113,7 @@ export default function ContentGenerationPage({ params }: ContentGenerationPageP
 
         // Load intelligence count
         try {
-          const intelligenceResponse = await api.getIntelligenceAnalysis(params.id);
+          const intelligenceResponse = await api.getCampaignIntelligence(params.id);
           setIntelligenceCount(intelligenceResponse?.length || 0);
         } catch (err) {
           console.log("No intelligence analysis found");
@@ -201,11 +201,12 @@ export default function ContentGenerationPage({ params }: ContentGenerationPageP
     );
 
     setContent(sidebarContent);
+    setIsVisible(true);
 
     return () => {
-      hide();
+      setIsVisible(false);
     };
-  }, [generatedContent, setContent, hide, router, params.id]);
+  }, [generatedContent, setContent, setIsVisible, router, params.id]);
 
   // Generate content
   const handleGenerateContent = async (contentType: string) => {
@@ -375,104 +376,103 @@ export default function ContentGenerationPage({ params }: ContentGenerationPageP
           </div>
         </div>
       </div>
-        {/* Error Display */}
-        {error && (
-          <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
-            <div className="flex items-start space-x-3">
-              <AlertCircle className="h-5 w-5 text-red-500 flex-shrink-0 mt-0.5" />
-              <div className="flex-1">
-                <p className="text-red-700 text-sm">{error}</p>
-              </div>
-              <button
-                onClick={() => setError(null)}
-                className="text-red-600 hover:text-red-800 text-sm"
-              >
-                Dismiss
-              </button>
+
+      {/* Error Display */}
+      {error && (
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+          <div className="flex items-start space-x-3">
+            <AlertCircle className="h-5 w-5 text-red-500 flex-shrink-0 mt-0.5" />
+            <div className="flex-1">
+              <p className="text-red-700 text-sm">{error}</p>
             </div>
+            <button
+              onClick={() => setError(null)}
+              className="text-red-600 hover:text-red-800 text-sm"
+            >
+              Dismiss
+            </button>
           </div>
-        )}
+        </div>
+      )}
 
       <div className="space-y-6">
-            {/* Analysis Status */}
-            <div className="bg-white rounded-xl border border-gray-200 p-6">
-              <div className="flex items-center space-x-4 mb-6">
-                <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
-                  <Brain className="h-6 w-6 text-green-600" />
-                </div>
-                <div className="flex-1">
-                  <h3 className="text-lg font-semibold text-gray-900">Analysis Complete</h3>
-                  <p className="text-gray-600">
-                    Intelligence analysis has been completed. You can now generate content.
-                  </p>
-                </div>
-                <div className="text-right">
-                  <div className="text-2xl font-bold text-green-600">{intelligenceCount}</div>
-                  <div className="text-sm text-gray-500">Insights</div>
-                </div>
-              </div>
+        {/* Analysis Status */}
+        <div className="bg-white rounded-xl border border-gray-200 p-6">
+          <div className="flex items-center space-x-4 mb-6">
+            <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
+              <Brain className="h-6 w-6 text-green-600" />
             </div>
-
-            {/* Content Generation Options */}
-            <div className="bg-white rounded-xl border border-gray-200 p-6">
-              <h2 className="text-lg font-semibold text-gray-900 mb-6">
-                Generate Marketing Content
-              </h2>
-
-              {canGenerateContent ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {[
-                    { type: "email", icon: Mail, title: "Email Campaign", description: "Promotional emails and sequences" },
-                    { type: "social", icon: MessageSquare, title: "Social Media", description: "Posts and ad copy" },
-                    { type: "blog", icon: FileText, title: "Blog Content", description: "Articles and blog posts" },
-                    { type: "ad", icon: BarChart3, title: "Ad Copy", description: "Advertising campaigns" },
-                  ].map((contentType) => (
-                    <button
-                      key={contentType.type}
-                      onClick={() => handleGenerateContent(contentType.type)}
-                      disabled={isGeneratingContent}
-                      className="p-4 border border-gray-200 rounded-lg hover:border-purple-300 hover:bg-purple-50 transition-all duration-200 text-left group disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      <div className="flex items-start space-x-3">
-                        <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center group-hover:bg-purple-200 transition-colors">
-                          <contentType.icon className="h-5 w-5 text-purple-600" />
-                        </div>
-                        <div className="flex-1">
-                          <h3 className="font-medium text-gray-900 group-hover:text-purple-900">
-                            {contentType.title}
-                          </h3>
-                          <p className="text-sm text-gray-600 mt-1">
-                            {contentType.description}
-                          </p>
-                        </div>
-                        {isGeneratingContent && (
-                          <Loader2 className="h-4 w-4 animate-spin text-purple-600" />
-                        )}
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center py-8">
-                  <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <AlertCircle className="h-8 w-8 text-gray-400" />
-                  </div>
-                  <h3 className="text-lg font-medium text-gray-900 mb-2">
-                    Analysis Required
-                  </h3>
-                  <p className="text-gray-600 mb-4">
-                    Complete intelligence analysis first before generating content.
-                  </p>
-                  <button
-                    onClick={() => router.push(`/campaigns/${params.id}/inputs`)}
-                    className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
-                  >
-                    Go to Analysis
-                  </button>
-                </div>
-              )}
+            <div className="flex-1">
+              <h3 className="text-lg font-semibold text-gray-900">Analysis Complete</h3>
+              <p className="text-gray-600">
+                Intelligence analysis has been completed. You can now generate content.
+              </p>
+            </div>
+            <div className="text-right">
+              <div className="text-2xl font-bold text-green-600">{intelligenceCount}</div>
+              <div className="text-sm text-gray-500">Insights</div>
             </div>
           </div>
+        </div>
+
+        {/* Content Generation Options */}
+        <div className="bg-white rounded-xl border border-gray-200 p-6">
+          <h2 className="text-lg font-semibold text-gray-900 mb-6">
+            Generate Marketing Content
+          </h2>
+
+          {canGenerateContent ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {[
+                { type: "email", icon: Mail, title: "Email Campaign", description: "Promotional emails and sequences" },
+                { type: "social", icon: MessageSquare, title: "Social Media", description: "Posts and ad copy" },
+                { type: "blog", icon: FileText, title: "Blog Content", description: "Articles and blog posts" },
+                { type: "ad", icon: BarChart3, title: "Ad Copy", description: "Advertising campaigns" },
+              ].map((contentType) => (
+                <button
+                  key={contentType.type}
+                  onClick={() => handleGenerateContent(contentType.type)}
+                  disabled={isGeneratingContent}
+                  className="p-4 border border-gray-200 rounded-lg hover:border-purple-300 hover:bg-purple-50 transition-all duration-200 text-left group disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <div className="flex items-start space-x-3">
+                    <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center group-hover:bg-purple-200 transition-colors">
+                      <contentType.icon className="h-5 w-5 text-purple-600" />
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="font-medium text-gray-900 group-hover:text-purple-900">
+                        {contentType.title}
+                      </h3>
+                      <p className="text-sm text-gray-600 mt-1">
+                        {contentType.description}
+                      </p>
+                    </div>
+                    {isGeneratingContent && (
+                      <Loader2 className="h-4 w-4 animate-spin text-purple-600" />
+                    )}
+                  </div>
+                </button>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-8">
+              <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <AlertCircle className="h-8 w-8 text-gray-400" />
+              </div>
+              <h3 className="text-lg font-medium text-gray-900 mb-2">
+                Analysis Required
+              </h3>
+              <p className="text-gray-600 mb-4">
+                Complete intelligence analysis first before generating content.
+              </p>
+              <button
+                onClick={() => router.push(`/campaigns/${params.id}/inputs`)}
+                className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
+              >
+                Go to Analysis
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </div>
