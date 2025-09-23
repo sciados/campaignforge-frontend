@@ -257,11 +257,11 @@ export default function CampaignInputsPage({ params }: CampaignInputsPageProps) 
       // Get campaign intelligence data for printing
       const intelligenceResponse = await api.getCampaignIntelligence(params.id);
 
-      if (!intelligenceResponse.success || !intelligenceResponse.data) {
-        throw new Error('No intelligence data available for this campaign.');
+      // Handle case where no intelligence data is available yet
+      let intelligence = null;
+      if (intelligenceResponse.success && intelligenceResponse.data) {
+        intelligence = intelligenceResponse.data;
       }
-
-      const intelligence = intelligenceResponse.data;
 
       // Create print-friendly content
       const printContent = `
@@ -354,7 +354,7 @@ export default function CampaignInputsPage({ params }: CampaignInputsPageProps) 
             ${campaign.target_audience ? `<p><strong>Target Audience:</strong> ${campaign.target_audience}</p>` : ''}
           </div>
 
-          ${intelligence.analysis_summary ? `
+          ${intelligence && intelligence.analysis_summary ? `
           <div class="section">
             <h2>Executive Summary</h2>
             <div class="content">
@@ -363,7 +363,7 @@ export default function CampaignInputsPage({ params }: CampaignInputsPageProps) 
           </div>
           ` : ''}
 
-          ${intelligence.key_insights && intelligence.key_insights.length > 0 ? `
+          ${intelligence && intelligence.key_insights && intelligence.key_insights.length > 0 ? `
           <div class="section">
             <h2>Key Insights</h2>
             <div class="content">
@@ -372,7 +372,7 @@ export default function CampaignInputsPage({ params }: CampaignInputsPageProps) 
           </div>
           ` : ''}
 
-          ${intelligence.target_audience_analysis ? `
+          ${intelligence && intelligence.target_audience_analysis ? `
           <div class="section">
             <h2>Target Audience Analysis</h2>
             <div class="content">
@@ -381,7 +381,7 @@ export default function CampaignInputsPage({ params }: CampaignInputsPageProps) 
           </div>
           ` : ''}
 
-          ${intelligence.competition_analysis ? `
+          ${intelligence && intelligence.competition_analysis ? `
           <div class="section">
             <h2>Competition Analysis</h2>
             <div class="content">
@@ -390,7 +390,7 @@ export default function CampaignInputsPage({ params }: CampaignInputsPageProps) 
           </div>
           ` : ''}
 
-          ${intelligence.marketing_angles && intelligence.marketing_angles.length > 0 ? `
+          ${intelligence && intelligence.marketing_angles && intelligence.marketing_angles.length > 0 ? `
           <div class="section">
             <h2>Marketing Angles</h2>
             <div class="content">
@@ -399,7 +399,7 @@ export default function CampaignInputsPage({ params }: CampaignInputsPageProps) 
           </div>
           ` : ''}
 
-          ${intelligence.content_strategy ? `
+          ${intelligence && intelligence.content_strategy ? `
           <div class="section">
             <h2>Content Strategy</h2>
             <div class="content">
@@ -408,11 +408,24 @@ export default function CampaignInputsPage({ params }: CampaignInputsPageProps) 
           </div>
           ` : ''}
 
-          ${intelligence.sales_psychology ? `
+          ${intelligence && intelligence.sales_psychology ? `
           <div class="section">
             <h2>Sales Psychology</h2>
             <div class="content">
               <p>${intelligence.sales_psychology}</p>
+            </div>
+          </div>
+          ` : ''}
+
+          ${!intelligence ? `
+          <div class="section">
+            <h2>Intelligence Analysis</h2>
+            <div class="content">
+              <p>No intelligence analysis has been completed for this campaign yet. Complete the analysis on this page to generate insights and recommendations.</p>
+              <p>To generate intelligence:</p>
+              <div class="list-item">• Add your input sources (URLs, text, files) above</div>
+              <div class="list-item">• Click "Analyze" to run the intelligence analysis</div>
+              <div class="list-item">• Once complete, print this report again to see the full analysis</div>
             </div>
           </div>
           ` : ''}
