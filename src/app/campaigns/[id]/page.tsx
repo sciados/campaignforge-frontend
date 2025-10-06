@@ -79,28 +79,114 @@ export default function CampaignDetailPage({
         setCampaign(campaignResponse);
 
         // Load campaign statistics
-        try {
-          const [intelligenceResponse, contentResponse] = await Promise.all([
-            api.getCampaignIntelligence(params.id),
-            api.getGeneratedContent(params.id)
-          ]);
+        let intelligenceCount = 0;
+        let contentCount = 0;
+        let analysisComplete = false;
 
-          setStats({
-            intelligence_count: intelligenceResponse?.length || 0,
-            content_count: Array.isArray(contentResponse) ? contentResponse.length : 0,
-            sources_count: 1, // Assuming one source per campaign for now
-            analysis_complete: (intelligenceResponse?.length || 0) > 0,
-            last_analysis_date: campaignResponse.created_at
-          });
+        // Load intelligence data
+        try {
+          const intelligenceResponse = await api.getCampaignIntelligence(params.id);
+          console.log("Intelligence response:", intelligenceResponse);
+
+          // Handle the actual database structure with multiple intelligence columns
+          let intelligenceRecord = null;
+
+          if (intelligenceResponse?.success && intelligenceResponse?.data) {
+            // StandardResponse format
+            const data = intelligenceResponse.data;
+            if (Array.isArray(data)) {
+              // Array of intelligence records
+              intelligenceRecord = data[0]; // Get first record
+              analysisComplete = data.some(item =>
+                (item.full_analysis_data || item.product_data || item.market_data) &&
+                item.confidence_score > 0
+              );
+            } else if (data && (data.full_analysis_data || data.product_data || data.market_data)) {
+              // Single intelligence record
+              intelligenceRecord = data;
+              analysisComplete = data.confidence_score > 0;
+            }
+          } else if (Array.isArray(intelligenceResponse)) {
+            // Direct array response
+            intelligenceRecord = intelligenceResponse[0];
+            analysisComplete = intelligenceResponse.some(item =>
+              (item.full_analysis_data || item.product_data || item.market_data) &&
+              item.confidence_score > 0
+            );
+          } else if (intelligenceResponse && (intelligenceResponse.full_analysis_data || intelligenceResponse.product_data || intelligenceResponse.market_data)) {
+            // Single intelligence object
+            intelligenceRecord = intelligenceResponse;
+            analysisComplete = intelligenceResponse.confidence_score > 0;
+          } else if (intelligenceResponse && typeof intelligenceResponse === 'object') {
+            // Any other object response - assume it has intelligence
+            intelligenceRecord = intelligenceResponse;
+            analysisComplete = true;
+          }
+
+          // Count intelligence insights from all data sources
+          if (intelligenceRecord && analysisComplete) {
+            let totalInsights = 0;
+
+            // Count insights from full_analysis_data
+            if (intelligenceRecord.full_analysis_data) {
+              const fullData = intelligenceRecord.full_analysis_data;
+              if (fullData.enhancement_summary && fullData.enhancement_summary.successful_enhancers) {
+                totalInsights += fullData.enhancement_summary.successful_enhancers;
+              } else {
+                // Fallback: count major sections in full_analysis_data
+                const sections = [
+                  'brand_intelligence', 'market_enhancement', 'offer_intelligence',
+                  'content_enhancement', 'authority_enhancement', 'emotional_enhancement',
+                  'scientific_enhancement', 'credibility_enhancement', 'psychology_intelligence',
+                  'competitive_intelligence'
+                ];
+                totalInsights += sections.filter(section => fullData[section]).length;
+              }
+            }
+
+            // Count insights from product_data
+            if (intelligenceRecord.product_data) {
+              if (Array.isArray(intelligenceRecord.product_data)) {
+                totalInsights += intelligenceRecord.product_data.length;
+              } else {
+                totalInsights += 1; // Single product data object
+              }
+            }
+
+            // Count insights from market_data
+            if (intelligenceRecord.market_data) {
+              if (Array.isArray(intelligenceRecord.market_data)) {
+                totalInsights += intelligenceRecord.market_data.length;
+              } else {
+                totalInsights += 1; // Single market data object
+              }
+            }
+
+            // Set the total intelligence count
+            intelligenceCount = Math.max(totalInsights, 1); // At least 1 if analysis exists
+          }
         } catch (err) {
-          // Set default stats if API calls fail
-          setStats({
-            intelligence_count: 0,
-            content_count: 0,
-            sources_count: 0,
-            analysis_complete: false
-          });
+          console.log("No intelligence analysis found:", err);
+          intelligenceCount = 0;
+          analysisComplete = false;
         }
+
+        // Load generated content
+        try {
+          const contentResponse = await api.getGeneratedContent(params.id);
+          contentCount = Array.isArray(contentResponse) ? contentResponse.length : 0;
+        } catch (err) {
+          console.log("No generated content found:", err);
+          contentCount = 0;
+        }
+
+        setStats({
+          intelligence_count: intelligenceCount,
+          content_count: contentCount,
+          sources_count: 1, // Assuming one source per campaign for now
+          analysis_complete: analysisComplete,
+          last_analysis_date: campaignResponse.created_at
+        });
 
       } catch (err) {
         console.error("Failed to load campaign:", err);
@@ -249,6 +335,23 @@ export default function CampaignDetailPage({
             </div>
           </div>
 
+          {/* Analysis Status Notification */}
+          {stats?.analysis_complete && (
+            <div className="bg-green-50 border border-green-200 rounded-xl p-4">
+              <div className="flex items-center space-x-3">
+                <CheckCircle className="h-5 w-5 text-green-600" />
+                <div>
+                  <p className="text-green-800 font-medium">
+                    Intelligence analysis complete! You can now generate content.
+                  </p>
+                  <p className="text-green-700 text-sm">
+                    {stats.intelligence_count} insights extracted and ready for content generation.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Quick Actions */}
           <div className="bg-white rounded-xl border border-gray-200 p-6">
             <h2 className="text-lg font-semibold text-gray-900 mb-6">What would you like to do?</h2>
@@ -257,19 +360,39 @@ export default function CampaignDetailPage({
               {/* Generate Content - Primary Action */}
               <button
                 onClick={() => router.push(`/campaigns/${params.id}/generate`)}
-                className="p-6 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-xl hover:from-purple-700 hover:to-blue-700 transition-all duration-200 text-left group"
+                disabled={!stats?.analysis_complete}
+                className={`p-6 rounded-xl transition-all duration-200 text-left group ${
+                  stats?.analysis_complete
+                    ? "bg-gradient-to-r from-purple-600 to-blue-600 text-white hover:from-purple-700 hover:to-blue-700"
+                    : "bg-gray-100 text-gray-400 cursor-not-allowed"
+                }`}
               >
                 <div className="flex items-start space-x-4">
-                  <div className="w-12 h-12 bg-white bg-opacity-20 rounded-lg flex items-center justify-center">
-                    <Sparkles className="h-6 w-6 text-white" />
+                  <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${
+                    stats?.analysis_complete ? "bg-white bg-opacity-20" : "bg-gray-200"
+                  }`}>
+                    <Sparkles className={`h-6 w-6 ${
+                      stats?.analysis_complete ? "text-white" : "text-gray-400"
+                    }`} />
                   </div>
                   <div className="flex-1">
-                    <h3 className="text-lg font-semibold mb-2">Generate Content</h3>
-                    <p className="text-purple-100 text-sm mb-3">
-                      Create emails, social posts, blog articles, video scripts, and short videos from your campaign intelligence
+                    <h3 className={`text-lg font-semibold mb-2 ${
+                      stats?.analysis_complete ? "text-white" : "text-gray-500"
+                    }`}>
+                      Generate Content
+                    </h3>
+                    <p className={`text-sm mb-3 ${
+                      stats?.analysis_complete ? "text-purple-100" : "text-gray-500"
+                    }`}>
+                      {stats?.analysis_complete
+                        ? "Create emails, social posts, blog articles, video scripts, and short videos from your campaign intelligence"
+                        : "Complete intelligence analysis first to unlock content generation"
+                      }
                     </p>
-                    <div className="flex items-center text-white text-sm font-medium">
-                      <span>Start Generating</span>
+                    <div className={`flex items-center text-sm font-medium ${
+                      stats?.analysis_complete ? "text-white" : "text-gray-500"
+                    }`}>
+                      <span>{stats?.analysis_complete ? "Start Generating" : "Analysis Required"}</span>
                       <Play className="h-4 w-4 ml-2" />
                     </div>
                   </div>
