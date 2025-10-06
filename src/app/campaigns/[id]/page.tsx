@@ -189,16 +189,38 @@ export default function CampaignDetailPage({
             rawContentList = [contentResponse];
           }
 
+          console.log("Raw content list before transformation:", rawContentList);
+
+          // Content type mapping from backend to frontend
+          const mapContentType = (backendType: string): string => {
+            const typeMap: { [key: string]: string } = {
+              'email': 'email_sequence',
+              'email_sequence': 'email_sequence',
+              'social': 'social_post',
+              'social_post': 'social_post',
+              'blog': 'blog_post',
+              'blog_post': 'blog_post',
+              'ad': 'ad_copy',
+              'ad_copy': 'ad_copy',
+              'video': 'video_script',
+              'video_script': 'video_script',
+              'short_video': 'short_video'
+            };
+            return typeMap[backendType] || backendType;
+          };
+
           // Transform content to match our interface
           const transformedContent: GeneratedContent[] = rawContentList.map((item: any) => ({
             content_id: item.id || item.content_id || '',
-            content_type: item.content_type || '',
+            content_type: mapContentType(item.content_type || ''),
             title: item.title || item.content_title || '',
             body: item.body || item.content || '',
             metadata: item.metadata,
             created_at: item.created_at || new Date().toISOString(),
             generated_content: item.generated_content
           })).filter(item => item.content_id && item.content_type);
+
+          console.log("Transformed content:", transformedContent);
 
           setGeneratedContent(transformedContent);
           contentCount = transformedContent.length;
