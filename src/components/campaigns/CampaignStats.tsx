@@ -15,30 +15,33 @@ export default function AppleCampaignStats({
 }: CampaignStatsProps) {
   const safeCampaigns = campaigns || [];
 
-  // Calculate stats from campaigns
-  const totalCampaigns = safeCampaigns.length;
-  const activeCampaigns = safeCampaigns.filter(
+  // Filter out demo campaigns from stats to show only real campaign data
+  const realCampaigns = safeCampaigns.filter(c => !c.settings?.is_demo);
+
+  // Calculate stats from real campaigns only
+  const totalCampaigns = realCampaigns.length;
+  const activeCampaigns = realCampaigns.filter(
     (c) => c.status === "active"
   ).length;
-  const inProgressCampaigns = safeCampaigns.filter(
+  const inProgressCampaigns = realCampaigns.filter(
     (c) => c.status === "processing"
   ).length;
-  const totalIntelligenceSources = safeCampaigns.reduce(
+  const totalIntelligenceSources = realCampaigns.reduce(
     (sum, c) => sum + (c.intelligence_count || 0),
     0
   );
-  const totalGeneratedContent = safeCampaigns.reduce(
+  const totalGeneratedContent = realCampaigns.reduce(
     (sum, c) => sum + (c.generated_content_count || 0),
     0
   );
   const avgConfidenceScore =
-    safeCampaigns.length > 0
-      ? safeCampaigns.reduce((sum, c) => sum + (c.confidence_score || 0), 0) /
-        safeCampaigns.length
+    realCampaigns.length > 0
+      ? realCampaigns.reduce((sum, c) => sum + (c.confidence_score || 0), 0) /
+        realCampaigns.length
       : 0;
 
-  // Calculate campaigns created this month
-  const campaignsThisMonth = safeCampaigns.filter((c) => {
+  // Calculate campaigns created this month (real campaigns only)
+  const campaignsThisMonth = realCampaigns.filter((c) => {
     const created = new Date(c.created_at);
     const monthAgo = new Date();
     monthAgo.setMonth(monthAgo.getMonth() - 1);
