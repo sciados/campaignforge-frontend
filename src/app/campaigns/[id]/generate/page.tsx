@@ -216,7 +216,8 @@ export default function ContentGenerationPage({ params }: ContentGenerationPageP
 
   // Generate content
   const handleGenerateContent = async (contentType: string) => {
-    if (!campaign || !workflowState?.can_generate_content) return;
+    const canGenerate = workflowState?.can_generate_content || intelligenceCount > 0;
+    if (!campaign || !canGenerate) return;
 
     setIsGeneratingContent(true);
     setError(null);
