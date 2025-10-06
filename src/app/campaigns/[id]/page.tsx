@@ -94,19 +94,6 @@ export default function CampaignDetailPage({
     video_scripts: [],
     short_videos: []
   });
-  const [expandedContentType, setExpandedContentType] = useState<string | null>(null);
-
-  // Close dropdown when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (expandedContentType) {
-        setExpandedContentType(null);
-      }
-    };
-
-    document.addEventListener('click', handleClickOutside);
-    return () => document.removeEventListener('click', handleClickOutside);
-  }, [expandedContentType]);
 
   // Load campaign data
   useEffect(() => {
@@ -525,7 +512,7 @@ export default function CampaignDetailPage({
                 <span>Generate More</span>
               </button>
             </div>
-            <p className="text-gray-600 mb-6">Click on any content type to view your generated content:</p>
+            <p className="text-gray-600 mb-6">Click on any content type icon to view your generated content:</p>
 
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
               {[
@@ -540,12 +527,20 @@ export default function CampaignDetailPage({
                 const hasContent = contentCount > 0;
 
                 return (
-                  <div key={index} className="text-center relative">
+                  <div key={index} className="text-center">
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
                         if (hasContent) {
-                          setExpandedContentType(expandedContentType === item.type ? null : item.type);
+                          // Get the most recent content of this type
+                          const contentOfType = generatedContent.filter(content => content.content_type === item.type);
+                          if (contentOfType.length > 0) {
+                            // Navigate directly to the most recent content item
+                            const mostRecentContent = contentOfType.sort((a, b) =>
+                              new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+                            )[0];
+                            router.push(`/campaigns/${params.id}/content/${mostRecentContent.content_id}`);
+                          }
                         }
                       }}
                       className={`w-12 h-12 rounded-lg flex items-center justify-center mx-auto mb-2 transition-all duration-200 relative ${
@@ -566,43 +561,6 @@ export default function CampaignDetailPage({
                     <div className={`text-sm font-medium ${
                       hasContent ? 'text-gray-900' : 'text-gray-400'
                     }`}>{item.label}</div>
-
-                    {/* Content Dropdown */}
-                    {expandedContentType === item.type && hasContent && (
-                      <div
-                        className="absolute top-16 left-1/2 transform -translate-x-1/2 bg-white border border-gray-200 rounded-lg shadow-lg p-4 min-w-64 max-w-80 z-10"
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        <div className="space-y-2 max-h-48 overflow-y-auto">
-                          {generatedContent
-                            .filter(content => content.content_type === item.type)
-                            .slice(0, 5)
-                            .map((content) => (
-                              <div
-                                key={content.content_id}
-                                className="p-3 border border-gray-100 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors"
-                                onClick={() => {
-                                  // Navigate to content view/edit page
-                                  router.push(`/campaigns/${params.id}/content/${content.content_id}`);
-                                }}
-                              >
-                                <div className="font-medium text-sm text-gray-900 truncate">
-                                  {content.title || `${item.label} Content`}
-                                </div>
-                                <div className="text-xs text-gray-500 mt-1">
-                                  {new Date(content.created_at).toLocaleDateString()}
-                                </div>
-                              </div>
-                            ))
-                          }
-                          {generatedContent.filter(content => content.content_type === item.type).length > 5 && (
-                            <div className="text-xs text-gray-500 text-center pt-2 border-t border-gray-100">
-                              +{generatedContent.filter(content => content.content_type === item.type).length - 5} more items
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    )}
                   </div>
                 );
               })}
