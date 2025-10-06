@@ -117,11 +117,10 @@ export default function SimplifiedInputsManager({
   onAnalyze,
   isAnalyzing = false,
 }: SimplifiedInputsManagerProps) {
-
   // Debug logging for props
-  console.log('🔧 SimplifiedInputsManager props:', {
+  console.log("🔧 SimplifiedInputsManager props:", {
     isAnalyzing,
-    campaignId
+    campaignId,
   });
   // Initialize inputs with empty values for all relevant input types
   const [inputs, setInputs] = useState<CampaignInput[]>([]);
@@ -158,54 +157,59 @@ export default function SimplifiedInputsManager({
   }, [userType, onInputsChange, getRelevantInputTypes]);
 
   // Update input value with validation
-  const updateInput = useCallback((inputId: string, value: string) => {
-    console.log('updateInput called:', inputId, value);
-    setValidatingInput(inputId);
+  const updateInput = useCallback(
+    (inputId: string, value: string) => {
+      console.log("updateInput called:", inputId, value);
+      setValidatingInput(inputId);
 
-    // Find the input type for validation
-    const input = inputs.find((i) => i.id === inputId);
-    const inputType = INPUT_TYPES.find((t) => t.id === input?.type);
+      // Find the input type for validation
+      const input = inputs.find((i) => i.id === inputId);
+      const inputType = INPUT_TYPES.find((t) => t.id === input?.type);
 
-    // Simple validation
-    let isValid = true;
-    let error = "";
+      // Simple validation
+      let isValid = true;
+      let error = "";
 
-    if (value.trim() === "") {
-      // Empty is OK - not required
-      isValid = true;
-    } else if (inputType?.type === "url") {
-      // Allow partial URLs during typing, only validate if it looks like a complete URL
-      if (value.includes('.') && value.length > 4) {
-        try {
-          // Add protocol if missing for validation
-          const urlToValidate = value.startsWith('http') ? value : `https://${value}`;
-          new URL(urlToValidate);
-          isValid = true;
-        } catch {
-          isValid = false;
-          error = "Please enter a valid URL (e.g., https://example.com)";
-        }
-      } else {
-        // Allow partial URLs during typing
+      if (value.trim() === "") {
+        // Empty is OK - not required
         isValid = true;
-      }
-    }
-
-    const updatedInputs = inputs.map((input) =>
-      input.id === inputId
-        ? {
-            ...input,
-            value,
-            status: isValid ? ("valid" as const) : ("invalid" as const),
-            error,
+      } else if (inputType?.type === "url") {
+        // Allow partial URLs during typing, only validate if it looks like a complete URL
+        if (value.includes(".") && value.length > 4) {
+          try {
+            // Add protocol if missing for validation
+            const urlToValidate = value.startsWith("http")
+              ? value
+              : `https://${value}`;
+            new URL(urlToValidate);
+            isValid = true;
+          } catch {
+            isValid = false;
+            error = "Please enter a valid URL (e.g., https://example.com)";
           }
-        : input
-    );
+        } else {
+          // Allow partial URLs during typing
+          isValid = true;
+        }
+      }
 
-    setInputs(updatedInputs);
-    onInputsChange(updatedInputs);
-    setValidatingInput(null);
-  }, [inputs, onInputsChange]);
+      const updatedInputs = inputs.map((input) =>
+        input.id === inputId
+          ? {
+              ...input,
+              value,
+              status: isValid ? ("valid" as const) : ("invalid" as const),
+              error,
+            }
+          : input
+      );
+
+      setInputs(updatedInputs);
+      onInputsChange(updatedInputs);
+      setValidatingInput(null);
+    },
+    [inputs, onInputsChange]
+  );
 
   const hasValidInputs = inputs.some(
     (input) => input.status === "valid" && input.value.trim() !== ""
@@ -274,7 +278,8 @@ export default function SimplifiedInputsManager({
 
               {/* Input field - separated with clear spacing */}
               <div className="w-full relative">
-                {inputType?.type === "text" || inputType?.type === "analytics" ? (
+                {inputType?.type === "text" ||
+                inputType?.type === "analytics" ? (
                   <textarea
                     value={input.value}
                     onChange={(e) => updateInput(input.id, e.target.value)}
@@ -380,20 +385,17 @@ export default function SimplifiedInputsManager({
                 MAXIMUM Analysis in Progress
               </h4>
               <p className="text-sm text-blue-700">
-                Performing comprehensive intelligence extraction... This may take 2-3 minutes.
+                Performing comprehensive intelligence extraction... This may
+                take 2-3 minutes.
               </p>
               <p className="text-xs text-blue-600 mt-2">
-                🔬 Running 6 AI enhancement modules + business intelligence research
+                🔬 Running 6 AI enhancement modules + business intelligence
+                research
               </p>
             </div>
           </div>
         </div>
       )}
-
-      {/* Debug: Always show isAnalyzing state */}
-      <div className="mt-4 p-2 bg-gray-100 rounded text-xs text-gray-600">
-        Debug: isAnalyzing = {isAnalyzing ? 'TRUE' : 'FALSE'}
-      </div>
     </div>
   );
 }
