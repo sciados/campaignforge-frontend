@@ -21,6 +21,8 @@ import {
   Brain,
   X,
   Printer,
+  Video,
+  Camera,
 } from "lucide-react";
 import { useApi } from "@/lib/api";
 import { useRightSidebar } from "@/contexts/RightSidebarContext";
@@ -220,18 +222,63 @@ export default function ContentGenerationPage({ params }: ContentGenerationPageP
     setError(null);
 
     try {
-      const response = await api.generateContent({
-        campaign_id: params.id,
-        content_type: contentType,
-        target_audience: campaign.target_audience || "",
-      });
+      let response;
 
-      if (response.success) {
-        // Refresh generated content
-        const contentResponse = await api.getGeneratedContent(params.id);
-        setGeneratedContent(Array.isArray(contentResponse) ? contentResponse : []);
+      // Handle video generation differently
+      if (contentType === "short_video") {
+        // First generate script if needed
+        const scriptResponse = await api.generateContent({
+          campaign_id: params.id,
+          content_type: "video_script",
+          target_audience: campaign.target_audience || "",
+        });
+
+        if (!scriptResponse.success) {
+          throw new Error("Failed to generate video script");
+        }
+
+        // Then generate video from script
+        response = await api.post(`/api/video/generate/${params.id}`, {
+          script_content: scriptResponse.generated_content.content,
+          video_type: "youtube_short", // Default, could be configurable
+          visual_style: "realistic",
+          voice_type: "female_professional",
+          brand_colors: ["#007BFF"], // Could come from campaign data
+          music_style: "upbeat"
+        });
+
+        // For video, we'll treat it as successful if we get a response
+        if (response.success) {
+          // Create a mock content entry for video
+          const videoContent = {
+            id: `video-${Date.now()}`,
+            content_type: "short_video",
+            content_title: `Video for ${campaign.title}`,
+            content_body: `Video generated successfully. Duration: ${response.duration_seconds}s, Scenes: ${response.scenes_count}`,
+            created_at: new Date().toISOString(),
+            is_published: false,
+            video_url: response.video_url
+          };
+
+          setGeneratedContent(prev => [...prev, videoContent]);
+        } else {
+          throw new Error(response.error || "Video generation failed");
+        }
       } else {
-        throw new Error(response.error || "Content generation failed");
+        // Regular content generation
+        response = await api.generateContent({
+          campaign_id: params.id,
+          content_type: contentType,
+          target_audience: campaign.target_audience || "",
+        });
+
+        if (response.success) {
+          // Refresh generated content
+          const contentResponse = await api.getGeneratedContent(params.id);
+          setGeneratedContent(Array.isArray(contentResponse) ? contentResponse : []);
+        } else {
+          throw new Error(response.error || "Content generation failed");
+        }
       }
     } catch (err) {
       console.error("Content generation error:", err);
@@ -610,12 +657,14 @@ export default function ContentGenerationPage({ params }: ContentGenerationPageP
           </h2>
 
           {canGenerateContent ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {[
                 { type: "email", icon: Mail, title: "Email Campaign", description: "Promotional emails and sequences" },
                 { type: "social", icon: MessageSquare, title: "Social Media", description: "Posts and ad copy" },
                 { type: "blog", icon: FileText, title: "Blog Content", description: "Articles and blog posts" },
                 { type: "ad", icon: BarChart3, title: "Ad Copy", description: "Advertising campaigns" },
+                { type: "video_script", icon: FileText, title: "Video Script", description: "Engaging scripts for video content" },
+                { type: "short_video", icon: Video, title: "Short Videos", description: "AI-generated videos for social media" },
               ].map((contentType) => (
                 <button
                   key={contentType.type}

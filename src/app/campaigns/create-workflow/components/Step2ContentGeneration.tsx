@@ -20,6 +20,8 @@ import {
   Copy,
   RefreshCw,
   AlertCircle,
+  Video,
+  Camera,
 } from "lucide-react";
 import { useApi } from "@/lib/api";
 
@@ -93,6 +95,26 @@ const CONTENT_TYPES: ContentType[] = [
     color: "text-orange-600",
     bgColor: "bg-orange-50",
     estimatedTime: "30s",
+    enabled: true,
+  },
+  {
+    id: "video_script",
+    name: "Video Script",
+    description: "Engaging scripts for video content",
+    icon: FileText,
+    color: "text-indigo-600",
+    bgColor: "bg-indigo-50",
+    estimatedTime: "45s",
+    enabled: true,
+  },
+  {
+    id: "short_video",
+    name: "Short Videos",
+    description: "AI-generated videos for social media",
+    icon: Video,
+    color: "text-red-600",
+    bgColor: "bg-red-50",
+    estimatedTime: "5-8min",
     enabled: true,
   },
 ];
@@ -190,15 +212,40 @@ export default function Step2ContentGeneration({
         setGeneratedContent((prev) => [...prev, placeholderContent]);
 
         try {
-          // Call the actual content generation API using your exact method signature
-          const result = await api.generateContent({
-            campaign_id: campaignId,
-            content_type: typeId,
-            preferences: {
-              enhanced_intelligence: intelligenceEnhanced,
-              intelligence_data: enhancedIntelligence,
-            },
-          });
+          let result;
+
+          // Handle video generation differently
+          if (typeId === "short_video") {
+            // First generate script if needed
+            const scriptResult = await api.generateContent({
+              campaign_id: campaignId,
+              content_type: "video_script",
+              preferences: {
+                enhanced_intelligence: intelligenceEnhanced,
+                intelligence_data: enhancedIntelligence,
+              },
+            });
+
+            // Then generate video from script
+            result = await api.post(`/api/video/generate/${campaignId}`, {
+              script_content: scriptResult.generated_content.content,
+              video_type: "youtube_short", // Default, could be configurable
+              visual_style: "realistic",
+              voice_type: "female_professional",
+              brand_colors: enhancedIntelligence?.brand_analysis?.colors || ["#007BFF"],
+              music_style: "upbeat"
+            });
+          } else {
+            // Regular content generation
+            result = await api.generateContent({
+              campaign_id: campaignId,
+              content_type: typeId,
+              preferences: {
+                enhanced_intelligence: intelligenceEnhanced,
+                intelligence_data: enhancedIntelligence,
+              },
+            });
+          }
 
           // Update with actual generated content from your API
           setGeneratedContent((prev) =>
@@ -206,13 +253,19 @@ export default function Step2ContentGeneration({
               item.id === `temp-${typeId}`
                 ? {
                     ...item,
-                    id: result.content_id,
-                    title: result.generated_content.title,
-                    content: result.generated_content.content,
-                    preview:
-                      typeof result.generated_content.content === "string"
-                        ? result.generated_content.content.substring(0, 150) +
-                          "..."
+                    id: typeId === "short_video"
+                      ? `video-${Date.now()}`
+                      : result.content_id,
+                    title: typeId === "short_video"
+                      ? `Video generated for ${campaignId}`
+                      : result.generated_content.title,
+                    content: typeId === "short_video"
+                      ? result.video_url || "Video generated successfully"
+                      : result.generated_content.content,
+                    preview: typeId === "short_video"
+                      ? `Video ready! Duration: ${result.duration_seconds}s, ${result.scenes_count} scenes`
+                      : typeof result.generated_content.content === "string"
+                        ? result.generated_content.content.substring(0, 150) + "..."
                         : result.generated_content.metadata?.preview ||
                           "Content generated successfully",
                     status: "completed" as const,
