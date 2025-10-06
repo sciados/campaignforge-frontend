@@ -88,82 +88,40 @@ export default function CampaignDetailPage({
           const intelligenceResponse = await api.getCampaignIntelligence(params.id);
           console.log("Intelligence response:", intelligenceResponse);
 
-          // Handle the actual database structure with multiple intelligence columns
-          let intelligenceRecord = null;
+          // Handle intelligence response - simplified detection for current backend format
+          let intelligenceRecords = [];
 
           if (intelligenceResponse?.success && intelligenceResponse?.data) {
             // StandardResponse format
             const data = intelligenceResponse.data;
             if (Array.isArray(data)) {
-              // Array of intelligence records
-              intelligenceRecord = data[0]; // Get first record
-              analysisComplete = data.some(item =>
-                (item.full_analysis_data || item.product_data || item.market_data) &&
-                item.confidence_score > 0
-              );
-            } else if (data && (data.full_analysis_data || data.product_data || data.market_data)) {
-              // Single intelligence record
-              intelligenceRecord = data;
-              analysisComplete = data.confidence_score > 0;
+              intelligenceRecords = data;
+            } else if (data) {
+              intelligenceRecords = [data];
             }
           } else if (Array.isArray(intelligenceResponse)) {
             // Direct array response
-            intelligenceRecord = intelligenceResponse[0];
-            analysisComplete = intelligenceResponse.some(item =>
-              (item.full_analysis_data || item.product_data || item.market_data) &&
-              item.confidence_score > 0
-            );
-          } else if (intelligenceResponse && (intelligenceResponse.full_analysis_data || intelligenceResponse.product_data || intelligenceResponse.market_data)) {
-            // Single intelligence object
-            intelligenceRecord = intelligenceResponse;
-            analysisComplete = intelligenceResponse.confidence_score > 0;
+            intelligenceRecords = intelligenceResponse;
           } else if (intelligenceResponse && typeof intelligenceResponse === 'object') {
-            // Any other object response - assume it has intelligence
-            intelligenceRecord = intelligenceResponse;
-            analysisComplete = true;
+            // Single object response
+            intelligenceRecords = [intelligenceResponse];
           }
 
-          // Count intelligence insights from all data sources
-          if (intelligenceRecord && analysisComplete) {
-            let totalInsights = 0;
+          // Check if we have valid intelligence data
+          analysisComplete = intelligenceRecords.length > 0 &&
+            intelligenceRecords.some(item =>
+              item.id && item.product_name && typeof item.confidence_score === 'number'
+            );
 
-            // Count insights from full_analysis_data
-            if (intelligenceRecord.full_analysis_data) {
-              const fullData = intelligenceRecord.full_analysis_data;
-              if (fullData.enhancement_summary && fullData.enhancement_summary.successful_enhancers) {
-                totalInsights += fullData.enhancement_summary.successful_enhancers;
-              } else {
-                // Fallback: count major sections in full_analysis_data
-                const sections = [
-                  'brand_intelligence', 'market_enhancement', 'offer_intelligence',
-                  'content_enhancement', 'authority_enhancement', 'emotional_enhancement',
-                  'scientific_enhancement', 'credibility_enhancement', 'psychology_intelligence',
-                  'competitive_intelligence'
-                ];
-                totalInsights += sections.filter(section => fullData[section]).length;
-              }
-            }
+          // Count intelligence insights - simplified for current backend format
+          if (analysisComplete && intelligenceRecords.length > 0) {
+            // Each valid intelligence record counts as one insight
+            intelligenceCount = intelligenceRecords.filter(item =>
+              item.id && item.product_name && typeof item.confidence_score === 'number'
+            ).length;
 
-            // Count insights from product_data
-            if (intelligenceRecord.product_data) {
-              if (Array.isArray(intelligenceRecord.product_data)) {
-                totalInsights += intelligenceRecord.product_data.length;
-              } else {
-                totalInsights += 1; // Single product data object
-              }
-            }
-
-            // Count insights from market_data
-            if (intelligenceRecord.market_data) {
-              if (Array.isArray(intelligenceRecord.market_data)) {
-                totalInsights += intelligenceRecord.market_data.length;
-              } else {
-                totalInsights += 1; // Single market data object
-              }
-            }
-
-            // Set the total intelligence count
-            intelligenceCount = Math.max(totalInsights, 1); // At least 1 if analysis exists
+            // Ensure at least 1 if we have valid data
+            intelligenceCount = Math.max(intelligenceCount, 1);
           }
         } catch (err) {
           console.log("No intelligence analysis found:", err);
