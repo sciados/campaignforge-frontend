@@ -179,8 +179,14 @@ export default function CampaignDetailPage({
 
           // Handle different response formats
           if (contentResponse?.success && contentResponse?.data) {
-            // StandardResponse format
-            rawContentList = Array.isArray(contentResponse.data) ? contentResponse.data : [contentResponse.data];
+            // StandardResponse format - check if data has nested content array
+            if (contentResponse.data.content && Array.isArray(contentResponse.data.content)) {
+              rawContentList = contentResponse.data.content;
+            } else if (Array.isArray(contentResponse.data)) {
+              rawContentList = contentResponse.data;
+            } else {
+              rawContentList = [contentResponse.data];
+            }
           } else if (Array.isArray(contentResponse)) {
             // Direct array response
             rawContentList = contentResponse;
@@ -190,6 +196,18 @@ export default function CampaignDetailPage({
           }
 
           console.log("Raw content list before transformation:", rawContentList);
+
+          // Debug: Show first raw item structure
+          if (rawContentList.length > 0) {
+            console.log("First raw item keys:", Object.keys(rawContentList[0]));
+            console.log("First raw item sample:", {
+              id: rawContentList[0].id,
+              content_id: rawContentList[0].content_id,
+              content_type: rawContentList[0].content_type,
+              title: rawContentList[0].title,
+              content_title: rawContentList[0].content_title
+            });
+          }
 
           // Content type mapping from backend to frontend
           const mapContentType = (backendType: string): string => {
@@ -210,15 +228,32 @@ export default function CampaignDetailPage({
           };
 
           // Transform content to match our interface
-          const transformedContent: GeneratedContent[] = rawContentList.map((item: any) => ({
-            content_id: item.id || item.content_id || '',
-            content_type: mapContentType(item.content_type || ''),
-            title: item.title || item.content_title || '',
-            body: item.body || item.content || '',
-            metadata: item.metadata,
-            created_at: item.created_at || new Date().toISOString(),
-            generated_content: item.generated_content
-          })).filter(item => item.content_id && item.content_type);
+          const transformedContent: GeneratedContent[] = rawContentList.map((item: any) => {
+            const transformedItem = {
+              content_id: item.id || item.content_id || '',
+              content_type: mapContentType(item.content_type || ''),
+              title: item.title || item.content_title || '',
+              body: item.body || item.content || '',
+              metadata: item.metadata,
+              created_at: item.created_at || new Date().toISOString(),
+              generated_content: item.generated_content
+            };
+
+            console.log("Transformed item:", {
+              content_id: transformedItem.content_id,
+              content_type: transformedItem.content_type,
+              title: transformedItem.title,
+              hasValidIds: !!(transformedItem.content_id && transformedItem.content_type)
+            });
+
+            return transformedItem;
+          }).filter(item => {
+            const isValid = !!(item.content_id && item.content_type);
+            if (!isValid) {
+              console.log("Filtered out item:", item);
+            }
+            return isValid;
+          });
 
           console.log("Transformed content:", transformedContent);
           console.log("Content count will be set to:", transformedContent.length);
