@@ -48,6 +48,7 @@ export default function ContentDetailPage({ params }: ContentDetailPageProps) {
   const api = useApi();
 
   const [content, setContent] = useState<ContentDetail | null>(null);
+  const [allContentOfType, setAllContentOfType] = useState<ContentDetail[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showRawData, setShowRawData] = useState(false);
@@ -145,6 +146,27 @@ export default function ContentDetailPage({ params }: ContentDetailPageProps) {
         };
 
         setContent(contentDetail);
+
+        // Get all content of the same type
+        const allContentOfSameType = contentList
+          .filter(item => item.content_type === contentDetail.content_type)
+          .map((item: any) => ({
+            content_id: item.id || item.content_id,
+            content_type: item.content_type,
+            title: item.title || item.content_title,
+            body: item.body || item.content,
+            metadata: item.metadata || item.content_metadata,
+            created_at: item.created_at,
+            updated_at: item.updated_at,
+            is_published: item.is_published,
+            user_rating: item.user_rating,
+            generation_method: item.generation_method,
+            content_status: item.content_status,
+            generated_content: item.generated_content
+          }))
+          .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+
+        setAllContentOfType(allContentOfSameType);
 
       } catch (err) {
         console.error("Failed to load content:", err);
@@ -353,6 +375,63 @@ export default function ContentDetailPage({ params }: ContentDetailPageProps) {
                     <p className="text-gray-900">{content.user_rating}/5</p>
                   </div>
                 )}
+              </div>
+            </div>
+          )}
+
+          {/* All Content of This Type */}
+          {allContentOfType.length > 1 && (
+            <div className="bg-white rounded-xl border border-gray-200 p-6">
+              <h2 className="text-lg font-semibold text-gray-900 mb-4">
+                All {currentConfig.label} ({allContentOfType.length} items)
+              </h2>
+              <p className="text-gray-600 mb-4">
+                All generated {currentConfig.label.toLowerCase()} content for this campaign:
+              </p>
+              <div className="space-y-3">
+                {allContentOfType.map((item) => (
+                  <div
+                    key={item.content_id}
+                    className={`p-4 border rounded-lg transition-colors cursor-pointer hover:bg-gray-50 ${
+                      item.content_id === content.content_id
+                        ? 'border-purple-300 bg-purple-50'
+                        : 'border-gray-200'
+                    }`}
+                    onClick={() => {
+                      if (item.content_id !== content.content_id) {
+                        router.push(`/campaigns/${params.id}/content/${item.content_id}`);
+                      }
+                    }}
+                  >
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <div className="flex items-center space-x-2">
+                          <h3 className="font-medium text-gray-900">
+                            {item.title}
+                          </h3>
+                          {item.content_id === content.content_id && (
+                            <span className="px-2 py-1 text-xs bg-purple-100 text-purple-700 rounded-full">
+                              Current
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex items-center space-x-4 mt-1 text-sm text-gray-500">
+                          <div className="flex items-center">
+                            <Calendar className="h-3 w-3 mr-1" />
+                            {formatDate(item.created_at)}
+                          </div>
+                          <div className="flex items-center">
+                            <Clock className="h-3 w-3 mr-1" />
+                            {item.content_status}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="text-sm text-gray-400">
+                        {item.content_id !== content.content_id && "Click to view"}
+                      </div>
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
           )}
