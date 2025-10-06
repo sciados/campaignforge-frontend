@@ -221,9 +221,12 @@ export default function CampaignDetailPage({
           })).filter(item => item.content_id && item.content_type);
 
           console.log("Transformed content:", transformedContent);
+          console.log("Content count will be set to:", transformedContent.length);
 
           setGeneratedContent(transformedContent);
           contentCount = transformedContent.length;
+
+          console.log("Final contentCount for stats:", contentCount);
         } catch (err) {
           console.log("No generated content found:", err);
           setGeneratedContent([]);
