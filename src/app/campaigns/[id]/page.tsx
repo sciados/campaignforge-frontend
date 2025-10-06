@@ -56,6 +56,25 @@ interface CampaignStats {
   analysis_complete: boolean;
 }
 
+interface GeneratedContent {
+  content_id: string;
+  content_type: string;
+  title: string;
+  body?: string;
+  metadata?: any;
+  created_at: string;
+  generated_content?: any;
+}
+
+interface ContentTypeStats {
+  email_sequence: GeneratedContent[];
+  social_posts: GeneratedContent[];
+  blog_articles: GeneratedContent[];
+  ad_copy: GeneratedContent[];
+  video_scripts: GeneratedContent[];
+  short_videos: GeneratedContent[];
+}
+
 export default function CampaignDetailPage({
   params,
 }: CampaignDetailPageProps) {
@@ -66,6 +85,28 @@ export default function CampaignDetailPage({
   const [stats, setStats] = useState<CampaignStats | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [generatedContent, setGeneratedContent] = useState<GeneratedContent[]>([]);
+  const [contentStats, setContentStats] = useState<ContentTypeStats>({
+    email_sequence: [],
+    social_posts: [],
+    blog_articles: [],
+    ad_copy: [],
+    video_scripts: [],
+    short_videos: []
+  });
+  const [expandedContentType, setExpandedContentType] = useState<string | null>(null);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (expandedContentType) {
+        setExpandedContentType(null);
+      }
+    };
+
+    document.addEventListener('click', handleClickOutside);
+    return () => document.removeEventListener('click', handleClickOutside);
+  }, [expandedContentType]);
 
   // Load campaign data
   useEffect(() => {
@@ -132,9 +173,38 @@ export default function CampaignDetailPage({
         // Load generated content
         try {
           const contentResponse = await api.getGeneratedContent(params.id);
-          contentCount = Array.isArray(contentResponse) ? contentResponse.length : 0;
+          console.log("Generated content response:", contentResponse);
+
+          let contentList: GeneratedContent[] = [];
+
+          // Handle different response formats
+          if (contentResponse?.success && contentResponse?.data) {
+            // StandardResponse format
+            contentList = Array.isArray(contentResponse.data) ? contentResponse.data : [contentResponse.data];
+          } else if (Array.isArray(contentResponse)) {
+            // Direct array response
+            contentList = contentResponse;
+          } else if (contentResponse && typeof contentResponse === 'object') {
+            // Single object response
+            contentList = [contentResponse];
+          }
+
+          // Transform content to match our interface
+          const transformedContent = contentList.map(item => ({
+            content_id: item.id || item.content_id,
+            content_type: item.content_type,
+            title: item.title || item.content_title,
+            body: item.body || item.content,
+            metadata: item.metadata,
+            created_at: item.created_at,
+            generated_content: item.generated_content
+          })).filter(item => item.content_id && item.content_type);
+
+          setGeneratedContent(transformedContent);
+          contentCount = transformedContent.length;
         } catch (err) {
           console.log("No generated content found:", err);
+          setGeneratedContent([]);
           contentCount = 0;
         }
 
@@ -381,38 +451,108 @@ export default function CampaignDetailPage({
             </div>
           </div>
 
-          {/* Content Types Available */}
+          {/* Content Library */}
           <div className="bg-white rounded-xl border border-gray-200 p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Available Content Types</h2>
-            <p className="text-gray-600 mb-6">Generate any of these content types using your campaign intelligence:</p>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-semibold text-gray-900">Content Library</h2>
+              <button
+                onClick={() => router.push(`/campaigns/${params.id}/generate`)}
+                className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors inline-flex items-center space-x-2 text-sm"
+              >
+                <Sparkles className="h-4 w-4" />
+                <span>Generate More</span>
+              </button>
+            </div>
+            <p className="text-gray-600 mb-6">Click on any content type to view your generated content:</p>
 
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
               {[
-                { icon: Mail, label: "Email Sequences", color: "text-blue-600 bg-blue-50" },
-                { icon: MessageSquare, label: "Social Posts", color: "text-green-600 bg-green-50" },
-                { icon: FileText, label: "Blog Articles", color: "text-purple-600 bg-purple-50" },
-                { icon: BarChart3, label: "Ad Copy", color: "text-orange-600 bg-orange-50" },
-                { icon: Edit3, label: "Video Scripts", color: "text-indigo-600 bg-indigo-50" },
-                { icon: Video, label: "Short Videos", color: "text-red-600 bg-red-50" },
-              ].map((item, index) => (
-                <div key={index} className="text-center">
-                  <div className={`w-12 h-12 ${item.color} rounded-lg flex items-center justify-center mx-auto mb-2`}>
-                    <item.icon className={`h-6 w-6 ${item.color.split(' ')[0]}`} />
+                { icon: Mail, label: "Email Sequences", type: "email_sequence", color: "text-blue-600 bg-blue-50" },
+                { icon: MessageSquare, label: "Social Posts", type: "social_post", color: "text-green-600 bg-green-50" },
+                { icon: FileText, label: "Blog Articles", type: "blog_post", color: "text-purple-600 bg-purple-50" },
+                { icon: BarChart3, label: "Ad Copy", type: "ad_copy", color: "text-orange-600 bg-orange-50" },
+                { icon: Edit3, label: "Video Scripts", type: "video_script", color: "text-indigo-600 bg-indigo-50" },
+                { icon: Video, label: "Short Videos", type: "short_video", color: "text-red-600 bg-red-50" },
+              ].map((item, index) => {
+                const contentCount = generatedContent.filter(content => content.content_type === item.type).length;
+                const hasContent = contentCount > 0;
+
+                return (
+                  <div key={index} className="text-center relative">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (hasContent) {
+                          setExpandedContentType(expandedContentType === item.type ? null : item.type);
+                        }
+                      }}
+                      className={`w-12 h-12 rounded-lg flex items-center justify-center mx-auto mb-2 transition-all duration-200 relative ${
+                        hasContent
+                          ? `${item.color} hover:scale-105 cursor-pointer`
+                          : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                      }`}
+                    >
+                      <item.icon className={`h-6 w-6 ${
+                        hasContent ? item.color.split(' ')[0] : 'text-gray-400'
+                      }`} />
+                      {hasContent && (
+                        <div className="absolute -top-2 -right-2 bg-purple-600 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-medium">
+                          {contentCount}
+                        </div>
+                      )}
+                    </button>
+                    <div className={`text-sm font-medium ${
+                      hasContent ? 'text-gray-900' : 'text-gray-400'
+                    }`}>{item.label}</div>
+
+                    {/* Content Dropdown */}
+                    {expandedContentType === item.type && hasContent && (
+                      <div
+                        className="absolute top-16 left-1/2 transform -translate-x-1/2 bg-white border border-gray-200 rounded-lg shadow-lg p-4 min-w-64 max-w-80 z-10"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <div className="space-y-2 max-h-48 overflow-y-auto">
+                          {generatedContent
+                            .filter(content => content.content_type === item.type)
+                            .slice(0, 5)
+                            .map((content) => (
+                              <div
+                                key={content.content_id}
+                                className="p-3 border border-gray-100 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors"
+                                onClick={() => {
+                                  // Navigate to content view/edit page
+                                  router.push(`/campaigns/${params.id}/content/${content.content_id}`);
+                                }}
+                              >
+                                <div className="font-medium text-sm text-gray-900 truncate">
+                                  {content.title || content.content_title || `${item.label} Content`}
+                                </div>
+                                <div className="text-xs text-gray-500 mt-1">
+                                  {new Date(content.created_at).toLocaleDateString()}
+                                </div>
+                              </div>
+                            ))
+                          }
+                          {generatedContent.filter(content => content.content_type === item.type).length > 5 && (
+                            <div className="text-xs text-gray-500 text-center pt-2 border-t border-gray-100">
+                              +{generatedContent.filter(content => content.content_type === item.type).length - 5} more items
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
                   </div>
-                  <div className="text-sm font-medium text-gray-900">{item.label}</div>
-                </div>
-              ))}
+                );
+              })}
             </div>
 
-            <div className="mt-6 text-center">
-              <button
-                onClick={() => router.push(`/campaigns/${params.id}/generate`)}
-                className="px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors inline-flex items-center space-x-2"
-              >
-                <Sparkles className="h-5 w-5" />
-                <span>Generate Content Now</span>
-              </button>
-            </div>
+            {generatedContent.length === 0 && (
+              <div className="mt-6 text-center py-8 border-2 border-dashed border-gray-200 rounded-lg">
+                <Sparkles className="h-8 w-8 text-gray-400 mx-auto mb-2" />
+                <p className="text-gray-500 text-sm">No content generated yet</p>
+                <p className="text-gray-400 text-xs">Generate your first content to see it here</p>
+              </div>
+            )}
           </div>
 
           {/* Campaign Details */}
