@@ -178,15 +178,15 @@ export default function CampaignDetailPage({
           let rawContentList: any[] = [];
 
           // Handle different response formats
-          if (contentResponse?.success && contentResponse?.data) {
-            // StandardResponse format - check if data has nested content array
-            if (contentResponse.data.content && Array.isArray(contentResponse.data.content)) {
-              rawContentList = contentResponse.data.content;
-            } else if (Array.isArray(contentResponse.data)) {
-              rawContentList = contentResponse.data;
-            } else {
-              rawContentList = [contentResponse.data];
-            }
+          if (contentResponse?.content && Array.isArray(contentResponse.content)) {
+            // Direct content array format (what we're actually getting)
+            rawContentList = contentResponse.content;
+          } else if (contentResponse?.success && contentResponse?.data?.content && Array.isArray(contentResponse.data.content)) {
+            // StandardResponse format with nested content
+            rawContentList = contentResponse.data.content;
+          } else if (contentResponse?.success && Array.isArray(contentResponse?.data)) {
+            // StandardResponse format with direct data array
+            rawContentList = contentResponse.data;
           } else if (Array.isArray(contentResponse)) {
             // Direct array response
             rawContentList = contentResponse;
@@ -194,6 +194,8 @@ export default function CampaignDetailPage({
             // Single object response
             rawContentList = [contentResponse];
           }
+
+          console.log("Parsing logic result - rawContentList length:", rawContentList.length);
 
           console.log("Raw content list before transformation:", rawContentList);
 
