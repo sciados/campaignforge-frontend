@@ -17,7 +17,8 @@ import {
   EyeOff,
   Calendar,
   User,
-  Clock
+  Clock,
+  Image
 } from "lucide-react";
 import { useApi } from "@/lib/api";
 
@@ -78,6 +79,12 @@ export default function ContentDetailPage({ params }: ContentDetailPageProps) {
       label: "Ad Copy",
       color: "text-orange-600 bg-orange-50",
       description: "Advertisement copy"
+    },
+    image: {
+      icon: Image,
+      label: "Marketing Image",
+      color: "text-pink-600 bg-pink-50",
+      description: "AI-generated marketing image"
     },
     video_script: {
       icon: Edit3,
@@ -328,8 +335,54 @@ export default function ContentDetailPage({ params }: ContentDetailPageProps) {
             </div>
           )}
 
+          {/* Image Content Display */}
+          {content.content_type === 'image' && (
+            <div className="bg-white rounded-xl border border-gray-200 p-6">
+              <h2 className="text-lg font-semibold text-gray-900 mb-4">Generated Image</h2>
+              {content.generated_content?.image_url ? (
+                <div className="space-y-4">
+                  <div className="border border-gray-200 rounded-lg p-4 bg-gray-50">
+                    <img
+                      src={content.generated_content.image_url}
+                      alt={content.title}
+                      className="max-w-full h-auto rounded-lg shadow-sm"
+                      onError={(e) => {
+                        console.error("Failed to load image:", e);
+                        e.currentTarget.style.display = 'none';
+                      }}
+                    />
+                  </div>
+                  {content.generated_content.prompt && (
+                    <div>
+                      <label className="text-sm font-medium text-gray-700">Prompt Used:</label>
+                      <p className="text-gray-800 mt-1 p-3 bg-gray-50 rounded-lg text-sm">
+                        {content.generated_content.prompt}
+                      </p>
+                    </div>
+                  )}
+                  {content.generated_content.dimensions && (
+                    <div>
+                      <label className="text-sm font-medium text-gray-700">Dimensions:</label>
+                      <p className="text-gray-800 mt-1">
+                        {content.generated_content.dimensions.width} × {content.generated_content.dimensions.height}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="p-4 bg-gray-50 rounded-lg">
+                  <div className="text-center py-8">
+                    <Image className="h-12 w-12 text-gray-400 mx-auto mb-2" />
+                    <p className="text-gray-500">Image not available</p>
+                    <p className="text-gray-400 text-sm mt-1">The image may not have been generated successfully</p>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Generic Content Display */}
-          {content.content_type !== 'email_sequence' && (
+          {content.content_type !== 'email_sequence' && content.content_type !== 'image' && (
             <div className="bg-white rounded-xl border border-gray-200 p-6">
               <h2 className="text-lg font-semibold text-gray-900 mb-4">Content</h2>
               <div className="p-4 bg-gray-50 rounded-lg">

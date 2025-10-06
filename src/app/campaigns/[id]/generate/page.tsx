@@ -23,6 +23,7 @@ import {
   Printer,
   Video,
   Camera,
+  Image,
 } from "lucide-react";
 import { useApi } from "@/lib/api";
 import { useRightSidebar } from "@/contexts/RightSidebarContext";
@@ -664,6 +665,7 @@ export default function ContentGenerationPage({ params }: ContentGenerationPageP
                 { type: "social", icon: MessageSquare, title: "Social Media", description: "Posts and ad copy" },
                 { type: "blog", icon: FileText, title: "Blog Content", description: "Articles and blog posts" },
                 { type: "ad", icon: BarChart3, title: "Ad Copy", description: "Advertising campaigns" },
+                { type: "image", icon: Image, title: "Marketing Images", description: "AI-generated images and graphics" },
                 { type: "video_script", icon: FileText, title: "Video Script", description: "Engaging scripts for video content" },
                 { type: "short_video", icon: Video, title: "Short Videos", description: "AI-generated videos for social media" },
               ].map((contentType) => (

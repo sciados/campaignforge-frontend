@@ -26,6 +26,7 @@ import {
   Calendar,
   Globe,
   Database,
+  Image,
 } from "lucide-react";
 import { useApi } from "@/lib/api";
 
@@ -209,6 +210,8 @@ export default function CampaignDetailPage({
               'blog_post': 'blog_post',
               'ad': 'ad_copy',
               'ad_copy': 'ad_copy',
+              'image': 'image',
+              'marketing_image': 'image',
               'video': 'video_script',
               'video_script': 'video_script',
               'short_video': 'short_video'
@@ -520,6 +523,7 @@ export default function CampaignDetailPage({
                 { icon: MessageSquare, label: "Social Posts", type: "social_post", color: "text-green-600 bg-green-50" },
                 { icon: FileText, label: "Blog Articles", type: "blog_post", color: "text-purple-600 bg-purple-50" },
                 { icon: BarChart3, label: "Ad Copy", type: "ad_copy", color: "text-orange-600 bg-orange-50" },
+                { icon: Image, label: "Marketing Images", type: "image", color: "text-pink-600 bg-pink-50" },
                 { icon: Edit3, label: "Video Scripts", type: "video_script", color: "text-indigo-600 bg-indigo-50" },
                 { icon: Video, label: "Short Videos", type: "short_video", color: "text-red-600 bg-red-50" },
               ].map((item, index) => {
