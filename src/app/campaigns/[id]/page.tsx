@@ -175,28 +175,28 @@ export default function CampaignDetailPage({
           const contentResponse = await api.getGeneratedContent(params.id);
           console.log("Generated content response:", contentResponse);
 
-          let contentList: GeneratedContent[] = [];
+          let rawContentList: any[] = [];
 
           // Handle different response formats
           if (contentResponse?.success && contentResponse?.data) {
             // StandardResponse format
-            contentList = Array.isArray(contentResponse.data) ? contentResponse.data : [contentResponse.data];
+            rawContentList = Array.isArray(contentResponse.data) ? contentResponse.data : [contentResponse.data];
           } else if (Array.isArray(contentResponse)) {
             // Direct array response
-            contentList = contentResponse;
+            rawContentList = contentResponse;
           } else if (contentResponse && typeof contentResponse === 'object') {
             // Single object response
-            contentList = [contentResponse];
+            rawContentList = [contentResponse];
           }
 
           // Transform content to match our interface
-          const transformedContent = contentList.map(item => ({
-            content_id: item.id || item.content_id,
-            content_type: item.content_type,
-            title: item.title || item.content_title,
-            body: item.body || item.content,
+          const transformedContent: GeneratedContent[] = rawContentList.map((item: any) => ({
+            content_id: item.id || item.content_id || '',
+            content_type: item.content_type || '',
+            title: item.title || item.content_title || '',
+            body: item.body || item.content || '',
             metadata: item.metadata,
-            created_at: item.created_at,
+            created_at: item.created_at || new Date().toISOString(),
             generated_content: item.generated_content
           })).filter(item => item.content_id && item.content_type);
 
@@ -525,7 +525,7 @@ export default function CampaignDetailPage({
                                 }}
                               >
                                 <div className="font-medium text-sm text-gray-900 truncate">
-                                  {content.title || content.content_title || `${item.label} Content`}
+                                  {content.title || `${item.label} Content`}
                                 </div>
                                 <div className="text-xs text-gray-500 mt-1">
                                   {new Date(content.created_at).toLocaleDateString()}
