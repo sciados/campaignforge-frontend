@@ -137,11 +137,22 @@ export default function ContentDetailPage({ params }: ContentDetailPageProps) {
         }
 
         // Transform to our interface
+        let bodyContent = contentItem.body || contentItem.content || contentItem.content_body;
+
+        // Parse body if it's a JSON string
+        if (typeof bodyContent === 'string') {
+          try {
+            bodyContent = JSON.parse(bodyContent);
+          } catch (e) {
+            // Keep as string if parsing fails
+          }
+        }
+
         const contentDetail: ContentDetail = {
           content_id: contentItem.id || contentItem.content_id,
           content_type: contentItem.content_type,
           title: contentItem.title || contentItem.content_title,
-          body: contentItem.body || contentItem.content,
+          body: bodyContent,
           metadata: contentItem.metadata || contentItem.content_metadata,
           created_at: contentItem.created_at,
           updated_at: contentItem.updated_at,
@@ -302,11 +313,11 @@ export default function ContentDetailPage({ params }: ContentDetailPageProps) {
         {/* Content Display */}
         <div className="space-y-6">
           {/* Email Sequence Specific Display */}
-          {content.content_type === 'email_sequence' && content.generated_content?.emails && (
+          {content.content_type === 'email_sequence' && (Array.isArray(content.body) || content.generated_content?.emails) && (
             <div className="bg-white rounded-xl border border-gray-200 p-6">
               <h2 className="text-lg font-semibold text-gray-900 mb-4">Email Sequence</h2>
               <div className="space-y-6">
-                {content.generated_content.emails.map((email: any, index: number) => (
+                {(Array.isArray(content.body) ? content.body : content.generated_content.emails).map((email: any, index: number) => (
                   <div key={index} className="border border-gray-200 rounded-lg p-4">
                     <div className="flex items-center justify-between mb-3">
                       <h3 className="font-medium text-gray-900">Email {email.email_number}</h3>

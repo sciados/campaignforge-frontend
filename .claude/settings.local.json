@@ -42,7 +42,11 @@
       "WebSearch",
       "Bash(tasklist)",
       "Bash(npm cache clean:*)",
-      "Bash(timeout 30s railway logs)"
+      "Bash(timeout 30s railway logs)",
+      "Bash(psql:*)",
+      "Bash(timeout 60s railway logs --tail 100)",
+      "Bash(timeout 60s railway logs)",
+      "Bash(timeout:*)"
     ],
     "deny": [],
     "ask": []
