@@ -29,6 +29,7 @@ import {
   Image,
 } from "lucide-react";
 import { useApi } from "@/lib/api";
+import ContentGenerationModal from "@/components/campaigns/ContentGenerationModal";
 
 interface CampaignDetailPageProps {
   params: {
@@ -95,6 +96,7 @@ export default function CampaignDetailPage({
     video_scripts: [],
     short_videos: []
   });
+  const [showGenerationModal, setShowGenerationModal] = useState(false);
 
   // Load campaign data
   useEffect(() => {
@@ -439,7 +441,7 @@ export default function CampaignDetailPage({
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {/* Generate Content - Primary Action */}
               <button
-                onClick={() => router.push(`/campaigns/${params.id}/generate`)}
+                onClick={() => setShowGenerationModal(true)}
                 disabled={!stats?.analysis_complete}
                 className={`p-6 rounded-xl transition-all duration-200 text-left group ${
                   stats?.analysis_complete
@@ -508,8 +510,9 @@ export default function CampaignDetailPage({
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-semibold text-gray-900">Content Library</h2>
               <button
-                onClick={() => router.push(`/campaigns/${params.id}/generate`)}
-                className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors inline-flex items-center space-x-2 text-sm"
+                onClick={() => setShowGenerationModal(true)}
+                disabled={!stats?.analysis_complete}
+                className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors inline-flex items-center space-x-2 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <Sparkles className="h-4 w-4" />
                 <span>Generate More</span>
@@ -628,6 +631,38 @@ export default function CampaignDetailPage({
           )}
         </div>
       </div>
+
+      {/* Content Generation Modal */}
+      <ContentGenerationModal
+        isOpen={showGenerationModal}
+        onClose={() => setShowGenerationModal(false)}
+        campaignId={params.id}
+        onContentGenerated={async () => {
+          // Reload campaign data to refresh content library
+          const contentResponse = await api.getGeneratedContent(params.id);
+          let rawContentList: any[] = [];
+          if (contentResponse?.content && Array.isArray(contentResponse.content)) {
+            rawContentList = contentResponse.content;
+          } else if (contentResponse?.success && contentResponse?.data?.content) {
+            rawContentList = Array.isArray(contentResponse.data.content)
+              ? contentResponse.data.content
+              : [contentResponse.data.content];
+          }
+
+          const transformedContent = rawContentList.map((item: any) => ({
+            content_id: item.id || item.content_id || '',
+            content_type: item.content_type || '',
+            title: item.title || item.content_title || '',
+            body: item.body || item.content || '',
+            metadata: item.metadata,
+            created_at: item.created_at || new Date().toISOString(),
+            generated_content: item.generated_content
+          })).filter(item => item.content_id && item.content_type);
+
+          setGeneratedContent(transformedContent);
+          setStats(prev => prev ? { ...prev, content_count: transformedContent.length } : null);
+        }}
+      />
     </div>
   );
 }
