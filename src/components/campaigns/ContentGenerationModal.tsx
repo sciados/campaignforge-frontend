@@ -78,20 +78,11 @@ export default function ContentGenerationModal({
     setError(null);
 
     try {
-      // Get user profile from API
-      const user = await api.getUserProfile();
-
-      if (!user || !user.id) {
-        throw new Error("User not authenticated");
-      }
-
+      // Match the working generate page - let backend fetch user_id/company_id from campaign
       const requestData = {
         campaign_id: campaignId,
         content_type: selectedType,
-        user_id: user.id,
-        company_id: user.company?.id || user.id, // Fallback to user_id if no company
-        preferences: {},
-        timestamp: new Date().toISOString()
+        target_audience: ""
       };
 
       console.log("🚀 Generating content with:", requestData);
