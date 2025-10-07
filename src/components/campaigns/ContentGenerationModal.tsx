@@ -90,7 +90,7 @@ export default function ContentGenerationModal({
         campaign_id: campaignId,
         content_type: selectedType,
         user_id: user.id,
-        company_id: user.company_id || user.id, // Fallback to user_id if no company_id
+        company_id: user.company?.id || user.id, // Fallback to user_id if no company
         preferences: {},
         timestamp: new Date().toISOString()
       });
