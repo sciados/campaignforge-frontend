@@ -78,9 +78,8 @@ export default function ContentGenerationModal({
     setError(null);
 
     try {
-      // Get user data from localStorage
-      const userString = localStorage.getItem("user");
-      const user = userString ? JSON.parse(userString) : null;
+      // Get user profile from API
+      const user = await api.getUserProfile();
 
       if (!user || !user.id) {
         throw new Error("User not authenticated");
