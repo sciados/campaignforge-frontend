@@ -92,6 +92,7 @@ export default function ContentGenerationPage({ params }: ContentGenerationPageP
   const [isGeneratingReport, setIsGeneratingReport] = useState(false);
   const [showReportModal, setShowReportModal] = useState(false);
   const [reportGenerated, setReportGenerated] = useState(false);
+  const [showImageOptionsModal, setShowImageOptionsModal] = useState(false);
 
   // Load campaign data
   useEffect(() => {
@@ -266,6 +267,11 @@ export default function ContentGenerationPage({ params }: ContentGenerationPageP
         } else {
           throw new Error(response.error || "Video generation failed");
         }
+      } else if (contentType === "image") {
+        // Handle image generation with platform options
+        setShowImageOptionsModal(true);
+        setIsGeneratingContent(false);
+        return; // Will handle generation when user selects size
       } else {
         // Regular content generation
         response = await api.generateContent({
@@ -286,6 +292,43 @@ export default function ContentGenerationPage({ params }: ContentGenerationPageP
       console.error("Content generation error:", err);
       setError(
         `Content generation failed: ${
+          err instanceof Error ? err.message : "Unknown error"
+        }`
+      );
+    } finally {
+      setIsGeneratingContent(false);
+    }
+  };
+
+  // Handle image generation with specific size
+  const handleGenerateImage = async (platform: string, dimensions: { width: number, height: number }) => {
+    if (!campaign) return;
+
+    setIsGeneratingContent(true);
+    setShowImageOptionsModal(false);
+    setError(null);
+
+    try {
+      const response = await api.generateContent({
+        campaign_id: params.id,
+        content_type: "image",
+        target_audience: campaign.target_audience || "",
+        platform: platform,
+        dimensions: dimensions,
+        prompt: `Create a marketing image for ${campaign.title || campaign.product_name} optimized for ${platform}`,
+      });
+
+      if (response.success) {
+        // Refresh generated content
+        const contentResponse = await api.getGeneratedContent(params.id);
+        setGeneratedContent(Array.isArray(contentResponse) ? contentResponse : []);
+      } else {
+        throw new Error(response.error || "Image generation failed");
+      }
+    } catch (err) {
+      console.error("Image generation error:", err);
+      setError(
+        `Image generation failed: ${
           err instanceof Error ? err.message : "Unknown error"
         }`
       );
@@ -715,6 +758,64 @@ export default function ContentGenerationPage({ params }: ContentGenerationPageP
           )}
         </div>
       </div>
+
+      {/* Image Options Modal */}
+      {showImageOptionsModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-2xl w-full mx-4">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-lg font-semibold text-gray-900">
+                Select Image Platform & Size
+              </h3>
+              <button
+                onClick={() => setShowImageOptionsModal(false)}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {[
+                { platform: "Instagram Square", dimensions: { width: 1080, height: 1080 }, label: "1080x1080" },
+                { platform: "Instagram Story", dimensions: { width: 1080, height: 1920 }, label: "1080x1920" },
+                { platform: "Facebook Post", dimensions: { width: 1200, height: 630 }, label: "1200x630" },
+                { platform: "Facebook Cover", dimensions: { width: 820, height: 312 }, label: "820x312" },
+                { platform: "Twitter Post", dimensions: { width: 1200, height: 675 }, label: "1200x675" },
+                { platform: "Twitter Header", dimensions: { width: 1500, height: 500 }, label: "1500x500" },
+                { platform: "LinkedIn Post", dimensions: { width: 1200, height: 627 }, label: "1200x627" },
+                { platform: "Pinterest Pin", dimensions: { width: 1000, height: 1500 }, label: "1000x1500" },
+                { platform: "YouTube Thumbnail", dimensions: { width: 1280, height: 720 }, label: "1280x720" },
+                { platform: "Blog Featured", dimensions: { width: 1200, height: 800 }, label: "1200x800" },
+              ].map((option) => (
+                <button
+                  key={option.platform}
+                  onClick={() => handleGenerateImage(option.platform, option.dimensions)}
+                  className="p-4 border border-gray-200 rounded-lg hover:border-purple-300 hover:bg-purple-50 transition-all duration-200 text-left group"
+                >
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h4 className="font-medium text-gray-900 group-hover:text-purple-900">
+                        {option.platform}
+                      </h4>
+                      <p className="text-sm text-gray-600 mt-1">
+                        {option.label} pixels
+                      </p>
+                    </div>
+                    <Camera className="h-5 w-5 text-purple-600 opacity-0 group-hover:opacity-100 transition-opacity" />
+                  </div>
+                </button>
+              ))}
+            </div>
+
+            <div className="mt-6 pt-4 border-t border-gray-200">
+              <p className="text-sm text-gray-600">
+                Select the platform you&apos;re creating content for. The image will be optimized for that platform&apos;s recommended dimensions.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Print Report Modal */}
       {showReportModal && (
