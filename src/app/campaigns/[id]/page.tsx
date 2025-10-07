@@ -590,6 +590,7 @@ export default function CampaignDetailPage({
         isOpen={showGenerationModal}
         onClose={() => setShowGenerationModal(false)}
         campaignId={params.id}
+        targetAudience={campaign?.target_audience}
         onContentGenerated={async () => {
           // Reload campaign data to refresh content library
           const contentResponse = await api.getGeneratedContent(params.id);

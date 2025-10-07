@@ -47,7 +47,8 @@
       "Bash(timeout 60s railway logs --tail 100)",
       "Bash(timeout 60s railway logs)",
       "Bash(timeout:*)",
-      "Bash(railway link:*)"
+      "Bash(railway link:*)",
+      "Bash(python3:*)"
     ],
     "deny": [],
     "ask": []

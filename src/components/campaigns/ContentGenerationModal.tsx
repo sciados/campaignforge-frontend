@@ -8,6 +8,7 @@ interface ContentGenerationModalProps {
   isOpen: boolean;
   onClose: () => void;
   campaignId: string;
+  targetAudience?: string;
   onContentGenerated?: () => void;
 }
 
@@ -15,6 +16,7 @@ export default function ContentGenerationModal({
   isOpen,
   onClose,
   campaignId,
+  targetAudience,
   onContentGenerated
 }: ContentGenerationModalProps) {
   const api = useApi();
@@ -82,7 +84,7 @@ export default function ContentGenerationModal({
       const requestData = {
         campaign_id: campaignId,
         content_type: selectedType,
-        target_audience: ""
+        target_audience: targetAudience || ""
       };
 
       console.log("🚀 Generating content with:", requestData);
