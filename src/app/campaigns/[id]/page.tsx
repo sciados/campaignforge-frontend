@@ -434,76 +434,29 @@ export default function CampaignDetailPage({
             </div>
           )}
 
-          {/* Quick Actions */}
-          <div className="bg-white rounded-xl border border-gray-200 p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-6">What would you like to do?</h2>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* Generate Content - Primary Action */}
-              <button
-                onClick={() => setShowGenerationModal(true)}
-                disabled={!stats?.analysis_complete}
-                className={`p-6 rounded-xl transition-all duration-200 text-left group ${
-                  stats?.analysis_complete
-                    ? "bg-gradient-to-r from-purple-600 to-blue-600 text-white hover:from-purple-700 hover:to-blue-700"
-                    : "bg-gray-100 text-gray-400 cursor-not-allowed"
-                }`}
-              >
-                <div className="flex items-start space-x-4">
-                  <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${
-                    stats?.analysis_complete ? "bg-white bg-opacity-20" : "bg-gray-200"
-                  }`}>
-                    <Sparkles className={`h-6 w-6 ${
-                      stats?.analysis_complete ? "text-white" : "text-gray-400"
-                    }`} />
-                  </div>
-                  <div className="flex-1">
-                    <h3 className={`text-lg font-semibold mb-2 ${
-                      stats?.analysis_complete ? "text-white" : "text-gray-500"
-                    }`}>
-                      Generate Content
-                    </h3>
-                    <p className={`text-sm mb-3 ${
-                      stats?.analysis_complete ? "text-purple-100" : "text-gray-500"
-                    }`}>
-                      {stats?.analysis_complete
-                        ? "Create emails, social posts, blog articles, video scripts, and short videos from your campaign intelligence"
-                        : "Complete intelligence analysis first to unlock content generation"
-                      }
-                    </p>
-                    <div className={`flex items-center text-sm font-medium ${
-                      stats?.analysis_complete ? "text-white" : "text-gray-500"
-                    }`}>
-                      <span>{stats?.analysis_complete ? "Start Generating" : "Analysis Required"}</span>
-                      <Play className="h-4 w-4 ml-2" />
-                    </div>
-                  </div>
+          {/* Quick Actions - Manage Intelligence */}
+          {!stats?.analysis_complete && (
+            <div className="bg-blue-50 border border-blue-200 rounded-xl p-6">
+              <div className="flex items-start space-x-4">
+                <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+                  <Brain className="h-6 w-6 text-blue-600" />
                 </div>
-              </button>
-
-              {/* Manage Analysis */}
-              <button
-                onClick={() => router.push(`/campaigns/${params.id}/inputs`)}
-                className="p-6 border-2 border-gray-200 rounded-xl hover:border-purple-300 hover:bg-purple-50 transition-all duration-200 text-left group"
-              >
-                <div className="flex items-start space-x-4">
-                  <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center group-hover:bg-blue-200 transition-colors">
-                    <Brain className="h-6 w-6 text-blue-600" />
-                  </div>
-                  <div className="flex-1">
-                    <h3 className="text-lg font-semibold text-gray-900 mb-2">Manage Intelligence</h3>
-                    <p className="text-gray-600 text-sm mb-3">
-                      Add sources, run analysis, and enhance your campaign intelligence data
-                    </p>
-                    <div className="flex items-center text-purple-600 text-sm font-medium">
-                      <span>Open Analysis</span>
-                      <Database className="h-4 w-4 ml-2" />
-                    </div>
-                  </div>
+                <div className="flex-1">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2">Complete Intelligence Analysis First</h3>
+                  <p className="text-gray-600 text-sm mb-3">
+                    Add sources and run analysis to unlock content generation capabilities
+                  </p>
+                  <button
+                    onClick={() => router.push(`/campaigns/${params.id}/inputs`)}
+                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors inline-flex items-center space-x-2 text-sm"
+                  >
+                    <Brain className="h-4 w-4" />
+                    <span>Manage Intelligence</span>
+                  </button>
                 </div>
-              </button>
+              </div>
             </div>
-          </div>
+          )}
 
           {/* Content Library */}
           <div className="bg-white rounded-xl border border-gray-200 p-6">
