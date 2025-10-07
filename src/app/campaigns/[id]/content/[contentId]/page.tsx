@@ -18,9 +18,10 @@ import {
   Calendar,
   User,
   Clock,
-  Image
+  Image as ImageIcon
 } from "lucide-react";
 import { useApi } from "@/lib/api";
+import Image from "next/image";
 
 interface ContentDetailPageProps {
   params: {
@@ -352,10 +353,12 @@ export default function ContentDetailPage({ params }: ContentDetailPageProps) {
               <h2 className="text-lg font-semibold text-gray-900 mb-4">Generated Image</h2>
               {content.generated_content?.image_url ? (
                 <div className="space-y-4">
-                  <div className="border border-gray-200 rounded-lg p-4 bg-gray-50">
-                    <img
+                  <div className="border border-gray-200 rounded-lg p-4 bg-gray-50 relative">
+                    <Image
                       src={content.generated_content.image_url}
-                      alt={content.title}
+                      alt={content.title || "Generated marketing image"}
+                      width={800}
+                      height={600}
                       className="max-w-full h-auto rounded-lg shadow-sm"
                       onError={(e) => {
                         console.error("Failed to load image:", e);
@@ -383,7 +386,7 @@ export default function ContentDetailPage({ params }: ContentDetailPageProps) {
               ) : (
                 <div className="p-4 bg-gray-50 rounded-lg">
                   <div className="text-center py-8">
-                    <Image className="h-12 w-12 text-gray-400 mx-auto mb-2" />
+                    <ImageIcon className="h-12 w-12 text-gray-400 mx-auto mb-2" />
                     <p className="text-gray-500">Image not available</p>
                     <p className="text-gray-400 text-sm mt-1">The image may not have been generated successfully</p>
                   </div>
