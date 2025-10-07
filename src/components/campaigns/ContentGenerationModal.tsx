@@ -85,15 +85,21 @@ export default function ContentGenerationModal({
         throw new Error("User not authenticated");
       }
 
-      // Call integrated content generation API
-      const response = await api.generateContent({
+      const requestData = {
         campaign_id: campaignId,
         content_type: selectedType,
         user_id: user.id,
         company_id: user.company?.id || user.id, // Fallback to user_id if no company
         preferences: {},
         timestamp: new Date().toISOString()
-      });
+      };
+
+      console.log("🚀 Generating content with:", requestData);
+
+      // Call integrated content generation API
+      const response = await api.generateContent(requestData);
+
+      console.log("✅ Generation response:", response);
 
       if (!response.success) {
         throw new Error(response.error || "Generation failed");

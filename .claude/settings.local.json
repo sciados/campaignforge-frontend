@@ -46,7 +46,8 @@
       "Bash(psql:*)",
       "Bash(timeout 60s railway logs --tail 100)",
       "Bash(timeout 60s railway logs)",
-      "Bash(timeout:*)"
+      "Bash(timeout:*)",
+      "Bash(railway link:*)"
     ],
     "deny": [],
     "ask": []
