@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import { X, Mail, MessageSquare, FileText, BarChart3, Image, Edit3, Video, Sparkles, Loader2 } from "lucide-react";
+import { useApi } from "@/lib/api";
 
 interface ContentGenerationModalProps {
   isOpen: boolean;
@@ -16,9 +17,11 @@ export default function ContentGenerationModal({
   campaignId,
   onContentGenerated
 }: ContentGenerationModalProps) {
+  const api = useApi();
   const [selectedType, setSelectedType] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [generationSuccess, setGenerationSuccess] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   if (!isOpen) return null;
 
@@ -72,19 +75,29 @@ export default function ContentGenerationModal({
 
     setIsGenerating(true);
     setGenerationSuccess(false);
+    setError(null);
 
     try {
-      // Call generation API
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/content/campaigns/${campaignId}/generate/${selectedType}`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${localStorage.getItem("access_token")}`
-        }
+      // Get user data from localStorage
+      const userString = localStorage.getItem("user");
+      const user = userString ? JSON.parse(userString) : null;
+
+      if (!user || !user.id) {
+        throw new Error("User not authenticated");
+      }
+
+      // Call integrated content generation API
+      const response = await api.generateContent({
+        campaign_id: campaignId,
+        content_type: selectedType,
+        user_id: user.id,
+        company_id: user.company_id || user.id, // Fallback to user_id if no company_id
+        preferences: {},
+        timestamp: new Date().toISOString()
       });
 
-      if (!response.ok) {
-        throw new Error("Generation failed");
+      if (!response.success) {
+        throw new Error(response.error || "Generation failed");
       }
 
       setGenerationSuccess(true);
@@ -97,11 +110,18 @@ export default function ContentGenerationModal({
         onClose();
         setSelectedType(null);
         setGenerationSuccess(false);
+        setError(null);
       }, 1500);
 
     } catch (error) {
       console.error("Generation error:", error);
-      alert("Failed to generate content. Please try again.");
+      const errorMessage = error instanceof Error ? error.message : "Failed to generate content";
+      setError(errorMessage);
+
+      // Show error for a few seconds, then allow retry
+      setTimeout(() => {
+        setError(null);
+      }, 5000);
     } finally {
       setIsGenerating(false);
     }
@@ -138,6 +158,13 @@ export default function ContentGenerationModal({
 
         {/* Content */}
         <div className="p-6">
+          {/* Error Display */}
+          {error && (
+            <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
+              <p className="text-red-700 text-sm">{error}</p>
+            </div>
+          )}
+
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {contentTypes.map((type) => {
               const IconComponent = type.icon;
