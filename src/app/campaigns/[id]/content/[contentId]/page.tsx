@@ -82,7 +82,7 @@ export default function ContentDetailPage({ params }: ContentDetailPageProps) {
       description: "Advertisement copy"
     },
     image: {
-      icon: Image,
+      icon: ImageIcon,
       label: "Marketing Image",
       color: "text-pink-600 bg-pink-50",
       description: "AI-generated marketing image"
