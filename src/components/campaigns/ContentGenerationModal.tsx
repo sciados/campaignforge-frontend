@@ -25,6 +25,9 @@ export default function ContentGenerationModal({
   const [selectedPlatform, setSelectedPlatform] = useState<string>("google");
   const [selectedAdFormat, setSelectedAdFormat] = useState<string>("responsive");
   const [variationCount, setVariationCount] = useState<number>(3);
+  const [selectedSocialPlatform, setSelectedSocialPlatform] = useState<string>("instagram");
+  const [postCount, setPostCount] = useState<number>(5);
+  const [wordCount, setWordCount] = useState<number>(1500);
   const [isGenerating, setIsGenerating] = useState(false);
   const [generationSuccess, setGenerationSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -92,6 +95,39 @@ export default function ContentGenerationModal({
     ]
   };
 
+  const socialPlatformOptions = [
+    {
+      value: "instagram",
+      label: "Instagram",
+      description: "Visual storytelling, 2200 char limit",
+      icon: "📸"
+    },
+    {
+      value: "facebook",
+      label: "Facebook",
+      description: "Community engagement",
+      icon: "👥"
+    },
+    {
+      value: "linkedin",
+      label: "LinkedIn",
+      description: "Professional thought leadership",
+      icon: "💼"
+    },
+    {
+      value: "twitter",
+      label: "Twitter/X",
+      description: "Concise, trending content",
+      icon: "🐦"
+    },
+    {
+      value: "tiktok",
+      label: "TikTok",
+      description: "Trend-aware, entertainment-first",
+      icon: "🎵"
+    }
+  ];
+
   const contentTypes = [
     {
       id: "email_sequence",
@@ -150,11 +186,16 @@ export default function ContentGenerationModal({
         tone: selectedTone
       };
 
-      // Add ad-specific preferences
+      // Add content-type-specific preferences
       if (selectedType === "ad_copy") {
         preferences.platform = selectedPlatform;
         preferences.ad_format = selectedAdFormat;
         preferences.variation_count = variationCount;
+      } else if (selectedType === "social_post") {
+        preferences.platform = selectedSocialPlatform;
+        preferences.post_count = postCount;
+      } else if (selectedType === "blog_article") {
+        preferences.word_count = wordCount;
       }
 
       // Match the working generate page - let backend fetch user_id/company_id from campaign
@@ -190,6 +231,9 @@ export default function ContentGenerationModal({
         setSelectedPlatform("google");
         setSelectedAdFormat("responsive");
         setVariationCount(3);
+        setSelectedSocialPlatform("instagram");
+        setPostCount(5);
+        setWordCount(1500);
         setGenerationSuccess(false);
         setError(null);
       }, 1500);
@@ -365,6 +409,96 @@ export default function ContentGenerationModal({
                   </div>
                 </div>
                 <p className="text-xs text-gray-500 mt-2">Generate {variationCount} different ad {variationCount === 1 ? 'variation' : 'variations'}</p>
+              </div>
+            </div>
+          )}
+
+          {/* Social Media Platform Selection */}
+          {selectedType === "social_post" && (
+            <div className="mt-6 space-y-6">
+              {/* Platform Selection */}
+              <div>
+                <h3 className="text-sm font-semibold text-gray-900 mb-3">Social Media Platform</h3>
+                <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+                  {socialPlatformOptions.map((platform) => (
+                    <button
+                      key={platform.value}
+                      onClick={() => setSelectedSocialPlatform(platform.value)}
+                      disabled={isGenerating}
+                      className={`p-3 rounded-lg border-2 transition-all text-left ${
+                        selectedSocialPlatform === platform.value
+                          ? "border-green-500 bg-green-50"
+                          : "border-gray-200 hover:border-green-300"
+                      } ${isGenerating ? "opacity-50 cursor-not-allowed" : ""}`}
+                    >
+                      <div className="text-2xl mb-1">{platform.icon}</div>
+                      <div className="font-semibold text-sm text-gray-900">{platform.label}</div>
+                      <div className="text-xs text-gray-600 mt-1">{platform.description}</div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Post Count */}
+              <div>
+                <h3 className="text-sm font-semibold text-gray-900 mb-3">Number of Posts</h3>
+                <div className="flex items-center space-x-4">
+                  <input
+                    type="range"
+                    min="3"
+                    max="10"
+                    value={postCount}
+                    onChange={(e) => setPostCount(parseInt(e.target.value))}
+                    disabled={isGenerating}
+                    className="flex-1 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer disabled:opacity-50"
+                  />
+                  <div className="w-12 h-10 flex items-center justify-center bg-green-100 text-green-800 rounded-lg font-semibold">
+                    {postCount}
+                  </div>
+                </div>
+                <p className="text-xs text-gray-500 mt-2">Generate {postCount} unique {postCount === 1 ? 'post' : 'posts'} for {socialPlatformOptions.find(p => p.value === selectedSocialPlatform)?.label}</p>
+              </div>
+            </div>
+          )}
+
+          {/* Blog Post Options */}
+          {selectedType === "blog_article" && (
+            <div className="mt-6 space-y-6">
+              {/* Word Count */}
+              <div>
+                <h3 className="text-sm font-semibold text-gray-900 mb-3">Target Word Count</h3>
+                <div className="flex items-center space-x-4">
+                  <input
+                    type="range"
+                    min="500"
+                    max="3000"
+                    step="100"
+                    value={wordCount}
+                    onChange={(e) => setWordCount(parseInt(e.target.value))}
+                    disabled={isGenerating}
+                    className="flex-1 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer disabled:opacity-50"
+                  />
+                  <div className="w-20 h-10 flex items-center justify-center bg-purple-100 text-purple-800 rounded-lg font-semibold text-sm">
+                    {wordCount}
+                  </div>
+                </div>
+                <div className="flex justify-between text-xs text-gray-500 mt-2">
+                  <span>500 words (Short)</span>
+                  <span>1500 words (Medium)</span>
+                  <span>3000 words (Long)</span>
+                </div>
+              </div>
+
+              {/* Article Features Info */}
+              <div className="p-4 bg-purple-50 border border-purple-200 rounded-lg">
+                <h4 className="font-semibold text-sm text-purple-900 mb-2">Article Features</h4>
+                <ul className="text-xs text-purple-800 space-y-1">
+                  <li>✓ SEO-optimized title & meta description</li>
+                  <li>✓ Structured with H2/H3 subheadings</li>
+                  <li>✓ Includes introduction, main content, conclusion</li>
+                  <li>✓ Bullet points & actionable insights</li>
+                  <li>✓ Keyword suggestions & internal link ideas</li>
+                </ul>
               </div>
             </div>
           )}
