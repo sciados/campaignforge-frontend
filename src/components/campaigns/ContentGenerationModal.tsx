@@ -21,11 +21,23 @@ export default function ContentGenerationModal({
 }: ContentGenerationModalProps) {
   const api = useApi();
   const [selectedType, setSelectedType] = useState<string | null>(null);
+  const [selectedTone, setSelectedTone] = useState<string>("conversational");
   const [isGenerating, setIsGenerating] = useState(false);
   const [generationSuccess, setGenerationSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   if (!isOpen) return null;
+
+  const toneOptions = [
+    { value: "conversational", label: "Conversational", description: "Friendly and approachable" },
+    { value: "professional", label: "Professional", description: "Formal and authoritative" },
+    { value: "persuasive", label: "Persuasive", description: "Compelling and action-oriented" },
+    { value: "engaging", label: "Engaging", description: "Exciting and energetic" },
+    { value: "informative", label: "Informative", description: "Educational and clear" },
+    { value: "empathetic", label: "Empathetic", description: "Understanding and supportive" },
+    { value: "urgent", label: "Urgent", description: "Time-sensitive and direct" },
+    { value: "casual", label: "Casual", description: "Relaxed and informal" }
+  ];
 
   const contentTypes = [
     {
@@ -84,7 +96,10 @@ export default function ContentGenerationModal({
       const requestData = {
         campaign_id: campaignId,
         content_type: selectedType,
-        target_audience: targetAudience || ""
+        target_audience: targetAudience || "",
+        preferences: {
+          tone: selectedTone
+        }
       };
 
       console.log("🚀 Generating content with:", requestData);
@@ -107,6 +122,7 @@ export default function ContentGenerationModal({
         }
         onClose();
         setSelectedType(null);
+        setSelectedTone("conversational"); // Reset to default
         setGenerationSuccess(false);
         setError(null);
       }, 1500);
@@ -188,6 +204,30 @@ export default function ContentGenerationModal({
               );
             })}
           </div>
+
+          {/* Tone Selection */}
+          {selectedType && (
+            <div className="mt-6">
+              <h3 className="text-sm font-semibold text-gray-900 mb-3">Choose Tone</h3>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                {toneOptions.map((tone) => (
+                  <button
+                    key={tone.value}
+                    onClick={() => setSelectedTone(tone.value)}
+                    disabled={isGenerating}
+                    className={`p-3 rounded-lg border-2 transition-all text-left ${
+                      selectedTone === tone.value
+                        ? "border-purple-500 bg-purple-50"
+                        : "border-gray-200 hover:border-purple-300"
+                    } ${isGenerating ? "opacity-50 cursor-not-allowed" : ""}`}
+                  >
+                    <div className="font-semibold text-sm text-gray-900">{tone.label}</div>
+                    <div className="text-xs text-gray-600 mt-1">{tone.description}</div>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Generate Button */}
           <div className="mt-6 flex items-center justify-end space-x-3">
