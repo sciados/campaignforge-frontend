@@ -347,6 +347,98 @@ export default function ContentDetailPage({ params }: ContentDetailPageProps) {
             </div>
           )}
 
+          {/* Ad Copy Content Display */}
+          {content.content_type === 'ad_copy' && (
+            <div className="bg-white rounded-xl border border-gray-200 p-6">
+              <h2 className="text-lg font-semibold text-gray-900 mb-4">Ad Variations</h2>
+              <div className="space-y-6">
+                {(Array.isArray(content.body) ? content.body : content.generated_content?.ads || []).map((ad: any, index: number) => (
+                  <div key={index} className="border border-gray-200 rounded-lg p-4">
+                    <div className="flex items-center justify-between mb-3">
+                      <h3 className="font-medium text-gray-900">Variation {ad.variation_number || index + 1}</h3>
+                      <div className="flex items-center space-x-2">
+                        <span className="text-sm text-gray-500 capitalize">{ad.platform || 'Google'}</span>
+                        <span className="text-sm text-gray-400">•</span>
+                        <span className="text-sm text-gray-500 capitalize">{ad.ad_format || 'Responsive'}</span>
+                      </div>
+                    </div>
+
+                    {/* Headlines */}
+                    {ad.headlines && ad.headlines.length > 0 && (
+                      <div className="mb-3">
+                        <label className="text-sm font-medium text-gray-700">Headlines:</label>
+                        <div className="mt-2 space-y-1">
+                          {ad.headlines.map((headline: string, hIndex: number) => (
+                            <div key={hIndex} className="flex items-center justify-between p-2 bg-blue-50 rounded">
+                              <span className="text-gray-900">{headline}</span>
+                              <span className="text-xs text-gray-500">{headline.length}/30</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Descriptions */}
+                    {ad.descriptions && ad.descriptions.length > 0 && (
+                      <div className="mb-3">
+                        <label className="text-sm font-medium text-gray-700">Descriptions:</label>
+                        <div className="mt-2 space-y-1">
+                          {ad.descriptions.map((desc: string, dIndex: number) => (
+                            <div key={dIndex} className="flex items-center justify-between p-2 bg-green-50 rounded">
+                              <span className="text-gray-900">{desc}</span>
+                              <span className="text-xs text-gray-500">{desc.length}/90</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Primary Text */}
+                    {ad.primary_text && (
+                      <div className="mb-3">
+                        <label className="text-sm font-medium text-gray-700">Primary Text:</label>
+                        <div className="mt-1 p-3 bg-purple-50 rounded-lg">
+                          <p className="text-gray-900 text-sm">{ad.primary_text}</p>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Call to Action */}
+                    {ad.call_to_action && (
+                      <div className="mb-3">
+                        <label className="text-sm font-medium text-gray-700">Call to Action:</label>
+                        <div className="mt-1">
+                          <span className="inline-block px-3 py-1 bg-orange-100 text-orange-800 rounded-full text-sm font-medium">
+                            {ad.call_to_action}
+                          </span>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Compliance Status */}
+                    {ad.compliance_status && (
+                      <div className="mt-3 pt-3 border-t border-gray-200">
+                        <div className="flex items-center space-x-2">
+                          {ad.compliance_status.is_compliant ? (
+                            <>
+                              <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                              <span className="text-sm text-green-700">Compliant with platform limits</span>
+                            </>
+                          ) : (
+                            <>
+                              <div className="w-2 h-2 bg-red-500 rounded-full"></div>
+                              <span className="text-sm text-red-700">Non-compliant content detected</span>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Image Content Display */}
           {content.content_type === 'image' && (
             <div className="bg-white rounded-xl border border-gray-200 p-6">
@@ -396,7 +488,7 @@ export default function ContentDetailPage({ params }: ContentDetailPageProps) {
           )}
 
           {/* Generic Content Display */}
-          {content.content_type !== 'email_sequence' && content.content_type !== 'image' && (
+          {content.content_type !== 'email_sequence' && content.content_type !== 'image' && content.content_type !== 'ad_copy' && (
             <div className="bg-white rounded-xl border border-gray-200 p-6">
               <h2 className="text-lg font-semibold text-gray-900 mb-4">Content</h2>
               <div className="p-4 bg-gray-50 rounded-lg">
