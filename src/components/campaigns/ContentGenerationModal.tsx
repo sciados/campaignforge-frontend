@@ -22,6 +22,9 @@ export default function ContentGenerationModal({
   const api = useApi();
   const [selectedType, setSelectedType] = useState<string | null>(null);
   const [selectedTone, setSelectedTone] = useState<string>("conversational");
+  const [selectedPlatform, setSelectedPlatform] = useState<string>("google");
+  const [selectedAdFormat, setSelectedAdFormat] = useState<string>("responsive");
+  const [variationCount, setVariationCount] = useState<number>(3);
   const [isGenerating, setIsGenerating] = useState(false);
   const [generationSuccess, setGenerationSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -38,6 +41,56 @@ export default function ContentGenerationModal({
     { value: "urgent", label: "Urgent", description: "Time-sensitive and direct" },
     { value: "casual", label: "Casual", description: "Relaxed and informal" }
   ];
+
+  const adPlatformOptions = [
+    {
+      value: "google",
+      label: "Google Ads",
+      description: "Search & Display ads",
+      limits: { headline: 30, description: 90 }
+    },
+    {
+      value: "facebook",
+      label: "Facebook Ads",
+      description: "News Feed & Stories",
+      limits: { headline: 40, primary_text: 125 }
+    },
+    {
+      value: "instagram",
+      label: "Instagram Ads",
+      description: "Feed, Stories & Reels",
+      limits: { headline: 40, primary_text: 125 }
+    },
+    {
+      value: "linkedin",
+      label: "LinkedIn Ads",
+      description: "Sponsored Content",
+      limits: { headline: 70, introductory_text: 150 }
+    }
+  ];
+
+  const adFormatOptions: Record<string, Array<{ value: string; label: string; description: string }>> = {
+    google: [
+      { value: "responsive", label: "Responsive Search", description: "15 headlines, 4 descriptions" },
+      { value: "search", label: "Standard Search", description: "3 headlines, 2 descriptions" },
+      { value: "display", label: "Display Ad", description: "Visual banner ads" }
+    ],
+    facebook: [
+      { value: "single_image", label: "Single Image", description: "Classic feed post" },
+      { value: "carousel", label: "Carousel", description: "Multiple images" },
+      { value: "video", label: "Video Ad", description: "Video content" }
+    ],
+    instagram: [
+      { value: "feed", label: "Feed Post", description: "Main feed placement" },
+      { value: "story", label: "Story Ad", description: "Full-screen vertical" },
+      { value: "reel", label: "Reel Ad", description: "Short-form video" }
+    ],
+    linkedin: [
+      { value: "single_image", label: "Single Image", description: "Sponsored content" },
+      { value: "carousel", label: "Carousel", description: "Multiple images" },
+      { value: "video", label: "Video Ad", description: "Video content" }
+    ]
+  };
 
   const contentTypes = [
     {
@@ -92,14 +145,24 @@ export default function ContentGenerationModal({
     setError(null);
 
     try {
+      // Build preferences based on content type
+      const preferences: any = {
+        tone: selectedTone
+      };
+
+      // Add ad-specific preferences
+      if (selectedType === "ad_copy") {
+        preferences.platform = selectedPlatform;
+        preferences.ad_format = selectedAdFormat;
+        preferences.variation_count = variationCount;
+      }
+
       // Match the working generate page - let backend fetch user_id/company_id from campaign
       const requestData = {
         campaign_id: campaignId,
         content_type: selectedType,
         target_audience: targetAudience || "",
-        preferences: {
-          tone: selectedTone
-        }
+        preferences
       };
 
       console.log("🚀 Generating content with:", requestData);
@@ -121,8 +184,12 @@ export default function ContentGenerationModal({
           onContentGenerated();
         }
         onClose();
+        // Reset all state to defaults
         setSelectedType(null);
-        setSelectedTone("conversational"); // Reset to default
+        setSelectedTone("conversational");
+        setSelectedPlatform("google");
+        setSelectedAdFormat("responsive");
+        setVariationCount(3);
         setGenerationSuccess(false);
         setError(null);
       }, 1500);
@@ -225,6 +292,79 @@ export default function ContentGenerationModal({
                     <div className="text-xs text-gray-600 mt-1">{tone.description}</div>
                   </button>
                 ))}
+              </div>
+            </div>
+          )}
+
+          {/* Ad Copy Platform Selection */}
+          {selectedType === "ad_copy" && (
+            <div className="mt-6 space-y-6">
+              {/* Platform Selection */}
+              <div>
+                <h3 className="text-sm font-semibold text-gray-900 mb-3">Ad Platform</h3>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  {adPlatformOptions.map((platform) => (
+                    <button
+                      key={platform.value}
+                      onClick={() => {
+                        setSelectedPlatform(platform.value);
+                        // Reset ad format to first option for new platform
+                        setSelectedAdFormat(adFormatOptions[platform.value][0].value);
+                      }}
+                      disabled={isGenerating}
+                      className={`p-3 rounded-lg border-2 transition-all text-left ${
+                        selectedPlatform === platform.value
+                          ? "border-orange-500 bg-orange-50"
+                          : "border-gray-200 hover:border-orange-300"
+                      } ${isGenerating ? "opacity-50 cursor-not-allowed" : ""}`}
+                    >
+                      <div className="font-semibold text-sm text-gray-900">{platform.label}</div>
+                      <div className="text-xs text-gray-600 mt-1">{platform.description}</div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Ad Format Selection */}
+              <div>
+                <h3 className="text-sm font-semibold text-gray-900 mb-3">Ad Format</h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  {adFormatOptions[selectedPlatform]?.map((format) => (
+                    <button
+                      key={format.value}
+                      onClick={() => setSelectedAdFormat(format.value)}
+                      disabled={isGenerating}
+                      className={`p-3 rounded-lg border-2 transition-all text-left ${
+                        selectedAdFormat === format.value
+                          ? "border-orange-500 bg-orange-50"
+                          : "border-gray-200 hover:border-orange-300"
+                      } ${isGenerating ? "opacity-50 cursor-not-allowed" : ""}`}
+                    >
+                      <div className="font-semibold text-sm text-gray-900">{format.label}</div>
+                      <div className="text-xs text-gray-600 mt-1">{format.description}</div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Variation Count */}
+              <div>
+                <h3 className="text-sm font-semibold text-gray-900 mb-3">Number of Variations</h3>
+                <div className="flex items-center space-x-4">
+                  <input
+                    type="range"
+                    min="1"
+                    max="5"
+                    value={variationCount}
+                    onChange={(e) => setVariationCount(parseInt(e.target.value))}
+                    disabled={isGenerating}
+                    className="flex-1 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer disabled:opacity-50"
+                  />
+                  <div className="w-12 h-10 flex items-center justify-center bg-orange-100 text-orange-800 rounded-lg font-semibold">
+                    {variationCount}
+                  </div>
+                </div>
+                <p className="text-xs text-gray-500 mt-2">Generate {variationCount} different ad {variationCount === 1 ? 'variation' : 'variations'}</p>
               </div>
             </div>
           )}
