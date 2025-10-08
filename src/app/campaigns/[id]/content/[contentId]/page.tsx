@@ -18,7 +18,8 @@ import {
   Calendar,
   User,
   Clock,
-  Image as ImageIcon
+  Image as ImageIcon,
+  BookOpen
 } from "lucide-react";
 import { useApi } from "@/lib/api";
 import Image from "next/image";
@@ -98,6 +99,12 @@ export default function ContentDetailPage({ params }: ContentDetailPageProps) {
       label: "Short Video",
       color: "text-red-600 bg-red-50",
       description: "Short form video content"
+    },
+    long_form_article: {
+      icon: BookOpen,
+      label: "Long-Form Article",
+      color: "text-cyan-600 bg-cyan-50",
+      description: "Comprehensive long-form guides (2000-10000 words)"
     }
   };
 

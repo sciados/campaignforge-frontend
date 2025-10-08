@@ -48,7 +48,8 @@
       "Bash(timeout 60s railway logs)",
       "Bash(timeout:*)",
       "Bash(railway link:*)",
-      "Bash(python3:*)"
+      "Bash(python3:*)",
+      "Bash(git checkout:*)"
     ],
     "deny": [],
     "ask": []
