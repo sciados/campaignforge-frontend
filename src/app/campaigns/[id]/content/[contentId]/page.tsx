@@ -352,89 +352,124 @@ export default function ContentDetailPage({ params }: ContentDetailPageProps) {
             <div className="bg-white rounded-xl border border-gray-200 p-6">
               <h2 className="text-lg font-semibold text-gray-900 mb-4">Ad Variations</h2>
               <div className="space-y-6">
-                {(Array.isArray(content.body) ? content.body : content.generated_content?.ads || []).map((ad: any, index: number) => (
-                  <div key={index} className="border border-gray-200 rounded-lg p-4">
-                    <div className="flex items-center justify-between mb-3">
-                      <h3 className="font-medium text-gray-900">Variation {ad.variation_number || index + 1}</h3>
-                      <div className="flex items-center space-x-2">
-                        <span className="text-sm text-gray-500 capitalize">{ad.platform || 'Google'}</span>
-                        <span className="text-sm text-gray-400">•</span>
-                        <span className="text-sm text-gray-500 capitalize">{ad.ad_format || 'Responsive'}</span>
-                      </div>
-                    </div>
+                {(Array.isArray(content.body) ? content.body : content.generated_content?.ads || []).map((ad: any, index: number) => {
+                  // Support both new structure (with nested content) and old structure (flat)
+                  const adContent = ad.content || ad;
+                  const adPlatform = ad.platform || 'Google';
+                  const adFormat = ad.ad_format || 'Responsive';
+                  const complianceStatus = ad.generation_info?.compliance_status || ad.compliance_status;
 
-                    {/* Headlines */}
-                    {ad.headlines && ad.headlines.length > 0 && (
-                      <div className="mb-3">
-                        <label className="text-sm font-medium text-gray-700">Headlines:</label>
-                        <div className="mt-2 space-y-1">
-                          {ad.headlines.map((headline: string, hIndex: number) => (
-                            <div key={hIndex} className="flex items-center justify-between p-2 bg-blue-50 rounded">
-                              <span className="text-gray-900">{headline}</span>
-                              <span className="text-xs text-gray-500">{headline.length}/30</span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Descriptions */}
-                    {ad.descriptions && ad.descriptions.length > 0 && (
-                      <div className="mb-3">
-                        <label className="text-sm font-medium text-gray-700">Descriptions:</label>
-                        <div className="mt-2 space-y-1">
-                          {ad.descriptions.map((desc: string, dIndex: number) => (
-                            <div key={dIndex} className="flex items-center justify-between p-2 bg-green-50 rounded">
-                              <span className="text-gray-900">{desc}</span>
-                              <span className="text-xs text-gray-500">{desc.length}/90</span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Primary Text */}
-                    {ad.primary_text && (
-                      <div className="mb-3">
-                        <label className="text-sm font-medium text-gray-700">Primary Text:</label>
-                        <div className="mt-1 p-3 bg-purple-50 rounded-lg">
-                          <p className="text-gray-900 text-sm">{ad.primary_text}</p>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Call to Action */}
-                    {ad.call_to_action && (
-                      <div className="mb-3">
-                        <label className="text-sm font-medium text-gray-700">Call to Action:</label>
-                        <div className="mt-1">
-                          <span className="inline-block px-3 py-1 bg-orange-100 text-orange-800 rounded-full text-sm font-medium">
-                            {ad.call_to_action}
-                          </span>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Compliance Status */}
-                    {ad.compliance_status && (
-                      <div className="mt-3 pt-3 border-t border-gray-200">
+                  return (
+                    <div key={index} className="border border-gray-200 rounded-lg p-4">
+                      <div className="flex items-center justify-between mb-3">
+                        <h3 className="font-medium text-gray-900">Variation {adContent.variation_number || index + 1}</h3>
                         <div className="flex items-center space-x-2">
-                          {ad.compliance_status.is_compliant ? (
-                            <>
-                              <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                              <span className="text-sm text-green-700">Compliant with platform limits</span>
-                            </>
-                          ) : (
-                            <>
-                              <div className="w-2 h-2 bg-red-500 rounded-full"></div>
-                              <span className="text-sm text-red-700">Non-compliant content detected</span>
-                            </>
-                          )}
+                          <span className="text-sm text-gray-500 capitalize">{adPlatform}</span>
+                          <span className="text-sm text-gray-400">•</span>
+                          <span className="text-sm text-gray-500 capitalize">{adFormat}</span>
                         </div>
                       </div>
-                    )}
-                  </div>
-                ))}
+
+                      {/* Headlines */}
+                      {adContent.headlines && adContent.headlines.length > 0 && (
+                        <div className="mb-3">
+                          <label className="text-sm font-medium text-gray-700">Headlines:</label>
+                          <div className="mt-2 space-y-1">
+                            {adContent.headlines.map((headline: string, hIndex: number) => (
+                              <div key={hIndex} className="flex items-center justify-between p-2 bg-blue-50 rounded hover:bg-blue-100 transition-colors group">
+                                <span className="text-gray-900 flex-1">{headline}</span>
+                                <div className="flex items-center space-x-2">
+                                  <span className="text-xs text-gray-500">{headline.length}/30</span>
+                                  <button
+                                    onClick={() => copyToClipboard(headline)}
+                                    className="opacity-0 group-hover:opacity-100 transition-opacity text-blue-600 hover:text-blue-700"
+                                    title="Copy headline"
+                                  >
+                                    <Copy className="h-3 w-3" />
+                                  </button>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Descriptions */}
+                      {adContent.descriptions && adContent.descriptions.length > 0 && (
+                        <div className="mb-3">
+                          <label className="text-sm font-medium text-gray-700">Descriptions:</label>
+                          <div className="mt-2 space-y-1">
+                            {adContent.descriptions.map((desc: string, dIndex: number) => (
+                              <div key={dIndex} className="flex items-center justify-between p-2 bg-green-50 rounded hover:bg-green-100 transition-colors group">
+                                <span className="text-gray-900 flex-1">{desc}</span>
+                                <div className="flex items-center space-x-2">
+                                  <span className="text-xs text-gray-500">{desc.length}/90</span>
+                                  <button
+                                    onClick={() => copyToClipboard(desc)}
+                                    className="opacity-0 group-hover:opacity-100 transition-opacity text-green-600 hover:text-green-700"
+                                    title="Copy description"
+                                  >
+                                    <Copy className="h-3 w-3" />
+                                  </button>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Primary Text */}
+                      {adContent.primary_text && (
+                        <div className="mb-3">
+                          <label className="text-sm font-medium text-gray-700">Primary Text:</label>
+                          <div className="mt-1 p-3 bg-purple-50 rounded-lg hover:bg-purple-100 transition-colors group relative">
+                            <p className="text-gray-900 text-sm pr-8">{adContent.primary_text}</p>
+                            <button
+                              onClick={() => copyToClipboard(adContent.primary_text)}
+                              className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity text-purple-600 hover:text-purple-700"
+                              title="Copy primary text"
+                            >
+                              <Copy className="h-4 w-4" />
+                            </button>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Call to Action */}
+                      {adContent.call_to_action && (
+                        <div className="mb-3">
+                          <label className="text-sm font-medium text-gray-700">Call to Action:</label>
+                          <div className="mt-1">
+                            <span className="inline-block px-3 py-1 bg-orange-100 text-orange-800 rounded-full text-sm font-medium cursor-pointer hover:bg-orange-200 transition-colors"
+                                  onClick={() => copyToClipboard(adContent.call_to_action)}
+                                  title="Click to copy">
+                              {adContent.call_to_action}
+                            </span>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Compliance Status */}
+                      {complianceStatus && (
+                        <div className="mt-3 pt-3 border-t border-gray-200">
+                          <div className="flex items-center space-x-2">
+                            {complianceStatus.is_compliant ? (
+                              <>
+                                <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                                <span className="text-sm text-green-700">Compliant with platform limits</span>
+                              </>
+                            ) : (
+                              <>
+                                <div className="w-2 h-2 bg-red-500 rounded-full"></div>
+                                <span className="text-sm text-red-700">Non-compliant content detected</span>
+                              </>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             </div>
           )}
