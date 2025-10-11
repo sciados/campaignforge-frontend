@@ -2,6 +2,7 @@
 /**
  * Streamlined API client with proper TypeScript support
  * Handles authentication, user types, and campaign management
+ * ENHANCED: Added platform-specific image generation methods
  */
 
 import { useState, useCallback, useEffect, useMemo } from 'react'
@@ -20,7 +21,11 @@ import type {
   VideoGenerationRequest,
   GeneratedContent,
   UsageAnalytics,
-  GenerationHistory
+  GenerationHistory,
+  // ENHANCED: Import platform-specific image types (if they exist in modular.ts)
+  PlatformImageRequest,
+  MultiPlatformImageRequest,
+  PlatformSpec
 } from './types/modular'
 
 const API_BASE_URL = 'https://campaign-backend-production-e2db.up.railway.app'
@@ -885,6 +890,55 @@ export class ApiClient {
   }
 
   // ============================================================================
+  // ENHANCED: Platform-Specific Image Generation Methods
+  // ============================================================================
+
+  async getPlatformSpecs(): Promise<StandardResponse<{ platform_specs: Record<string, PlatformSpec> }>> {
+    console.log('🎨 API: Fetching platform specifications')
+    const response = await fetch(`${this.baseURL}/api/content/enhanced-images/platform-specs`, {
+      headers: this.getHeaders()
+    })
+    return this.handleResponse(response)
+  }
+
+  async calculateImageCost(platforms: string[], userTier: string = 'professional'): Promise<StandardResponse<{ cost_calculation: any }>> {
+    console.log('💰 API: Calculating image generation cost')
+    const platformsQuery = platforms.join(',')
+    const response = await fetch(`${this.baseURL}/api/content/enhanced-images/cost-calculator?platforms=${platformsQuery}&user_tier=${userTier}`, {
+      headers: this.getHeaders()
+    })
+    return this.handleResponse(response)
+  }
+
+  async generatePlatformImage(request: PlatformImageRequest): Promise<StandardResponse> {
+    console.log(`🎨 API: Generating platform-specific image for ${request.platform_format}`)
+    const response = await fetch(`${this.baseURL}/api/content/enhanced-images/generate-platform`, {
+      method: 'POST',
+      headers: this.getHeaders(),
+      body: JSON.stringify(request)
+    })
+    return this.handleResponse(response)
+  }
+
+  async generateMultiPlatformImages(request: MultiPlatformImageRequest): Promise<StandardResponse> {
+    console.log(`🎨 API: Generating multi-platform image batch for ${request.platforms.length} platforms`)
+    const response = await fetch(`${this.baseURL}/api/content/enhanced-images/generate-batch`, {
+      method: 'POST',
+      headers: this.getHeaders(),
+      body: JSON.stringify(request)
+    })
+    return this.handleResponse(response)
+  }
+
+  async getImageGeneratorStats(): Promise<StandardResponse> {
+    console.log('📊 API: Fetching image generator statistics')
+    const response = await fetch(`${this.baseURL}/api/content/enhanced-images/generator-stats`, {
+      headers: this.getHeaders()
+    })
+    return this.handleResponse(response)
+  }
+
+  // ============================================================================
   // Campaign Management
   // ============================================================================
 
@@ -1213,6 +1267,13 @@ export const useApi = () => {
     generateVideoContent: apiClient.generateVideoContent.bind(apiClient),
     getUsageAnalytics: apiClient.getUsageAnalytics.bind(apiClient),
     getGenerationHistory: apiClient.getGenerationHistory.bind(apiClient),
+
+    // ENHANCED: Platform-Specific Image Generation
+    getPlatformSpecs: apiClient.getPlatformSpecs.bind(apiClient),
+    calculateImageCost: apiClient.calculateImageCost.bind(apiClient),
+    generatePlatformImage: apiClient.generatePlatformImage.bind(apiClient),
+    generateMultiPlatformImages: apiClient.generateMultiPlatformImages.bind(apiClient),
+    getImageGeneratorStats: apiClient.getImageGeneratorStats.bind(apiClient),
 
     // Campaign Management
     createCampaign: apiClient.createCampaign.bind(apiClient),

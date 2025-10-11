@@ -339,3 +339,33 @@ export interface MonitoringConfig {
   quality_monitoring: boolean
   alert_thresholds: Record<string, number>
 }
+
+// Add these to your existing modular.ts file:
+
+export interface PlatformImageRequest {
+  campaign_id: string
+  platform_format: string
+  image_type?: string
+  style_preferences?: Record<string, any>
+  user_tier?: string
+}
+
+export interface MultiPlatformImageRequest {
+  campaign_id: string
+  platforms: string[]
+  image_type?: string
+  batch_style?: Record<string, any>
+  user_tier?: string
+}
+
+export interface PlatformSpec {
+  platform: string
+  dimensions: string
+  aspect_ratio: string
+  format: string
+  max_file_size_mb: number
+  recommended_style: string
+  optimal_text_zones: Array<{ x: number; y: number; width: number; height: number }>
+  color_profile: string
+  use_case: string
+}
