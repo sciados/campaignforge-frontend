@@ -53,11 +53,12 @@ export default function ContentGenerationModal({
   // ENHANCED: Platform image generation state
   const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>([]);
   const [platformSpecs, setPlatformSpecs] = useState<Record<string, any>>({});
-  const [imageType, setImageType] = useState<string>("marketing");
+  const [imageType, setImageType] = useState<string>("1024x1024"); // Default to square for marketing images
   const [stylePreferences, setStylePreferences] = useState<Record<string, any>>(
     {}
   );
   const [estimatedCost, setEstimatedCost] = useState<number>(0);
+  const [selectedImageStyle, setSelectedImageStyle] = useState<string>("professional");
 
   // FIXED: Move all useCallback hooks to top level
   const loadPlatformSpecs = useCallback(async () => {
@@ -471,6 +472,10 @@ export default function ContentGenerationModal({
       } else if (selectedType === "long_form_article") {
         preferences.word_count = longFormWordCount;
         preferences.article_type = articleType;
+      } else if (selectedType === "image") {
+        // Marketing Image preferences
+        preferences.style = selectedImageStyle;
+        preferences.dimensions = imageType; // Will be "1024x1024", "1792x1024", or "1024x1792"
       } else if (selectedType === "platform_image") {
         // ENHANCED: Platform image preferences
         if (selectedPlatforms.length === 0) {
@@ -538,6 +543,7 @@ export default function ContentGenerationModal({
         setImageType("marketing");
         setStylePreferences({});
         setEstimatedCost(0);
+        setSelectedImageStyle("professional");
         setGenerationSuccess(false);
         setError(null);
       }, 1500);
@@ -648,9 +654,74 @@ export default function ContentGenerationModal({
             })}
           </div>
 
+          {/* Marketing Image Options */}
+          {selectedType === "image" && (
+            <div className="mt-6 space-y-6">
+              {/* Image Style Selection */}
+              <div>
+                <h3 className="text-sm font-semibold text-gray-900 mb-3">
+                  Image Style
+                </h3>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  {[
+                    { value: "professional", label: "Professional", desc: "Corporate, trustworthy" },
+                    { value: "modern", label: "Modern", desc: "Contemporary, trendy" },
+                    { value: "vibrant", label: "Vibrant", desc: "Bold, energetic" },
+                    { value: "minimalist", label: "Minimalist", desc: "Clean, simple" },
+                    { value: "dramatic", label: "Dramatic", desc: "High contrast, bold" },
+                    { value: "funny", label: "Funny", desc: "Playful, humorous" },
+                    { value: "animated", label: "Animated", desc: "3D rendered, cartoon" },
+                  ].map((style) => (
+                    <button
+                      key={style.value}
+                      onClick={() => setSelectedImageStyle(style.value)}
+                      disabled={isGenerating}
+                      className={`p-3 border rounded-lg text-left transition-all ${
+                        selectedImageStyle === style.value
+                          ? "border-purple-500 bg-purple-50"
+                          : "border-gray-200 hover:border-purple-300 hover:bg-purple-50"
+                      } ${isGenerating ? "opacity-50 cursor-not-allowed" : ""}`}
+                    >
+                      <div className="font-medium text-sm text-gray-900">{style.label}</div>
+                      <div className="text-xs text-gray-600 mt-1">{style.desc}</div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Image Size Selection */}
+              <div>
+                <h3 className="text-sm font-semibold text-gray-900 mb-3">
+                  Image Size
+                </h3>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                  {[
+                    { label: "Square (1024x1024)", value: "1024x1024", desc: "Perfect for social posts" },
+                    { label: "Landscape (1792x1024)", value: "1792x1024", desc: "Wide banner format" },
+                    { label: "Portrait (1024x1792)", value: "1024x1792", desc: "Story/vertical format" },
+                  ].map((size) => (
+                    <button
+                      key={size.value}
+                      onClick={() => setImageType(size.value)}
+                      disabled={isGenerating}
+                      className={`p-3 border rounded-lg text-left transition-all ${
+                        imageType === size.value
+                          ? "border-purple-500 bg-purple-50"
+                          : "border-gray-200 hover:border-purple-300 hover:bg-purple-50"
+                      } ${isGenerating ? "opacity-50 cursor-not-allowed" : ""}`}
+                    >
+                      <div className="font-medium text-sm text-gray-900">{size.label}</div>
+                      <div className="text-xs text-gray-600 mt-1">{size.desc}</div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Tone Selection */}
           {selectedType &&
-            !["platform_image", "multi_platform_image"].includes(
+            !["platform_image", "multi_platform_image", "image"].includes(
               selectedType
             ) && (
               <div className="mt-6">
