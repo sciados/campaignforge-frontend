@@ -1,6 +1,18 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   images: {
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'pub-f90ef5581b1301b7b68addfc9fa42297.r2.dev',
+        pathname: '/images/**',
+      },
+      {
+        protocol: 'https',
+        hostname: '**.r2.dev',
+        pathname: '/**',
+      },
+    ],
     domains: ["localhost", "cloudflare.com"],
   },
   env: {
