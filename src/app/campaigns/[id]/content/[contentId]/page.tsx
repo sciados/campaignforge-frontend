@@ -485,34 +485,70 @@ export default function ContentDetailPage({ params }: ContentDetailPageProps) {
           {content.content_type === 'image' && (
             <div className="bg-white rounded-xl border border-gray-200 p-6">
               <h2 className="text-lg font-semibold text-gray-900 mb-4">Generated Image</h2>
-              {content.generated_content?.image_url ? (
+              {(content.body || content.generated_content?.image_url) ? (
                 <div className="space-y-4">
                   <div className="border border-gray-200 rounded-lg p-4 bg-gray-50 relative">
                     <Image
-                      src={content.generated_content.image_url}
+                      src={content.body || content.generated_content.image_url}
                       alt={content.title || "Generated marketing image"}
                       width={800}
                       height={600}
                       className="max-w-full h-auto rounded-lg shadow-sm"
+                      unoptimized={true}
                       onError={(e) => {
                         console.error("Failed to load image:", e);
                         e.currentTarget.style.display = 'none';
                       }}
                     />
                   </div>
-                  {content.generated_content.prompt && (
+
+                  {/* Image metadata */}
+                  {content.metadata && (
+                    <div className="grid grid-cols-2 gap-4">
+                      {content.metadata.provider && (
+                        <div>
+                          <label className="text-sm font-medium text-gray-700">AI Provider:</label>
+                          <p className="text-gray-800 mt-1 capitalize">{content.metadata.provider}</p>
+                        </div>
+                      )}
+                      {content.metadata.image_dimensions && (
+                        <div>
+                          <label className="text-sm font-medium text-gray-700">Dimensions:</label>
+                          <p className="text-gray-800 mt-1">{content.metadata.image_dimensions}</p>
+                        </div>
+                      )}
+                      {content.metadata.image_type && (
+                        <div>
+                          <label className="text-sm font-medium text-gray-700">Type:</label>
+                          <p className="text-gray-800 mt-1 capitalize">{content.metadata.image_type.replace('_', ' ')}</p>
+                        </div>
+                      )}
+                      {content.metadata.style && (
+                        <div>
+                          <label className="text-sm font-medium text-gray-700">Style:</label>
+                          <p className="text-gray-800 mt-1 capitalize">{content.metadata.style}</p>
+                        </div>
+                      )}
+                      {content.metadata.cost && (
+                        <div>
+                          <label className="text-sm font-medium text-gray-700">Generation Cost:</label>
+                          <p className="text-gray-800 mt-1">${content.metadata.cost.toFixed(4)}</p>
+                        </div>
+                      )}
+                      {content.metadata.storage_location && (
+                        <div>
+                          <label className="text-sm font-medium text-gray-700">Storage:</label>
+                          <p className="text-gray-800 mt-1 capitalize">{content.metadata.storage_location.replace('_', ' ')}</p>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {(content.generated_content?.prompt || content.metadata?.prompt) && (
                     <div>
                       <label className="text-sm font-medium text-gray-700">Prompt Used:</label>
                       <p className="text-gray-800 mt-1 p-3 bg-gray-50 rounded-lg text-sm">
-                        {content.generated_content.prompt}
-                      </p>
-                    </div>
-                  )}
-                  {content.generated_content.dimensions && (
-                    <div>
-                      <label className="text-sm font-medium text-gray-700">Dimensions:</label>
-                      <p className="text-gray-800 mt-1">
-                        {content.generated_content.dimensions.width} × {content.generated_content.dimensions.height}
+                        {content.generated_content?.prompt || content.metadata?.prompt}
                       </p>
                     </div>
                   )}
