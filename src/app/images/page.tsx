@@ -250,15 +250,15 @@ export default function ImagesGalleryPage() {
                 {/* Image */}
                 <div className="relative aspect-square bg-gray-100">
                   {image.content_body ? (
-                    <Image
+                    // Use regular img tag to bypass Next.js Image optimization issues
+                    <img
                       src={image.content_body}
                       alt={image.content_title}
-                      fill
-                      className="object-cover"
-                      unoptimized={true}
+                      className="w-full h-full object-cover"
                       onError={(e) => {
                         console.error("Image load error:", image.content_body);
-                        e.currentTarget.src = "/placeholder-image.png";
+                        e.currentTarget.style.display = 'none';
+                        e.currentTarget.parentElement?.classList.add('flex', 'items-center', 'justify-center');
                       }}
                     />
                   ) : (
