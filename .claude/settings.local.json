@@ -51,7 +51,9 @@
       "Bash(python3:*)",
       "Bash(git checkout:*)",
       "Bash(git restore:*)",
-      "Bash(git pull:*)"
+      "Bash(git pull:*)",
+      "WebFetch(domain:dash.cloudflare.com)",
+      "Bash(railway variables:*)"
     ],
     "deny": [],
     "ask": []

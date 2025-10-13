@@ -93,6 +93,7 @@ export default function ContentGenerationPage({ params }: ContentGenerationPageP
   const [showReportModal, setShowReportModal] = useState(false);
   const [reportGenerated, setReportGenerated] = useState(false);
   const [showImageOptionsModal, setShowImageOptionsModal] = useState(false);
+  const [selectedImageStyle, setSelectedImageStyle] = useState<string>("professional");
 
   // Load campaign data
   useEffect(() => {
@@ -315,6 +316,7 @@ export default function ContentGenerationPage({ params }: ContentGenerationPageP
         content_type: "platform_image", // Use enhanced platform-specific generator
         target_audience: campaign.target_audience || "",
         tone: "persuasive",
+        style: selectedImageStyle, // User-selected style (professional, funny, animated, etc.)
         platform_format: platformFormat, // Backend platform format (e.g., "instagram_feed")
         dimensions: dimensions, // Will be parsed by backend (e.g., "1080x1080")
       });
@@ -841,10 +843,10 @@ export default function ContentGenerationPage({ params }: ContentGenerationPageP
       {/* Image Options Modal */}
       {showImageOptionsModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-2xl w-full mx-4">
+          <div className="bg-white rounded-lg p-6 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-6">
               <h3 className="text-lg font-semibold text-gray-900">
-                Select Image Platform & Size
+                Select Image Style & Platform
               </h3>
               <button
                 onClick={() => setShowImageOptionsModal(false)}
@@ -854,7 +856,39 @@ export default function ContentGenerationPage({ params }: ContentGenerationPageP
               </button>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Style Selector */}
+            <div className="mb-6 pb-6 border-b border-gray-200">
+              <h4 className="text-sm font-medium text-gray-900 mb-3">Image Style</h4>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                {[
+                  { value: "professional", label: "Professional", desc: "Corporate, trustworthy" },
+                  { value: "modern", label: "Modern", desc: "Contemporary, trendy" },
+                  { value: "vibrant", label: "Vibrant", desc: "Bold, energetic" },
+                  { value: "minimalist", label: "Minimalist", desc: "Clean, simple" },
+                  { value: "dramatic", label: "Dramatic", desc: "High contrast, bold" },
+                  { value: "funny", label: "Funny", desc: "Playful, humorous" },
+                  { value: "animated", label: "Animated", desc: "3D rendered, cartoon" },
+                ].map((style) => (
+                  <button
+                    key={style.value}
+                    onClick={() => setSelectedImageStyle(style.value)}
+                    className={`p-3 border rounded-lg text-left transition-all ${
+                      selectedImageStyle === style.value
+                        ? "border-purple-500 bg-purple-50"
+                        : "border-gray-200 hover:border-purple-300 hover:bg-purple-50"
+                    }`}
+                  >
+                    <div className="font-medium text-sm text-gray-900">{style.label}</div>
+                    <div className="text-xs text-gray-600 mt-1">{style.desc}</div>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Platform Selector */}
+            <div>
+              <h4 className="text-sm font-medium text-gray-900 mb-3">Platform & Size</h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {[
                 { platform: "Instagram Feed", platformFormat: "instagram_feed", dimensions: "1080x1080", label: "Square Post" },
                 { platform: "Instagram Story", platformFormat: "instagram_story", dimensions: "1080x1920", label: "Vertical Story" },
@@ -891,9 +925,13 @@ export default function ContentGenerationPage({ params }: ContentGenerationPageP
               ))}
             </div>
 
+            </div>
+
             <div className="mt-6 pt-4 border-t border-gray-200">
               <p className="text-sm text-gray-600">
-                Select the platform you&apos;re creating content for. The image will be optimized for that platform&apos;s recommended dimensions.
+                <strong>Selected style:</strong> {selectedImageStyle.charAt(0).toUpperCase() + selectedImageStyle.slice(1)}
+                <br />
+                Choose your style above, then select the platform. The image will be optimized for that platform&apos;s recommended dimensions.
               </p>
             </div>
           </div>
