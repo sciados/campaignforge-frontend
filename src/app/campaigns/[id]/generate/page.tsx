@@ -702,40 +702,118 @@ export default function ContentGenerationPage({ params }: ContentGenerationPageP
           </h2>
 
           {canGenerateContent ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {[
-                { type: "email", icon: Mail, title: "Email Campaign", description: "Promotional emails and sequences" },
-                { type: "social", icon: MessageSquare, title: "Social Media", description: "Posts and ad copy" },
-                { type: "blog", icon: FileText, title: "Blog Content", description: "Articles and blog posts" },
-                { type: "ad", icon: BarChart3, title: "Ad Copy", description: "Advertising campaigns" },
-                { type: "image", icon: Image, title: "Marketing Images", description: "AI-generated images and graphics" },
-                { type: "video_script", icon: FileText, title: "Video Script", description: "Engaging scripts for video content" },
-                { type: "short_video", icon: Video, title: "Short Videos", description: "AI-generated videos for social media" },
-              ].map((contentType) => (
-                <button
-                  key={contentType.type}
-                  onClick={() => handleGenerateContent(contentType.type)}
-                  disabled={isGeneratingContent}
-                  className="p-4 border border-gray-200 rounded-lg hover:border-purple-300 hover:bg-purple-50 transition-all duration-200 text-left group disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  <div className="flex items-start space-x-3">
-                    <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center group-hover:bg-purple-200 transition-colors">
-                      <contentType.icon className="h-5 w-5 text-purple-600" />
-                    </div>
-                    <div className="flex-1">
-                      <h3 className="font-medium text-gray-900 group-hover:text-purple-900">
-                        {contentType.title}
-                      </h3>
-                      <p className="text-sm text-gray-600 mt-1">
-                        {contentType.description}
-                      </p>
-                    </div>
-                    {isGeneratingContent && (
-                      <Loader2 className="h-4 w-4 animate-spin text-purple-600" />
-                    )}
+            <div className="space-y-6">
+              {/* Text Tools */}
+              <div>
+                <h3 className="text-sm font-medium text-gray-700 mb-3 flex items-center">
+                  <FileText className="h-4 w-4 mr-2 text-purple-600" />
+                  Text Tools
+                </h3>
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                  {[
+                    { type: "email", icon: Mail, title: "Email" },
+                    { type: "social", icon: MessageSquare, title: "Social Post" },
+                    { type: "blog", icon: FileText, title: "Blog Post" },
+                    { type: "ad", icon: BarChart3, title: "Ad Copy" },
+                  ].map((contentType) => (
+                    <button
+                      key={contentType.type}
+                      onClick={() => handleGenerateContent(contentType.type)}
+                      disabled={isGeneratingContent}
+                      className="p-3 border border-gray-200 rounded-lg hover:border-purple-300 hover:bg-purple-50 transition-all duration-200 text-left group disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      <div className="flex items-center space-x-2">
+                        <div className="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center group-hover:bg-purple-200 transition-colors flex-shrink-0">
+                          <contentType.icon className="h-4 w-4 text-purple-600" />
+                        </div>
+                        <span className="font-medium text-gray-900 group-hover:text-purple-900 text-sm">
+                          {contentType.title}
+                        </span>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Image Tools */}
+              <div>
+                <h3 className="text-sm font-medium text-gray-700 mb-3 flex items-center">
+                  <Image className="h-4 w-4 mr-2 text-purple-600" />
+                  Image Tools
+                </h3>
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                  {[
+                    { type: "image", icon: Camera, title: "Marketing Image" },
+                  ].map((contentType) => (
+                    <button
+                      key={contentType.type}
+                      onClick={() => handleGenerateContent(contentType.type)}
+                      disabled={isGeneratingContent}
+                      className="p-3 border border-gray-200 rounded-lg hover:border-purple-300 hover:bg-purple-50 transition-all duration-200 text-left group disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      <div className="flex items-center space-x-2">
+                        <div className="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center group-hover:bg-purple-200 transition-colors flex-shrink-0">
+                          <contentType.icon className="h-4 w-4 text-purple-600" />
+                        </div>
+                        <span className="font-medium text-gray-900 group-hover:text-purple-900 text-sm">
+                          {contentType.title}
+                        </span>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Video Tools */}
+              <div>
+                <h3 className="text-sm font-medium text-gray-700 mb-3 flex items-center">
+                  <Video className="h-4 w-4 mr-2 text-purple-600" />
+                  Video Tools
+                </h3>
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                  {[
+                    { type: "video_script", icon: FileText, title: "Video Script" },
+                    { type: "short_video", icon: Video, title: "Short Video" },
+                  ].map((contentType) => (
+                    <button
+                      key={contentType.type}
+                      onClick={() => handleGenerateContent(contentType.type)}
+                      disabled={isGeneratingContent}
+                      className="p-3 border border-gray-200 rounded-lg hover:border-purple-300 hover:bg-purple-50 transition-all duration-200 text-left group disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      <div className="flex items-center space-x-2">
+                        <div className="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center group-hover:bg-purple-200 transition-colors flex-shrink-0">
+                          <contentType.icon className="h-4 w-4 text-purple-600" />
+                        </div>
+                        <span className="font-medium text-gray-900 group-hover:text-purple-900 text-sm">
+                          {contentType.title}
+                        </span>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Composite Tools */}
+              <div>
+                <h3 className="text-sm font-medium text-gray-700 mb-3 flex items-center">
+                  <Sparkles className="h-4 w-4 mr-2 text-purple-600" />
+                  Composite Tools
+                </h3>
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                  {/* Placeholder for future composite tools */}
+                  <div className="p-3 border border-dashed border-gray-300 rounded-lg text-center opacity-50">
+                    <div className="text-xs text-gray-500">Coming Soon</div>
                   </div>
-                </button>
-              ))}
+                </div>
+              </div>
+
+              {isGeneratingContent && (
+                <div className="flex items-center justify-center py-4">
+                  <Loader2 className="h-5 w-5 animate-spin text-purple-600 mr-2" />
+                  <span className="text-sm text-gray-600">Generating content...</span>
+                </div>
+              )}
             </div>
           ) : (
             <div className="text-center py-8">
