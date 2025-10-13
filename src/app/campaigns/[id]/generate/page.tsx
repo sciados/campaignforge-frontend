@@ -301,7 +301,7 @@ export default function ContentGenerationPage({ params }: ContentGenerationPageP
   };
 
   // Handle image generation with specific size
-  const handleGenerateImage = async (platform: string, dimensions: { width: number, height: number }) => {
+  const handleGenerateImage = async (platformName: string, platformFormat: string, dimensions: string) => {
     if (!campaign) return;
 
     setIsGeneratingContent(true);
@@ -309,13 +309,14 @@ export default function ContentGenerationPage({ params }: ContentGenerationPageP
     setError(null);
 
     try {
+      // Use platform-specific image generator from backend
       const response = await api.generateContent({
         campaign_id: params.id,
-        content_type: "image",
+        content_type: "platform_image", // Use enhanced platform-specific generator
         target_audience: campaign.target_audience || "",
-        platform: platform,
-        dimensions: dimensions,
-        prompt: `Create a marketing image for ${campaign.title || campaign.product_name} optimized for ${platform}`,
+        tone: "persuasive",
+        platform_format: platformFormat, // Backend platform format (e.g., "instagram_feed")
+        dimensions: dimensions, // Will be parsed by backend (e.g., "1080x1080")
       });
 
       if (response.success) {
@@ -855,21 +856,25 @@ export default function ContentGenerationPage({ params }: ContentGenerationPageP
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {[
-                { platform: "Instagram Square", dimensions: { width: 1080, height: 1080 }, label: "1080x1080" },
-                { platform: "Instagram Story", dimensions: { width: 1080, height: 1920 }, label: "1080x1920" },
-                { platform: "Facebook Post", dimensions: { width: 1200, height: 630 }, label: "1200x630" },
-                { platform: "Facebook Cover", dimensions: { width: 820, height: 312 }, label: "820x312" },
-                { platform: "Twitter Post", dimensions: { width: 1200, height: 675 }, label: "1200x675" },
-                { platform: "Twitter Header", dimensions: { width: 1500, height: 500 }, label: "1500x500" },
-                { platform: "LinkedIn Post", dimensions: { width: 1200, height: 627 }, label: "1200x627" },
-                { platform: "Pinterest Pin", dimensions: { width: 1000, height: 1500 }, label: "1000x1500" },
-                { platform: "YouTube Thumbnail", dimensions: { width: 1280, height: 720 }, label: "1280x720" },
-                { platform: "Blog Featured", dimensions: { width: 1200, height: 800 }, label: "1200x800" },
+                { platform: "Instagram Feed", platformFormat: "instagram_feed", dimensions: "1080x1080", label: "Square Post" },
+                { platform: "Instagram Story", platformFormat: "instagram_story", dimensions: "1080x1920", label: "Vertical Story" },
+                { platform: "Instagram Reel", platformFormat: "instagram_reel_cover", dimensions: "1080x1920", label: "Reel Cover" },
+                { platform: "Facebook Feed", platformFormat: "facebook_feed", dimensions: "1200x630", label: "Post Image" },
+                { platform: "Facebook Story", platformFormat: "facebook_story", dimensions: "1080x1920", label: "Story" },
+                { platform: "LinkedIn Feed", platformFormat: "linkedin_feed", dimensions: "1200x627", label: "Post Image" },
+                { platform: "LinkedIn Article", platformFormat: "linkedin_article", dimensions: "1200x627", label: "Article Header" },
+                { platform: "Twitter/X Feed", platformFormat: "twitter_feed", dimensions: "1200x675", label: "Post Image" },
+                { platform: "TikTok Cover", platformFormat: "tiktok_cover", dimensions: "1080x1920", label: "Video Cover" },
+                { platform: "YouTube Thumbnail", platformFormat: "youtube_thumbnail", dimensions: "1280x720", label: "Video Thumbnail" },
+                { platform: "Pinterest Pin", platformFormat: "pinterest_pin", dimensions: "1000x1500", label: "Pin Image" },
+                { platform: "Square (General)", platformFormat: "square", dimensions: "1080x1080", label: "Versatile" },
+                { platform: "Landscape (General)", platformFormat: "landscape", dimensions: "1200x630", label: "Versatile" },
               ].map((option) => (
                 <button
-                  key={option.platform}
-                  onClick={() => handleGenerateImage(option.platform, option.dimensions)}
-                  className="p-4 border border-gray-200 rounded-lg hover:border-purple-300 hover:bg-purple-50 transition-all duration-200 text-left group"
+                  key={option.platformFormat}
+                  onClick={() => handleGenerateImage(option.platform, option.platformFormat, option.dimensions)}
+                  disabled={isGeneratingContent}
+                  className="p-4 border border-gray-200 rounded-lg hover:border-purple-300 hover:bg-purple-50 transition-all duration-200 text-left group disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <div className="flex items-center justify-between">
                     <div>
@@ -877,7 +882,7 @@ export default function ContentGenerationPage({ params }: ContentGenerationPageP
                         {option.platform}
                       </h4>
                       <p className="text-sm text-gray-600 mt-1">
-                        {option.label} pixels
+                        {option.label} • {option.dimensions}
                       </p>
                     </div>
                     <Camera className="h-5 w-5 text-purple-600 opacity-0 group-hover:opacity-100 transition-opacity" />
