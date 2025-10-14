@@ -64,26 +64,24 @@ export default function MockupTemplateSelector({
       const response = await api.get(`/api/content/mockups/templates?category=${selectedCategory}`);
 
       console.log('Mockup templates response:', response);
-      console.log('Response data:', response.data);
-      console.log('Response status:', response.status);
+      console.log('Response success:', response.success);
+      console.log('Response templates:', response.templates);
 
-      if (response?.data?.success) {
-        setTemplates(response.data.templates || []);
-        setUserTier(response.data.user_tier);
-        setTierLimits(response.data.tier_limits);
-        console.log('Templates loaded:', response.data.templates?.length || 0);
-        console.log('User tier:', response.data.user_tier);
-        console.log('Tier limits:', response.data.tier_limits);
+      // API client returns response directly (not wrapped in .data property)
+      if (response?.success) {
+        setTemplates(response.templates || []);
+        setUserTier(response.user_tier);
+        setTierLimits(response.tier_limits);
+        console.log('Templates loaded:', response.templates?.length || 0);
+        console.log('User tier:', response.user_tier);
+        console.log('Tier limits:', response.tier_limits);
       } else {
-        console.error('Response success was false or undefined:', response?.data);
+        console.error('Response success was false or undefined:', response);
         setError('Failed to load mockup templates');
       }
     } catch (err: any) {
       console.error('Error fetching templates:', err);
-      console.error('Error response:', err.response);
-      console.error('Error status:', err.response?.status);
-      console.error('Error data:', err.response?.data);
-      setError(err.response?.data?.detail || 'Failed to load templates');
+      setError(err.message || 'Failed to load templates');
     } finally {
       setLoading(false);
     }
@@ -108,17 +106,18 @@ export default function MockupTemplateSelector({
         smart_object_uuid: selectedTemplate.smart_objects?.[0]?.uuid,
       });
 
-      if (response.data.success) {
-        onMockupGenerated(response.data.mockup_url, response.data.cost);
+      // API client returns response directly (not wrapped in .data property)
+      if (response.success) {
+        onMockupGenerated(response.mockup_url, response.cost);
         onClose();
-      } else if (response.data.upgrade_required) {
-        setError(response.data.error);
+      } else if (response.upgrade_required) {
+        setError(response.error);
       } else {
         setError('Failed to generate mockup');
       }
     } catch (err: any) {
       console.error('Error generating mockup:', err);
-      setError(err.response?.data?.detail || 'Failed to generate mockup');
+      setError(err.message || 'Failed to generate mockup');
     } finally {
       setGenerating(false);
     }
