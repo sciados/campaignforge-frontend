@@ -58,7 +58,8 @@
       "WebFetch(domain:developers.printful.com)",
       "WebFetch(domain:dynamicmockups.com)",
       "WebFetch(domain:docs.dynamicmockups.com)",
-      "WebFetch(domain:ai.google.dev)"
+      "WebFetch(domain:ai.google.dev)",
+      "WebFetch(domain:www.alibabacloud.com)"
     ],
     "deny": [],
     "ask": []

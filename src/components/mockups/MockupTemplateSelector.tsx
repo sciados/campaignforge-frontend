@@ -60,17 +60,29 @@ export default function MockupTemplateSelector({
 
     try {
       // Fetch templates for selected category
+      console.log('Fetching mockup templates for category:', selectedCategory);
       const response = await api.get(`/api/content/mockups/templates?category=${selectedCategory}`);
 
-      if (response.data.success) {
+      console.log('Mockup templates response:', response);
+      console.log('Response data:', response.data);
+      console.log('Response status:', response.status);
+
+      if (response?.data?.success) {
         setTemplates(response.data.templates || []);
         setUserTier(response.data.user_tier);
         setTierLimits(response.data.tier_limits);
+        console.log('Templates loaded:', response.data.templates?.length || 0);
+        console.log('User tier:', response.data.user_tier);
+        console.log('Tier limits:', response.data.tier_limits);
       } else {
+        console.error('Response success was false or undefined:', response?.data);
         setError('Failed to load mockup templates');
       }
     } catch (err: any) {
       console.error('Error fetching templates:', err);
+      console.error('Error response:', err.response);
+      console.error('Error status:', err.response?.status);
+      console.error('Error data:', err.response?.data);
       setError(err.response?.data?.detail || 'Failed to load templates');
     } finally {
       setLoading(false);
