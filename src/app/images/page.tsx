@@ -13,9 +13,11 @@ import {
   DollarSign,
   Sparkles,
   Loader2,
+  Wand2,
 } from "lucide-react";
 import { useApi } from "@/lib/api";
 import Image from "next/image";
+import MockupTemplateSelector from "@/components/mockups/MockupTemplateSelector";
 
 interface ImageContent {
   content_id: string;
@@ -48,6 +50,8 @@ export default function ImagesGalleryPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCampaign, setSelectedCampaign] = useState<string>("all");
   const [sortBy, setSortBy] = useState<"date" | "campaign" | "cost">("date");
+  const [mockupSelectorOpen, setMockupSelectorOpen] = useState(false);
+  const [selectedImageForMockup, setSelectedImageForMockup] = useState<ImageContent | null>(null);
 
   // Load all campaigns and their images
   useEffect(() => {
@@ -106,6 +110,21 @@ export default function ImagesGalleryPage() {
 
     loadData();
   }, []);
+
+  // Handle opening mockup selector
+  const handleCreateMockup = (e: React.MouseEvent, image: ImageContent) => {
+    e.stopPropagation();
+    setSelectedImageForMockup(image);
+    setMockupSelectorOpen(true);
+  };
+
+  // Handle mockup generated successfully
+  const handleMockupGenerated = (mockupUrl: string, cost: number) => {
+    console.log('Mockup generated:', mockupUrl, 'Cost:', cost);
+    // Optionally refresh images or show success message
+    setMockupSelectorOpen(false);
+    setSelectedImageForMockup(null);
+  };
 
   // Filter and sort images
   const filteredImages = images
@@ -311,6 +330,13 @@ export default function ImagesGalleryPage() {
                     </span>
                     <div className="flex space-x-2">
                       <button
+                        onClick={(e) => handleCreateMockup(e, image)}
+                        className="text-gray-400 hover:text-blue-600 transition-colors"
+                        title="Create Professional Mockup"
+                      >
+                        <Wand2 className="h-4 w-4" />
+                      </button>
+                      <button
                         onClick={(e) => {
                           e.stopPropagation();
                           window.open(image.content_body, '_blank');
@@ -343,6 +369,18 @@ export default function ImagesGalleryPage() {
           </div>
         )}
       </div>
+
+      {/* Mockup Template Selector Modal */}
+      {mockupSelectorOpen && selectedImageForMockup && (
+        <MockupTemplateSelector
+          imageUrl={selectedImageForMockup.content_body}
+          onMockupGenerated={handleMockupGenerated}
+          onClose={() => {
+            setMockupSelectorOpen(false);
+            setSelectedImageForMockup(null);
+          }}
+        />
+      )}
     </div>
   );
 }
