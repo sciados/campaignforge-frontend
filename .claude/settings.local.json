@@ -57,7 +57,8 @@
       "WebFetch(domain:mockupify.io)",
       "WebFetch(domain:developers.printful.com)",
       "WebFetch(domain:dynamicmockups.com)",
-      "WebFetch(domain:docs.dynamicmockups.com)"
+      "WebFetch(domain:docs.dynamicmockups.com)",
+      "WebFetch(domain:ai.google.dev)"
     ],
     "deny": [],
     "ask": []

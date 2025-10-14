@@ -60,7 +60,7 @@ export default function MockupTemplateSelector({
 
     try {
       // Fetch templates for selected category
-      const response = await api.get(`/api/mockups/templates?category=${selectedCategory}`);
+      const response = await api.get(`/api/content/mockups/templates?category=${selectedCategory}`);
 
       if (response.data.success) {
         setTemplates(response.data.templates || []);
@@ -90,7 +90,7 @@ export default function MockupTemplateSelector({
     setError(null);
 
     try {
-      const response = await api.post('/api/mockups/generate', {
+      const response = await api.post('/api/content/mockups/generate', {
         image_url: imageUrl,
         mockup_uuid: selectedTemplate.uuid,
         smart_object_uuid: selectedTemplate.smart_objects?.[0]?.uuid,
