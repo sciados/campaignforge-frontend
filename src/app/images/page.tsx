@@ -14,6 +14,7 @@ import {
   Sparkles,
   Loader2,
   Wand2,
+  Copy,
 } from "lucide-react";
 import { useApi } from "@/lib/api";
 import Image from "next/image";
@@ -52,6 +53,7 @@ export default function ImagesGalleryPage() {
   const [sortBy, setSortBy] = useState<"date" | "campaign" | "cost">("date");
   const [mockupSelectorOpen, setMockupSelectorOpen] = useState(false);
   const [selectedImageForMockup, setSelectedImageForMockup] = useState<ImageContent | null>(null);
+  const [generatingVariation, setGeneratingVariation] = useState<string | null>(null);
 
   // Load all campaigns and their images
   useEffect(() => {
@@ -124,6 +126,34 @@ export default function ImagesGalleryPage() {
     // Optionally refresh images or show success message
     setMockupSelectorOpen(false);
     setSelectedImageForMockup(null);
+  };
+
+  // Handle creating variation
+  const handleCreateVariation = async (e: React.MouseEvent, image: ImageContent) => {
+    e.stopPropagation();
+
+    setGeneratingVariation(image.content_id);
+
+    try {
+      const response = await api.post('/api/content/variations/generate', {
+        source_image_url: image.content_body,
+        variation_strength: 0.3,  // Subtle variation
+        provider: 'dall-e'
+      });
+
+      if (response.data.success) {
+        console.log('Variation generated:', response.data.variation_url);
+        // Refresh images to show new variation
+        window.location.reload();
+      } else {
+        setError('Failed to generate variation');
+      }
+    } catch (err) {
+      console.error('Variation error:', err);
+      setError('Failed to generate variation');
+    } finally {
+      setGeneratingVariation(null);
+    }
   };
 
   // Filter and sort images
@@ -329,6 +359,18 @@ export default function ImagesGalleryPage() {
                       {new Date(image.created_at).toLocaleDateString()}
                     </span>
                     <div className="flex space-x-2">
+                      <button
+                        onClick={(e) => handleCreateVariation(e, image)}
+                        disabled={generatingVariation === image.content_id}
+                        className="text-gray-400 hover:text-green-600 transition-colors disabled:opacity-50"
+                        title="Create Unique Variation"
+                      >
+                        {generatingVariation === image.content_id ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Copy className="h-4 w-4" />
+                        )}
+                      </button>
                       <button
                         onClick={(e) => handleCreateMockup(e, image)}
                         className="text-gray-400 hover:text-blue-600 transition-colors"
