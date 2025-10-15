@@ -337,7 +337,9 @@ function ImageCard({ img, onDelete }: { img: ScrapedImage; onDelete: (id: string
 
         {/* Dimensions */}
         <div className="text-xs text-gray-500">
-          {img.width} × {img.height} • {(img.file_size / 1024).toFixed(0)} KB
+          {img.width} × {img.height}
+          {img.file_size > 0 && ` • ${(img.file_size / 1024).toFixed(0)} KB`}
+          {img.file_size === 0 && img.is_generated && ` • AI Generated`}
         </div>
 
         {/* Tags */}
