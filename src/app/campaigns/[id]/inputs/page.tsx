@@ -209,6 +209,19 @@ export default function CampaignInputsPage({ params }: CampaignInputsPageProps) 
         return acc;
       }, {} as Record<string, string>);
 
+      // Save salespage_url to campaign if provided
+      if (inputsData.salespage_url) {
+        try {
+          await api.updateCampaign(params.id, {
+            salespage_url: inputsData.salespage_url
+          });
+          console.log('✅ Saved salespage_url to campaign');
+        } catch (err) {
+          console.error('Failed to save salespage_url to campaign:', err);
+          // Continue anyway - not critical
+        }
+      }
+
       const analysisData = {
         campaign_id: params.id,
         scrape_images: true,  // NEW: Enable automatic product image scraping
