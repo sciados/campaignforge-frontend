@@ -24,6 +24,7 @@ interface ScrapedImage {
   is_lifestyle: boolean;
   times_used: number;
   alt_text?: string;
+  is_generated?: boolean; // Flag to identify AI-generated vs scraped images
 }
 
 export default function ProductImagesTab({ campaignId, salesPageUrl }: ProductImagesTabProps) {
@@ -38,14 +39,44 @@ export default function ProductImagesTab({ campaignId, salesPageUrl }: ProductIm
     try {
       setLoading(true);
       setError(null);
-      const imageType = filter === 'all' ? undefined : filter;
-      const response = await api.getScrapedImages(campaignId, imageType);
 
-      if (response.success) {
-        setImages(response.images || []);
-      } else {
-        setError(response.message || 'Failed to load images');
+      // Load both scraped images AND generated images
+      const [scrapedResponse, generatedContentResponse] = await Promise.all([
+        api.getScrapedImages(campaignId, filter === 'all' ? undefined : filter),
+        api.getContentList(campaignId, false)
+      ]);
+
+      let allImages: ScrapedImage[] = [];
+
+      // Add scraped images
+      if (scrapedResponse.success && scrapedResponse.images) {
+        allImages = scrapedResponse.images;
       }
+
+      // Add generated images (filter for image content type)
+      if (generatedContentResponse) {
+        const generatedImages = (generatedContentResponse.items || [])
+          .filter((item: any) => item.content_type === 'image' && (item.body || item.generated_content?.image_url))
+          .map((item: any) => ({
+            id: item.id,
+            cdn_url: item.body || item.generated_content?.image_url,
+            width: 1024, // Default dimensions for generated images
+            height: 1024,
+            file_size: 0, // Unknown for generated images
+            format: 'png',
+            quality_score: 100, // Generated images are high quality
+            is_hero: false,
+            is_product: true,
+            is_lifestyle: false,
+            times_used: 0,
+            alt_text: item.title || 'AI-generated marketing image',
+            is_generated: true // Flag to identify generated vs scraped
+          }));
+
+        allImages = [...allImages, ...generatedImages];
+      }
+
+      setImages(allImages);
     } catch (err: any) {
       console.error('Failed to load images:', err);
       setError(err.message || 'Failed to load images');
@@ -230,6 +261,11 @@ export default function ProductImagesTab({ campaignId, salesPageUrl }: ProductIm
 
                 {/* Tags */}
                 <div className="flex flex-wrap gap-1">
+                  {img.is_generated && (
+                    <span className="px-2 py-1 bg-indigo-100 text-indigo-700 text-xs rounded-full font-medium">
+                      AI Generated
+                    </span>
+                  )}
                   {img.is_hero && (
                     <span className="px-2 py-1 bg-purple-100 text-purple-700 text-xs rounded-full font-medium">
                       Hero
