@@ -33,7 +33,7 @@ export default function CampaignImagesPage({ params }: CampaignImagesPageProps) 
     };
 
     loadCampaign();
-  }, [params.id]);
+  }, [params.id, api]);
 
   if (loading) {
     return (

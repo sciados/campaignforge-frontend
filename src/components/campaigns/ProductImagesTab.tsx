@@ -1,7 +1,8 @@
 // src/components/campaigns/ProductImagesTab.tsx
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
+import Image from 'next/image';
 import { useApi } from '@/lib/api';
 import { Image as ImageIcon, Trash2, Download, RefreshCw, Loader2, AlertCircle } from 'lucide-react';
 
@@ -33,11 +34,7 @@ export default function ProductImagesTab({ campaignId, salesPageUrl }: ProductIm
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<'all' | 'hero' | 'product' | 'lifestyle'>('all');
 
-  useEffect(() => {
-    loadImages();
-  }, [campaignId, filter]);
-
-  const loadImages = async () => {
+  const loadImages = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -55,7 +52,11 @@ export default function ProductImagesTab({ campaignId, salesPageUrl }: ProductIm
     } finally {
       setLoading(false);
     }
-  };
+  }, [campaignId, filter, api]);
+
+  useEffect(() => {
+    loadImages();
+  }, [loadImages]);
 
   const handleScrape = async () => {
     if (!salesPageUrl) {
@@ -198,12 +199,13 @@ export default function ProductImagesTab({ campaignId, salesPageUrl }: ProductIm
           {images.map((img) => (
             <div key={img.id} className="border rounded-lg overflow-hidden hover:shadow-lg transition-shadow bg-white">
               {/* Image */}
-              <div className="aspect-square bg-gray-100 flex items-center justify-center">
-                <img
+              <div className="aspect-square bg-gray-100 flex items-center justify-center relative">
+                <Image
                   src={img.cdn_url}
                   alt={img.alt_text || 'Product image'}
-                  className="w-full h-full object-contain"
-                  loading="lazy"
+                  fill
+                  className="object-contain"
+                  sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                 />
               </div>
 

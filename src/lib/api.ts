@@ -1360,6 +1360,12 @@ export const useApi = () => {
     getCampaignIntelligence: apiClient.getCampaignIntelligence.bind(apiClient),
     getRecommendedPlatforms: apiClient.getRecommendedPlatforms.bind(apiClient),
 
+    // Product Image Scraper
+    scrapeProductImages: apiClient.scrapeProductImages.bind(apiClient),
+    getScrapedImages: apiClient.getScrapedImages.bind(apiClient),
+    deleteScrapedImage: apiClient.deleteScrapedImage.bind(apiClient),
+    analyzeProductImagesOnPage: apiClient.analyzeProductImagesOnPage.bind(apiClient),
+
     // Content Generation
     generateContent: apiClient.generateContent.bind(apiClient),
     getGeneratedContent: apiClient.getGeneratedContent.bind(apiClient),

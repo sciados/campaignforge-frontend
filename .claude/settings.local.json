@@ -59,7 +59,10 @@
       "WebFetch(domain:dynamicmockups.com)",
       "WebFetch(domain:docs.dynamicmockups.com)",
       "WebFetch(domain:ai.google.dev)",
-      "WebFetch(domain:www.alibabacloud.com)"
+      "WebFetch(domain:www.alibabacloud.com)",
+      "WebFetch(domain:docs.bfl.ml)",
+      "WebFetch(domain:build.envato.com)",
+      "Bash(railway login:*)"
     ],
     "deny": [],
     "ask": []
