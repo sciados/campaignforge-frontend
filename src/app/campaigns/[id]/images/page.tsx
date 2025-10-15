@@ -17,14 +17,23 @@ export default function CampaignImagesPage({ params }: CampaignImagesPageProps) 
   const router = useRouter();
   const api = useApi();
   const [campaign, setCampaign] = useState<any>(null);
+  const [intelligence, setIntelligence] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const loadCampaign = async () => {
+    const loadData = async () => {
       try {
         setLoading(true);
         const campaignData = await api.getCampaign(params.id);
         setCampaign(campaignData);
+
+        // Try to load intelligence data to get sales page URL
+        try {
+          const intelligenceData = await api.getCampaignIntelligence(params.id);
+          setIntelligence(intelligenceData);
+        } catch (err) {
+          console.log('No intelligence data found for campaign');
+        }
       } catch (error) {
         console.error('Failed to load campaign:', error);
       } finally {
@@ -32,7 +41,7 @@ export default function CampaignImagesPage({ params }: CampaignImagesPageProps) 
       }
     };
 
-    loadCampaign();
+    loadData();
   }, [params.id, api]);
 
   if (loading) {
@@ -86,7 +95,7 @@ export default function CampaignImagesPage({ params }: CampaignImagesPageProps) 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <ProductImagesTab
           campaignId={params.id}
-          salesPageUrl={campaign.salespage_url}
+          salesPageUrl={intelligence?.salespage_url || campaign.salespage_url}
         />
       </div>
     </div>
