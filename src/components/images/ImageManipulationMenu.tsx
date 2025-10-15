@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { Wand2, Scissors, Sparkles, Download, Loader2 } from 'lucide-react';
 import { useApi } from '@/lib/api';
 import MockupTemplateSelector from '@/components/mockups/MockupTemplateSelector';
@@ -22,6 +23,8 @@ export default function ImageManipulationMenu({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [processedImage, setProcessedImage] = useState<string | null>(null);
+  const [menuPosition, setMenuPosition] = useState({ top: 0, left: 0 });
+  const buttonRef = useRef<HTMLButtonElement>(null);
 
   const handleRemoveBackground = async () => {
     setLoading(true);
@@ -70,29 +73,48 @@ export default function ImageManipulationMenu({
     document.body.removeChild(link);
   };
 
+  // Calculate menu position when opened
+  useEffect(() => {
+    if (isOpen && buttonRef.current) {
+      const rect = buttonRef.current.getBoundingClientRect();
+      setMenuPosition({
+        top: rect.bottom + 8, // 8px below button
+        left: rect.right - 256 // Align right edge of menu with button (menu is 256px wide)
+      });
+    }
+  }, [isOpen]);
+
   return (
     <>
       <div className="relative inline-block">
         {/* Main Button */}
         <button
+          ref={buttonRef}
           onClick={() => setIsOpen(!isOpen)}
           className="px-3 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors flex items-center gap-2 text-sm font-medium"
         >
           <Wand2 className="w-4 h-4" />
           <span>Edit</span>
         </button>
+      </div>
 
-        {/* Dropdown Menu */}
-        {isOpen && (
-          <>
-            {/* Backdrop */}
-            <div
-              className="fixed inset-0 z-10"
-              onClick={() => setIsOpen(false)}
-            />
+      {/* Dropdown Menu - Rendered via Portal */}
+      {isOpen && typeof window !== 'undefined' && createPortal(
+        <>
+          {/* Backdrop */}
+          <div
+            className="fixed inset-0 z-40"
+            onClick={() => setIsOpen(false)}
+          />
 
-            {/* Menu */}
-            <div className="absolute right-0 mt-2 w-64 bg-white rounded-lg shadow-xl border border-gray-200 z-20 overflow-hidden">
+          {/* Menu */}
+          <div
+            className="fixed w-64 bg-white rounded-lg shadow-xl border border-gray-200 z-50 overflow-hidden"
+            style={{
+              top: `${menuPosition.top}px`,
+              left: `${menuPosition.left}px`
+            }}
+          >
               {/* Error Display */}
               {error && (
                 <div className="px-4 py-2 bg-red-50 text-red-700 text-xs border-b border-red-200">
@@ -171,9 +193,9 @@ export default function ImageManipulationMenu({
                 </p>
               </div>
             </div>
-          </>
-        )}
-      </div>
+          </>,
+        document.body
+      )}
 
       {/* Mockup Template Selector Modal */}
       {mockupModalOpen && (
