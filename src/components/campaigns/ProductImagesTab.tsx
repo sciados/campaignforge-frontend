@@ -40,45 +40,56 @@ export default function ProductImagesTab({ campaignId, salesPageUrl }: ProductIm
       setLoading(true);
       setError(null);
 
-      // Load both scraped images AND generated images
-      const [scrapedResponse, generatedContentResponse] = await Promise.all([
-        api.getScrapedImages(campaignId, filter === 'all' ? undefined : filter),
-        api.getContentList(campaignId, false)
-      ]);
-
       let allImages: ScrapedImage[] = [];
 
-      // Add scraped images
-      if (scrapedResponse.success && scrapedResponse.images) {
-        allImages = scrapedResponse.images;
+      // Load scraped images (handle failure gracefully)
+      try {
+        const scrapedResponse = await api.getScrapedImages(campaignId, filter === 'all' ? undefined : filter);
+        if (scrapedResponse?.success && scrapedResponse?.images) {
+          allImages = scrapedResponse.images;
+        }
+      } catch (scrapedErr: any) {
+        console.warn('Failed to load scraped images (may not be implemented yet):', scrapedErr);
+        // Continue - we'll try to load generated images
       }
 
-      // Add generated images (filter for image content type)
-      if (generatedContentResponse) {
-        const generatedImages = (generatedContentResponse.items || [])
-          .filter((item: any) => item.content_type === 'image' && (item.body || item.generated_content?.image_url))
-          .map((item: any) => ({
-            id: item.id,
-            cdn_url: item.body || item.generated_content?.image_url,
-            width: 1024, // Default dimensions for generated images
-            height: 1024,
-            file_size: 0, // Unknown for generated images
-            format: 'png',
-            quality_score: 100, // Generated images are high quality
-            is_hero: false,
-            is_product: true,
-            is_lifestyle: false,
-            times_used: 0,
-            alt_text: item.title || 'AI-generated marketing image',
-            is_generated: true // Flag to identify generated vs scraped
-          }));
+      // Load generated images (handle failure gracefully)
+      try {
+        const generatedContentResponse = await api.getContentList(campaignId, false);
+        if (generatedContentResponse) {
+          const generatedImages = (generatedContentResponse.items || [])
+            .filter((item: any) => item.content_type === 'image' && (item.body || item.generated_content?.image_url))
+            .map((item: any) => ({
+              id: item.id,
+              cdn_url: item.body || item.generated_content?.image_url,
+              width: 1024, // Default dimensions for generated images
+              height: 1024,
+              file_size: 0, // Unknown for generated images
+              format: 'png',
+              quality_score: 100, // Generated images are high quality
+              is_hero: false,
+              is_product: true,
+              is_lifestyle: false,
+              times_used: 0,
+              alt_text: item.title || 'AI-generated marketing image',
+              is_generated: true // Flag to identify generated vs scraped
+            }));
 
-        allImages = [...allImages, ...generatedImages];
+          allImages = [...allImages, ...generatedImages];
+        }
+      } catch (genErr: any) {
+        console.warn('Failed to load generated images:', genErr);
+        // Continue - we'll show whatever images we have
       }
 
       setImages(allImages);
+
+      // Only set error if we have no images at all
+      if (allImages.length === 0) {
+        setError('No images available. Try generating or scraping images for this campaign.');
+      }
     } catch (err: any) {
-      console.error('Failed to load images:', err);
+      console.error('Unexpected error loading images:', err);
       setError(err.message || 'Failed to load images');
     } finally {
       setLoading(false);
