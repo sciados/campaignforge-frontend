@@ -1106,6 +1106,75 @@ export class ApiClient {
   }
 
   // ============================================================================
+  // Product Image Scraper
+  // ============================================================================
+
+  /**
+   * Scrape product images from sales page
+   * Saves images to R2 storage and database
+   */
+  async scrapeProductImages(data: {
+    campaign_id: string
+    sales_page_url: string
+    max_images?: number
+  }): Promise<any> {
+    const response = await fetch(`${this.baseURL}/api/intelligence/product-images/scrape`, {
+      method: 'POST',
+      headers: this.getHeaders(),
+      body: JSON.stringify(data)
+    })
+
+    return this.handleResponse(response)
+  }
+
+  /**
+   * Get scraped images for a campaign
+   * Optional filter by type: hero, product, lifestyle
+   */
+  async getScrapedImages(
+    campaignId: string,
+    imageType?: 'hero' | 'product' | 'lifestyle'
+  ): Promise<any> {
+    const params = imageType ? `?image_type=${imageType}` : ''
+    const response = await fetch(
+      `${this.baseURL}/api/intelligence/product-images/${campaignId}${params}`,
+      {
+        headers: this.getHeaders()
+      }
+    )
+
+    return this.handleResponse(response)
+  }
+
+  /**
+   * Delete a scraped image
+   */
+  async deleteScrapedImage(campaignId: string, imageId: string): Promise<any> {
+    const response = await fetch(
+      `${this.baseURL}/api/intelligence/product-images/${campaignId}/${imageId}`,
+      {
+        method: 'DELETE',
+        headers: this.getHeaders()
+      }
+    )
+
+    return this.handleResponse(response)
+  }
+
+  /**
+   * Analyze images on page without saving (preview mode)
+   */
+  async analyzeProductImagesOnPage(url: string): Promise<any> {
+    const response = await fetch(`${this.baseURL}/api/intelligence/product-images/analyze-url`, {
+      method: 'POST',
+      headers: this.getHeaders(),
+      body: JSON.stringify({ url })
+    })
+
+    return this.handleResponse(response)
+  }
+
+  // ============================================================================
   // Content Generation
   // ============================================================================
 

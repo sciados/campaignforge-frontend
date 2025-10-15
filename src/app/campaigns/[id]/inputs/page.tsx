@@ -211,12 +211,15 @@ export default function CampaignInputsPage({ params }: CampaignInputsPageProps) 
 
       const analysisData = {
         campaign_id: params.id,
+        scrape_images: true,  // NEW: Enable automatic product image scraping
         ...inputsData  // Flatten inputs to top level
       };
 
       console.log('🚀 Starting intelligence analysis with inputs:', analysisData);
+      console.log('🖼️  Automatic product image scraping enabled');
 
       // Step 2: Run intelligence analysis (now async)
+      // This will automatically scrape product images in the background!
       const analysisResponse = await api.runIntelligenceAnalysis(analysisData);
 
       if (!analysisResponse.success) {
