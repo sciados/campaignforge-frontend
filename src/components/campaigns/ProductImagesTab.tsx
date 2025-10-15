@@ -55,13 +55,26 @@ export default function ProductImagesTab({ campaignId, salesPageUrl }: ProductIm
 
       // Load generated images (handle failure gracefully)
       try {
-        const generatedContentResponse = await api.getContentList(campaignId, false);
+        const generatedContentResponse = await api.getGeneratedContent(campaignId);
+        console.log('Generated content response:', generatedContentResponse);
+
         if (generatedContentResponse) {
-          const generatedImages = (generatedContentResponse.items || [])
-            .filter((item: any) => item.content_type === 'image' && (item.body || item.generated_content?.image_url))
+          // Handle different response formats
+          let contentItems = [];
+
+          if (Array.isArray(generatedContentResponse)) {
+            contentItems = generatedContentResponse;
+          } else if (generatedContentResponse.content && Array.isArray(generatedContentResponse.content)) {
+            contentItems = generatedContentResponse.content;
+          } else if (generatedContentResponse.data?.content && Array.isArray(generatedContentResponse.data.content)) {
+            contentItems = generatedContentResponse.data.content;
+          }
+
+          const generatedImages = contentItems
+            .filter((item: any) => item.content_type === 'image' && (item.content_body || item.body || item.generated_content?.image_url))
             .map((item: any) => ({
-              id: item.id,
-              cdn_url: item.body || item.generated_content?.image_url,
+              id: item.id || item.content_id,
+              cdn_url: item.content_body || item.body || item.generated_content?.image_url,
               width: 1024, // Default dimensions for generated images
               height: 1024,
               file_size: 0, // Unknown for generated images
@@ -71,11 +84,12 @@ export default function ProductImagesTab({ campaignId, salesPageUrl }: ProductIm
               is_product: true,
               is_lifestyle: false,
               times_used: 0,
-              alt_text: item.title || 'AI-generated marketing image',
+              alt_text: item.content_title || item.title || 'AI-generated marketing image',
               is_generated: true // Flag to identify generated vs scraped
             }));
 
           allImages = [...allImages, ...generatedImages];
+          console.log('Mapped generated images:', generatedImages.length);
         }
       } catch (genErr: any) {
         console.warn('Failed to load generated images:', genErr);
