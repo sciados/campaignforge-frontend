@@ -139,9 +139,9 @@ export default function ProductImagesTab({ campaignId, salesPageUrl }: ProductIm
       {/* Header */}
       <div className="flex justify-between items-start">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">Product Images</h2>
+          <h2 className="text-2xl font-bold text-gray-900">Campaign Images</h2>
           <p className="text-gray-600 mt-1">
-            Images extracted from your sales page for use in content generation
+            AI-generated and scraped product images for your campaign
           </p>
         </div>
 
