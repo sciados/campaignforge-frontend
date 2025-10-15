@@ -462,14 +462,23 @@ export default function CampaignDetailPage({
           <div className="bg-white rounded-xl border border-gray-200 p-6">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-semibold text-gray-900">Content Library</h2>
-              <button
-                onClick={() => setShowGenerationModal(true)}
-                disabled={!stats?.analysis_complete}
-                className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors inline-flex items-center space-x-2 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <Sparkles className="h-4 w-4" />
-                <span>Generate More</span>
-              </button>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => router.push(`/campaigns/${params.id}/images`)}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors inline-flex items-center space-x-2 text-sm"
+                >
+                  <Image className="h-4 w-4" />
+                  <span>View Images</span>
+                </button>
+                <button
+                  onClick={() => setShowGenerationModal(true)}
+                  disabled={!stats?.analysis_complete}
+                  className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors inline-flex items-center space-x-2 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <Sparkles className="h-4 w-4" />
+                  <span>Generate More</span>
+                </button>
+              </div>
             </div>
             <p className="text-gray-600 mb-6">Click on any content type icon to view your generated content:</p>
 

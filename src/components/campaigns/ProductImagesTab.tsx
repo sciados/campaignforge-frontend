@@ -4,7 +4,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import Image from 'next/image';
 import { useApi } from '@/lib/api';
-import { Image as ImageIcon, Trash2, Download, RefreshCw, Loader2, AlertCircle } from 'lucide-react';
+import { Image as ImageIcon, Trash2, Download, RefreshCw, Loader2, AlertCircle, Sparkles } from 'lucide-react';
 
 interface ProductImagesTabProps {
   campaignId: string;
@@ -262,92 +262,36 @@ export default function ProductImagesTab({ campaignId, salesPageUrl }: ProductIm
           </p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {images.map((img) => (
-            <div key={img.id} className="border rounded-lg overflow-hidden hover:shadow-lg transition-shadow bg-white">
-              {/* Image */}
-              <div className="aspect-square bg-gray-100 flex items-center justify-center relative">
-                <Image
-                  src={img.cdn_url}
-                  alt={img.alt_text || 'Product image'}
-                  fill
-                  className="object-contain"
-                  sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                />
-              </div>
-
-              {/* Metadata */}
-              <div className="p-4 space-y-3">
-                {/* Quality Score */}
-                <div className="flex justify-between items-center">
-                  <span className="text-sm font-medium text-gray-700">Quality</span>
-                  <span className={`text-lg font-bold ${
-                    img.quality_score >= 80 ? 'text-green-600' :
-                    img.quality_score >= 60 ? 'text-yellow-600' :
-                    'text-orange-600'
-                  }`}>
-                    {img.quality_score.toFixed(0)}
-                  </span>
-                </div>
-
-                {/* Dimensions */}
-                <div className="text-xs text-gray-500">
-                  {img.width} × {img.height} • {(img.file_size / 1024).toFixed(0)} KB
-                </div>
-
-                {/* Tags */}
-                <div className="flex flex-wrap gap-1">
-                  {img.is_generated && (
-                    <span className="px-2 py-1 bg-indigo-100 text-indigo-700 text-xs rounded-full font-medium">
-                      AI Generated
-                    </span>
-                  )}
-                  {img.is_hero && (
-                    <span className="px-2 py-1 bg-purple-100 text-purple-700 text-xs rounded-full font-medium">
-                      Hero
-                    </span>
-                  )}
-                  {img.is_product && (
-                    <span className="px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded-full font-medium">
-                      Product
-                    </span>
-                  )}
-                  {img.is_lifestyle && (
-                    <span className="px-2 py-1 bg-green-100 text-green-700 text-xs rounded-full font-medium">
-                      Lifestyle
-                    </span>
-                  )}
-                </div>
-
-                {/* Usage */}
-                {img.times_used > 0 && (
-                  <div className="text-xs text-gray-500">
-                    Used {img.times_used} time{img.times_used !== 1 ? 's' : ''}
-                  </div>
-                )}
-
-                {/* Actions */}
-                <div className="flex gap-2 pt-2">
-                  <a
-                    href={img.cdn_url}
-                    download
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex-1 px-3 py-2 bg-gray-100 text-gray-700 text-sm rounded-lg hover:bg-gray-200 text-center transition-colors"
-                  >
-                    <Download className="inline w-3 h-3 mr-1" />
-                    Download
-                  </a>
-                  <button
-                    onClick={() => handleDelete(img.id)}
-                    className="px-3 py-2 bg-red-50 text-red-700 text-sm rounded-lg hover:bg-red-100 transition-colors"
-                  >
-                    <Trash2 className="inline w-3 h-3" />
-                  </button>
-                </div>
+        <div className="space-y-8">
+          {/* AI-Generated Images Section */}
+          {images.some(img => img.is_generated) && (
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                <Sparkles className="w-5 h-5 text-indigo-600" />
+                AI-Generated Images ({images.filter(img => img.is_generated).length})
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                {images.filter(img => img.is_generated).map((img) => (
+                  <ImageCard key={img.id} img={img} onDelete={handleDelete} />
+                ))}
               </div>
             </div>
-          ))}
+          )}
+
+          {/* Scraped Images Section */}
+          {images.some(img => !img.is_generated) && (
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                <ImageIcon className="w-5 h-5 text-blue-600" />
+                Scraped Images ({images.filter(img => !img.is_generated).length})
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                {images.filter(img => !img.is_generated).map((img) => (
+                  <ImageCard key={img.id} img={img} onDelete={handleDelete} />
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       )}
 
@@ -355,8 +299,98 @@ export default function ProductImagesTab({ campaignId, salesPageUrl }: ProductIm
       {!loading && images.length > 0 && (
         <div className="text-center text-sm text-gray-600">
           Showing {images.length} image{images.length !== 1 ? 's' : ''}
+          {' '}({images.filter(img => img.is_generated).length} generated, {images.filter(img => !img.is_generated).length} scraped)
         </div>
       )}
+    </div>
+  );
+}
+
+// Image Card Component
+function ImageCard({ img, onDelete }: { img: ScrapedImage; onDelete: (id: string) => void }) {
+  return (
+    <div className="border rounded-lg overflow-hidden hover:shadow-lg transition-shadow bg-white">
+      {/* Image */}
+      <div className="aspect-square bg-gray-100 flex items-center justify-center relative">
+        <Image
+          src={img.cdn_url}
+          alt={img.alt_text || 'Product image'}
+          fill
+          className="object-contain"
+          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+        />
+      </div>
+
+      {/* Metadata */}
+      <div className="p-4 space-y-3">
+        {/* Quality Score */}
+        <div className="flex justify-between items-center">
+          <span className="text-sm font-medium text-gray-700">Quality</span>
+          <span className={`text-lg font-bold ${
+            img.quality_score >= 80 ? 'text-green-600' :
+            img.quality_score >= 60 ? 'text-yellow-600' :
+            'text-orange-600'
+          }`}>
+            {img.quality_score.toFixed(0)}
+          </span>
+        </div>
+
+        {/* Dimensions */}
+        <div className="text-xs text-gray-500">
+          {img.width} × {img.height} • {(img.file_size / 1024).toFixed(0)} KB
+        </div>
+
+        {/* Tags */}
+        <div className="flex flex-wrap gap-1">
+          {img.is_generated && (
+            <span className="px-2 py-1 bg-indigo-100 text-indigo-700 text-xs rounded-full font-medium">
+              AI Generated
+            </span>
+          )}
+          {img.is_hero && (
+            <span className="px-2 py-1 bg-purple-100 text-purple-700 text-xs rounded-full font-medium">
+              Hero
+            </span>
+          )}
+          {img.is_product && (
+            <span className="px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded-full font-medium">
+              Product
+            </span>
+          )}
+          {img.is_lifestyle && (
+            <span className="px-2 py-1 bg-green-100 text-green-700 text-xs rounded-full font-medium">
+              Lifestyle
+            </span>
+          )}
+        </div>
+
+        {/* Usage */}
+        {img.times_used > 0 && (
+          <div className="text-xs text-gray-500">
+            Used {img.times_used} time{img.times_used !== 1 ? 's' : ''}
+          </div>
+        )}
+
+        {/* Actions */}
+        <div className="flex gap-2 pt-2">
+          <a
+            href={img.cdn_url}
+            download
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex-1 px-3 py-2 bg-gray-100 text-gray-700 text-sm rounded-lg hover:bg-gray-200 text-center transition-colors"
+          >
+            <Download className="inline w-3 h-3 mr-1" />
+            Download
+          </a>
+          <button
+            onClick={() => onDelete(img.id)}
+            className="px-3 py-2 bg-red-50 text-red-700 text-sm rounded-lg hover:bg-red-100 transition-colors"
+          >
+            <Trash2 className="inline w-3 h-3" />
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
