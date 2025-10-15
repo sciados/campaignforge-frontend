@@ -323,9 +323,9 @@ function ImageCard({ img, onDelete }: { img: ScrapedImage; onDelete: (id: string
 
       {/* Metadata */}
       <div className="p-4 space-y-3">
-        {/* Quality Score */}
+        {/* Marketing Relevancy Score */}
         <div className="flex justify-between items-center">
-          <span className="text-sm font-medium text-gray-700">Quality</span>
+          <span className="text-sm font-medium text-gray-700">Marketing Relevancy</span>
           <span className={`text-lg font-bold ${
             img.quality_score >= 80 ? 'text-green-600' :
             img.quality_score >= 60 ? 'text-yellow-600' :
