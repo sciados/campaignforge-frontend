@@ -45,11 +45,22 @@ export default function ProductImagesTab({ campaignId, salesPageUrl }: ProductIm
       // Load scraped images (handle failure gracefully)
       try {
         const scrapedResponse = await api.getScrapedImages(campaignId, filter === 'all' ? undefined : filter);
-        if (scrapedResponse?.success && scrapedResponse?.images) {
-          allImages = scrapedResponse.images;
+        console.log('🖼️  Scraped images API response:', JSON.stringify(scrapedResponse, null, 2));
+
+        if (scrapedResponse?.success) {
+          if (scrapedResponse.images && Array.isArray(scrapedResponse.images)) {
+            console.log(`✅ Loaded ${scrapedResponse.images.length} scraped images`);
+            console.log('First scraped image:', scrapedResponse.images[0]);
+            allImages = scrapedResponse.images;
+          } else {
+            console.warn('⚠️  Scraped images response has success=true but no images array:', scrapedResponse);
+          }
+        } else {
+          console.warn('⚠️  Scraped images response missing success flag or success=false:', scrapedResponse);
         }
       } catch (scrapedErr: any) {
-        console.warn('Failed to load scraped images (may not be implemented yet):', scrapedErr);
+        console.error('❌ Failed to load scraped images:', scrapedErr);
+        console.error('Error details:', scrapedErr.message, scrapedErr.stack);
         // Continue - we'll try to load generated images
       }
 
