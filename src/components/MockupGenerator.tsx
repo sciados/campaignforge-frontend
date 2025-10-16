@@ -1,4 +1,3 @@
-// --- frontend/components/MockupGenerator.tsx ---
 "use client";
 
 import React, { useState } from "react";
@@ -9,17 +8,17 @@ export default function MockupGenerator() {
   const [template, setTemplate] = useState("blank_book");
   const [resultUrl, setResultUrl] = useState("");
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState("");
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      setProductImage(e.target.files[0]);
-    }
+    if (e.target.files) setProductImage(e.target.files[0]);
   };
 
   const handleGenerate = async () => {
+    setError("");
+
     if (!productImage) {
-      setError("Please upload a product image first.");
+      setError("Please upload a product image.");
       return;
     }
 
@@ -29,15 +28,14 @@ export default function MockupGenerator() {
       return;
     }
 
-    setLoading(true);
-    setError(null);
-
     try {
+      setLoading(true);
+
       const formData = new FormData();
       formData.append("product_image", productImage);
       formData.append("template_name", template);
 
-      const res = await fetch("/api/mockups/", {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/mockups/`, {
         method: "POST",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -46,66 +44,63 @@ export default function MockupGenerator() {
       });
 
       if (!res.ok) {
-        const err = await res.text();
-        throw new Error(err || "Mockup generation failed");
+        const errorData = await res.json();
+        throw new Error(errorData.detail || "Mockup generation failed");
       }
 
       const data = await res.json();
       setResultUrl(data.final_image_url);
     } catch (err: any) {
-      console.error("Mockup generation error:", err);
-      setError(err.message || "Something went wrong while generating mockup.");
+      setError(err.message || "An error occurred while generating the mockup.");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="p-4 bg-white shadow rounded-lg max-w-md mx-auto">
-      <h2 className="text-lg font-semibold mb-4">🎨 Generate Product Mockup</h2>
+    <div className="bg-white shadow-md rounded-xl p-6 max-w-lg mx-auto text-center">
+      <h2 className="text-xl font-semibold mb-4">Create a Product Mockup</h2>
 
-      <div className="space-y-3">
-        <select
-          value={template}
-          onChange={(e) => setTemplate(e.target.value)}
-          className="border p-2 w-full rounded"
-        >
-          <option value="blank_book">📘 Book</option>
-          <option value="blank_bottle">🥤 Bottle</option>
-          <option value="blank_box">📦 Box</option>
-        </select>
-
+      <div className="space-y-4">
         <input
           type="file"
           accept="image/*"
           onChange={handleFileChange}
-          className="border p-2 w-full rounded"
+          className="block w-full text-sm text-gray-600"
         />
+
+        <select
+          value={template}
+          onChange={(e) => setTemplate(e.target.value)}
+          className="border p-2 rounded w-full"
+        >
+          <option value="blank_book">Book Cover</option>
+          <option value="blank_bottle">Supplement Bottle</option>
+          <option value="blank_box">Product Box</option>
+        </select>
 
         <button
           onClick={handleGenerate}
           disabled={loading}
-          className={`w-full px-4 py-2 text-white rounded ${
-            loading ? "bg-gray-400" : "bg-blue-600 hover:bg-blue-700"
-          }`}
+          className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded w-full transition"
         >
           {loading ? "Generating..." : "Generate Mockup"}
         </button>
 
-        {error && <p className="text-red-600 text-sm mt-2">{error}</p>}
-
-        {resultUrl && (
-          <div className="mt-6 w-full h-64 relative border rounded-lg overflow-hidden">
-            <Image
-              src={resultUrl}
-              alt="Generated Mockup"
-              fill
-              className="object-contain"
-              unoptimized
-            />
-          </div>
-        )}
+        {error && <p className="text-red-500 text-sm">{error}</p>}
       </div>
+
+      {resultUrl && (
+        <div className="mt-6 relative w-full h-64 border rounded overflow-hidden">
+          <Image
+            src={resultUrl}
+            alt="Generated Mockup"
+            fill
+            className="object-contain"
+            unoptimized
+          />
+        </div>
+      )}
     </div>
   );
 }
