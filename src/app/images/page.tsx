@@ -18,7 +18,6 @@ import {
 } from "lucide-react";
 import { useApi } from "@/lib/api";
 import Image from "next/image";
-import MockupTemplateSelector from "@/components/mockups/MockupTemplateSelector";
 
 interface ImageContent {
   content_id: string;
@@ -51,9 +50,10 @@ export default function ImagesGalleryPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCampaign, setSelectedCampaign] = useState<string>("all");
   const [sortBy, setSortBy] = useState<"date" | "campaign" | "cost">("date");
-  const [mockupSelectorOpen, setMockupSelectorOpen] = useState(false);
-  const [selectedImageForMockup, setSelectedImageForMockup] = useState<ImageContent | null>(null);
-  const [generatingVariation, setGeneratingVariation] = useState<string | null>(null);
+  const [generatingVariation, setGeneratingVariation] = useState<string | null>(
+    null
+  );
+  const [failedImages, setFailedImages] = useState<Record<string, boolean>>({});
 
   // Load all campaigns and their images
   useEffect(() => {
@@ -76,7 +76,10 @@ export default function ImagesGalleryPage() {
 
             // Parse response
             let contentList: any[] = [];
-            if (contentResponse?.content && Array.isArray(contentResponse.content)) {
+            if (
+              contentResponse?.content &&
+              Array.isArray(contentResponse.content)
+            ) {
               contentList = contentResponse.content;
             } else if (Array.isArray(contentResponse)) {
               contentList = contentResponse;
@@ -84,7 +87,7 @@ export default function ImagesGalleryPage() {
 
             // Filter for images only
             const imageContent = contentList
-              .filter((item: any) => item.content_type === 'image')
+              .filter((item: any) => item.content_type === "image")
               .map((item: any) => ({
                 content_id: item.id || item.content_id,
                 campaign_id: campaign.id,
@@ -97,7 +100,10 @@ export default function ImagesGalleryPage() {
 
             allImages.push(...imageContent);
           } catch (err) {
-            console.error(`Failed to load content for campaign ${campaign.id}:`, err);
+            console.error(
+              `Failed to load content for campaign ${campaign.id}:`,
+              err
+            );
           }
         }
 
@@ -111,46 +117,34 @@ export default function ImagesGalleryPage() {
     };
 
     loadData();
-  }, []);
-
-  // Handle opening mockup selector
-  const handleCreateMockup = (e: React.MouseEvent, image: ImageContent) => {
-    e.stopPropagation();
-    setSelectedImageForMockup(image);
-    setMockupSelectorOpen(true);
-  };
-
-  // Handle mockup generated successfully
-  const handleMockupGenerated = (mockupUrl: string, cost: number) => {
-    console.log('Mockup generated:', mockupUrl, 'Cost:', cost);
-    // Optionally refresh images or show success message
-    setMockupSelectorOpen(false);
-    setSelectedImageForMockup(null);
-  };
+  }, [api]);
 
   // Handle creating variation
-  const handleCreateVariation = async (e: React.MouseEvent, image: ImageContent) => {
+  const handleCreateVariation = async (
+    e: React.MouseEvent,
+    image: ImageContent
+  ) => {
     e.stopPropagation();
 
     setGeneratingVariation(image.content_id);
 
     try {
-      const response = await api.post('/api/content/variations/generate', {
+      const response = await api.post("/api/content/variations/generate", {
         source_image_url: image.content_body,
-        variation_strength: 0.3,  // Subtle variation
-        provider: 'dall-e'
+        variation_strength: 0.3, // Subtle variation
+        provider: "dall-e",
       });
 
       if (response.data.success) {
-        console.log('Variation generated:', response.data.variation_url);
+        console.log("Variation generated:", response.data.variation_url);
         // Refresh images to show new variation
         window.location.reload();
       } else {
-        setError('Failed to generate variation');
+        setError("Failed to generate variation");
       }
     } catch (err) {
-      console.error('Variation error:', err);
-      setError('Failed to generate variation');
+      console.error("Variation error:", err);
+      setError("Failed to generate variation");
     } finally {
       setGeneratingVariation(null);
     }
@@ -179,17 +173,24 @@ export default function ImagesGalleryPage() {
     .sort((a, b) => {
       switch (sortBy) {
         case "date":
-          return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+          return (
+            new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+          );
         case "campaign":
           return (a.campaign_title || "").localeCompare(b.campaign_title || "");
         case "cost":
-          return (b.content_metadata?.cost || 0) - (a.content_metadata?.cost || 0);
+          return (
+            (b.content_metadata?.cost || 0) - (a.content_metadata?.cost || 0)
+          );
         default:
           return 0;
       }
     });
 
-  const totalCost = images.reduce((sum, img) => sum + (img.content_metadata?.cost || 0), 0);
+  const totalCost = images.reduce(
+    (sum, img) => sum + (img.content_metadata?.cost || 0),
+    0
+  );
 
   if (isLoading) {
     return (
@@ -294,20 +295,26 @@ export default function ImagesGalleryPage() {
               <div
                 key={image.content_id}
                 className="bg-white rounded-xl border border-gray-200 overflow-hidden hover:shadow-lg transition-shadow cursor-pointer"
-                onClick={() => router.push(`/campaigns/${image.campaign_id}/content/${image.content_id}`)}
+                onClick={() =>
+                  router.push(
+                    `/campaigns/${image.campaign_id}/content/${image.content_id}`
+                  )
+                }
               >
-                {/* Image */}
                 <div className="relative aspect-square bg-gray-100">
-                  {image.content_body ? (
-                    // Use regular img tag to bypass Next.js Image optimization issues
-                    <img
+                  {image.content_body && !failedImages[image.content_id] ? (
+                    <Image
                       src={image.content_body}
                       alt={image.content_title}
-                      className="w-full h-full object-cover"
-                      onError={(e) => {
+                      fill
+                      sizes="(max-width: 1024px) 100vw, 33vw"
+                      className="object-cover"
+                      onError={() => {
                         console.error("Image load error:", image.content_body);
-                        e.currentTarget.style.display = 'none';
-                        e.currentTarget.parentElement?.classList.add('flex', 'items-center', 'justify-center');
+                        setFailedImages((prev) => ({
+                          ...prev,
+                          [image.content_id]: true,
+                        }));
                       }}
                     />
                   ) : (
@@ -315,7 +322,7 @@ export default function ImagesGalleryPage() {
                       <ImageIcon className="h-12 w-12 text-gray-300" />
                     </div>
                   )}
-
+                  ){"}"}
                   {/* R2 Status Badge */}
                   {image.content_metadata?.r2_uploaded && (
                     <div className="absolute top-2 right-2 bg-green-500 text-white text-xs px-2 py-1 rounded-full flex items-center space-x-1">
@@ -338,7 +345,9 @@ export default function ImagesGalleryPage() {
                     {image.content_metadata?.provider && (
                       <div className="flex items-center space-x-1 text-gray-600">
                         <Sparkles className="h-3 w-3" />
-                        <span className="capitalize">{image.content_metadata.provider}</span>
+                        <span className="capitalize">
+                          {image.content_metadata.provider}
+                        </span>
                       </div>
                     )}
                     {image.content_metadata?.cost !== undefined && (
@@ -371,17 +380,12 @@ export default function ImagesGalleryPage() {
                           <Copy className="h-4 w-4" />
                         )}
                       </button>
-                      <button
-                        onClick={(e) => handleCreateMockup(e, image)}
-                        className="text-gray-400 hover:text-blue-600 transition-colors"
-                        title="Create Professional Mockup"
-                      >
-                        <Wand2 className="h-4 w-4" />
-                      </button>
+                      <Wand2 className="h-4 w-4" />
+
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
-                          window.open(image.content_body, '_blank');
+                          window.open(image.content_body, "_blank");
                         }}
                         className="text-gray-400 hover:text-purple-600 transition-colors"
                       >
@@ -396,7 +400,9 @@ export default function ImagesGalleryPage() {
         ) : (
           <div className="bg-white rounded-xl border border-gray-200 p-12 text-center">
             <ImageIcon className="h-16 w-16 text-gray-300 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">No images found</h3>
+            <h3 className="text-lg font-medium text-gray-900 mb-2">
+              No images found
+            </h3>
             <p className="text-gray-600 mb-6">
               {searchQuery || selectedCampaign !== "all"
                 ? "Try adjusting your filters"
@@ -411,18 +417,6 @@ export default function ImagesGalleryPage() {
           </div>
         )}
       </div>
-
-      {/* Mockup Template Selector Modal */}
-      {mockupSelectorOpen && selectedImageForMockup && (
-        <MockupTemplateSelector
-          imageUrl={selectedImageForMockup.content_body}
-          onMockupGenerated={handleMockupGenerated}
-          onClose={() => {
-            setMockupSelectorOpen(false);
-            setSelectedImageForMockup(null);
-          }}
-        />
-      )}
     </div>
   );
 }
