@@ -1,7 +1,9 @@
 // --- frontend/components/MockupGenerator.tsx ---
+"use client";
 
 import React, { useState } from "react";
 import Image from "next/image";
+const storedUser = localStorage.getItem("userProfile");
 
 export default function MockupGenerator() {
   const [productImage, setProductImage] = useState<File | null>(null);
@@ -17,8 +19,10 @@ export default function MockupGenerator() {
     const formData = new FormData();
     formData.append("product_image", productImage);
     formData.append("template_name", template);
-    formData.append("user_id", "00000000-0000-0000-0000-000000000000"); // replace with actual user UUID
-
+    if (storedUser) {
+      const user = JSON.parse(storedUser);
+      formData.append("user_id", user.id); // assuming user.id is UUID
+    }
     const res = await fetch("/api/mockups/", {
       method: "POST",
       body: formData,
