@@ -1292,54 +1292,26 @@ export class ApiClient {
 
     return this.handleResponse(response)
   }
-}
 
-// ============================================================================
-// Mockups Instance & Hook
-// ============================================================================
+  // ============================================================================
+  // Mockup Creation System
+  // ============================================================================
+  async fetchMockupTemplates() {
+    return this.get("/api/mockups/templates");
+  }
 
-export async function fetchMockupTemplates() {
-  const res = await fetch('/api/mockups/templates');
-  if (!res.ok) throw new Error('Failed to fetch templates');
-  return res.json() as Promise<{ name: string; url: string }[]>;
-}
-
-export async function createMockup(userId: string, templateName: string, productImageUrl: string) {
-  const res = await fetch('/api/mockups/', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
+  async createMockup(userId: string, templateName: string, productImageUrl: string) {
+    return this.post("/api/mockups/", {
       user_id: userId,
       template_name: templateName,
       product_image_url: productImageUrl,
-    }),
-  });
-  if (!res.ok) throw new Error('Failed to create mockup');
-  return res.json() as Promise<{
-    id: string;
-    user_id: string;
-    template_name: string;
-    product_image_url: string;
-    final_image_url: string;
-  }>;
+    });
+  }
+
+  async fetchUserMockups(userId: string) {
+    return this.get(`/api/mockups/user/${userId}`);
+  }
 }
-
-export async function fetchUserMockups(userId: string) {
-  const res = await fetch(`/api/mockups/user/${userId}`);
-  if (!res.ok) throw new Error('Failed to fetch user mockups');
-  return res.json() as Promise<Array<{
-    id: string;
-    user_id: string;
-    template_name: string;
-    product_image_url: string;
-    final_image_url: string;
-    created_at: string;
-  }>>;
-}
-
-
 
 // ============================================================================
 // Singleton Instance & Hook
@@ -1424,6 +1396,11 @@ export const useApi = () => {
     createDemoManually: apiClient.createDemoManually.bind(apiClient),
     getDemoPreferences: apiClient.getDemoPreferences.bind(apiClient),
     toggleDemoVisibility: apiClient.toggleDemoVisibility.bind(apiClient),
+
+    //Mockup Creation
+    fetchMockupTemplates: apiClient.fetchMockupTemplates.bind(apiClient),
+    createMockup: apiClient.createMockup.bind(apiClient),
+    fetchUserMockups: apiClient.fetchUserMockups.bind(apiClient),
 
     // File Upload & Storage
     uploadDocument: apiClient.uploadDocument.bind(apiClient),

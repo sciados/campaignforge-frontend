@@ -4,9 +4,12 @@ import React from "react";
 import dynamic from "next/dynamic";
 
 // Dynamically import to prevent SSR errors
-const MockupGenerator = dynamic(() => import("@/components/MockupGenerator"), {
-  ssr: false,
-});
+const MockupGenerator = dynamic(
+  () => import("src/components/MockupGenerator"),
+  {
+    ssr: false,
+  }
+);
 
 export default function MockupsPage() {
   return (
