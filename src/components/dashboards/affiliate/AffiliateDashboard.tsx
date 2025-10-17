@@ -578,7 +578,7 @@ const AffiliateDashboard: React.FC<AffiliateDashboardProps> = ({ config }) => {
             </Link>
 
             <Link
-              href="/dashboard/affiliate/mockups"
+              href="/mockups"
               className="flex flex-col items-center p-4 border rounded-lg hover:bg-gray-50 transition-colors"
             >
               <div className="text-2xl mb-2">🖼️</div>
