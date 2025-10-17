@@ -35,13 +35,16 @@ export default function MockupGenerator() {
       formData.append("product_image", productImage);
       formData.append("template_name", template);
 
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/mockups/`, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-        body: formData,
-      });
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/api/mockups/`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+          body: formData,
+        }
+      );
 
       if (!res.ok) {
         const errorData = await res.json();
